@@ -559,3 +559,12 @@ tests/            Vitest，256 项
 - 渲染层零 DOM 测试：布局与"画法"只能靠截图与真机活体逼近，改样式没有回归保护。
 
 ---
+
+## 许可
+
+MIT（见 `LICENSE`）。两点说明：
+
+- **仓库里不含 7-Zip 二进制**。`resources/bin/7z.exe|7z.dll` 由 `node tools/fetch-7z.cjs` 在构建前现拉 ——
+  7-Zip 的 LZMA 部分是 LGPL，但里面的 Rar 解码器是 unRAR freeware 许可，不允许二次分发。
+  装好之后 rar 能解；没拉的话 rar 相关功能会明确报"解压组件不支持"，不会假装成功。
+- Unity 桥接包 `resources/unity-bridge/com.avca.bridge/` 是本项目自己写的一小段编辑器脚本，随仓库一起 MIT。

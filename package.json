@@ -5,7 +5,7 @@
   "description": "Atrium（代号 A）—— VRChat 素材管家：拖入自动解压、读懂内容、自动分类归档、Unity 一键批量导入",
   "main": "./out/main/index.js",
   "author": "A",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "setup": "node tools/setup-native.cjs all",
