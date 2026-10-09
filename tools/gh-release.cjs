@@ -8,7 +8,10 @@
  *     得他先点头。
  *   - api.github.com 在这台机器上时通时不通 → 每个请求包重试（指数退避），-L 语义用
  *     fetch 的 redirect:'follow' 顶替。
- *   - 上传二进制必须 Content-Type: application/octet-stream，按表单传会 422。
+ *   - ⚠ **upload_url 带 URI 模板**（`…/releases/{id}/assets{?name,label}`），必须先把 `{…}` 剥掉再拼 `?name=`。
+ *     不剥的话 GitHub 回 `400 Multipart form data required`，换 multipart 打法回 `422 Bad Size` ——
+ *     **两句报错都在把人往 Content-Type 上带，其实和打法无关**（2026-10-09 第一次真发就在这儿绕了一圈，
+ *     最后拿 2 KB 探针打在草稿 Release 上、打完删草稿才定位到）。裸字节 + octet-stream 是通的。
  *   - 重跑要幂等：Release 已存在就改成 patch 正文；同名资产已存在且字节数一致就跳过，
  *     不一致才删掉重传（GitHub 不允许同名资产）。
  *
@@ -58,6 +61,8 @@ async function req(method, url, tok, opts = {}) {
   for (let i = 0; i < 5; i++) {
     try {
       const headers = {
+        /** GitHub 对没有 User-Agent 的写请求直接 403（"Request forbidden by administrative rules"） */
+        'User-Agent': 'atrium-release-tool',
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28'
       }
@@ -90,6 +95,74 @@ async function req(method, url, tok, opts = {}) {
     }
   }
   die('请求打不通：' + method + ' ' + url + ' —— ' + (lastErr && lastErr.message))
+}
+
+/**
+ * 传一个资产。两种打法按顺序试，**第一个 201 的就停下**：
+ *   raw  —— 官方文档那种：body 是裸字节 + `Content-Type: application/octet-stream`
+ *   form —— multipart 表单（字段名 `file`）
+ * 2026-10-09 第一次真发这台机器上 raw 被回 `400 {"message":"Multipart form data required"}`
+ * （`Content-Type` 明明设对了），所以留了这条兜底而不是赌一种打法。
+ * 返回 { ok, method, json }；两种都失败才 ok=false。
+ */
+async function uploadAsset(tok, rawUploadUrl, fileName, buf) {
+  /**
+   * ⚠ **必须先剥掉 URI 模板**。API 给的 upload_url 长这样：
+   *   https://uploads.github.com/repos/<o>/<r>/releases/<id>/assets{?name,label}
+   * 直接往后面拼 `?name=x` 会打成 `assets{?name,label}?name=x`，
+   * GitHub 回的却是 `400 Multipart form data required`（multipart 打法回 `422 Bad Size`）——
+   * **两句报错都在把人往错的方向带**。2026-10-09 第一次真发就卡在这儿，
+   * 拿 2 KB 探针打在草稿上、把模板剥掉立刻 201，才确认和 Content-Type、和打法都无关。
+   */
+  const uploadUrl = rawUploadUrl.replace(/\/assets\{[^}]*\}/, '/assets').replace(/\{[^}]*\}/g, '')
+  const target = uploadUrl + '?name=' + encodeURIComponent(fileName)
+  const tries = [
+    {
+      method: 'raw',
+      headers: { Authorization: 'Bearer ' + tok, 'User-Agent': 'atrium-release-tool', 'Content-Type': 'application/octet-stream' },
+      body: buf
+    },
+    {
+      method: 'form',
+      headers: { Authorization: 'Bearer ' + tok, 'User-Agent': 'atrium-release-tool' },
+      // 不设 Content-Type：FormData 自己带 boundary，手设会把 boundary 冲掉
+      body: (() => {
+        const fd = new FormData()
+        fd.append('file', new Blob([buf], { type: 'application/octet-stream' }), fileName)
+        return fd
+      })()
+    }
+  ]
+  let last = null
+  for (const t of tries) {
+    let res = null
+    for (let i = 0; i < 3; i++) {
+      try {
+        res = await fetch(uploadUrl + '?name=' + encodeURIComponent(fileName), {
+          method: 'POST',
+          headers: t.headers,
+          body: t.body,
+          redirect: 'follow'
+        })
+        break
+      } catch (e) {
+        console.log('    上传第 ' + (i + 1) + ' 次网络失败（' + e.message + '），重试')
+        await new Promise((r) => setTimeout(r, 2000 * (i + 1)))
+      }
+    }
+    if (!res) continue
+    const text = await res.text()
+    let json = null
+    try {
+      json = text ? JSON.parse(text) : null
+    } catch {
+      json = { raw: text.slice(0, 300) }
+    }
+    console.log('    ' + t.method + ' → HTTP ' + res.status + (res.status === 201 ? ' ✅' : ' ' + JSON.stringify(json).slice(0, 160)))
+    if (res.status === 201) return { ok: true, method: t.method, json }
+    last = { method: t.method, json }
+  }
+  return { ok: false, json: last && last.json }
 }
 
 /** 正文：去掉开头那行 `# Atrium 0.2.0`（Release 标题已经写过一次了） */
@@ -150,8 +223,8 @@ async function main() {
     console.log('  ✅ Release 已创建 → ' + c.json.html_url)
   }
 
-  const uploadUrl = rel.json.upload_url.replace('{name}', '').replace('{label}', '')
   const existing = rel.json.assets || []
+  const used = []
   for (const a of ASSETS) {
     const p = path.join(ROOT, a)
     const fileName = path.basename(p)
@@ -166,11 +239,14 @@ async function main() {
       const d = await req('DELETE', `https://api.github.com${same.url.replace(/^https?:\/\/api\.github\.com/, '')}`, tok)
       if (d.status !== 204) console.log('    ⚠ 删除返回 HTTP ' + d.status + '，继续试着传')
     }
+    console.log(`  传 ${fileName}（${(size / 1048576).toFixed(1)} MB）…`)
     const buf = fs.readFileSync(p)
-    const up = await req('POST', `${rel.json.upload_url}?name=${encodeURIComponent(fileName)}`, tok, { body: buf })
-    if (up.status !== 201) die('上传失败 ' + fileName + '：HTTP ' + up.status + ' ' + JSON.stringify(up.json).slice(0, 300))
-    console.log(`  ✅ 已上传 ${fileName}（${(size / 1048576).toFixed(1)} MB）→ ${up.json.browser_download_url}`)
+    const up = await uploadAsset(tok, rel.json.upload_url, fileName, buf)
+    if (!up.ok) die('上传失败 ' + fileName + '：' + JSON.stringify(up.json).slice(0, 300))
+    used.push(fileName + '=' + up.method)
+    console.log(`  ✅ 已上传 ${fileName}（用 ${up.method} 那种打法）→ ${up.json.browser_download_url}`)
   }
+  if (used.length) console.log('  上传打法：' + used.join('、'))
 
   const after = await req('GET', `https://api.github.com/repos/${OWNER}/${REPO}/releases/tags/${TAG}`, tok)
   console.log('\n发布页 ' + (after.json && after.json.html_url))

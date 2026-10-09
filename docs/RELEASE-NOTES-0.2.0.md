@@ -105,12 +105,22 @@ dist\Atrium-portable-0.2.0.exe     82.8 MB   便携版
    工具的几条硬规矩写在它文件头里，别拆：
    - token 只从 `GH_TOKEN` 环境变量或系统 git 凭证拿，**日志里只打长度，不打内容**，不落盘、不写 git config；
    - `api.github.com` 在这台机器上时通时不通 → 每个请求包 5 次退避重试；
-   - 上传二进制必须 `Content-Type: application/octet-stream`（按表单传会 422）；
-   - 重跑幂等：Release 已存在就 `PATCH` 正文；同名资产字节数一致就跳过、不一致才删掉重传。
+   - ⚠ **`upload_url` 带 URI 模板**（`…/assets{?name,label}`），必须先剥掉再拼 `?name=`。
+     不剥的话 GitHub 回的是 `400 Multipart form data required`（换 multipart 回 `422 Bad Size`），
+     **两句报错都把人往 Content-Type 上带，其实和打法无关** —— 2026-10-09 第一次真发就卡在这儿，
+     拿 2 KB 探针打在草稿 Release 上（打完连草稿删掉）才定位到；
+   - 裸字节 + `Content-Type: application/octet-stream` 是能用的，工具仍留了 multipart 兜底；
+   - 重跑幂等：Release 已存在就 `PATCH` 正文；同名资产字节数一致就跳过、不一致才删掉重传（真验过两遍）。
 3. 万一系统凭证不可用了，再走手工 PAT：GitHub → Settings → Developer settings →
    **Fine-grained token** → 只选这个仓库 → Permissions 给 **Contents: Read and write**，
    用完当场撤销。（经典 token 勾 `repo` 一项即可。）
 4. **公开发布必须他点头**：这个工具默认只读，`--create` 才是真发。
+
+> ✅ **2026-10-09 已经发了**：https://github.com/W4nN1ng/Atrium/releases/tag/v0.2.0
+> （tag 先 `git tag -f -a v0.2.0` 挪到含 `LICENSE` + MIT 的 `45555e5` 再建 Release）。
+> 发完核过：远端字节数 = 本地、**GitHub 自己算的 `digest` = 正文里那两串 SHA-256**、
+> 直链 `curl -r 0-15` 回 206 且头两字节是 `MZ`、正文与 `docs/release-body-0.2.0.md` 逐字一致。
+> 细节与那两个坑记在 `docs/VERIFY-UNVERIFIED.md` §13。
 
 **发布前必须过的闸**（第 8 轮 ③④⑤ 就是这三条）：
 

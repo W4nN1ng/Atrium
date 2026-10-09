@@ -711,16 +711,47 @@ MIT 许可（他选的）。**⑤ Setup.exe 真装 + 覆盖安装到现在还没
   真正的证据是**逐表 diff**（走 SQLite，看得见 WAL）；文件哈希那条对 WAL 是瞎的，
   所以它"没报变化"不能当证据用。
 
+### ⑥ 发布：v0.2.0 已经挂上 GitHub（2026-10-09 20:5x）
+
+https://github.com/W4nN1ng/Atrium/releases/tag/v0.2.0 —— 五条裁定他一次全批（tag 挪 / 署名 `W4nN1ng` /
+`E:\vrc\A` 留 / 24 GB 那句留 / 限制八条全留）。
+
+**tag 先挪再生成 Release**：`v0.2.0` 原来指 `d0f7023`（那里没有 `LICENSE`、`license` 还是 `UNLICENSED`、
+`dependencies` 里还有 `sharp`）→ `git tag -f -a v0.2.0` 挪到 `45555e5` 并强推，
+远端核对 `refs/tags/v0.2.0^{} = 45555e5`。
+
+**发布后逐条核过**（不是"建完就算发完"）：
+
+- 两个资产 `state=uploaded`、远端字节数与本地一致（86,999,306 / 86,772,677）；
+- **GitHub 自己算的 `digest` 与本地实算 SHA-256 逐位相同**（`c04a7259…` / `cc73aaf0…`），
+  也就是说正文里那两串哈希不是抄的，是远端也认的；
+- 下载直链 `curl -r 0-15` 回 HTTP 206、头两个字节 `MZ`（真的 Windows exe，不是 HTML 错误页）；
+- 正文与 `docs/release-body-0.2.0.md` **逐字一致**（sha16 `5e0e91e7b261b23b` 两边相同）；
+- 浏览器结构快照过了一遍页面：标题、下载表（大小 / 哈希都在）、七个小节、tag 与 commit 链接都对；
+  **截图没拿到**（内置浏览器没有可见表面，`take_screenshot` 直接报 `viewport=0x0`），这一条只有结构快照作数。
+- 重跑幂等验过：第二次 `--create` 走 `PATCH` 正文 + 两个资产"字节数一致 → 跳过"，没有重复资产。
+
+### ⑥ 的两个坑，都记在 `tools/gh-release.cjs` 文件头
+
+1. **`upload_url` 带 URI 模板**：API 给的是 `.../releases/{id}/assets{?name,label}`。
+   直接往后面拼 `?name=x` 打出去是 `assets{?name,label}?name=x`，
+   而 GitHub 回的报错是 **`400 Multipart form data required`**（换 multipart 打法回 **`422 Bad Size`**）——
+   **两句报错都在把人往"Content-Type 不对"的方向带，和打法一点关系没有**。
+   我是拿 2 KB 探针打在**草稿** Release 上（打完连草稿一起删，公开页面没被垃圾资产污染）才定位到的：
+   同一台机器、同一份裸字节，把模板剥掉立刻 201。
+2. **核对比分块解码更值得信**：我第一版校验脚本用 `res.on('data', d => b += d)` 逐块拼字符串，
+   中文被跨块的字节烧成一堆 `U+FFFD`，于是"正文和源文件差 6 个字符"是**假差异**。
+   改成 `res.setEncoding('utf8')` 之后逐字相等。这跟 ⑤ 那条 WAL 是同一类错：**量法错比代码错更难被发现**。
+
 ### 第 8 轮之后仍然挂着的
 
-- ❌ **发 Release**：正文 `docs/release-body-0.2.0.md` 已经终值化，工具 `tools/gh-release.cjs` 只读体检过了；
-  **等他点头**（还有一条要先裁：tag `v0.2.0` 现在指 `d0f7023`，那里没有 `LICENSE`、`license` 还是 `UNLICENSED`，
-  要不要挪到 `eb0d2ce`）
-- ❌ 测完之后快捷方式 / 注册表**留在安装版还是还原**（还原 = `node tools/make-shortcut.cjs`）—— 等他答
+- ❌ 测完之后快捷方式 / 注册表**留在安装版还是还原**（还原 = `node tools/make-shortcut.cjs`；
+  或者留着安装版、把 `IconLocation` 指到 `...\Atrium\resources\icon.ico` 把 A 图标换回来）—— 等他答
+- ❌ **卸载本身没实测**（正文里那句"卸载不删库"是配置层面的说法，我在正文里明写了没实测）
 - ❌ 「覆盖安装不丢密码库 / 已学规则」在**非空数据**上没证过（上面那条）
-- ❌ 代码签名（个人项目拿不到证书，正文里明写了）
 - ❌ ③ 真库真搬（`E:\vrc\A`）—— 等他点头
 - ❌ Q11 甲 #74、Q12 乙 #75、Q5 乙、Q7 乙 —— 原样挂着
+- ❌ 代码签名 —— 个人项目拿不到证书，正文与「已知限制」都明写了
 - 🟡 本轮修了 README 里三处 `%APPDATA%A`（应是 `%APPDATA%\A`，路径被我吃掉一个反斜杠）。
   **同一类错还有一处在源码注释里**（`src/main/ingest/worker.ts:255` `%APPDATA%Alexicon.user.json`），
   **没改**：`tools/pkg-version.cjs` 与 `tools/live-m7-packaged.cjs` 都有一道"asar 必须比 `src/` 新"的闸，
