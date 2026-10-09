@@ -743,6 +743,33 @@ https://github.com/W4nN1ng/Atrium/releases/tag/v0.2.0 —— 五条裁定他一�
    中文被跨块的字节烧成一堆 `U+FFFD`，于是"正文和源文件差 6 个字符"是**假差异**。
    改成 `res.setEncoding('utf8')` 之后逐字相等。这跟 ⑤ 那条 WAL 是同一类错：**量法错比代码错更难被发现**。
 
+### 图标换 v4「斜顶」+ 覆盖安装**装不上了**（22:33–22:5x，未解决）
+
+黑底白 A 定稿 v4（`tools/make_icon.py` 现在出四个方案 + `--preview` 对照图，
+`build/preview-icon-variants.png` 是三方案 × 256/64/32/24/16 × 浅灰/中灰/白底）。
+重出包之后 `dist/win-unpacked/resources/icon.ico` 与 `build/icon.ico` 逐字节一致 ✅。
+
+**然后覆盖安装开始失败，退出码 2，屏幕上弹错误框（他被打扰了三次，是我的错——失败重试前应该先停手问）。**
+已排除与确认的：
+
+| 试过什么 | 结果 |
+|---|---|
+| 装到原来的目录（工具 `--stage=overwrite`） | 退出码 2，**文件一个字节都没改**（`Atrium.exe` 还是 19:25 那份） |
+| 装到全新目录 `/D=D:\...\icon-probe` | 同样退出码 2，目录都没建出来 → 不是"旧文件被占住" |
+| 把 `include: build/installer.nsh` 注释掉重打 | 仍然 2 → **不是那段自定义脚本** |
+| 有没有残留安装器进程 / 临时目录 | 没有 → 不是单实例互斥 |
+
+剩下的嫌疑只有两处（**都还没排除，别再靠"改一处装一次"去试，那等于让他多点三次关闭**）：
+`nsis.installerIcon` / `uninstallerIcon` 这两行新配置，或者 Pillow 出的那张 `icon.ico` 本身
+（256 那一档是 PNG 压缩的，NSIS 嵌卸载器时可能不认）。**缺的就是错误框上那行字。**
+
+当下按他说的走"只换图标文件"：`tools/set-installed-icon.cjs` 把 `build/icon.{ico,png}` 直接
+拷进 `<安装目录>\resources\`，再把桌面与开始菜单两条 `.lnk` 的 `IconLocation` 指到
+`resources\icon.ico,0`（装完那一刻 NSIS 原本会把它写成 `Atrium.exe,0`），最后 `ie4uinit -show` 刷图标缓存。
+核过：`resources/icon.ico` 哈希 `a99ebfedbe95` = `build/icon.ico`，两条 .lnk 都读回新路径。
+**⚠ 这只治本机这一份** —— 已经挂在 Release 上的两个 exe 里还是旧图标，
+而且**新出的这两个包在装机验证通过之前不能传上去**（装不上就等于发出去一个坏包）。
+
 ### 第 8 轮之后仍然挂着的
 
 - ❌ 测完之后快捷方式 / 注册表**留在安装版还是还原**（还原 = `node tools/make-shortcut.cjs`；
