@@ -759,9 +759,32 @@ https://github.com/W4nN1ng/Atrium/releases/tag/v0.2.0 —— 五条裁定他一�
 | 把 `include: build/installer.nsh` 注释掉重打 | 仍然 2 → **不是那段自定义脚本** |
 | 有没有残留安装器进程 / 临时目录 | 没有 → 不是单实例互斥 |
 
-剩下的嫌疑只有两处（**都还没排除，别再靠"改一处装一次"去试，那等于让他多点三次关闭**）：
-`nsis.installerIcon` / `uninstallerIcon` 这两行新配置，或者 Pillow 出的那张 `icon.ico` 本身
-（256 那一档是 PNG 压缩的，NSIS 嵌卸载器时可能不认）。**缺的就是错误框上那行字。**
+#### 真凶（00:3x–00:4x，非静默走一遍向导才看见的）
+
+用 Win32 枚举窗口 + 自动点按钮把**非静默**的安装器走了一遍，抓到的框是：
+
+> **Atrium 无法关闭。请手动关闭它，然后单击"重试"继续。**
+> 静默模式下同一件事长成：**Failed to uninstall old application files. Please try running the installer again.: 2**
+
+也就是：**覆盖安装前，安装器要静默跑一遍旧版本的卸载器**；那一刻只要还有任何
+`Atrium.exe` 活着，旧卸载器就返回 2 → 整个安装中止。而 Electron 的 crashpad / GPU 子进程
+在主进程被 `Stop-Process` 之后**还会多活几秒** —— 我前面每次都是"杀完等 3 秒就装"，
+正好撞在这个窗口里。和图标文件、和 `installerIcon`/`uninstallerIcon`、和自定义脚本，**全都无关**
+（探测①②已经把它们逐个洗清了，那两次是因为探测身份没有旧卸载项，压根不走这一步）。
+
+**修法与验证**：等到 `Get-CimInstance Win32_Process -Filter "Name='Atrium.exe'"` 一条不剩再装。
+按安装器原样单独跑旧卸载器 → **退出码 0**（141 个文件删掉 140，剩的是卸载器自己）；
+紧接着 `Setup /S` → **退出码 0**，`Atrium.exe`/`app.asar` 都是新构建，
+**`resources\icon.ico` 29,316 字节是安装器自己拷进去的**（不再依赖手工替换）；
+桌面 `.lnk` 的 `IconLocation` 仍是 `resources\icon.ico,0` —— NSIS 的 keepShortcuts 在升级时保留了它。
+装完 `--stage=diff` 对账：**红 0 条**（16 张表一字不差，只有 `project.last_seen` 按预期刷新）。
+新构建启动日志正常：`检索索引就绪：372 条素材、9689 条别名、122ms`、`工程发现：登记 9 个；运行中 0 个`、
+`4 秒后窗口状态：visible=true`。
+
+⚠ 留给工具的一条改进（没做）：`tools/live-r8-install.cjs` 现在只 `Stop-Process` + 固定 sleep，
+应该改成**轮询到没有 `Atrium.exe` 为止**再跑安装器，否则这台机器上还会随机撞同一个坑。
+
+
 
 #### 探测包把两处嫌疑都洗清了（23:53–00:0x）
 
@@ -797,6 +820,8 @@ https://github.com/W4nN1ng/Atrium/releases/tag/v0.2.0 —— 五条裁定他一�
   正文里那两串指纹**与远端资产逐条核过一致**（`node tools/verify-release-page.cjs`），
   所以页面自洽，只是两个包不一致。要把 Portable 换成配套的，得 `--replace-assets`（等点头）。
   旧 Setup 那份二进制本地已被覆盖、远端已删 —— **回不去了，只能往前走**。
+- ✅ **Setup 那条"覆盖安装装不上"已经解决**（根因是旧卸载器撞子进程，见上面「真凶」），
+  本机现在跑的就是新构建、新图标；装完 `--stage=diff` 红 0 条。
 
 - ❌ 测完之后快捷方式 / 注册表**留在安装版还是还原**（还原 = `node tools/make-shortcut.cjs`；
   或者留着安装版、把 `IconLocation` 指到 `...\Atrium\resources\icon.ico` 把 A 图标换回来）—— 等他答
