@@ -5,6 +5,8 @@ dist/
 # 全部由 tools/setup-native.cjs 与 tools/fetch-7z.cjs 按需重下，不进仓库
 vendor/cache/
 vendor/prebuilds/*.node
+# active.json 只是"本机现在装的是哪个 ABI"的记账（每次 npm run native:* 都重写），不进版本库
+vendor/prebuilds/active.json
 *.log
 .DS_Store
 .vite/

@@ -619,6 +619,70 @@ powershell -File tools/topmost.ps1 -Action list  # 看这个进程到底有哪�
 - 🟡 渲染层画法仍然只有截图（零 DOM 测试）：`M7-13`/`M7-17`/`M7-27`/`M7-35` 四条在 `M7_RULES` 里明写未验证
 -  R4 ③ 在真库 `E:\vrc\A` 上真搬一次 —— **仍然等他点头**
 
+---
+
+## 13. 第 8 轮 · 发布收尾（2026-10-09）
+
+① 版本号 0.2.0 + 徽章只写 `v0.2.0`、② README 常见问题/已知限制重写、③ 全量回归 + 两张变异表重跑、
+④ 出两种包、⑥ 脱敏后推 `main` + tag（**只推一个干净的初始提交**，89 条开发史留本地 `master`）、
+MIT 许可（他选的）。**⑤ Setup.exe 真装 + 覆盖安装到现在还没跑。**
+
+### ⚠ 今天第二次碰到他的真数据（17:24，打包版）
+
+想知道 `dist\win-unpacked\Atrium.exe` 是 0.1.0 还是 0.2.0，顺手敲了 `Atrium.exe --version`。
+**打包版 Electron 不认这个参数**（只有默认 app 或显式处理它的 app 才有），于是它按普通启动跑起来了：
+日志第一行 `数据库就绪 %APPDATA%\A\library.db`，随后 `工程发现：登记 9 个`。
+只读复核结果：`library.db` 2,408,448 → **2,412,544** 字节，`project` 九行 `last_seen` 被刷成当时那一刻
+（17:24:42–17:25:41），**其余各表逐行核对无变化**（`setting` 0 行、`password_vault` 0 行、`asset` 372、
+`journal` 596、`import_log` 1），没装桥接、没写任何工程目录。已经跟他完整交代过。
+
+两道护栏因此落地，都不靠"下次记得"：
+- `src/main/services/paths.ts` 的 `requireSandboxHome()` —— `AVCA_REQUIRE_SANDBOX_HOME=1` 而算出来的
+  运行时目录不像沙盒（`/(avca|sandbox|-live)/i`）就**拒绝启动**；用例把它和 `initAppPaths` 的接线也钉住了
+  （`tests/services/app-home.spec.ts` 10 条）。
+- `tools/pkg-version.cjs` —— 读产物版本**不起进程**。
+
+### ④b 产物重出：17:35 那两个包不能发
+
+`sharp`（19:03 删）和 `license: MIT`（19:09 改）都在构建**之后**。查 `app.asar` 实证两条都中了：
+包里的 `package.json` 还写着 `UNLICENSED`，而且 `sharp` + `@img/sharp-win32-x64`
+（`libvips-42.dll` / `libvips-cpp.dll` / `sharp-win32-x64.node`）被 electron-builder 整个打进了包。
+19:25 重出：Setup 88.9 → **83.0 MB**、Portable 88.7 → **82.8 MB**，`unpacked/node_modules` 只剩 `better-sqlite3`。
+**教训：改 `package.json` 里的 `dependencies` 或 `license` 等于改产物，必须重打包**，不能指望"反正代码没动"。
+
+### 我写的新闸门自己是一条空断言（被合成包打回）
+
+`pkg-version.cjs` 第一版用 `head.includes('node_modules\\sharp')` 查"包里有没有多余的包"，
+拿合成假包一测**根本不红** —— asar 头部是嵌套 JSON（`{"files":{"node_modules":{"files":{"sharp":…}}}}`），
+整个文件里没有 `node_modules\sharp` 这种连续子串（`asar list` 打出来的斜线路径是它自己拼的）。
+改成**解析头部**（`[12..15]` 是 JSON 长度、`[16..]` 是 JSON，1041 字节的合成包对上了）再遍历 `files` 树。
+第二版又误报：拿直接 `dependencies` 比，把 87 个 transitive 包全点成了"多出来的"；
+第三版按 `package-lock` 求**传递闭包**，且解析时必须先就近找 `X/node_modules/Y` 再退回顶层
+（只查顶层会漏 `fast-uri` / `require-from-string` —— 它们挂在 `conf/node_modules/ajv` 下面）。
+
+现在三条闸都有红有绿：`license` 不一致 → 红；包里有闭包外的 `sharp` → 红（同时放过 `better-sqlite3`）；
+真包 → 绿（87 ⊂ 91）。**这条记下来是因为它差点以"绿"的面目进发布清单。**
+
+### 顺手记两条工具自己的错
+
+- `npx asar extract-file <包> package.json` **把文件解到当前目录**，19:17 我在仓库根跑了一次，
+  直接覆盖了仓库的 `package.json`（`git checkout --` 还原，之后逐字节核对与 HEAD 一致）。
+  这个工具改成只读进内存，文件头写了别再这么用。
+- 全量用例数今天两轮不一样：**19:16 那轮 1368 通过 / 10 跳过，19:19 verbose 那轮 1369 / 9**，
+  总数都是 1378（106 个文件、5 个文件按环境整份跳过）。差的那一条是
+  `tests/bridge/compile-check.spec.ts`，它的 skip 条件是"找不到 Unity 的 `dotnet.exe`"或"缺引用程序集"，
+  **为什么两轮不同没查到底** —— 发出去的数字取能复现的那轮（1369/9）。
+
+### 第 8 轮之后仍然挂着的
+
+- ❌ **⑤ Setup.exe 真装 + 覆盖安装后用户改动不丢**（`tools/live-r8-install.cjs` 四场 `snapshot|install|overwrite|diff`
+  已就位，需 `AVCA_REAL_INSTALL=1`；前置指纹在 `%TEMP%\avca-r8-snapshot.json`，
+  **注意那份快照已经含 17:24 误启动的影响**，对比时要如实说明）
+- ❌ 测完之后桌面快捷方式 / 右键菜单**留在安装版还是还原**（还原 = `node tools/make-shortcut.cjs`）—— 等他答
+- ❌ 代码签名（个人项目拿不到证书，正文里明写了）
+- ❌ ③ 真库真搬（`E:\vrc\A`）—— 等他点头
+- ❌ Q11 甲 #74、Q12 乙 #75、Q5 乙、Q7 乙 —— 原样挂着
+
 
 
 

@@ -81,44 +81,43 @@
 产物（`npm run build` 之后）：
 
 ```
-dist\Atrium-Setup-0.2.0.exe        ~93 MB   NSIS 安装版
-dist\Atrium-portable-0.2.0.exe     ~93 MB   便携版
+dist\Atrium-Setup-0.2.0.exe        83.0 MB   NSIS 安装版
+dist\Atrium-portable-0.2.0.exe     82.8 MB   便携版
 ```
 
-上传与发 Release 的步骤（**需要他现场建 PAT，这台机器没有 gh、没有凭证**）：
+> **19:25 重出过一次**（第 8 轮 ④b）。17:35 那批是在「去掉从未使用的 `sharp` 依赖」（19:03）
+> 与「license 从 UNLICENSED 改 MIT」（19:09）之前构建的：`app.asar` 里的 `package.json` 仍写着
+> `UNLICENSED`，并且 electron-builder 按当时的 `dependencies` 把 `sharp` + `@img/sharp-win32-x64`
+> （`libvips-42.dll` / `libvips-cpp.dll` / `sharp-win32-x64.node`）整个打进了包。
+> 重出之后 `node tools/pkg-version.cjs` 三条都绿（版本号 / license / 依赖清单），包小了 5.9 MB。
+> 旧的两个 exe 直接作废，别发也别拿它们测。
 
-1. 他在浏览器上建一个 token：GitHub → Settings → Developer settings →
-   **Fine-grained token** → 选中目标仓库 → Permissions 给 **Contents: Read and write** → 复制。
-   （经典 token 也行，勾 `repo` 那一项就够。）
-2. 仓库地址填这里：`https://github.com/<owner>/<repo>.git` —— 目前本仓库**还没有 remote**，
-   也没打过 tag，所以这两步都是第一次。
-3. 我这边执行（token 只在命令行里用一次，不落盘、不写进 git config）：
+上传与发 Release 的步骤（**2026-10-09 更正**：这台机器上 git 凭证管理器里已经存了能推这个仓库的凭证，
+`git push` 与只读 API 都已经实测通；不再需要他现场建 PAT，除非那条凭证被撤销）：
+
+1. 已完成：`origin = https://github.com/W4nN1ng/Atrium.git`、`main` 已推、tag `v0.2.0` 已推。
+   推上去的是**一个干净的初始提交**（89 条开发史留在本地 `master`，不公开），截图全留。
+2. 建 Release 与传产物都用这个工具，不要手搓 curl：
    ```bash
-   git remote add origin https://github.com/<owner>/<repo>.git
-   git tag v0.2.0
-   git push origin main --follow-tags        # 需要 token；github.com 在这台机器上时通时不通
+   node tools/gh-release.cjs                     # 只读体检：认证到谁、tag 在不在、Release 有没有、两个产物多大
+   node tools/gh-release.cjs --create            # 真发（正文取 docs/release-body-0.2.0.md）
    ```
-4. 建 Release 并传两个 exe（走 REST，不依赖 gh）：
-   ```bash
-   # 4.1 先把上面那份说明的正文塞进一个 JSON 字段里（中文不要内联在命令行，会被 shell 吃掉）：
-   #     node -e "const fs=require('fs');fs.writeFileSync('/tmp/rel.json',JSON.stringify({tag_name:'v0.2.0',name:'Atrium 0.2.0',body:fs.readFileSync('docs/RELEASE-NOTES-0.2.0.md','utf8').split('# 附：发布操作清单')[0],draft:false,prerelease:false}))"
-   curl -L -X POST https://api.github.com/repos/<owner>/<repo>/releases \
-     -H "Authorization: Bearer <TOKEN>" -H "Accept: application/vnd.github+json" \
-     --data @/tmp/rel.json
-   #   → 返回体里的 upload_url 就是下一步要打的地址
-   # 4.2 上传资产（每个文件一次）
-   curl -L -X POST "<upload_url>?name=Atrium-Setup-0.2.0.exe" \
-     -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/octet-stream" \
-     --data-binary "@dist/Atrium-Setup-0.2.0.exe"
-   ```
-   ⚠ 这台机器上 `api.github.com` 要包重试（时通时不通），`-L` 不能省。
-   ⚠ 4.2 那步是**二进制上传**，`Content-Type` 必须是 `application/octet-stream`，
-      按表单字段传会 422（第一次发的人最容易在这儿翻车）。
-5. 发完把 token 撤销掉（他只给这一次用途）。
+   工具的几条硬规矩写在它文件头里，别拆：
+   - token 只从 `GH_TOKEN` 环境变量或系统 git 凭证拿，**日志里只打长度，不打内容**，不落盘、不写 git config；
+   - `api.github.com` 在这台机器上时通时不通 → 每个请求包 5 次退避重试；
+   - 上传二进制必须 `Content-Type: application/octet-stream`（按表单传会 422）；
+   - 重跑幂等：Release 已存在就 `PATCH` 正文；同名资产字节数一致就跳过、不一致才删掉重传。
+3. 万一系统凭证不可用了，再走手工 PAT：GitHub → Settings → Developer settings →
+   **Fine-grained token** → 只选这个仓库 → Permissions 给 **Contents: Read and write**，
+   用完当场撤销。（经典 token 勾 `repo` 一项即可。）
+4. **公开发布必须他点头**：这个工具默认只读，`--create` 才是真发。
 
 **发布前必须过的闸**（第 8 轮 ③④⑤ 就是这三条）：
 
-- [x] 全量 `npm test` 绿 + 双 `tsc` 干净 + `node tools/selfcheck-r4.cjs` 退出码 0（2026-10-09 17:36：**1369 passed / 9 skipped（106 文件）**，双 tsc 干净，selfcheck 0）
+- [x] 全量 `npm test` 绿 + 双 `tsc` 干净 + `node tools/selfcheck-r4.cjs` 退出码 0（2026-10-09 19:19 verbose 重跑：**1369 passed / 9 skipped（1378 项、106 个文件，其中 5 个文件按环境整份跳过）**）
+      ⚠ 同日 19:16 那一轮是 1368 / 10 —— 总数一样，`tests/bridge/compile-check.spec.ts` 有一条按环境跳过，
+      原因没查到底（那条用例的 skip 条件是「找不到 Unity 的 dotnet.exe」或「缺引用程序集」），发出去的数字取能复现的那一轮
 - [x] 两张变异回扫表都 exit 0：`verify-red-r4`（基线 353 全绿、42 处全钉住）、`verify-red-m7`（基线 103 全绿、29 处全钉住）—— 2026-10-09 16:5x 各跑一轮，**串行**跑，不与别的重活并行
 - [ ] `Setup.exe` 真装 + **覆盖安装之后用户改动不丢**（`tools/live-r8-install.cjs`，工具已就位、**还没跑**）（口语增量、库根、已学规则、`password_vault`）
-- [ ] 产物里 asar 比源码新；`resources/i18n/*.json` 三语齐全（中文文案不在 asar 里，别在 asar 里搜）
+- [x] 产物里 asar 比源码新；`resources/i18n/*.json` 三语齐全（中文文案不在 asar 里，别在 asar 里搜）
+      —— 19:25 重出后实测：`en/ja/zh-CN.json` 三份都在 `resources/i18n/`，`pkg-version` 退出码 0
