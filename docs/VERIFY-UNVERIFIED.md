@@ -763,6 +763,25 @@ https://github.com/W4nN1ng/Atrium/releases/tag/v0.2.0 —— 五条裁定他一�
 `nsis.installerIcon` / `uninstallerIcon` 这两行新配置，或者 Pillow 出的那张 `icon.ico` 本身
 （256 那一档是 PNG 压缩的，NSIS 嵌卸载器时可能不认）。**缺的就是错误框上那行字。**
 
+#### 探测包把两处嫌疑都洗清了（23:53–00:0x）
+
+用**另一个身份**打探测包（`-c.appId=com.avca.probe -c.productName=AtriumProbe`，装到 `D:\avca-m7-live\probe\`），
+这样它的卸载项/快捷方式都不会碰他真正那一份（事前把 `HKCU\...\Uninstall` 整份 `reg export` 到
+`D:\avca-m7-live\probe-safe\uninstall.reg` 留底）。跑完立刻用各自的卸载器静默拆掉 + 删目录，
+核过：卸载项只剩 `Atrium 0.2.0` 一条、桌面只剩 `Atrium.lnk`、探测构建目录已清。
+
+| 探测 | 配置 | 结果 |
+|---|---|---|
+| ① | 与已发布那次**完全相同**（只有图标文件换了，没有 `installerIcon`/`uninstallerIcon`、没有 `include`） | **退出码 0，文件真装出来了** |
+| ② | 加回 `installerIcon` + `uninstallerIcon` | **仍然退出码 0** |
+
+所以：**打包本身是好的，那两行配置也是好的**，失败**绑在"真实身份 + 这台机器上已存在的那份安装"上** ——
+`com.avca.a-manager` 一用就 2，换成 `com.avca.probe` 就 0。
+一个还没验的猜测：NSIS 的 `InstallDirRegKey` 让 `/D=` 在**已注册过的身份**上失效，
+所以那三次"装到 D 盘新目录"其实都在往 `C:\...\Programs\Atrium` 装 —— 但为什么装不动仍然没证据。
+**要知道答案只差错误框上那行字**（下次跑真安装器时别用 `/S`，让框弹出来照抄）。
+
+
 当下按他说的走"只换图标文件"：`tools/set-installed-icon.cjs` 把 `build/icon.{ico,png}` 直接
 拷进 `<安装目录>\resources\`，再把桌面与开始菜单两条 `.lnk` 的 `IconLocation` 指到
 `resources\icon.ico,0`（装完那一刻 NSIS 原本会把它写成 `Atrium.exe,0`），最后 `ie4uinit -show` 刷图标缓存。
@@ -771,6 +790,13 @@ https://github.com/W4nN1ng/Atrium/releases/tag/v0.2.0 —— 五条裁定他一�
 而且**新出的这两个包在装机验证通过之前不能传上去**（装不上就等于发出去一个坏包）。
 
 ### 第 8 轮之后仍然挂着的
+
+- ⚠ **发布页两个包不是同一次构建**：`Atrium-Setup-0.2.0.exe` = 新图标那次构建
+  （87,026,344 字节 / `6f559e8f…`，探测①证明这套打包能装），
+  `Atrium-portable-0.2.0.exe` = 19:25 那次旧构建（86,772,677 字节 / `cc73aaf0…`，旧图标）。
+  正文里那两串指纹**与远端资产逐条核过一致**（`node tools/verify-release-page.cjs`），
+  所以页面自洽，只是两个包不一致。要把 Portable 换成配套的，得 `--replace-assets`（等点头）。
+  旧 Setup 那份二进制本地已被覆盖、远端已删 —— **回不去了，只能往前走**。
 
 - ❌ 测完之后快捷方式 / 注册表**留在安装版还是还原**（还原 = `node tools/make-shortcut.cjs`；
   或者留着安装版、把 `IconLocation` 指到 `...\Atrium\resources\icon.ico` 把 A 图标换回来）—— 等他答
