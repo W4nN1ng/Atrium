@@ -118,6 +118,10 @@ dist\Atrium-portable-0.2.0.exe     82.8 MB   便携版
       ⚠ 同日 19:16 那一轮是 1368 / 10 —— 总数一样，`tests/bridge/compile-check.spec.ts` 有一条按环境跳过，
       原因没查到底（那条用例的 skip 条件是「找不到 Unity 的 dotnet.exe」或「缺引用程序集」），发出去的数字取能复现的那一轮
 - [x] 两张变异回扫表都 exit 0：`verify-red-r4`（基线 353 全绿、42 处全钉住）、`verify-red-m7`（基线 103 全绿、29 处全钉住）—— 2026-10-09 16:5x 各跑一轮，**串行**跑，不与别的重活并行
-- [ ] `Setup.exe` 真装 + **覆盖安装之后用户改动不丢**（`tools/live-r8-install.cjs`，工具已就位、**还没跑**）（口语增量、库根、已学规则、`password_vault`）
+- [x] `Setup.exe` 真装 + **覆盖安装之后用户改动不丢** —— 2026-10-09 20:21 跑完（`tools/live-r8-install.cjs`
+      `snapshot → install → overwrite`，红 0 条）：升级不弹向导、徽章 `v0.2.0`、库根还是 `E:/vrc/A`、
+      16 张表逐表一字不差（只有 `project.last_seen` 按预期刷新）、`E:\vrc\A` 2305 文件 / 24.32 GB 一个字节没动。
+      ⚠ **有两条在这台机器上是空的**：`categories.user.json` 本来就不存在、`password_vault`/`learning` 都是 0 行，
+      所以"记住的密码 / 已学规则不被覆盖安装弄丢"这句**没有真数据证过**（细节记 `docs/VERIFY-UNVERIFIED.md` §13）
 - [x] 产物里 asar 比源码新；`resources/i18n/*.json` 三语齐全（中文文案不在 asar 里，别在 asar 里搜）
       —— 19:25 重出后实测：`en/ja/zh-CN.json` 三份都在 `resources/i18n/`，`pkg-version` 退出码 0

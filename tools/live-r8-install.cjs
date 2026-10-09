@@ -18,6 +18,15 @@
  *     `learning` / `collection` / `tag` 必须**一字不差**；`project` 表允许 `last_seen` 与 `is_running` 变
  *     （那是任何一次正常启动都会做的事），**其它列一变就报红**。
  *
+ * ## ⚠ 这台机器上跑出来的两条"空判据"（2026-10-09 ⑤ 之后补的，别把它读成"证过了"）
+ *
+ *  - `categories.user.json` **他根本没有这个文件**，`password_vault` / `learning` / `setting` 都是 0 行。
+ *    于是"覆盖安装不丢口语增量 / 不丢记住的密码 / 不丢已学规则"三条只证明了"没有东西可丢"。
+ *  - `files.library_db` 只哈希主文件，**没算 `-wal`**：这场所有写入都在 WAL 里
+ *    （主文件 2,412,544 字节 / mtime 17:24 全程没变，`library.db-wal` 从 0 涨到 5,141,792）。
+ *    所以**逐表 diff（走 SQLite，看得见 WAL）才是证据**，文件哈希那一条对 WAL 是瞎的。
+ *    真要证密码库不丢，得先有一份非空数据 —— 沙盒里有，但安装器从不看沙盒，补不了这一条。
+ *
  * ## 用法（顺序就是这里的顺序）
  *
  *   node tools/live-r8-install.cjs --stage=snapshot          # 只读：装之前的指纹

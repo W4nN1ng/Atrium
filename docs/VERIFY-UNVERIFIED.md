@@ -673,15 +673,59 @@ MIT 许可（他选的）。**⑤ Setup.exe 真装 + 覆盖安装到现在还没
   `tests/bridge/compile-check.spec.ts`，它的 skip 条件是"找不到 Unity 的 `dotnet.exe`"或"缺引用程序集"，
   **为什么两轮不同没查到底** —— 发出去的数字取能复现的那轮（1369/9）。
 
+### ⑤ Setup.exe 真装 + 覆盖安装（20:21–20:22，四场全跑，**红 0 条**）
+
+这台机器上**第一次真装**。顺序 `snapshot → install → diff 内建 → overwrite`，
+`AVCA_REAL_INSTALL=1` 带的后两场；起实例之前查过：`Atrium`/`unity`/`electron` 三个进程都没有、
+`E:\ALCOMprojects` 九个工程一个 `Temp/UnityLockFile` 都没有。
+
+| 判据 | 结果 |
+|---|---|
+| 老用户升级**没被首启向导拦**（`settings.json` 里 `onboardingDone` 其实是 false，但库根早设过 → `needsLibrarySetup` 判 false） | ✅ 屏上有「收件箱」、没有「首次配置」、侧栏没有「库还没配好」 |
+| 右上角徽章 `v0.2.0`（内部代号不上界面） | ✅ |
+| 状态栏库根还是 `E:/vrc/A` | ✅ |
+| 装完 + 起过一次，逐表对账 | ✅ 16 张表一字不差（`asset` 372 / `variant` 269 / `search_alias` 9689 / `journal` 596 / `tag` 44 / `asset_group` 138 / `import_log` 1 …）；只有 `project` 九行 `last_seen` 按预期刷新 |
+| **覆盖安装之后没有被当成全新安装**、版本还是 `v0.2.0`、`settings.json` 九个关键字段不变 | ✅ 三条都过 |
+| 素材本体没动（只读复核） | ✅ `E:\vrc\A` 装前装后都是 **2305 文件 / 513 目录 / 24.32 GB / 最新 mtime 2026-10-05T19:59:37Z** |
+| 备份没落在 C: | ✅ `D:\avca-m7-live\real-backup\pre-install-2026100912213` 与 `pre-overwrite-2026100912215` |
+
+**这台机器上留下的东西**（都是这场测试的应有产物，问他要不要清）：
+`%LOCALAPPDATA%\Programs\Atrium\`（含 `Uninstall Atrium.exe`）、HKCU 卸载登记 `Atrium 0.2.0`、
+开始菜单 `Atrium.lnk`、**桌面 `Atrium.lnk` 被安装器改指到安装版**（原来指 `dist\win-unpacked`，
+基线 sha16 `3b9fde6b62b7df26` / mtime 2026-10-04；现在 `IconLocation` 是 `Atrium.exe,0`，
+因为 `signAndEditExecutable: false` → **桌面上的图标变成 Electron 默认那个**，
+想留安装版又想要 A 图标就把 `IconLocation` 指到 `...\Atrium\resources\icon.ico`）。
+右键那三条「发送到 Atrium」（`HKCU\Software\Classes\{*,Directory,Directory\Background}\shell\Atrium.Ingest`）
+**不是这场装的，指向的还是 `dist\win-unpacked\Atrium.exe`** —— 安装器没碰注册表那三处。
+
+### ⑤ 里三条**在这台机器上是空的**，别当成证过了
+
+- `categories.user.json` —— **他根本没有这个文件**（「本来就没有 → 没有」），
+  所以"覆盖安装不改写口语增量"这条**没被证明**，只被证明"没有文件可改"。
+- `password_vault` 0 行、`learning` 0 行、`setting` 0 行 —— 这三张表的"一字不差"是**空表的一字不差**。
+  真要证"记住的密码 / 已学规则不会被覆盖安装弄丢"，得先有一份非空数据：
+  第 7 轮 ⑧ 的沙盒里有（`D:\avca-m7-live`，`password_vault` 当时恰好一行 48 字节密文），
+  但那是重定向的运行目录，安装器从来不看那儿 → **仍然算未验证**。
+- 工具只把 `library.db` 主文件做了哈希指纹，**没算 `-wal`**。这场实际写入全在 WAL 里
+  （主文件还是 2,412,544 字节 / mtime 17:24 没变，`library.db-wal` 涨到 5,141,792 / 20:22）。
+  真正的证据是**逐表 diff**（走 SQLite，看得见 WAL）；文件哈希那条对 WAL 是瞎的，
+  所以它"没报变化"不能当证据用。
+
 ### 第 8 轮之后仍然挂着的
 
-- ❌ **⑤ Setup.exe 真装 + 覆盖安装后用户改动不丢**（`tools/live-r8-install.cjs` 四场 `snapshot|install|overwrite|diff`
-  已就位，需 `AVCA_REAL_INSTALL=1`；前置指纹在 `%TEMP%\avca-r8-snapshot.json`，
-  **注意那份快照已经含 17:24 误启动的影响**，对比时要如实说明）
-- ❌ 测完之后桌面快捷方式 / 右键菜单**留在安装版还是还原**（还原 = `node tools/make-shortcut.cjs`）—— 等他答
+- ❌ **发 Release**：正文 `docs/release-body-0.2.0.md` 已经终值化，工具 `tools/gh-release.cjs` 只读体检过了；
+  **等他点头**（还有一条要先裁：tag `v0.2.0` 现在指 `d0f7023`，那里没有 `LICENSE`、`license` 还是 `UNLICENSED`，
+  要不要挪到 `eb0d2ce`）
+- ❌ 测完之后快捷方式 / 注册表**留在安装版还是还原**（还原 = `node tools/make-shortcut.cjs`）—— 等他答
+- ❌ 「覆盖安装不丢密码库 / 已学规则」在**非空数据**上没证过（上面那条）
 - ❌ 代码签名（个人项目拿不到证书，正文里明写了）
 - ❌ ③ 真库真搬（`E:\vrc\A`）—— 等他点头
 - ❌ Q11 甲 #74、Q12 乙 #75、Q5 乙、Q7 乙 —— 原样挂着
+- 🟡 本轮修了 README 里三处 `%APPDATA%A`（应是 `%APPDATA%\A`，路径被我吃掉一个反斜杠）。
+  **同一类错还有一处在源码注释里**（`src/main/ingest/worker.ts:255` `%APPDATA%Alexicon.user.json`），
+  **没改**：`tools/pkg-version.cjs` 与 `tools/live-m7-packaged.cjs` 都有一道"asar 必须比 `src/` 新"的闸，
+  动 `src/` 就得重打包，而产物哈希刚定稿进正文。留到下一轮第一条，改完立刻 `npm run build`。
+
 
 
 
