@@ -1,0 +1,15 @@
+{
+  "name": "com.avca.bridge",
+  "version": "1.0.0",
+  "displayName": "Atrium Bridge",
+  "description": "Atrium 与 Unity 之间的本地文件信箱桥接。只读命令文件、不做任何联网请求。",
+  "unity": "2022.3",
+  "author": {
+    "name": "Atrium"
+  },
+  "keywords": [
+    "atrium",
+    "avca",
+    "bridge"
+  ]
+}

@@ -1,0 +1,1631 @@
+{
+  "version": 1,
+  "note": "一级/二级分类表。物理目录名用 libraryLocale 对应的 label；UI 显示按当前语言。用户可在设置页增删改。",
+  "categories": [
+    {
+      "key": "model",
+      "order": 10,
+      "label": {
+        "zh-CN": "模型",
+        "en": "Models",
+        "ja": "モデル"
+      },
+      "subcategories": [
+        {
+          "key": "base",
+          "label": {
+            "zh-CN": "素体",
+            "en": "Base body",
+            "ja": "素体"
+          },
+          "synonyms": [
+            "素体模型",
+            "身体",
+            "body"
+          ]
+        },
+        {
+          "key": "finished",
+          "label": {
+            "zh-CN": "成品模型",
+            "en": "Finished avatar",
+            "ja": "完成モデル"
+          },
+          "synonyms": [
+            "完成品",
+            "成品",
+            "完成モデル",
+            "ready"
+          ]
+        },
+        {
+          "key": "head",
+          "label": {
+            "zh-CN": "头部",
+            "en": "Head",
+            "ja": "頭部"
+          },
+          "synonyms": [
+            "头部模型",
+            "頭部",
+            "head"
+          ]
+        },
+        {
+          "key": "body_part",
+          "label": {
+            "zh-CN": "身体部件",
+            "en": "Body parts",
+            "ja": "身体パーツ"
+          },
+          "synonyms": [
+            "部件",
+            "肢体",
+            "身体パーツ",
+            "part"
+          ]
+        },
+        {
+          "key": "retrofit",
+          "label": {
+            "zh-CN": "模型改造",
+            "en": "Retrofit",
+            "ja": "改造"
+          },
+          "synonyms": [
+            "改造",
+            "改模",
+            "改造モデル",
+            "mod"
+          ]
+        }
+      ],
+      "synonyms": [
+        "アバター",
+        "avatar",
+        "人物",
+        "角色",
+        "3d模型",
+        "モデル",
+        "全身"
+      ]
+    },
+    {
+      "key": "clothing",
+      "order": 20,
+      "label": {
+        "zh-CN": "服装",
+        "en": "Clothing",
+        "ja": "衣装"
+      },
+      "subcategories": [
+        {
+          "key": "top",
+          "label": {
+            "zh-CN": "上衣",
+            "en": "Tops",
+            "ja": "トップス"
+          },
+          "synonyms": [
+            "上装",
+            "tops",
+            "shirt",
+            "ブラウス"
+          ]
+        },
+        {
+          "key": "bottom",
+          "label": {
+            "zh-CN": "下装",
+            "en": "Bottoms",
+            "ja": "ボトムス"
+          },
+          "synonyms": [
+            "裤子",
+            "裙子",
+            "ボトム",
+            "pants",
+            "skirt"
+          ]
+        },
+        {
+          "key": "dress",
+          "label": {
+            "zh-CN": "连衣裙",
+            "en": "Dress",
+            "ja": "ワンピース"
+          },
+          "topicTags": [
+            "换装"
+          ],
+          "synonyms": [
+            "洋装",
+            "礼服",
+            "ドレス",
+            "onepiece"
+          ]
+        },
+        {
+          "key": "underwear",
+          "label": {
+            "zh-CN": "内衣泳装",
+            "en": "Lingerie & swim",
+            "ja": "下着・水着"
+          },
+          "synonyms": [
+            "内衣",
+            "泳装",
+            "水着",
+            "下着",
+            "swimsuit"
+          ]
+        },
+        {
+          "key": "outfit",
+          "label": {
+            "zh-CN": "套装",
+            "en": "Outfit",
+            "ja": "コーディネート"
+          },
+          "synonyms": [
+            "一套",
+            "全身套",
+            "コーデ",
+            "coordinate"
+          ]
+        },
+        {
+          "key": "coat",
+          "label": {
+            "zh-CN": "外套",
+            "en": "Coat",
+            "ja": "アウター"
+          },
+          "synonyms": [
+            "外套",
+            "大衣",
+            "コート",
+            "jacket"
+          ]
+        },
+        {
+          "key": "kimono",
+          "label": {
+            "zh-CN": "和服",
+            "en": "Kimono",
+            "ja": "着物"
+          },
+          "topicTags": [
+            "和风"
+          ],
+          "synonyms": [
+            "和装",
+            "振袖",
+            "着物",
+            "kimono"
+          ]
+        },
+        {
+          "key": "uniform",
+          "label": {
+            "zh-CN": "制服",
+            "en": "Uniform",
+            "ja": "制服"
+          },
+          "synonyms": [
+            "校服",
+            "制服",
+            "セーラー",
+            "uniform"
+          ]
+        },
+        {
+          "key": "socks",
+          "label": {
+            "zh-CN": "袜子",
+            "en": "Socks",
+            "ja": "靴下"
+          },
+          "synonyms": [
+            "袜子",
+            "长筒袜",
+            "靴下",
+            "socks"
+          ]
+        },
+        {
+          "key": "shoes",
+          "label": {
+            "zh-CN": "鞋子",
+            "en": "Shoes",
+            "ja": "靴"
+          },
+          "synonyms": [
+            "ブーツ",
+            "shoes",
+            "boots"
+          ]
+        },
+        {
+          "key": "gloves",
+          "label": {
+            "zh-CN": "手套",
+            "en": "Gloves",
+            "ja": "手袋"
+          },
+          "synonyms": [
+            "手袋",
+            "グローブ",
+            "gloves"
+          ]
+        }
+      ],
+      "synonyms": [
+        "衣服",
+        "衣装",
+        "穿搭",
+        "换装",
+        "clothes",
+        "ウェア",
+        "クローズ"
+      ]
+    },
+    {
+      "key": "hair",
+      "order": 30,
+      "label": {
+        "zh-CN": "头发",
+        "en": "Hair",
+        "ja": "髪"
+      },
+      "subcategories": [
+        {
+          "key": "long",
+          "label": {
+            "zh-CN": "长发",
+            "en": "Long hair",
+            "ja": "ロング"
+          },
+          "synonyms": [
+            "長い髪",
+            "longhair"
+          ]
+        },
+        {
+          "key": "short",
+          "label": {
+            "zh-CN": "短发",
+            "en": "Short hair",
+            "ja": "ショート"
+          },
+          "synonyms": [
+            "短发",
+            "ボブ",
+            "shorthair"
+          ]
+        },
+        {
+          "key": "twintail",
+          "label": {
+            "zh-CN": "双马尾",
+            "en": "Twin tails",
+            "ja": "ツインテール"
+          },
+          "synonyms": [
+            "双马尾",
+            "ツインテール",
+            "twintail"
+          ]
+        },
+        {
+          "key": "bangs",
+          "label": {
+            "zh-CN": "刘海",
+            "en": "Bangs",
+            "ja": "前髪"
+          },
+          "synonyms": [
+            "刘海",
+            "前发",
+            "前髪",
+            "bangs"
+          ]
+        },
+        {
+          "key": "hairwear",
+          "label": {
+            "zh-CN": "发饰",
+            "en": "Hairwear",
+            "ja": "髪飾り"
+          },
+          "synonyms": [
+            "发饰",
+            "发卡",
+            "ヘアアクセ"
+          ]
+        },
+        {
+          "key": "full",
+          "label": {
+            "zh-CN": "全套发型",
+            "en": "Hairstyle set",
+            "ja": "セットアップ"
+          },
+          "synonyms": [
+            "全套发型",
+            "发型套",
+            "full hair"
+          ]
+        }
+      ],
+      "synonyms": [
+        "发型",
+        "假发",
+        "头发模型",
+        "ヘア",
+        "ヘアー",
+        "hair"
+      ]
+    },
+    {
+      "key": "accessory",
+      "order": 40,
+      "label": {
+        "zh-CN": "配饰",
+        "en": "Accessories",
+        "ja": "アクセサリー"
+      },
+      "subcategories": [
+        {
+          "key": "glasses",
+          "label": {
+            "zh-CN": "眼镜",
+            "en": "Glasses",
+            "ja": "眼鏡"
+          },
+          "synonyms": [
+            "眼镜",
+            "墨镜",
+            "メガネ",
+            "glasses"
+          ]
+        },
+        {
+          "key": "earring",
+          "label": {
+            "zh-CN": "耳饰",
+            "en": "Earrings",
+            "ja": "イヤリング"
+          },
+          "synonyms": [
+            "耳环",
+            "耳钉",
+            "ピアス",
+            "earring"
+          ]
+        },
+        {
+          "key": "headwear",
+          "label": {
+            "zh-CN": "头饰",
+            "en": "Headwear",
+            "ja": "ヘッドアクセ"
+          },
+          "synonyms": [
+            "头饰",
+            "帽子",
+            "发箍",
+            "ヘッドウェア",
+            "headwear"
+          ]
+        },
+        {
+          "key": "tail",
+          "label": {
+            "zh-CN": "尾巴",
+            "en": "Tail",
+            "ja": "尻尾"
+          },
+          "synonyms": [
+            "尾巴",
+            "兽尾",
+            "尻尾",
+            "tail"
+          ]
+        },
+        {
+          "key": "ears",
+          "label": {
+            "zh-CN": "兽耳",
+            "en": "Animal ears",
+            "ja": "けものみみ"
+          },
+          "synonyms": [
+            "兽耳",
+            "耳朵",
+            "ケモミミ",
+            "ears"
+          ]
+        },
+        {
+          "key": "horn",
+          "label": {
+            "zh-CN": "角",
+            "en": "Horns",
+            "ja": "角"
+          },
+          "synonyms": [
+            "兽角",
+            "ツノ",
+            "horn"
+          ]
+        },
+        {
+          "key": "wings",
+          "label": {
+            "zh-CN": "翅膀",
+            "en": "Wings",
+            "ja": "翼"
+          },
+          "synonyms": [
+            "翅膀",
+            "羽翼",
+            "ウィング",
+            "wings"
+          ]
+        },
+        {
+          "key": "necklace",
+          "label": {
+            "zh-CN": "项链",
+            "en": "Necklace",
+            "ja": "ネックレス"
+          },
+          "synonyms": [
+            "项链",
+            "颈饰",
+            "ネックレス",
+            "necklace"
+          ]
+        },
+        {
+          "key": "ring",
+          "label": {
+            "zh-CN": "戒指",
+            "en": "Rings",
+            "ja": "指輪"
+          },
+          "synonyms": [
+            "戒指",
+            "指环",
+            "リング",
+            "ring"
+          ]
+        },
+        {
+          "key": "bag",
+          "label": {
+            "zh-CN": "背包",
+            "en": "Bags",
+            "ja": "バッグ"
+          },
+          "synonyms": [
+            "背包",
+            "包包",
+            "手提包",
+            "バッグ",
+            "bag"
+          ]
+        },
+        {
+          "key": "mask",
+          "label": {
+            "zh-CN": "面具",
+            "en": "Mask",
+            "ja": "仮面"
+          },
+          "synonyms": [
+            "面具",
+            "面罩",
+            "マスク",
+            "mask"
+          ]
+        }
+      ],
+      "synonyms": [
+        "饰品",
+        "首饰",
+        "配件",
+        "小物",
+        "挂件",
+        "アクセ",
+        "アクセサリー"
+      ]
+    },
+    {
+      "key": "texture",
+      "order": 50,
+      "label": {
+        "zh-CN": "贴图",
+        "en": "Textures",
+        "ja": "テクスチャ"
+      },
+      "subcategories": [
+        {
+          "key": "skin",
+          "label": {
+            "zh-CN": "皮肤",
+            "en": "Skin",
+            "ja": "肌"
+          },
+          "synonyms": [
+            "皮肤贴图",
+            "スキン",
+            "skin"
+          ]
+        },
+        {
+          "key": "face",
+          "label": {
+            "zh-CN": "脸部",
+            "en": "Face",
+            "ja": "顔"
+          },
+          "synonyms": [
+            "脸部贴图",
+            "面部",
+            "face"
+          ]
+        },
+        {
+          "key": "eye",
+          "label": {
+            "zh-CN": "眼睛",
+            "en": "Eyes",
+            "ja": "目"
+          },
+          "synonyms": [
+            "眼睛贴图",
+            "eye"
+          ]
+        },
+        {
+          "key": "clothing_texture",
+          "label": {
+            "zh-CN": "服装贴图",
+            "en": "Clothing texture",
+            "ja": "衣装テクスチャ"
+          },
+          "synonyms": [
+            "衣服贴图",
+            "服装纹理"
+          ]
+        },
+        {
+          "key": "tattoo",
+          "label": {
+            "zh-CN": "纹身",
+            "en": "Tattoo",
+            "ja": "タトゥー"
+          },
+          "synonyms": [
+            "纹身",
+            "刺青",
+            "タトゥー",
+            "tattoo"
+          ]
+        },
+        {
+          "key": "makeup",
+          "label": {
+            "zh-CN": "化妆",
+            "en": "Makeup",
+            "ja": "メイク"
+          },
+          "topicTags": [
+            "化妆"
+          ],
+          "synonyms": [
+            "化妆",
+            "妆容",
+            "メイク",
+            "makeup"
+          ]
+        },
+        {
+          "key": "expression",
+          "label": {
+            "zh-CN": "表情贴图",
+            "en": "Expression",
+            "ja": "顔テクスチャ"
+          },
+          "synonyms": [
+            "表情贴图",
+            "表情图",
+            "フェイス",
+            "expression"
+          ]
+        },
+        {
+          "key": "psd",
+          "label": {
+            "zh-CN": "PSD源文件",
+            "en": "PSD source",
+            "ja": "PSD"
+          },
+          "synonyms": [
+            "分层源文件",
+            "psd源文件",
+            "源文件"
+          ]
+        }
+      ],
+      "synonyms": [
+        "纹理",
+        "贴图文件",
+        "图片素材",
+        "テクスチャ",
+        "texture"
+      ]
+    },
+    {
+      "key": "material",
+      "order": 60,
+      "label": {
+        "zh-CN": "材质",
+        "en": "Materials",
+        "ja": "マテリアル"
+      },
+      "subcategories": [
+        {
+          "key": "mat",
+          "label": {
+            "zh-CN": "材质球",
+            "en": "Material",
+            "ja": "マテリアル"
+          },
+          "synonyms": [
+            "材质球",
+            "mat"
+          ]
+        },
+        {
+          "key": "preset",
+          "label": {
+            "zh-CN": "材质预设",
+            "en": "Preset",
+            "ja": "プリセット"
+          },
+          "synonyms": [
+            "预设",
+            "预设材质",
+            "preset"
+          ]
+        },
+        {
+          "key": "matcap",
+          "label": {
+            "zh-CN": "MatCap",
+            "en": "MatCap",
+            "ja": "MatCap"
+          },
+          "synonyms": [
+            "matcap材质",
+            "金属球贴图"
+          ]
+        },
+        {
+          "key": "pack",
+          "label": {
+            "zh-CN": "材质包",
+            "en": "Material pack",
+            "ja": "マテリアルセット"
+          },
+          "synonyms": [
+            "材质包",
+            "材质合集",
+            "mat pack"
+          ]
+        }
+      ],
+      "synonyms": [
+        "材质球",
+        "材质包",
+        "マテリアル",
+        "material",
+        "mtl"
+      ]
+    },
+    {
+      "key": "shader",
+      "order": 70,
+      "label": {
+        "zh-CN": "着色器",
+        "en": "Shaders",
+        "ja": "シェーダー"
+      },
+      "subcategories": [
+        {
+          "key": "general",
+          "label": {
+            "zh-CN": "通用",
+            "en": "General",
+            "ja": "汎用"
+          },
+          "synonyms": [
+            "通用着色器",
+            "标准着色器"
+          ]
+        },
+        {
+          "key": "skin",
+          "label": {
+            "zh-CN": "皮肤",
+            "en": "Skin",
+            "ja": "肌"
+          },
+          "synonyms": [
+            "皮肤着色",
+            "皮肤渲染"
+          ]
+        },
+        {
+          "key": "clothing",
+          "label": {
+            "zh-CN": "服装",
+            "en": "Clothing",
+            "ja": "衣装"
+          },
+          "synonyms": [
+            "衣服着色",
+            "服装渲染"
+          ]
+        },
+        {
+          "key": "effect",
+          "label": {
+            "zh-CN": "特效",
+            "en": "Effect",
+            "ja": "エフェクト"
+          },
+          "synonyms": [
+            "特效",
+            "粒子特效",
+            "エフェクト",
+            "effect"
+          ]
+        },
+        {
+          "key": "post",
+          "label": {
+            "zh-CN": "后处理",
+            "en": "Post process",
+            "ja": "ポストプロセス"
+          },
+          "synonyms": [
+            "后处理",
+            "后处理效果",
+            "ポストエフェクト",
+            "post process"
+          ]
+        }
+      ],
+      "synonyms": [
+        "着色",
+        "着色文件",
+        "シェーダー",
+        "shader"
+      ]
+    },
+    {
+      "key": "plugin",
+      "order": 80,
+      "label": {
+        "zh-CN": "插件",
+        "en": "Plugins",
+        "ja": "プラグイン"
+      },
+      "subcategories": [
+        {
+          "key": "action",
+          "label": {
+            "zh-CN": "动作类",
+            "en": "Action",
+            "ja": "モーション"
+          },
+          "topicTags": [
+            "动作"
+          ],
+          "synonyms": [
+            "动作插件",
+            "动作系统",
+            "action"
+          ]
+        },
+        {
+          "key": "expression",
+          "label": {
+            "zh-CN": "表情类",
+            "en": "Expression",
+            "ja": "表情"
+          },
+          "topicTags": [
+            "表情"
+          ],
+          "synonyms": [
+            "表情插件",
+            "表情菜单",
+            "emote"
+          ]
+        },
+        {
+          "key": "closet",
+          "label": {
+            "zh-CN": "换装类",
+            "en": "Closet",
+            "ja": "着せ替え"
+          },
+          "topicTags": [
+            "换装"
+          ],
+          "synonyms": [
+            "换装插件",
+            "衣柜",
+            "closet",
+            "服装切换"
+          ]
+        },
+        {
+          "key": "physics",
+          "label": {
+            "zh-CN": "物理类",
+            "en": "Physics",
+            "ja": "物理"
+          },
+          "topicTags": [
+            "物理"
+          ],
+          "synonyms": [
+            "物理",
+            "物理骨骼",
+            "physics"
+          ]
+        },
+        {
+          "key": "optimizer",
+          "label": {
+            "zh-CN": "优化类",
+            "en": "Optimizer",
+            "ja": "最適化"
+          },
+          "topicTags": [
+            "优化"
+          ],
+          "synonyms": [
+            "优化",
+            "性能优化",
+            "optimizer",
+            "fps"
+          ]
+        },
+        {
+          "key": "camera",
+          "label": {
+            "zh-CN": "相机类",
+            "en": "Camera",
+            "ja": "カメラ"
+          },
+          "topicTags": [
+            "相机"
+          ],
+          "synonyms": [
+            "相机",
+            "拍照",
+            "摄影",
+            "camera"
+          ]
+        },
+        {
+          "key": "interactive",
+          "label": {
+            "zh-CN": "交互类",
+            "en": "Interactive",
+            "ja": "インタラクション"
+          },
+          "topicTags": [
+            "交互",
+            "gimmick"
+          ],
+          "synonyms": [
+            "交互",
+            "可交互",
+            "interactive"
+          ]
+        },
+        {
+          "key": "menu_ui",
+          "label": {
+            "zh-CN": "菜单UI类",
+            "en": "Menu & UI",
+            "ja": "メニューUI"
+          },
+          "topicTags": [
+            "UI"
+          ],
+          "synonyms": [
+            "菜单",
+            "界面",
+            "菜单脚本",
+            "ui"
+          ]
+        },
+        {
+          "key": "sound",
+          "label": {
+            "zh-CN": "音效类",
+            "en": "Sound",
+            "ja": "音"
+          },
+          "topicTags": [
+            "音效"
+          ],
+          "synonyms": [
+            "音效插件",
+            "声音插件"
+          ]
+        },
+        {
+          "key": "tracker",
+          "label": {
+            "zh-CN": "追踪类",
+            "en": "Tracking",
+            "ja": "トラッキング"
+          },
+          "topicTags": [
+            "追踪"
+          ],
+          "synonyms": [
+            "追踪",
+            "计数追踪",
+            "tracker"
+          ]
+        },
+        {
+          "key": "upload",
+          "label": {
+            "zh-CN": "上传类",
+            "en": "Upload",
+            "ja": "アップロード"
+          },
+          "topicTags": [
+            "上传"
+          ],
+          "synonyms": [
+            "上传",
+            "上传工具",
+            "upload"
+          ]
+        },
+        {
+          "key": "editor",
+          "label": {
+            "zh-CN": "编辑器类",
+            "en": "Editor",
+            "ja": "エディタ"
+          },
+          "topicTags": [
+            "编辑器"
+          ],
+          "synonyms": [
+            "编辑器工具",
+            "editor工具",
+            "editor"
+          ]
+        },
+        {
+          "key": "network",
+          "label": {
+            "zh-CN": "网络同步类",
+            "en": "Network sync",
+            "ja": "ネットワーク"
+          },
+          "topicTags": [
+            "同步"
+          ],
+          "synonyms": [
+            "网络",
+            "同步",
+            "联机",
+            "network",
+            "sync"
+          ]
+        },
+        {
+          "key": "framework",
+          "label": {
+            "zh-CN": "依赖框架类",
+            "en": "Framework",
+            "ja": "フレームワーク"
+          },
+          "topicTags": [
+            "框架"
+          ],
+          "synonyms": [
+            "依赖",
+            "框架",
+            "前置",
+            "framework",
+            "dependency"
+          ]
+        },
+        {
+          "key": "other",
+          "label": {
+            "zh-CN": "其他插件",
+            "en": "Other plugins",
+            "ja": "その他"
+          },
+          "synonyms": [
+            "其他插件"
+          ]
+        }
+      ],
+      "synonyms": [
+        "脚本",
+        "组件",
+        "系统",
+        "功能",
+        "プラグイン",
+        "plugin",
+        "sdk"
+      ]
+    },
+    {
+      "key": "animation",
+      "order": 90,
+      "label": {
+        "zh-CN": "动画",
+        "en": "Animation",
+        "ja": "アニメーション"
+      },
+      "subcategories": [
+        {
+          "key": "motion",
+          "label": {
+            "zh-CN": "动作",
+            "en": "Motion",
+            "ja": "モーション"
+          },
+          "topicTags": [
+            "动作"
+          ],
+          "synonyms": [
+            "动作",
+            "动作数据",
+            "モーション"
+          ]
+        },
+        {
+          "key": "dance",
+          "label": {
+            "zh-CN": "舞蹈",
+            "en": "Dance",
+            "ja": "ダンス"
+          },
+          "synonyms": [
+            "舞蹈",
+            "跳舞",
+            "ダンス",
+            "dance"
+          ]
+        },
+        {
+          "key": "idle",
+          "label": {
+            "zh-CN": "待机",
+            "en": "Idle",
+            "ja": "待機"
+          },
+          "synonyms": [
+            "待机",
+            "站姿",
+            "待机动作",
+            "idle"
+          ]
+        },
+        {
+          "key": "facial",
+          "label": {
+            "zh-CN": "表情动画",
+            "en": "Facial",
+            "ja": "表情アニメ"
+          },
+          "topicTags": [
+            "表情"
+          ],
+          "synonyms": [
+            "表情",
+            "面部动画",
+            "フィシャル",
+            "facial"
+          ]
+        },
+        {
+          "key": "controller",
+          "label": {
+            "zh-CN": "动画控制器",
+            "en": "Animator controller",
+            "ja": "アニメータ"
+          },
+          "synonyms": [
+            "动画控制器",
+            "animator",
+            "控制器"
+          ]
+        },
+        {
+          "key": "preset",
+          "label": {
+            "zh-CN": "动画预设",
+            "en": "Animation preset",
+            "ja": "プリセット"
+          },
+          "synonyms": [
+            "动画预设"
+          ]
+        }
+      ],
+      "synonyms": [
+        "动作",
+        "动画片段",
+        "动效",
+        "アニメ",
+        "モーション",
+        "animation",
+        "anim",
+        "motion"
+      ]
+    },
+    {
+      "key": "audio",
+      "order": 100,
+      "label": {
+        "zh-CN": "音频",
+        "en": "Audio",
+        "ja": "音"
+      },
+      "subcategories": [
+        {
+          "key": "se",
+          "label": {
+            "zh-CN": "音效",
+            "en": "Sound effect",
+            "ja": "効果音"
+          },
+          "topicTags": [
+            "音效"
+          ],
+          "synonyms": [
+            "音效",
+            "短音",
+            "効果音",
+            "se"
+          ]
+        },
+        {
+          "key": "music",
+          "label": {
+            "zh-CN": "音乐",
+            "en": "Music",
+            "ja": "音楽"
+          },
+          "synonyms": [
+            "音乐",
+            "曲子",
+            "bgm",
+            "music"
+          ]
+        },
+        {
+          "key": "voice",
+          "label": {
+            "zh-CN": "语音",
+            "en": "Voice",
+            "ja": "ボイス"
+          },
+          "synonyms": [
+            "语音",
+            "人声",
+            "ボイス",
+            "voice"
+          ]
+        },
+        {
+          "key": "ambient",
+          "label": {
+            "zh-CN": "环境音",
+            "en": "Ambient",
+            "ja": "環境音"
+          },
+          "synonyms": [
+            "环境音",
+            "氛围音",
+            "環境音",
+            "ambient"
+          ]
+        }
+      ],
+      "synonyms": [
+        "声音",
+        "音效",
+        "音乐",
+        "语音",
+        "bgm",
+        "音声",
+        "sound",
+        "audio"
+      ]
+    },
+    {
+      "key": "prop",
+      "order": 110,
+      "label": {
+        "zh-CN": "道具",
+        "en": "Props",
+        "ja": "道具"
+      },
+      "subcategories": [
+        {
+          "key": "weapon",
+          "label": {
+            "zh-CN": "武器",
+            "en": "Weapon",
+            "ja": "武器"
+          },
+          "topicTags": [
+            "武器"
+          ],
+          "synonyms": [
+            "武器",
+            "武器模型",
+            "ウェポン",
+            "weapon"
+          ]
+        },
+        {
+          "key": "food",
+          "label": {
+            "zh-CN": "食物",
+            "en": "Food",
+            "ja": "食べ物"
+          },
+          "synonyms": [
+            "食物",
+            "食品",
+            "食べ物",
+            "food"
+          ]
+        },
+        {
+          "key": "furniture",
+          "label": {
+            "zh-CN": "家具",
+            "en": "Furniture",
+            "ja": "家具"
+          },
+          "synonyms": [
+            "家具",
+            "家私",
+            "ファニチャー",
+            "furniture"
+          ]
+        },
+        {
+          "key": "decor",
+          "label": {
+            "zh-CN": "装饰",
+            "en": "Decor",
+            "ja": "装飾"
+          },
+          "synonyms": [
+            "装饰",
+            "摆件",
+            "装飾",
+            "decor"
+          ]
+        },
+        {
+          "key": "fx_prop",
+          "label": {
+            "zh-CN": "特效道具",
+            "en": "FX prop",
+            "ja": "演出小物"
+          },
+          "synonyms": [
+            "特效道具",
+            "特效件",
+            "fx"
+          ]
+        }
+      ],
+      "synonyms": [
+        "物品",
+        "物件",
+        "手持",
+        "小道具",
+        "プロップ",
+        "prop",
+        "props"
+      ]
+    },
+    {
+      "key": "world",
+      "order": 120,
+      "label": {
+        "zh-CN": "场景世界",
+        "en": "Worlds",
+        "ja": "ワールド"
+      },
+      "subcategories": [
+        {
+          "key": "map",
+          "label": {
+            "zh-CN": "地图",
+            "en": "Map",
+            "ja": "マップ"
+          },
+          "synonyms": [
+            "地图",
+            "世界地图",
+            "マップ",
+            "map"
+          ]
+        },
+        {
+          "key": "world_prop",
+          "label": {
+            "zh-CN": "场景道具",
+            "en": "World prop",
+            "ja": "ワールド小物"
+          },
+          "synonyms": [
+            "场景道具",
+            "世界道具"
+          ]
+        },
+        {
+          "key": "skybox",
+          "label": {
+            "zh-CN": "天空盒",
+            "en": "Skybox",
+            "ja": "スカイボックス"
+          },
+          "synonyms": [
+            "天空盒",
+            "天空",
+            "スカイボックス",
+            "skybox"
+          ]
+        }
+      ],
+      "synonyms": [
+        "地图",
+        "场景",
+        "世界",
+        "房间",
+        "会所",
+        "ワールド",
+        "world",
+        "map"
+      ]
+    },
+    {
+      "key": "tool",
+      "order": 130,
+      "label": {
+        "zh-CN": "工具软件",
+        "en": "Tools",
+        "ja": "ツール"
+      },
+      "subcategories": [
+        {
+          "key": "modeling",
+          "label": {
+            "zh-CN": "建模",
+            "en": "Modeling",
+            "ja": "モデリング"
+          },
+          "synonyms": [
+            "建模",
+            "建模工具",
+            "モデリング",
+            "modeling"
+          ]
+        },
+        {
+          "key": "texturing",
+          "label": {
+            "zh-CN": "纹理",
+            "en": "Texturing",
+            "ja": "テクスチャ作成"
+          },
+          "synonyms": [
+            "贴图工具",
+            "纹理工具",
+            "纹理制作"
+          ]
+        },
+        {
+          "key": "convert",
+          "label": {
+            "zh-CN": "转换",
+            "en": "Converter",
+            "ja": "変換"
+          },
+          "synonyms": [
+            "转换",
+            "格式转换",
+            "コンバータ",
+            "convert"
+          ]
+        },
+        {
+          "key": "compress",
+          "label": {
+            "zh-CN": "压缩",
+            "en": "Compressor",
+            "ja": "圧縮"
+          },
+          "synonyms": [
+            "压缩",
+            "瘦身",
+            "圧縮",
+            "compress"
+          ]
+        },
+        {
+          "key": "other",
+          "label": {
+            "zh-CN": "其他工具",
+            "en": "Other tools",
+            "ja": "その他"
+          },
+          "synonyms": [
+            "其他工具"
+          ]
+        }
+      ],
+      "synonyms": [
+        "软件",
+        "编辑器",
+        "实用工具",
+        "ツール",
+        "tool",
+        "tools",
+        "utility"
+      ]
+    },
+    {
+      "key": "reference",
+      "order": 140,
+      "label": {
+        "zh-CN": "参考资料",
+        "en": "Reference",
+        "ja": "資料"
+      },
+      "subcategories": [
+        {
+          "key": "ref_image",
+          "label": {
+            "zh-CN": "参考图",
+            "en": "Reference image",
+            "ja": "参考画像"
+          },
+          "synonyms": [
+            "参考图",
+            "设定图",
+            "参考画像"
+          ]
+        },
+        {
+          "key": "tutorial",
+          "label": {
+            "zh-CN": "教程",
+            "en": "Tutorial",
+            "ja": "チュートリアル"
+          },
+          "synonyms": [
+            "教程",
+            "教学",
+            "指南",
+            "チュートリアル",
+            "tutorial"
+          ]
+        },
+        {
+          "key": "doc",
+          "label": {
+            "zh-CN": "文档",
+            "en": "Document",
+            "ja": "ドキュメント"
+          },
+          "synonyms": [
+            "文档",
+            "说明书",
+            "说明",
+            "ドキュメント",
+            "doc"
+          ]
+        },
+        {
+          "key": "video",
+          "label": {
+            "zh-CN": "视频",
+            "en": "Video",
+            "ja": "動画"
+          },
+          "synonyms": [
+            "视频",
+            "影像",
+            "動画",
+            "video"
+          ]
+        }
+      ],
+      "synonyms": [
+        "资料",
+        "文档",
+        "手册",
+        "说明",
+        "教程",
+        "指南",
+        "リファレンス",
+        "reference",
+        "docs"
+      ]
+    },
+    {
+      "key": "other",
+      "order": 150,
+      "label": {
+        "zh-CN": "其他",
+        "en": "Other",
+        "ja": "その他"
+      },
+      "subcategories": [
+        {
+          "key": "unclassified",
+          "label": {
+            "zh-CN": "未归类",
+            "en": "Unclassified",
+            "ja": "未分類"
+          },
+          "synonyms": [
+            "未归类",
+            "没分类"
+          ]
+        },
+        {
+          "key": "bundle",
+          "label": {
+            "zh-CN": "合集",
+            "en": "Bundle",
+            "ja": "セット"
+          },
+          "synonyms": [
+            "合集",
+            "同捆",
+            "bundle"
+          ]
+        }
+      ],
+      "synonyms": [
+        "其它",
+        "未分类",
+        "杂项",
+        "misc",
+        "other"
+      ]
+    }
+  ]
+}

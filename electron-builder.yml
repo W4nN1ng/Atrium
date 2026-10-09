@@ -1,0 +1,86 @@
+appId: com.avca.a-manager
+productName: Atrium
+executableName: Atrium
+copyright: 'Atrium'
+
+directories:
+  output: dist
+  buildResources: build
+
+# 这台机器上 GitHub 的 release 下载不通，而 electron-builder 默认要从 GitHub 拉 Electron 发行包。
+# 直接指向本地已经解压好的 Electron，绕开下载。
+electronVersion: 33.4.11
+electronDist: node_modules/electron/dist
+
+files:
+  - 'out/**/*'
+  - '!**/*.map'
+
+# 原生模块与运行时读取的外部资源必须解出 asar，
+# 否则 better-sqlite3 打包后必崩（第 1 份 §12 坑 1）
+asar: true
+asarUnpack:
+  - 'node_modules/better-sqlite3/**'
+  - 'node_modules/@img/**'
+  - '**/*.node'
+  # worker_threads 读不了 asar 里的脚本；worker.js 还依赖同目录的共享 chunk，
+  # 所以整个 out/main 都解出来（asar 不是安全边界，多解没坏处）
+  - 'out/main/**'
+
+# 关键：不让 electron-builder 去跑 @electron/rebuild。
+# 这台机器上没有 Windows SDK，源码编译必然失败；
+# 我们改用 npmmirror 上现成的 prebuilt .node（见 tools/setup-native.cjs）。
+npmRebuild: false
+nodeGypRebuild: false
+
+extraResources:
+  - from: 'build/icon.png'
+    to: 'icon.png'
+  - from: 'build/icon.ico'
+    to: 'icon.ico'
+  # 托盘菜单要和界面共用一份文案，而主进程读不到渲染进程 bundle 里的 JSON
+  - from: 'src/renderer/i18n'
+    to: 'i18n'
+    filter: ['**/*.json']
+  - from: 'resources/lexicon'
+    to: 'lexicon'
+    filter: ['**/*.json']
+  - from: 'resources/unity-bridge'
+    to: 'unity-bridge'
+    filter: ['**/*']
+  - from: 'resources/bin'
+    to: 'bin'
+    filter: ['**/*']
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  icon: build/icon.ico
+  artifactName: 'Atrium-Setup-${version}.${ext}'
+  requestedExecutionLevel: asInvoker
+  # 关掉它才不需要 winCodeSign 工具链：那个包里带 macOS 符号链接，
+  # Windows 上非管理员（未开开发者模式）建符号链接会报"客户端没有所需的特权"。
+  # 代价：exe 文件本身不带图标（Explorer 里显示成 Electron 默认图标），
+  # 所以桌面快捷方式的 IconLocation 显式指向 resources\icon.ico，运行时窗口图标由代码设置。
+  signAndEditExecutable: false
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Atrium
+  deleteAppDataOnUninstall: false
+  artifactName: 'Atrium-Setup-${version}.${ext}'
+
+portable:
+  artifactName: 'Atrium-portable-${version}.${ext}'
+
+# 本地自测用，未配置签名；发布给别人会显示"未知发布者"
+forceCodeSigning: false

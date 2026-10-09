@@ -1,0 +1,23 @@
+{
+  "zh-CN": {
+    "library": {
+      "backedUpCount": "被覆盖的文件已备份 {{count}} 个",
+      "backedUpNothing": "没东西可备份：冲突框说会盖掉的文件其实不在盘上",
+      "rollbackDeleteFailed": "；有 {{count}} 个没能删掉，工程里可能还留着"
+    }
+  },
+  "en": {
+    "library": {
+      "backedUpCount": "{{count}} overwritten file(s) backed up",
+      "backedUpNothing": "Nothing was backed up — the files it would overwrite aren't actually on disk",
+      "rollbackDeleteFailed": "; {{count}} could not be deleted and may still be in the project"
+    }
+  },
+  "ja": {
+    "library": {
+      "backedUpCount": "上書き対象のファイル {{count}} 個をバックアップしました",
+      "backedUpNothing": "バックアップはありません：上書き対象とされたファイルがディスク上に無い",
+      "rollbackDeleteFailed": "；{{count}} 個は削除できず、プロジェクトに残っている可能性があります"
+    }
+  }
+}

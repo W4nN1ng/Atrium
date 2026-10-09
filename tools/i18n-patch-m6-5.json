@@ -1,0 +1,68 @@
+{
+  "zh-CN": {
+    "project": {
+      "bannerSwitched": "已识别为「{{project}}」项目 · 自动打开 {{collection}} 集合",
+      "bannerStillSearching": "仍在搜索「{{q}}」",
+      "bannerAmbiguous": "「{{project}}」同时命中 {{count}} 个集合（{{names}}），没有自动切换",
+      "bannerAmbiguousHint": "选一个，或者在集合规则里把它们分得更开",
+      "bannerNoMatch": "检测到「{{project}}」· 没匹配到集合，视图没动",
+      "bannerDeferred": "检测到「{{project}}」· 该开 {{collection}} 集合，但你手头有事，没打断",
+      "bannerDeferredHint": "切过去会改掉你正在看的列表，所以只提醒一句",
+      "bannerNoOtherCollections": "没有别的集合可选",
+      "bannerChooseHint": "已切到「{{name}}」（规则没改，下次仍按原规则判断）",
+      "bannerRemembered": "记住了：以后开这个工程直接进「{{name}}」",
+      "bannerBtn": {
+        "notThis": "不是这个集合",
+        "switchNow": "现在切过去",
+        "remember": "以后都这样",
+        "choose": "换个集合",
+        "pin": "固定",
+        "ignore": "这次忽略"
+      }
+    }
+  },
+  "en": {
+    "project": {
+      "bannerSwitched": "Recognised “{{project}}” · opened the {{collection}} collection",
+      "bannerStillSearching": "still searching “{{q}}”",
+      "bannerAmbiguous": "“{{project}}” matches {{count}} collections ({{names}}) — nothing was switched",
+      "bannerAmbiguousHint": "Pick one, or separate them in the collection rules",
+      "bannerNoMatch": "Detected “{{project}}” · no collection matched, view untouched",
+      "bannerDeferred": "Detected “{{project}}” · {{collection}} would open, but you were busy, so nothing was interrupted",
+      "bannerDeferredHint": "Switching would replace the list you are looking at, so this is only a note",
+      "bannerNoOtherCollections": "No other collections",
+      "bannerChooseHint": "Switched to “{{name}}” (rules unchanged; next time uses the same rules)",
+      "bannerRemembered": "Remembered: opening this project goes to “{{name}}” from now on",
+      "bannerBtn": {
+        "notThis": "Not this one",
+        "switchNow": "Switch now",
+        "remember": "Always do this",
+        "choose": "Another collection",
+        "pin": "Keep",
+        "ignore": "Not this time"
+      }
+    }
+  },
+  "ja": {
+    "project": {
+      "bannerSwitched": "「{{project}}」プロジェクトを認識 · {{collection}} コレクションを開きました",
+      "bannerStillSearching": "検索「{{q}}」はそのまま",
+      "bannerAmbiguous": "「{{project}}」が {{count}} 個のコレクションに該当（{{names}}）· 切り替えていません",
+      "bannerAmbiguousHint": "どれか選ぶか、コレクションのルールをもっと分けてください",
+      "bannerNoMatch": "「{{project}}」を検出 · 該当するコレクションなし、表示は変えていません",
+      "bannerDeferred": "「{{project}}」を検出 · {{collection}} を開くべきですが、作業中なので中断しませんでした",
+      "bannerDeferredHint": "切り替えると今見ている一覧が変わってしまうので、お知らせだけ出しました",
+      "bannerNoOtherCollections": "ほかのコレクションがありません",
+      "bannerChooseHint": "「{{name}}」に切り替えました（ルールは変えていません）",
+      "bannerRemembered": "覚えさせました：このプロジェクトを開くと「{{name}}」に入ります",
+      "bannerBtn": {
+        "notThis": "これじゃない",
+        "switchNow": "今切り替える",
+        "remember": "いつもこうする",
+        "choose": "別のコレクション",
+        "pin": "固定",
+        "ignore": "今回だけ無視"
+      }
+    }
+  }
+}

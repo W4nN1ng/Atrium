@@ -1,0 +1,35 @@
+{
+  "zh-CN": {
+    "library": {
+      "noTargetProject": "还没选导入目标 —— 在顶栏的工程列表里选一个正在运行的 Unity 工程",
+      "batchImport": "导入 Unity（{{count}}）",
+      "batchImportHint": "选中的每张卡各取一个可直接导入的包；有多个成员的容器不替你挑",
+      "batchTitle": "批量导入 · {{count}} 个包（第 {{batch}}/{{batches}} 批）",
+      "batchSkipped": "{{count}} 张卡被跳过：它们有好几个成员，得先进面板勾要导哪个",
+      "batchNothing": "选中的 {{picked}} 张卡里没有可直接导入的包（{{skipped}} 张要先选成员）",
+      "batchBusy": "已经有一批在跑了，先把它导完或退回"
+    }
+  },
+  "en": {
+    "library": {
+      "noTargetProject": "No import target yet — pick a running Unity project in the top bar",
+      "batchImport": "Import to Unity ({{count}})",
+      "batchImportHint": "One directly importable package per selected card; containers with several members are left for the picker",
+      "batchTitle": "Batch import · {{count}} packages (batch {{batch}}/{{batches}})",
+      "batchSkipped": "{{count}} card(s) skipped: they hold several members, pick one in the panel first",
+      "batchNothing": "None of the {{picked}} selected cards can be imported directly ({{skipped}} need a member choice)",
+      "batchBusy": "A batch is already running — finish or roll it back first"
+    }
+  },
+  "ja": {
+    "library": {
+      "noTargetProject": "取り込み先が未選択 — トップバーで起動中の Unity プロジェクトを選んでください",
+      "batchImport": "Unity に取り込み（{{count}}）",
+      "batchImportHint": "選んだカードから1パッケージずつ。メンバーが複数のコンテナは選び直しが要ります",
+      "batchTitle": "一括取り込み · {{count}} パッケージ（{{batch}}/{{batches}} 回目）",
+      "batchSkipped": "{{count}} 枚はスキップ：メンバーが複数あるのでパネルで選んでください",
+      "batchNothing": "選んだ {{picked}} 枚は直接取り込みできません（{{skipped}} 枚はメンバー選択が必要）",
+      "batchBusy": "すでに一括取り込み中です。先に終わらせるか退回してください"
+    }
+  }
+}

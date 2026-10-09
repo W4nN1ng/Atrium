@@ -1,0 +1,38 @@
+{
+  "zh-CN": {
+    "project": {
+      "bridgeAskTitle": "刚发现工程「{{name}}」",
+      "bridgeAskBody": "这个工程还没装 A 的桥接。装了它，A 才知道 Unity 开没开、什么时候在忙、导入能不能落地。桥接只放进工程的 Packages/ 目录，不动 Assets/、不改你的场景。",
+      "bridgeAskNote": "「以后都自动安装」只对这个工程有效，不是开机自启 —— 开机自启在设置 → 库里另有一个开关。",
+      "bridgeAskInstall": "安装",
+      "bridgeAskAlways": "以后都自动安装（只这个工程）",
+      "bridgeAskNever": "暂不",
+      "autoInstalled": "已自动为「{{name}}」装好桥接（{{count}} 个文件）",
+      "autoInstallFailed": "「{{name}}」自动装桥接没成功，问你一下怎么办"
+    }
+  },
+  "en": {
+    "project": {
+      "bridgeAskTitle": "Found the project {{name}}",
+      "bridgeAskBody": "This project has no Atrium bridge yet. With it, Atrium can tell whether Unity is open, when it is busy, and whether an import actually landed. The bridge only goes into the project's Packages/ folder — it never touches Assets/ or your scenes.",
+      "bridgeAskNote": "Always install means this project only. It is not the login-startup switch — that one lives in Settings → Library.",
+      "bridgeAskInstall": "Install",
+      "bridgeAskAlways": "Always install (this project)",
+      "bridgeAskNever": "Not now",
+      "autoInstalled": "Bridge installed into {{name}} automatically ({{count}} files)",
+      "autoInstallFailed": "Could not install the bridge into {{name}} automatically — want to decide?"
+    }
+  },
+  "ja": {
+    "project": {
+      "bridgeAskTitle": "プロジェクト {{name}} を見つけました",
+      "bridgeAskBody": "このプロジェクトには Atrium ブリッジが入っていません。ブリッジがあると、Unity が起動中か・忙しいか・インポートが実際に反映されたかを Atrium が判断できます。ブリッジはプロジェクトの Packages/ フォルダにだけ入り、Assets/ やシーンには触れません。",
+      "bridgeAskNote": "「以後自動でインストール」はこのプロジェクトだけです。ログオン時の自動起動ではありません — あちらは 設定 → ライブラリ に別のスイッチがあります。",
+      "bridgeAskInstall": "インストール",
+      "bridgeAskAlways": "以後自動でインストール（このプロジェクトのみ）",
+      "bridgeAskNever": "あとで",
+      "autoInstalled": "{{name}} にブリッジを自動インストールしました（{{count}} ファイル）",
+      "autoInstallFailed": "{{name}} へのブリッジの自動インストールに失敗しました。どうしますか？"
+    }
+  }
+}

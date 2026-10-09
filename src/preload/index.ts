@@ -1,0 +1,186 @@
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import { IpcEvent, IpcInvoke } from '../shared/ipc'
+import type { AApi } from '../shared/api'
+
+/** 渲染进程能调用的通道全集 */
+const ALLOWED = new Set<string>(
+  Object.values(IpcInvoke).flatMap((group) => Object.values(group as Record<string, string>))
+)
+const ALLOWED_EVENTS = new Set<string>(Object.values(IpcEvent))
+
+interface Envelope {
+  ok: boolean
+  data?: unknown
+  error?: string
+}
+
+async function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
+  if (!ALLOWED.has(channel)) throw new Error('preload：通道不在白名单 ' + channel)
+  const res = (await ipcRenderer.invoke(channel, ...args)) as Envelope
+  if (res && typeof res === 'object' && 'ok' in res) {
+    if (res.ok) return res.data as T
+    throw new Error(res.error ?? '主进程返回了未知错误')
+  }
+  return res as T
+}
+
+function on(event: string, cb: (...args: unknown[]) => void): () => void {
+  if (!ALLOWED_EVENTS.has(event)) throw new Error('preload：事件不在白名单 ' + event)
+  const listener = (_e: Electron.IpcRendererEvent, payload: unknown): void => {
+    cb(payload)
+  }
+  ipcRenderer.on(event, listener)
+  return () => {
+    ipcRenderer.removeListener(event, listener)
+  }
+}
+
+const api: AApi = {
+  system: {
+    nudgeFront: (on) => invoke('system:nudge-front', on),
+    info: () => invoke('system:info'),
+    paths: () => invoke('system:paths'),
+    probeDirectory: (p) => invoke('system:probe-directory', p),
+    pickDirectory: (opts) => invoke('system:pick-directory', opts),
+    pickFiles: (opts) => invoke('system:pick-files', opts),
+    reveal: (p) => invoke('system:reveal', p),
+    trash: (paths) => invoke('system:trash', paths),
+    openExternal: (url) => invoke('system:open-external', url),
+    minimize: () => invoke('system:win-minimize'),
+    toggleMaximize: () => invoke('system:win-toggle-maximize'),
+    close: () => invoke('system:win-close'),
+    isMaximized: () => invoke('system:win-is-maximized'),
+    pathForFile: (file) => webUtils.getPathForFile(file as never),
+    restart: () => invoke('system:restart')
+  },
+  settings: {
+    getAll: () => invoke('settings:get-all'),
+    set: (key, value) => invoke('settings:set', key, value),
+    setMany: (patch) => invoke('settings:set-many', patch),
+    reset: () => invoke('settings:reset')
+  },
+  categories: {
+    list: () => invoke('categories:list'),
+    save: (cfg) => invoke('categories:save', cfg)
+  },
+  /** M7 ⑥ · 密码库：只出状态与"能不能解开"，永不出明文 */
+  secrets: {
+    status: () => invoke('secrets:status'),
+    list: () => invoke('secrets:list'),
+    forget: (id) => invoke('secrets:forget', id)
+  },
+  assets: {
+    list: (filter) => invoke('assets:list', filter),
+    get: (id) => invoke('assets:get', id),
+    detail: (id) => invoke('assets:detail', id),
+    patch: (id, patch) => invoke('assets:patch', id, patch),
+    rename: (id, name) => invoke('assets:rename', id, name),
+    trash: (ids) => invoke('assets:trash', ids),
+    stats: () => invoke('assets:stats'),
+    groups: () => invoke('assets:groups'),
+    learnedHint: () => invoke('assets:learned-hint'),
+    reclassify: (id, category, subcategory) => invoke('assets:reclassify', id, category, subcategory),
+    rearchivePlan: (id, category, subcategory) => invoke('assets:rearchive-plan', id, category, subcategory),
+    rearchive: (input) => invoke('assets:rearchive', input),
+    resolvePending: (id, accept) => invoke('assets:resolve-pending', id, accept),
+    setReview: (ids, needReview) => invoke('assets:set-review', ids, needReview),
+    bundle: (id) => invoke('assets:bundle', id),
+    reparent: (ids, parentId) => invoke('assets:reparent', ids, parentId),
+    dissolveBundle: (id) => invoke('assets:dissolve-bundle', id),
+    mergeSuggestions: () => invoke('assets:merge-suggestions'),
+    mergeApply: (input) => invoke('assets:merge-apply', input),
+    mergeDismiss: (head) => invoke('assets:merge-dismiss', head),
+    learnScan: () => invoke('assets:learn-scan'),
+    learnAdd: (tokens) => invoke('assets:learn-add', tokens),
+    backfillThumbs: (budget) => invoke('assets:backfill-thumbs', budget)
+  },
+  collections: {
+    list: () => invoke('collections:list'),
+    create: (input) => invoke('collections:create', input),
+    update: (id, patch) => invoke('collections:update', id, patch),
+    remove: (id) => invoke('collections:remove', id),
+    addAssets: (collectionId, assetIds) => invoke('collections:add-assets', collectionId, assetIds),
+    removeAsset: (collectionId, assetId) => invoke('collections:remove-asset', collectionId, assetId),
+    planBackfill: () => invoke('collections:plan-backfill'),
+    applyBackfill: (names) => invoke('collections:apply-backfill', names)
+  },
+  journal: {
+    list: (limit) => invoke('journal:list', limit),
+    undoLast: () => invoke('journal:undo-last')
+  },
+  ingest: {
+    fromPaths: (paths) => invoke('ingest:from-paths', paths),
+    pickAndStart: (title?: string) => invoke('ingest:pick-and-start', title),
+    cancel: (jobId) => invoke('ingest:cancel', jobId),
+    dismiss: (jobId) => invoke('ingest:dismiss', jobId),
+    submitPassword: (jobId, password, remember) => invoke('ingest:submit-password', jobId, password, remember === true),
+    queue: () => invoke('ingest:queue'),
+    restoreQueue: () => invoke('ingest:restore-queue'),
+    queueFile: () => invoke('ingest:queue-file'),
+    commitManual: (input) => invoke('ingest:commit-manual', input),
+    commitAll: (input) => invoke('ingest:commit-all', input)
+  },
+  unity: {
+    instances: () => invoke('unity:instances'),
+    status: () => invoke('unity:status'),
+    listProjects: () => invoke('unity:list-projects'),
+    refreshProjects: () => invoke('unity:refresh-projects'),
+    setTarget: (projectId) => invoke('unity:set-target', projectId),
+    importLogs: (assetId) => invoke('unity:import-logs', assetId),
+    bridgeTemplateCheck: () => invoke('unity:bridge-template-check'),
+    installBridge: (projectId) => invoke('unity:install-bridge', projectId),
+    answerBridgeAsk: (projectId, choice) => invoke('unity:answer-bridge-ask', { projectId, choice }),
+    /** M7 Q10：「剩下这些都不再问」= 每个工程各写一行 never，不是全局静音 */
+    bridgeAskNeverRest: (exceptProjectId) => invoke('unity:bridge-ask-never-rest', { exceptProjectId }),
+    /** R4 ⑦：界面启动时把主进程攒下的桥接决定取回来（广播在窗口就绪前会丢） */
+    pendingBridgeAsk: () => invoke('unity:bridge-ask-pending'),
+    bridgeAskDone: (projectId) => invoke('unity:bridge-ask-done', projectId),
+    uninstallBridge: (projectId) => invoke('unity:uninstall-bridge', projectId),
+    uninstallBridgeAll: () => invoke('unity:uninstall-bridge-all'),
+    packagesOfAsset: (assetId) => invoke('unity:packages-of-asset', assetId),
+    preflight: (input) => invoke('unity:preflight', input),
+    importPackage: (input) => invoke('unity:import-package', input),
+    importPlan: (input) => invoke('unity:import-plan', input),
+    importCommit: (input) => invoke('unity:import-commit', input),
+    importAbandon: (batchId) => invoke('unity:import-abandon', batchId),
+    cancelBatch: (batchId) => invoke('unity:cancel-batch', batchId),
+    rollbackImport: (logId) => invoke('unity:rollback-import', logId),
+    rollbackBatch: (batchId) => invoke('unity:rollback-batch', batchId),
+    extractUsage: () => invoke('unity:extract-usage'),
+    extractClean: () => invoke('unity:extract-clean')
+  },
+  health: {
+    scan: (opts) => invoke('health:scan', opts),
+    scanRebundle: () => invoke('health:scan-rebundle'),
+    applyRebundle: (dirs) => invoke('health:apply-rebundle', dirs),
+    planRegroup: () => invoke('health:plan-regroup'),
+    applyRegroup: (keys) => invoke('health:apply-regroup', keys),
+    planReanalyze: () => invoke('health:plan-reanalyze'),
+    applyReanalyze: (ids) => invoke('health:apply-reanalyze', ids),
+    dropJunkRows: (ids) => invoke('health:drop-junk-rows', ids),
+    markMissing: (ids) => invoke('health:mark-missing', ids),
+    unmarkMissing: (ids) => invoke('health:unmark-missing', ids),
+    dissolveOrphans: () => invoke('health:dissolve-orphans'),
+    trashStrays: (paths) => invoke('health:trash-strays', paths),
+    pruneThumbs: () => invoke('health:prune-thumbs'),
+    rebuildIndex: () => invoke('health:rebuild-index'),
+    duplicateReport: () => invoke('health:duplicates')
+  },
+  taxonomy: {
+    learningList: () => invoke('taxonomy:learning-list'),
+    learningDelete: (id) => invoke('taxonomy:learning-delete', id),
+    userTerms: () => invoke('taxonomy:user-terms'),
+    termAdd: (input) => invoke('taxonomy:term-add', input),
+    termRemove: (term) => invoke('taxonomy:term-remove', term),
+    builtinCount: () => invoke('taxonomy:builtin-count')
+  },
+  integration: {
+    shellMenuState: () => invoke('integration:shell-menu-state'),
+    shellMenuInstall: (label: string) => invoke('integration:shell-menu-install', label),
+    shellMenuUninstall: () => invoke('integration:shell-menu-uninstall'),
+    watcherState: () => invoke('integration:watcher-state')
+  },
+  on
+}
+
+contextBridge.exposeInMainWorld('a', api)

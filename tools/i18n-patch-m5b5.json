@@ -1,0 +1,77 @@
+{
+  "zh-CN": {
+    "err": {
+      "batchEmpty": "没勾中任何成员",
+      "batchTooBig": "一次最多导 {{max}} 个包（这次 {{count}} 个），要分 ⌈{{count}}/{{max}}⌉ 批一批一批来",
+      "nothingToImport": "勾中的成员里没有一个能导入（{{blocked}} 个被挡住，原因见清单）",
+      "memberMissing": "清单里这一条在容器里已经找不到了，可能这个素材刚被重新摄取过",
+      "needPassword": "这个压缩包要密码",
+      "corrupt": "压缩包读不动：{{detail}}",
+      "noBackend": "这台机器上没有能读这种格式的后端（RAR 需要 7z.exe + 7z.dll）",
+      "notAnArchive": "它其实不是压缩包（{{detail}}），走文件夹那条路",
+      "volumeMissing": "这是分卷压缩包，缺同组的其他卷：{{detail}}",
+      "extractFailed": "抽取失败：{{detail}}",
+      "importCancelled": "已请求取消：当前这一条会跑完，后面的不再发",
+      "planGone": "这批已经过期了（程序重启过或被新批次挤掉），要重新预扫描一遍",
+      "packageParse": "这个 .unitypackage 解析不了"
+    },
+    "unity": {
+      "errImportFailed": "Unity 退回失败"
+    },
+    "library": {
+      "pickMembersFirst": "这个容器里有 {{count}} 个包，得先勾要导哪些 —— 进容器内部视图勾选（分批选择在 M5-B ⑥）",
+      "batchResult": "这批：成功 {{ok}} 个、失败 {{failed}} 个、没执行 {{notRun}} 个、跳过 {{blocked}} 个",
+      "batchDone": "已导入 {{ok}} 个包"
+    }
+  },
+  "en": {
+    "err": {
+      "batchEmpty": "No members were selected",
+      "batchTooBig": "At most {{max}} packages per batch (this time {{count}}); split into ⌈{{count}}/{{max}}⌉ batches",
+      "nothingToImport": "None of the selected members can be imported ({{blocked}} blocked, see the list for why)",
+      "memberMissing": "This entry is no longer inside the container — the asset may have been re-ingested",
+      "needPassword": "This archive needs a password",
+      "corrupt": "The archive cannot be read: {{detail}}",
+      "noBackend": "No backend on this machine can read this format (RAR needs 7z.exe + 7z.dll)",
+      "notAnArchive": "This is not actually an archive ({{detail}}); use the folder path instead",
+      "volumeMissing": "Split archive with missing volumes: {{detail}}",
+      "extractFailed": "Extraction failed: {{detail}}",
+      "importCancelled": "Cancel requested: the current package finishes, the rest are not sent",
+      "planGone": "This batch expired (app restarted or replaced by a newer one); pre-scan again",
+      "packageParse": "This .unitypackage could not be parsed"
+    },
+    "unity": {
+      "errImportFailed": "Unity reported a failure"
+    },
+    "library": {
+      "pickMembersFirst": "This container holds {{count}} packages — pick which ones first (batch selection ships in M5-B ⑥)",
+      "batchResult": "Batch: {{ok}} imported, {{failed}} failed, {{notRun}} not run, {{blocked}} skipped",
+      "batchDone": "Imported {{ok}} packages"
+    }
+  },
+  "ja": {
+    "err": {
+      "batchEmpty": "メンバーが選ばれていません",
+      "batchTooBig": "1 回に {{max}} 個まで（今回 {{count}} 個）。⌈{{count}}/{{max}}⌉ 回に分けてください",
+      "nothingToImport": "選んだメンバーはどれも導入できません（{{blocked}} 件がブロック、理由は一覧参照）",
+      "memberMissing": "この項目はコンテナ内に見つかりません。取り込み直された可能性があります",
+      "needPassword": "この圧縮ファイルはパスワードが必要です",
+      "corrupt": "圧縮ファイルを読み込めません：{{detail}}",
+      "noBackend": "この形式を読めるバックエンドがありません（RAR は 7z.exe + 7z.dll が必要）",
+      "notAnArchive": "これは圧縮ファイルではありません（{{detail}}）。フォルダ扱いになります",
+      "volumeMissing": "分割圧縮ファイルで他の巻が見つかりません：{{detail}}",
+      "extractFailed": "展開に失敗：{{detail}}",
+      "importCancelled": "キャンセルを申請しました：現在の 1 件は完走し、次以降は送りません",
+      "planGone": "このバッチは失効しました（再起動または新しいバッチに置換）。もう一度事前スキャンします",
+      "packageParse": "この .unitypackage を解析できませんでした"
+    },
+    "unity": {
+      "errImportFailed": "Unity が失敗を返しました"
+    },
+    "library": {
+      "pickMembersFirst": "このコンテナには {{count}} 個のパッケージがあります。どれを導するか選んでください（選択 UI は M5-B ⑥）",
+      "batchResult": "このバッチ：成功 {{ok}}、失敗 {{failed}}、未実行 {{notRun}}、スキップ {{blocked}}",
+      "batchDone": "{{ok}} 個のパッケージを導入しました"
+    }
+  }
+}

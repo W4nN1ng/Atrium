@@ -1,0 +1,47 @@
+{
+  "zh-CN": {
+    "variantKind": {
+      "avatar": "适配模型",
+      "install_method": "安装方式",
+      "version": "版本",
+      "locale": "语言",
+      "quest": "Quest 版",
+      "other": "其他差异"
+    },
+    "library": {
+      "dimChip": "{{label}} ×{{count}}",
+      "dimMoreHint": "还有 {{count}} 个维度没列出来",
+      "dimSuppressed": "各份只差版本，件数已写在角上"
+    }
+  },
+  "en": {
+    "variantKind": {
+      "avatar": "Avatars",
+      "install_method": "Install",
+      "version": "Versions",
+      "locale": "Language",
+      "quest": "Quest",
+      "other": "Other diffs"
+    },
+    "library": {
+      "dimChip": "{{label}} ×{{count}}",
+      "dimMoreHint": "{{count}} more dimension(s) not listed",
+      "dimSuppressed": "Copies differ only by version — the count is on the badge"
+    }
+  },
+  "ja": {
+    "variantKind": {
+      "avatar": "対応アバター",
+      "install_method": "導入方法",
+      "version": "バージョン",
+      "locale": "言語",
+      "quest": "Quest 版",
+      "other": "その他の差"
+    },
+    "library": {
+      "dimChip": "{{label}} ×{{count}}",
+      "dimMoreHint": "あと {{count}} 件の観点を表示していません",
+      "dimSuppressed": "版数の差だけです。件数はバッジに出ています"
+    }
+  }
+}

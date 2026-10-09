@@ -1,0 +1,71 @@
+{
+  "zh-CN": {
+    "common": {
+      "selectAll": "全选",
+      "clear": "清空"
+    },
+    "collections": {
+      "backfillCta": "按库里出现过的模型补建",
+      "backfillHint": "扫一遍库里标了模型的素材，把还没建的集合一次补齐",
+      "backfillEmptyHint": "还没有集合。打开 Unity 时 A 没地方可切 —— 先按库里出现过的模型补建一批。",
+      "backfillTitle": "按库里出现过的模型补建集合",
+      "backfillLoading": "正在数库里的模型…",
+      "backfillSummary": "将建 {{count}} 个集合，覆盖 {{covered}} 条素材。",
+      "backfillAllExist": "库里出现过的模型都已经建过了（现有 {{existing}} 个集合）。",
+      "backfillEmpty": "库里还没有带模型信息的素材：先入库或跑一次「重新分析」，再回来补建。",
+      "backfillSkippedGeneric": "跳过了 {{count}} 个通用值（如 UNIVERSAL / 共通）—— 它们不是模型名，建成集合会咬住所有工程。",
+      "backfillConfirm": "建这 {{count}} 个",
+      "backfillUndoHint": "不满意可以按 Ctrl+Z 整批退回来",
+      "backfillHits": "{{count}} 条素材",
+      "backfillKeywords": "{{count}} 个关键词",
+      "backfillDone": "补建了 {{count}} 个集合",
+      "backfillIgnored": "{{count}} 个名字不在刚才的预览里，没建"
+    }
+  },
+  "en": {
+    "common": {
+      "selectAll": "Select all",
+      "clear": "Clear"
+    },
+    "collections": {
+      "backfillCta": "Fill in from library",
+      "backfillHint": "Scan which models the library actually has and create the missing collections in one go",
+      "backfillEmptyHint": "No collections yet, so A has nowhere to switch when Unity opens. Create a first batch from the models in your library.",
+      "backfillTitle": "Create collections from the models in your library",
+      "backfillLoading": "Counting models in the library…",
+      "backfillSummary": "Will create {{count}} collections covering {{covered}} assets.",
+      "backfillAllExist": "Every model in the library already has a collection ({{existing}} now).",
+      "backfillEmpty": "Nothing in the library is tagged with a model yet. Import assets or run “Re-analyze” first, then come back.",
+      "backfillSkippedGeneric": "Skipped {{count}} generic values (UNIVERSAL / 共通 …) — they are not model names, and as a collection they would match every project.",
+      "backfillConfirm": "Create these {{count}}",
+      "backfillUndoHint": "Changed your mind? Ctrl+Z reverts the whole batch",
+      "backfillHits": "{{count}} assets",
+      "backfillKeywords": "{{count}} keywords",
+      "backfillDone": "Created {{count}} collections",
+      "backfillIgnored": "{{count}} names were not in the preview, so nothing was created for them"
+    }
+  },
+  "ja": {
+    "common": {
+      "selectAll": "すべて選択",
+      "clear": "解除"
+    },
+    "collections": {
+      "backfillCta": "ライブラリのモデルから作成",
+      "backfillHint": "ライブラリで実際に使われているモデルを数えて、無いコレクションをまとめて作ります",
+      "backfillEmptyHint": "コレクションがまだありません。Unity を開いても切り替え先がないので、まず作っておけます。",
+      "backfillTitle": "ライブラリに出現するモデルからコレクションを作る",
+      "backfillLoading": "ライブラリのモデルを数えています…",
+      "backfillSummary": "{{count}} 個のコレクションを作成し、{{covered}} 件の素材をカバーします。",
+      "backfillAllExist": "ライブラリにあるモデルはすでにコレクション化されています（現在 {{existing}} 個）。",
+      "backfillEmpty": "モデル情報が登録された素材がまだありません。取り込みか「再分析」を先に実行してください。",
+      "backfillSkippedGeneric": "汎用値 {{count}} 個（UNIVERSAL / 共通 など）はスキップしました。モデル名ではないので、コレクションにすると全プロジェクトに当たります。",
+      "backfillConfirm": "この {{count}} 個を作成",
+      "backfillUndoHint": "やり直すなら Ctrl+Z で一括取消できます",
+      "backfillHits": "{{count}} 件",
+      "backfillKeywords": "キーワード {{count}} 個",
+      "backfillDone": "{{count}} 個のコレクションを作成しました",
+      "backfillIgnored": "{{count}} 件は先のプレビューになかったので作成していません"
+    }
+  }
+}

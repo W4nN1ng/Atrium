@@ -1,0 +1,125 @@
+{
+  "zh-CN": {
+    "err": {
+      "badArgs": "参数不对，这次没执行",
+      "assetGone": "这条素材已经不在了（可能被删了或刚被合并掉）",
+      "badCategory": "分类表里没有这个一级分类",
+      "badSubcategory": "这个一级分类下没有那个二级分类",
+      "rearchiveStale": "目标目录和刚才预览时不一样了（预览：{{was}} → 现在：{{now}}），没敢照旧的搬。再点一次保存就会重新算一遍"
+    },
+    "rearchive": {
+      "title": "改分类：{{from}} → {{to}}",
+      "now": "现在在",
+      "target": "要搬到",
+      "unknownPath": "（没认出来）",
+      "size": "{{files}} 个文件 · {{size}}",
+      "planning": "正在算要搬什么…",
+      "moveIt": "搬过去",
+      "moving": "正在搬…",
+      "recordOnly": "只改记录",
+      "recordOnlyHint": "「只改记录」= 卡片上的分类改了，文件留在原地不动（也就是以前的行为）。",
+      "undoHint": "搬完可以按 Ctrl+Z 一次撤回：文件搬回原位，库里那些路径也一起改回来。",
+      "movedDone": "已搬好：{{moved}} 项文件、改写 {{rewrites}} 条记录",
+      "savedOnly": "已保存（文件没动）：{{reason}}",
+      "leftAlone": "已只改记录，文件留在原地",
+      "note": {
+        "taken": "这个位置已经有同名的目录，会自动改名避开，实际搬到：{{toDir}}",
+        "extraMoves": "另有 {{count}} 个子项目录不在父目录里面，会一起搬进新的父目录",
+        "rewrites": "{{count}} 条附属/子记录的路径会跟着改写（它们就在被搬的那棵目录里）"
+      },
+      "reason": {
+        "noRoot": "还没设置素材库，不知道要搬到哪儿",
+        "indexed": "这件是「只登记不搬」，文件本来就不在库里",
+        "missing": "原来的目录已经找不到了（{{path}}）",
+        "outside": "它现在不在素材库里面（{{path}}），A 不挪别人目录里的东西",
+        "samePlace": "新分类算出来的目录就是现在这个位置，没什么要搬的",
+        "unknown": "没说明原因"
+      }
+    },
+    "toast": {
+      "undoRearchived": "已撤销 {{steps}} 步：{{moved}} 项文件搬回原位、{{assets}} 条记录改回原样（素材记录没被删）"
+    }
+  },
+  "en": {
+    "err": {
+      "badArgs": "Invalid arguments — nothing was done",
+      "assetGone": "This asset is gone (deleted or just merged away)",
+      "badCategory": "That top-level category is not in the category table",
+      "badSubcategory": "That sub-category does not exist under the chosen category",
+      "rearchiveStale": "The target folder changed since the preview (preview: {{was}} → now: {{now}}), so nothing was moved. Press save again to re-plan"
+    },
+    "rearchive": {
+      "title": "Change category: {{from}} → {{to}}",
+      "now": "Currently",
+      "target": "Move to",
+      "unknownPath": "(not resolved)",
+      "size": "{{files}} file(s) · {{size}}",
+      "planning": "Working out what to move…",
+      "moveIt": "Move the files",
+      "moving": "Moving…",
+      "recordOnly": "Record only",
+      "recordOnlyHint": "“Record only” = the card changes but the files stay where they are (the old behaviour).",
+      "undoHint": "After moving, one Ctrl+Z undoes it all: files go back and the stored paths are restored.",
+      "movedDone": "Moved: {{moved}} file(s), {{rewrites}} record(s) rewritten",
+      "savedOnly": "Saved (files untouched): {{reason}}",
+      "leftAlone": "Record updated only — files left in place",
+      "note": {
+        "taken": "Something already owns that folder, so it will be renamed to avoid a clash — actual target: {{toDir}}",
+        "extraMoves": "{{count}} child folder(s) live outside the parent and will be moved into the new parent too",
+        "rewrites": "{{count}} attachment/child record(s) will have their stored paths rewritten (they are inside the tree being moved)"
+      },
+      "reason": {
+        "noRoot": "No library folder is set, so there is nowhere to move to",
+        "indexed": "This asset is in “register only” mode — its files were never in the library",
+        "missing": "The original folder is gone ({{path}})",
+        "outside": "It is not inside the library ({{path}}) — A does not move other people's folders",
+        "samePlace": "The new category resolves to the folder it already sits in — nothing to move",
+        "unknown": "No reason given"
+      }
+    },
+    "toast": {
+      "undoRearchived": "Undone {{steps}} step(s): {{moved}} file(s) back in place, {{assets}} record(s) restored (no asset records were deleted)"
+    }
+  },
+  "ja": {
+    "err": {
+      "badArgs": "引数が不正で、何も行っていません",
+      "assetGone": "この素材は見つかりません（削除または統合された可能性）",
+      "badCategory": "その大分類は分類表にありません",
+      "badSubcategory": "その大分類に中分類は存在しません",
+      "rearchiveStale": "移動先がプレビュー時と変わりました（プレビュー：{{was}} → 現在：{{now}}）。実行を中止しました。もう一度保存すると組み直します"
+    },
+    "rearchive": {
+      "title": "分類変更：{{from}} → {{to}}",
+      "now": "現在",
+      "target": "移動先",
+      "unknownPath": "（判別できず）",
+      "size": "{{files}} 件 · {{size}}",
+      "planning": "移動内容を計算中…",
+      "moveIt": "ファイルを移動",
+      "moving": "移動中…",
+      "recordOnly": "記録だけ変更",
+      "recordOnlyHint": "「記録だけ変更」＝カードの分類だけ変え、ファイルは動かさない（以前からの動作）。",
+      "undoHint": "移動後 Ctrl+Z で一括取り消し：ファイルは元の場所、DB のパスも元の値に戻ります。",
+      "movedDone": "移動完了：ファイル {{moved}} 件、記録 {{rewrites}} 件を書き換え",
+      "savedOnly": "保存しました（ファイルは無変更）：{{reason}}",
+      "leftAlone": "記録だけ更新しました。ファイルはそのままです",
+      "note": {
+        "taken": "同じ名前のフォルダがあるため自動で改名します。実際の移動先：{{toDir}}",
+        "extraMoves": "親フォルダの外にある子フォルダ {{count}} 件も、新しい親フォルダへ一緒に移動します",
+        "rewrites": "添付/子素材 {{count}} 件のパスも書き換わります（移動するツリーの中にあります）"
+      },
+      "reason": {
+        "noRoot": "素材ライブラリが未設定のため移動先を決められません",
+        "indexed": "これは「登録のみ」モードで、そもそもファイルはライブラリにありません",
+        "missing": "元のフォルダが見つかりません（{{path}}）",
+        "outside": "ライブラリの外にあります（{{path}}）。A は他フォルダを動かしません",
+        "samePlace": "新しい分類のフォルダが現在の場所と同じで、移動はありません",
+        "unknown": "理由が示されませんでした"
+      }
+    },
+    "toast": {
+      "undoRearchived": "{{steps}} ステップ取り消し：ファイル {{moved}} 件を元へ戻し、記録 {{assets}} 件を元に戻しました（素材記録は削除していません）"
+    }
+  }
+}

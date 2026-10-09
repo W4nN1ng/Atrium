@@ -1,0 +1,26 @@
+node_modules/
+out/
+dist/
+# 下载缓存：Electron 本体 zip(112MB) / 7-Zip 安装器 / sqlite 预编译 tar.gz
+# 全部由 tools/setup-native.cjs 与 tools/fetch-7z.cjs 按需重下，不进仓库
+vendor/cache/
+vendor/prebuilds/*.node
+*.log
+.DS_Store
+.vite/
+coverage/
+# 本地库/暂存目录绝不入库
+.staging/
+tmp/
+# 真库快照清单：几百条真实路径 + 字节数，属于用户数据，绝不入库
+# （要复现随时 `node tools/lib-snapshot.cjs <目录> <输出>` 现生成）
+tools/lib-*.txt
+tools/reclaim-before.txt
+tools/tietu-before.txt
+
+# 随包带的 7-Zip 由 node tools/fetch-7z.cjs 现拉：LZMA 是 LGPL，
+# 但里面的 Rar 解码器是 unRAR freeware 许可，不允许二次分发 → 公开仓库里不放二进制
+resources/bin/7z.exe
+resources/bin/7z.dll
+resources/bin/7-zip.dll
+resources/bin/7zr.exe

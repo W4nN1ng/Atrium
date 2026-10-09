@@ -1,0 +1,65 @@
+{
+  "zh-CN": {
+    "settings": {
+      "synonymsTitle": "分类口语叫法",
+      "synonymsHint": "你平时怎么叫这一类东西，就写进来。搜「衣服」能找到归在「服装」里的素材，靠的就是这里，不是程序里写死的词表。",
+      "synonymsKanjiHint": "日语汉字原名（例如「束縛」）用罗马字 sokubaku 搜不到：那要挂几 MB 的汉字读音词典，而且多音字照样错，所以 A 不做。把原名整段写进素材备注，就能搜到了。",
+      "synonymsAddPh": "加一个口语叫法",
+      "synonymsAdd": "添加",
+      "synonymsSaved": "已保存，检索索引已经跟着重建",
+      "synonymsRevert": "放弃修改",
+      "synonymsUnsaved": "有改动没保存",
+      "synonymsNone": "（还没有口语）",
+      "synonymDeadWarn": "单字词在检索里会被丢掉（命中面太宽），写两个字以上才有用",
+      "synonym": {
+        "empty": "没写词",
+        "tooShort": "至少要 {{min}} 个字 —— 单字词在检索里会被直接丢掉，写了也是白写",
+        "tooLong": "「{{word}}」太长（最多 {{max}} 个字符）",
+        "dup": "「{{word}}」已经在了",
+        "tooMany": "一个分类最多 {{max}} 条口语，先删几条"
+      }
+    }
+  },
+  "en": {
+    "settings": {
+      "synonymsTitle": "Category nicknames",
+      "synonymsHint": "Write down what you actually call each kind of asset. Searching “clothes” and getting assets filed under “Clothing” works because of this list, not a hard-coded word table.",
+      "synonymsKanjiHint": "Japanese kanji names (e.g. 束縛) are not found by their romanisation (sokubaku): that needs a multi-megabyte reading dictionary and still gets polyphonic characters wrong, so A does not do it. Put the original name in the asset notes and it becomes searchable.",
+      "synonymsAddPh": "Add a nickname",
+      "synonymsAdd": "Add",
+      "synonymsSaved": "Saved — the search index was rebuilt to match",
+      "synonymsRevert": "Discard changes",
+      "synonymsUnsaved": "Unsaved changes",
+      "synonymsNone": "(no nicknames yet)",
+      "synonymDeadWarn": "Single-character words are dropped by the search index (too broad) — use two or more",
+      "synonym": {
+        "empty": "Nothing was typed",
+        "tooShort": "Use at least {{min}} characters — single-character words are thrown away by the index",
+        "tooLong": "“{{word}}” is too long (max {{max}} characters)",
+        "dup": "“{{word}}” is already there",
+        "tooMany": "At most {{max}} nicknames per category — remove a few first"
+      }
+    }
+  },
+  "ja": {
+    "settings": {
+      "synonymsTitle": "分類口語名",
+      "synonymsHint": "普段そう呼ぶ名前をここに書いてください。「衣服」で検索して「服装」分類の素材が出るのはこの一覧のおかげで、プログラムに埋め込んだ語彙表ではありません。",
+      "synonymsKanjiHint": "漢字の原名（例：束縛）はローマ字 sokubaku では検索できません：数 MB の読み辞書が必要で、多音字は結局間違えるため A ではやりません。原名をそのまま素材の備考に書けば検索できます。",
+      "synonymsAddPh": "口語名を追加",
+      "synonymsAdd": "追加",
+      "synonymsSaved": "保存しました。検索インデックスも再構築済み",
+      "synonymsRevert": "変更を破棄",
+      "synonymsUnsaved": "未保存の変更あり",
+      "synonymsNone": "（まだ口語名はありません）",
+      "synonymDeadWarn": "1 文字の語は検索インデックスで捨てられます（当たり範囲が広すぎる）。2 文字以上にしてください",
+      "synonym": {
+        "empty": "語が入力されていません",
+        "tooShort": "{{min}} 文字以上にしてください — 1 文字語はインデックスに乗りません",
+        "tooLong": "「{{word}}」が長すぎます（最大 {{max}} 文字）",
+        "dup": "「{{word}}」は既にあります",
+        "tooMany": "1 分類につき口語名は最大 {{max}} 件です。まず削除してください"
+      }
+    }
+  }
+}

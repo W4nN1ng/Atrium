@@ -1,0 +1,5 @@
+{
+  "zh-CN": { "project": { "bannerRuleMissing": "那个集合已经不在了，没能记住（先刷新一下集合列表再试）" } },
+  "en": { "project": { "bannerRuleMissing": "That collection is gone, so nothing was remembered (refresh the collection list and try again)" } },
+  "ja": { "project": { "bannerRuleMissing": "そのコレクションは見つからず、記憶できませんでした（コレクション一覧を更新してからもう一度）" } }
+}

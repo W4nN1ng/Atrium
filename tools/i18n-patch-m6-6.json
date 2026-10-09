@@ -1,0 +1,44 @@
+{
+  "zh-CN": {
+    "settings": {
+      "autoSwitchBehavior": "自动弹出行为",
+      "autoSwitchBehaviorHint": "检测到某个 Unity 工程刚打开时，A 该做什么",
+      "asbAlways": "每次都弹出主窗口",
+      "asbWhenMatched": "仅当匹配到集合时（推荐）",
+      "asbNever": "从不，只更新顶栏状态",
+      "trayRequiredNote": "A 只有开着才能感知 Unity 启动：关到托盘时照常工作，彻底退出后不会自动切换。「开机自启」和「关窗口收进托盘」是两件事，各在上面对应的位置设置。",
+      "autoLaunchAskTitle": "要让 A 开机常驻托盘吗？",
+      "autoLaunchAskBody": "刚检测到你打开了 Unity 工程。A 必须开着才能自动切到对应集合 —— 勾了开机自启，下次登录 Windows 它就在托盘里等着。不勾也行，手动打开 A 一样能自动切。",
+      "autoLaunchAskYes": "开机自启",
+      "autoLaunchAskNo": "不用了"
+    }
+  },
+  "en": {
+    "settings": {
+      "autoSwitchBehavior": "Auto-pop behaviour",
+      "autoSwitchBehaviorHint": "What A should do when it notices a Unity project just opened",
+      "asbAlways": "Always bring the window up",
+      "asbWhenMatched": "Only when a collection matches (recommended)",
+      "asbNever": "Never — just update the top bar",
+      "trayRequiredNote": "A can only notice Unity starting while it is running: sitting in the tray is fine, quitting the app stops the auto-switch. “Start with Windows” and “minimise to tray” are two different settings, both above.",
+      "autoLaunchAskTitle": "Start A with Windows and keep it in the tray?",
+      "autoLaunchAskBody": "You just opened a Unity project. A has to be running to switch to the matching collection — with start-with-Windows on, it waits in the tray after you log in. Leaving it off is fine too; open A yourself and auto-switching still works.",
+      "autoLaunchAskYes": "Start with Windows",
+      "autoLaunchAskNo": "No thanks"
+    }
+  },
+  "ja": {
+    "settings": {
+      "autoSwitchBehavior": "自動でウィンドウを出す条件",
+      "autoSwitchBehaviorHint": "Unity プロジェクトが開かれたことを検知したとき、A がどう動くか",
+      "asbAlways": "毎回ウィンドウを出す",
+      "asbWhenMatched": "コレクションに該当するときだけ（おすすめ）",
+      "asbNever": "出さない。上部バーの状態だけ更新",
+      "trayRequiredNote": "A が Unity の起動を感知できるのは起動している間だけです。トレイに畳んだ状態なら動作しますが、終了すると自動切り替えは起きません。「ログイン時に起動」と「ウィンドウをトレイに畳む」は別の設定です。",
+      "autoLaunchAskTitle": "A をログイン時に起動してトレイに常駐させますか？",
+      "autoLaunchAskBody": "Unity プロジェクトを開いたことを検知しました。対応コレクションへの自動切り替えには A が起動している必要があります。オフでも、手動で A を開けば自動切り替えは動きます。",
+      "autoLaunchAskYes": "ログイン時に起動",
+      "autoLaunchAskNo": "結構です"
+    }
+  }
+}

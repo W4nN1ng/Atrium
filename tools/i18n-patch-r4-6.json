@@ -1,0 +1,44 @@
+{
+  "zh-CN": {
+    "installed": {
+      "title": "在哪些工程装过（{{count}}）",
+      "empty": "A 的导入日志里没有这条素材的记录",
+      "current": "当前目标",
+      "timeUnknown": "时间未知",
+      "ghost": "工程已从清单里消失",
+      "packages": "{{count}} 个包",
+      "created": "新建 {{count}}",
+      "overwritten": "覆盖 {{count}}",
+      "rolledBack": "退回 {{count}} 次",
+      "noteLogOnly": "口径：只统计通过 A 导入的那几次。你自己在 Unity 里手动 Import 过的，A 查不到；导完之后又在工程里手动删掉的，这里仍然算「装过」。"
+    }
+  },
+  "en": {
+    "installed": {
+      "title": "Imported into ({{count}})",
+      "empty": "No import records for this asset in A's log",
+      "current": "current target",
+      "timeUnknown": "time unknown",
+      "ghost": "project no longer in the list",
+      "packages": "{{count}} package(s)",
+      "created": "{{count}} new",
+      "overwritten": "{{count}} overwritten",
+      "rolledBack": "{{count}} rolled back",
+      "noteLogOnly": "Scope: only imports made through A are listed. Assets you imported by hand inside Unity are invisible here, and so is a later manual delete — those rows still count as imported."
+    }
+  },
+  "ja": {
+    "installed": {
+      "title": "インストール済みのプロジェクト（{{count}}）",
+      "empty": "A のインポートログにこの素材の記録はありません",
+      "current": "現在の対象",
+      "timeUnknown": "日時不明",
+      "ghost": "一覧から消えたプロジェクト",
+      "packages": "{{count}} パッケージ",
+      "created": "新規 {{count}}",
+      "overwritten": "上書き {{count}}",
+      "rolledBack": "巻き戻し {{count}} 回",
+      "noteLogOnly": "範囲：A 経由のインポートのみを集計しています。Unity 内で手動インポートしたものは映らず、後で手動削除した場合もここでは「インストール済み」のままです。"
+    }
+  }
+}

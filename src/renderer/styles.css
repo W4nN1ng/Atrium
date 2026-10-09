@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* 深色为主：用户长时间在 Unity 深色界面下工作（第 1 份 §8） */
+  :root,
+  html.dark {
+    color-scheme: dark;
+    --bg: #101014;
+    --panel: #15151b;
+    --panel-2: #1a1a22;
+    --raise: #20202a;
+    --line: #282833;
+    --line-2: #35353f;
+    --text: #e8e8ee;
+    --muted: #9494a1;
+    --faint: #6b6b78;
+    --accent: #7c6cf2;
+    --accent-soft: rgba(124, 108, 242, 0.16);
+    --ok: #3fb27f;
+    --warn: #d9a13b;
+    --bad: #e0576b;
+  }
+
+  html.light {
+    color-scheme: light;
+    --bg: #f4f4f6;
+    --panel: #ffffff;
+    --panel-2: #fafafb;
+    --raise: #eeeeF2;
+    --line: #e0e0e6;
+    --line-2: #d2d2da;
+    --text: #1b1b22;
+    --muted: #5c5c68;
+    --faint: #8b8b96;
+    --accent: #5b4bd6;
+    --accent-soft: rgba(91, 75, 214, 0.12);
+    --ok: #1f8a5f;
+    --warn: #a8730f;
+    --bad: #c23a4e;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    font-family: 'Microsoft YaHei UI', 'Meiryo UI', system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-2);
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--faint);
+    background-clip: content-box;
+  }
+
+  button {
+    font: inherit;
+  }
+}
+
+@layer components {
+  /* 无边框窗口的可拖拽区（原生最小/最大/关按钮由 titleBarOverlay 画在右上角） */
+  .drag {
+    -webkit-app-region: drag;
+  }
+  .nodrag {
+    -webkit-app-region: no-drag;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+  }
+  .hairline {
+    border-color: var(--line);
+  }
+  .muted {
+    color: var(--muted);
+  }
+  .faint {
+    color: var(--faint);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 select-none;
+    border: 1px solid var(--line-2);
+    background: var(--raise);
+    color: var(--text);
+    transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+  }
+  .btn:hover {
+    background: var(--line);
+  }
+  .btn:active {
+    opacity: 0.75;
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-accent {
+    @apply font-medium;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-accent:hover {
+    filter: brightness(1.08);
+    background: var(--accent);
+  }
+  .btn-ghost {
+    background: transparent;
+    border-color: transparent;
+  }
+  .btn-ghost:hover {
+    background: var(--raise);
+  }
+
+  .input {
+    @apply w-full rounded-md px-2.5 py-1.5 outline-none;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+  .input:focus {
+    border-color: var(--accent);
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5;
+    background: var(--raise);
+    border: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .chip-accent {
+    background: var(--accent-soft);
+    border-color: transparent;
+    color: var(--accent);
+  }
+
+  .nav-item {
+    @apply flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left;
+    color: var(--muted);
+  }
+  .nav-item:hover {
+    background: var(--raise);
+    color: var(--text);
+  }
+  .nav-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .card {
+    @apply relative cursor-pointer select-none overflow-hidden rounded-card border;
+    background: var(--panel);
+    border-color: var(--line);
+  }
+  .card:hover {
+    border-color: var(--line-2);
+  }
+  .card-selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+
+  .label {
+    @apply block text-[11px] uppercase tracking-wide;
+    color: var(--faint);
+  }
+
+  .switch {
+    @apply relative inline-flex h-5 w-9 shrink-0 items-center rounded-full;
+    background: var(--line-2);
+    transition: background 0.14s ease;
+  }
+  .switch-on {
+    background: var(--accent);
+  }
+  .switch-knob {
+    @apply inline-block h-4 w-4 transform rounded-full bg-white;
+    margin-left: 2px;
+  }
+  .switch-on .switch-knob {
+    margin-left: 18px;
+  }
+}

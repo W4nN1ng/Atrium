@@ -1,0 +1,5773 @@
+{
+ "schema": 1,
+ "generatedBy": "tools/build-lexicon.cjs",
+ "note": "第 2 份 §6 种子词典。改词条请改构建脚本再 npm run lexicon，别直接改这个 JSON（会被覆盖）；用户自己的增删改走设置页，存 learning/自定义词典文件。",
+ "count": 881,
+ "entries": [
+  {
+   "term": "3ds max",
+   "w": 4,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "modeling"
+  },
+  {
+   "term": "7zip",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "compress"
+  },
+  {
+   "term": "半ズボン",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "背包",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "bag"
+  },
+  {
+   "term": "编辑器",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "便利ツール",
+   "w": 2,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "other"
+  },
+  {
+   "term": "変換",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "convert"
+  },
+  {
+   "term": "表情",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "表情动画",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "facial"
+  },
+  {
+   "term": "表情贴图",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "expression"
+  },
+  {
+   "term": "表情アニメ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "facial"
+  },
+  {
+   "term": "材质",
+   "w": 5,
+   "dim": "theme",
+   "cat": "material"
+  },
+  {
+   "term": "材质包",
+   "w": 3,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "pack"
+  },
+  {
+   "term": "材质合集",
+   "w": 3,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "pack"
+  },
+  {
+   "term": "材质球",
+   "w": 2,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "mat"
+  },
+  {
+   "term": "材质预设",
+   "w": 3,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "preset"
+  },
+  {
+   "term": "菜单",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "参考",
+   "w": 5,
+   "dim": "theme",
+   "cat": "reference"
+  },
+  {
+   "term": "插件",
+   "w": 5,
+   "dim": "theme",
+   "cat": "plugin"
+  },
+  {
+   "term": "插件合集",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "场景",
+   "w": 5,
+   "dim": "theme",
+   "cat": "world"
+  },
+  {
+   "term": "场景道具",
+   "w": 3,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "world_prop"
+  },
+  {
+   "term": "成品模型",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "finished"
+  },
+  {
+   "term": "翅膀",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "wings"
+  },
+  {
+   "term": "銃",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "触発",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "刺青",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "tattoo"
+  },
+  {
+   "term": "大全",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "待机",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "idle"
+  },
+  {
+   "term": "待机姿势",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "待機",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "刀",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "道具",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop"
+  },
+  {
+   "term": "道具合集",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "地图",
+   "w": 4,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "map"
+  },
+  {
+   "term": "灯光控制",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "定位",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "tracker"
+  },
+  {
+   "term": "动画",
+   "w": 5,
+   "dim": "theme",
+   "cat": "animation"
+  },
+  {
+   "term": "动画预设",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "preset"
+  },
+  {
+   "term": "动作",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "动作系统",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "動画",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "video"
+  },
+  {
+   "term": "豆",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "短发",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "short"
+  },
+  {
+   "term": "耳饰",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "earring"
+  },
+  {
+   "term": "发饰",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "hairwear"
+  },
+  {
+   "term": "髪",
+   "w": 5,
+   "dim": "theme",
+   "cat": "hair"
+  },
+  {
+   "term": "髪型",
+   "w": 5,
+   "dim": "theme",
+   "cat": "hair"
+  },
+  {
+   "term": "髪揺れ",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "翻译",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "繁中",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "仮面",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "mask"
+  },
+  {
+   "term": "汎用",
+   "w": 3,
+   "dim": "avatar"
+  },
+  {
+   "term": "服",
+   "w": 5,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "服装",
+   "w": 5,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "服装切换",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "服装贴图",
+   "w": 2,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "clothing_texture"
+  },
+  {
+   "term": "服シェーダー",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "clothing"
+  },
+  {
+   "term": "服テクスチャ",
+   "w": 2,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "clothing_texture"
+  },
+  {
+   "term": "改変",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "retrofit"
+  },
+  {
+   "term": "改造",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "retrofit"
+  },
+  {
+   "term": "更新版",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "工具",
+   "w": 5,
+   "dim": "theme",
+   "cat": "tool"
+  },
+  {
+   "term": "弓",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "共通",
+   "w": 3,
+   "dim": "avatar"
+  },
+  {
+   "term": "規約",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "doc"
+  },
+  {
+   "term": "汉化",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "漢化",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "合并贴图",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "合集",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "和服",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "kimono"
+  },
+  {
+   "term": "后处理",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "post"
+  },
+  {
+   "term": "化妆",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "化粧",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "环境音",
+   "w": 3,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "ambient"
+  },
+  {
+   "term": "環境音",
+   "w": 3,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "ambient"
+  },
+  {
+   "term": "换装",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "机",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "furniture"
+  },
+  {
+   "term": "机翻",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "肌",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "skin"
+  },
+  {
+   "term": "肌色",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "skin"
+  },
+  {
+   "term": "肌シェーダー",
+   "w": 4,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "skin"
+  },
+  {
+   "term": "家具",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "furniture"
+  },
+  {
+   "term": "减面",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "简中",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "簡体字",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "見本",
+   "w": 2,
+   "dim": "generic"
+  },
+  {
+   "term": "建模",
+   "w": 4,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "modeling"
+  },
+  {
+   "term": "剣",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "交互",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "角",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "horn"
+  },
+  {
+   "term": "脚",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "body_part"
+  },
+  {
+   "term": "教程",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "桔梗",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "解説",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "戒指",
+   "w": 2,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ring"
+  },
+  {
+   "term": "界面",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "旧版",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "开发工具",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "尻尾",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "tail"
+  },
+  {
+   "term": "空",
+   "w": 3,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "skybox"
+  },
+  {
+   "term": "口",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "袴",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "kimono"
+  },
+  {
+   "term": "快捷键",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "扩展",
+   "w": 5,
+   "dim": "theme",
+   "cat": "plugin"
+  },
+  {
+   "term": "利用規約",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "doc"
+  },
+  {
+   "term": "粒子",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "fx_prop"
+  },
+  {
+   "term": "连衣裙",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "dress"
+  },
+  {
+   "term": "脸部",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "face"
+  },
+  {
+   "term": "料理",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "food"
+  },
+  {
+   "term": "刘海",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "bangs"
+  },
+  {
+   "term": "帽子",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "headwear"
+  },
+  {
+   "term": "苺",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "眉",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "美咲",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "萌",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "面具",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "mask"
+  },
+  {
+   "term": "模型",
+   "w": 5,
+   "dim": "theme",
+   "cat": "model"
+  },
+  {
+   "term": "模型改造",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "retrofit"
+  },
+  {
+   "term": "目",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "eye"
+  },
+  {
+   "term": "内衣",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "underwear"
+  },
+  {
+   "term": "配饰",
+   "w": 5,
+   "dim": "theme",
+   "cat": "accessory"
+  },
+  {
+   "term": "棚",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "furniture"
+  },
+  {
+   "term": "皮肤着色",
+   "w": 4,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "skin"
+  },
+  {
+   "term": "其他",
+   "w": 3,
+   "dim": "theme",
+   "cat": "other",
+   "sub": "unclassified"
+  },
+  {
+   "term": "其它",
+   "w": 3,
+   "dim": "theme",
+   "cat": "other",
+   "sub": "unclassified"
+  },
+  {
+   "term": "前髪",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "bangs"
+  },
+  {
+   "term": "枪",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "枪械",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "曲",
+   "w": 4,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "music"
+  },
+  {
+   "term": "全家桶",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "全套",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "outfit"
+  },
+  {
+   "term": "日本語",
+   "w": 4,
+   "dim": "locale"
+  },
+  {
+   "term": "日文",
+   "w": 4,
+   "dim": "locale"
+  },
+  {
+   "term": "日文版",
+   "w": 4,
+   "dim": "locale"
+  },
+  {
+   "term": "日语",
+   "w": 4,
+   "dim": "locale"
+  },
+  {
+   "term": "瑞希",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "森羅",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "上传",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "upload"
+  },
+  {
+   "term": "上衣",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "设定资料",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "ref_image"
+  },
+  {
+   "term": "摄影",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "身体部件",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "body_part"
+  },
+  {
+   "term": "声音",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "食物",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "food"
+  },
+  {
+   "term": "食べ物",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "food"
+  },
+  {
+   "term": "世界",
+   "w": 5,
+   "dim": "theme",
+   "cat": "world"
+  },
+  {
+   "term": "试用",
+   "w": 2,
+   "dim": "generic"
+  },
+  {
+   "term": "飾り",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "decor"
+  },
+  {
+   "term": "手袋",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "gloves"
+  },
+  {
+   "term": "手套",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "gloves"
+  },
+  {
+   "term": "手足",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "body_part"
+  },
+  {
+   "term": "兽耳",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ears"
+  },
+  {
+   "term": "獣耳",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ears"
+  },
+  {
+   "term": "双马尾",
+   "w": 4,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "twintail"
+  },
+  {
+   "term": "水無瀬",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "水着",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "underwear"
+  },
+  {
+   "term": "说明",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "说明书",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "doc"
+  },
+  {
+   "term": "素材",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "素材集",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "素体",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "base"
+  },
+  {
+   "term": "套装",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "outfit"
+  },
+  {
+   "term": "特效",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "fx_prop"
+  },
+  {
+   "term": "天空盒",
+   "w": 3,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "skybox"
+  },
+  {
+   "term": "贴图",
+   "w": 5,
+   "dim": "theme",
+   "cat": "texture"
+  },
+  {
+   "term": "同步",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "network"
+  },
+  {
+   "term": "瞳",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "eye"
+  },
+  {
+   "term": "头部",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "head"
+  },
+  {
+   "term": "头发",
+   "w": 5,
+   "dim": "theme",
+   "cat": "hair"
+  },
+  {
+   "term": "头饰",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "headwear"
+  },
+  {
+   "term": "頭",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "head"
+  },
+  {
+   "term": "袜子",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "socks"
+  },
+  {
+   "term": "外套",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "完成版",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "finished"
+  },
+  {
+   "term": "完成品",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "finished"
+  },
+  {
+   "term": "腕",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "body_part"
+  },
+  {
+   "term": "网络同步",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "network"
+  },
+  {
+   "term": "尾巴",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "tail"
+  },
+  {
+   "term": "未归类",
+   "w": 3,
+   "dim": "theme",
+   "cat": "other",
+   "sub": "unclassified"
+  },
+  {
+   "term": "文档",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "doc"
+  },
+  {
+   "term": "纹理",
+   "w": 5,
+   "dim": "theme",
+   "cat": "texture"
+  },
+  {
+   "term": "纹理工具",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "texturing"
+  },
+  {
+   "term": "纹身",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "tattoo"
+  },
+  {
+   "term": "巫女",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "kimono"
+  },
+  {
+   "term": "武器",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "武器合集",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "舞",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "dance"
+  },
+  {
+   "term": "舞蹈",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "dance"
+  },
+  {
+   "term": "物理",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "物理演算",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "下駄",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "下着",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "underwear"
+  },
+  {
+   "term": "下装",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "相机",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "项链",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "necklace"
+  },
+  {
+   "term": "小工具",
+   "w": 2,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "other"
+  },
+  {
+   "term": "小物",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop"
+  },
+  {
+   "term": "小物 装饰",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "decor"
+  },
+  {
+   "term": "効果音",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "新版",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "信奈",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "靴",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "靴下",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "socks"
+  },
+  {
+   "term": "学ラン",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "uniform"
+  },
+  {
+   "term": "圧縮",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "compress"
+  },
+  {
+   "term": "压缩",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "compress"
+  },
+  {
+   "term": "顔",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "face"
+  },
+  {
+   "term": "眼",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "眼睛",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "eye"
+  },
+  {
+   "term": "眼镜",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "glasses"
+  },
+  {
+   "term": "眼鏡",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "glasses"
+  },
+  {
+   "term": "演示",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "video"
+  },
+  {
+   "term": "揺れもの",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "遥控",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "衣服",
+   "w": 5,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "衣装",
+   "w": 5,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "移动",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "椅子",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "furniture"
+  },
+  {
+   "term": "翼",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "wings"
+  },
+  {
+   "term": "因幡",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "音",
+   "w": 5,
+   "dim": "theme",
+   "cat": "audio"
+  },
+  {
+   "term": "音乐",
+   "w": 4,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "music"
+  },
+  {
+   "term": "音楽",
+   "w": 4,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "music"
+  },
+  {
+   "term": "音频",
+   "w": 5,
+   "dim": "theme",
+   "cat": "audio"
+  },
+  {
+   "term": "音声",
+   "w": 5,
+   "dim": "theme",
+   "cat": "audio"
+  },
+  {
+   "term": "音效",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "音ギミック",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "飲食物",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "food"
+  },
+  {
+   "term": "飲み物",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "food"
+  },
+  {
+   "term": "英文",
+   "w": 2,
+   "dim": "locale"
+  },
+  {
+   "term": "英語版",
+   "w": 2,
+   "dim": "locale"
+  },
+  {
+   "term": "泳装",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "underwear"
+  },
+  {
+   "term": "踊り",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "dance"
+  },
+  {
+   "term": "优化",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "语音",
+   "w": 3,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "voice"
+  },
+  {
+   "term": "浴衣",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "kimono"
+  },
+  {
+   "term": "长发",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "long"
+  },
+  {
+   "term": "着色器",
+   "w": 5,
+   "dim": "theme",
+   "cat": "shader"
+  },
+  {
+   "term": "着物",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "kimono"
+  },
+  {
+   "term": "着せ替え",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "振袖",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "kimono"
+  },
+  {
+   "term": "指",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "body_part"
+  },
+  {
+   "term": "指輪",
+   "w": 2,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ring"
+  },
+  {
+   "term": "制服",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "uniform"
+  },
+  {
+   "term": "軽量化",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "中文",
+   "w": 3,
+   "dim": "locale"
+  },
+  {
+   "term": "中文版",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "转换",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "convert"
+  },
+  {
+   "term": "妆容",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "装饰",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "decor"
+  },
+  {
+   "term": "装飾",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "decor"
+  },
+  {
+   "term": "追加",
+   "w": 5,
+   "dim": "theme",
+   "cat": "plugin"
+  },
+  {
+   "term": "追踪",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "tracker"
+  },
+  {
+   "term": "资料",
+   "w": 5,
+   "dim": "theme",
+   "cat": "reference"
+  },
+  {
+   "term": "資料",
+   "w": 5,
+   "dim": "theme",
+   "cat": "reference"
+  },
+  {
+   "term": "資料 画像",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "ref_image"
+  },
+  {
+   "term": "嘴",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "最適化",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "aao",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "abt",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "accessories",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory"
+  },
+  {
+   "term": "accessory",
+   "w": 5,
+   "dim": "theme",
+   "cat": "accessory"
+  },
+  {
+   "term": "action wheel",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "actionwheel",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "addon",
+   "w": 5,
+   "dim": "theme",
+   "cat": "plugin"
+  },
+  {
+   "term": "ahoge",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "bangs"
+  },
+  {
+   "term": "airi",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "albedo",
+   "w": 2,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "clothing_texture"
+  },
+  {
+   "term": "all purpose",
+   "w": 3,
+   "dim": "avatar"
+  },
+  {
+   "term": "ambience",
+   "w": 3,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "ambient"
+  },
+  {
+   "term": "animal ears",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ears"
+  },
+  {
+   "term": "animation",
+   "w": 5,
+   "dim": "theme",
+   "cat": "animation"
+  },
+  {
+   "term": "animation clip",
+   "w": 4,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "motion"
+  },
+  {
+   "term": "animation override",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "animation preset",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "preset"
+  },
+  {
+   "term": "animator",
+   "w": 4,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "controller"
+  },
+  {
+   "term": "animator as code",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "animator controller",
+   "w": 4,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "controller"
+  },
+  {
+   "term": "anon",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "apparel",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "archive tool",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "compress"
+  },
+  {
+   "term": "asmdef",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "asset",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "assets",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "audio",
+   "w": 5,
+   "dim": "theme",
+   "cat": "audio"
+  },
+  {
+   "term": "audio link",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "audiolink",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "avatar",
+   "w": 5,
+   "dim": "theme",
+   "cat": "model"
+  },
+  {
+   "term": "avatar base",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "base"
+  },
+  {
+   "term": "avatar build",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "upload"
+  },
+  {
+   "term": "avatar closet",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "avatar optimizer",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "bag",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "bag"
+  },
+  {
+   "term": "bangs",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "bangs"
+  },
+  {
+   "term": "base body",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "base"
+  },
+  {
+   "term": "base physics",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "beta",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "bgm",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "blade",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "blazer",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "blazer 制服",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "uniform"
+  },
+  {
+   "term": "blend shapes",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "blender",
+   "w": 4,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "modeling"
+  },
+  {
+   "term": "blendshape",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "blink",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "bloom",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "post"
+  },
+  {
+   "term": "blouse",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "blush",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "bob",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "short"
+  },
+  {
+   "term": "body mesh",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "base"
+  },
+  {
+   "term": "body part",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "body_part"
+  },
+  {
+   "term": "boots",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "bow",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "builder",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "upload"
+  },
+  {
+   "term": "bundle",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "button",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "button press",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "c.c.matilda",
+   "w": 5,
+   "dim": "tool",
+   "cat": "clothing",
+   "sub": "outfit"
+  },
+  {
+   "term": "camera plus",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "cameraplus",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "camisole",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "cap",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "headwear"
+  },
+  {
+   "term": "chair",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "furniture"
+  },
+  {
+   "term": "chiffon",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "chinese",
+   "w": 3,
+   "dim": "locale"
+  },
+  {
+   "term": "chinese version",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "chise",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "chocolat",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "choker",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "necklace"
+  },
+  {
+   "term": "clip mask",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "clip studio",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "texturing"
+  },
+  {
+   "term": "closet",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "cloth setup",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "cloth shader",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "clothing"
+  },
+  {
+   "term": "cloth texture",
+   "w": 2,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "clothing_texture"
+  },
+  {
+   "term": "clothes",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "clothing",
+   "w": 5,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "cn",
+   "w": 3,
+   "dim": "locale"
+  },
+  {
+   "term": "cn版",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "coat",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "color grading",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "post"
+  },
+  {
+   "term": "compressor",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "compress"
+  },
+  {
+   "term": "contact",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "controller",
+   "w": 4,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "controller"
+  },
+  {
+   "term": "converter",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "convert"
+  },
+  {
+   "term": "coordinate",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "outfit"
+  },
+  {
+   "term": "cosmetics",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "cs 工具",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "custom sync",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "network"
+  },
+  {
+   "term": "d4rk avatar optimizer",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "dance",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "dance"
+  },
+  {
+   "term": "dance gimmick",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "data",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "data store",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "network"
+  },
+  {
+   "term": "debug",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "decal",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "tattoo"
+  },
+  {
+   "term": "decimate",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "decor",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "decor"
+  },
+  {
+   "term": "decorative",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "decor"
+  },
+  {
+   "term": "demo",
+   "w": 2,
+   "dim": "generic"
+  },
+  {
+   "term": "dev tool",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "document",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "doc"
+  },
+  {
+   "term": "dress",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "dress"
+  },
+  {
+   "term": "dress up",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "dressup",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "dynamic bone",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "dynamicbone",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "dynamicbonecollider",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "earring",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "earring"
+  },
+  {
+   "term": "earrings",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "earring"
+  },
+  {
+   "term": "easy quest switch",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "edit mesh",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "retrofit"
+  },
+  {
+   "term": "editor",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "effect",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "fx_prop"
+  },
+  {
+   "term": "effect shader",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "effect"
+  },
+  {
+   "term": "eku",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "elusion",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "emote system",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "en",
+   "w": 2,
+   "dim": "locale"
+  },
+  {
+   "term": "eng",
+   "w": 2,
+   "dim": "locale"
+  },
+  {
+   "term": "english",
+   "w": 2,
+   "dim": "locale"
+  },
+  {
+   "term": "environment sky",
+   "w": 3,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "skybox"
+  },
+  {
+   "term": "environment sound",
+   "w": 3,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "ambient"
+  },
+  {
+   "term": "expression menu",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "expression texture",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "expression"
+  },
+  {
+   "term": "eye",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "eye texture",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "eye"
+  },
+  {
+   "term": "eye tracking",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "eyeshadow",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "eyetracking",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "eyewear",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "glasses"
+  },
+  {
+   "term": "face",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "face"
+  },
+  {
+   "term": "face anim",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "facial"
+  },
+  {
+   "term": "face animation",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "face emotion",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "face mesh",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "head"
+  },
+  {
+   "term": "face set",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "expression"
+  },
+  {
+   "term": "face texture",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "face"
+  },
+  {
+   "term": "faceemo",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "facial",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "fbm",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "fbx 转换",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "convert"
+  },
+  {
+   "term": "final",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "finished avatar",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "finished"
+  },
+  {
+   "term": "food",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "food"
+  },
+  {
+   "term": "foot",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "body_part"
+  },
+  {
+   "term": "format tool",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "convert"
+  },
+  {
+   "term": "full set",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "finished"
+  },
+  {
+   "term": "fullset",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "finished"
+  },
+  {
+   "term": "furniture",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "furniture"
+  },
+  {
+   "term": "gesture manager",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "gimmick",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "glasses",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "glasses"
+  },
+  {
+   "term": "gloves",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "gloves"
+  },
+  {
+   "term": "glow",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "effect"
+  },
+  {
+   "term": "go golo co",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "gogoloco",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "goloco",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "grimoir",
+   "w": 5,
+   "dim": "tool",
+   "cat": "clothing",
+   "sub": "outfit"
+  },
+  {
+   "term": "grimoire",
+   "w": 5,
+   "dim": "tool",
+   "cat": "clothing",
+   "sub": "outfit"
+  },
+  {
+   "term": "grus",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "guide",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "gun",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "gura shader",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "hair",
+   "w": 5,
+   "dim": "theme",
+   "cat": "hair"
+  },
+  {
+   "term": "hairband",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "hairwear"
+  },
+  {
+   "term": "hakama",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "kimono"
+  },
+  {
+   "term": "hand",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "body_part"
+  },
+  {
+   "term": "hand tracking",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "tracker"
+  },
+  {
+   "term": "hat",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "headwear"
+  },
+  {
+   "term": "hats",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "headwear"
+  },
+  {
+   "term": "head",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "head"
+  },
+  {
+   "term": "head tracker",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "tracker"
+  },
+  {
+   "term": "heels",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "horn",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "horn"
+  },
+  {
+   "term": "horns",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "horn"
+  },
+  {
+   "term": "how to",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "howto",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "hud",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "ichigo",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "idle",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "idle animation",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "idle"
+  },
+  {
+   "term": "inaba",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "interaction",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "interactive",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "iridescence",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "effect"
+  },
+  {
+   "term": "jacket",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "japanese",
+   "w": 4,
+   "dim": "locale"
+  },
+  {
+   "term": "jeans",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "jp版",
+   "w": 4,
+   "dim": "locale"
+  },
+  {
+   "term": "kanzashi",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "hairwear"
+  },
+  {
+   "term": "kikyo",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "kimono",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "kimono"
+  },
+  {
+   "term": "kineanimator",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "kipfel",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "knife",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "kumaly",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "lasyusha",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "lever",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "license",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "doc"
+  },
+  {
+   "term": "light controller",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "lightcontroller",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "lil toon",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "lilitoon",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "lime",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "lingerie",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "underwear"
+  },
+  {
+   "term": "lipsync",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "locomotion",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "long hair",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "long"
+  },
+  {
+   "term": "lumina",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "lunalitt",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ma",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "magicacloth",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "magicacloth2",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "main menu",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "make up",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "makeup",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "mame",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "mamehinata",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "manuka",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "map",
+   "w": 4,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "map"
+  },
+  {
+   "term": "mask",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "mask"
+  },
+  {
+   "term": "matcap",
+   "w": 2,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "matcap"
+  },
+  {
+   "term": "material",
+   "w": 5,
+   "dim": "theme",
+   "cat": "material"
+  },
+  {
+   "term": "material pack",
+   "w": 3,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "pack"
+  },
+  {
+   "term": "material preset",
+   "w": 3,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "preset"
+  },
+  {
+   "term": "material set",
+   "w": 2,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "mat"
+  },
+  {
+   "term": "matilda",
+   "w": 5,
+   "dim": "tool",
+   "cat": "clothing",
+   "sub": "outfit"
+  },
+  {
+   "term": "maya",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "menu",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "meshia mesh simplification",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "microphone",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "milfy",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "milltina",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "mimi",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ears"
+  },
+  {
+   "term": "minase",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "misaki",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "misc",
+   "w": 3,
+   "dim": "theme",
+   "cat": "other",
+   "sub": "unclassified"
+  },
+  {
+   "term": "miscellaneous",
+   "w": 3,
+   "dim": "theme",
+   "cat": "other",
+   "sub": "unclassified"
+  },
+  {
+   "term": "mitten",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "gloves"
+  },
+  {
+   "term": "mizugi",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "underwear"
+  },
+  {
+   "term": "mizuki",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "mochie",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "model",
+   "w": 5,
+   "dim": "theme",
+   "cat": "model"
+  },
+  {
+   "term": "modelling tool",
+   "w": 4,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "modeling"
+  },
+  {
+   "term": "modular",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "modularavatar",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "moe",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "motion",
+   "w": 4,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "motion"
+  },
+  {
+   "term": "movie",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "video"
+  },
+  {
+   "term": "mp4",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "video"
+  },
+  {
+   "term": "music",
+   "w": 4,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "music"
+  },
+  {
+   "term": "ndmf",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "necklace",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "necklace"
+  },
+  {
+   "term": "nemesis",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "netcode",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "network"
+  },
+  {
+   "term": "network",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "network"
+  },
+  {
+   "term": "nilotoon",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "normal map",
+   "w": 2,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "clothing_texture"
+  },
+  {
+   "term": "one piece",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "dress"
+  },
+  {
+   "term": "orm",
+   "w": 2,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "clothing_texture"
+  },
+  {
+   "term": "outfit",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "outfit switch",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "overlay",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "override controller",
+   "w": 4,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "controller"
+  },
+  {
+   "term": "overridecontroller",
+   "w": 4,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "controller"
+  },
+  {
+   "term": "pack",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "package manager",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "paint tool",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "texturing"
+  },
+  {
+   "term": "panchira",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "socks"
+  },
+  {
+   "term": "panel",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "pants",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "parka",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "particle",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "fx_prop"
+  },
+  {
+   "term": "pc",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "pcss",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "pdf",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "doc"
+  },
+  {
+   "term": "pendulum",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "photo mode",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "photoshop",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "texturing"
+  },
+  {
+   "term": "physbone",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "plugin",
+   "w": 5,
+   "dim": "theme",
+   "cat": "plugin"
+  },
+  {
+   "term": "poiyomi",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "poiyomi pro",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "poiyomi toon",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "poiyomitoon",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "pollen",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "poly",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "polyreduce",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "ponytail",
+   "w": 4,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "twintail"
+  },
+  {
+   "term": "pose",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "pose system",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "pose tracker",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "tracker"
+  },
+  {
+   "term": "post process",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "post"
+  },
+  {
+   "term": "postprocessing",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "post"
+  },
+  {
+   "term": "preset",
+   "w": 3,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "preset"
+  },
+  {
+   "term": "preset 动作",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "prop",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop"
+  },
+  {
+   "term": "props",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop"
+  },
+  {
+   "term": "psd",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "psd"
+  },
+  {
+   "term": "psd 源文件",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "psd"
+  },
+  {
+   "term": "psd源文件",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "psd"
+  },
+  {
+   "term": "pullover",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "qqtoon",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "quest",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "quick menu",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "radial",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "radial menu",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "ramune",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "readme",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "doc"
+  },
+  {
+   "term": "reference",
+   "w": 5,
+   "dim": "theme",
+   "cat": "reference"
+  },
+  {
+   "term": "reference image",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "ref_image"
+  },
+  {
+   "term": "retrofit",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "retrofit"
+  },
+  {
+   "term": "rev",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "rim light",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "effect"
+  },
+  {
+   "term": "ring",
+   "w": 2,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ring"
+  },
+  {
+   "term": "robes",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "dress"
+  },
+  {
+   "term": "rucksack",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "bag"
+  },
+  {
+   "term": "rurune",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "rusk",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "sai",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "texturing"
+  },
+  {
+   "term": "sailor",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "uniform"
+  },
+  {
+   "term": "sample",
+   "w": 2,
+   "dim": "generic"
+  },
+  {
+   "term": "scene prop",
+   "w": 3,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "world_prop"
+  },
+  {
+   "term": "script",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "scriptable",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "sdk",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "upload"
+  },
+  {
+   "term": "sdk3",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "se音",
+   "w": 4,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "se"
+  },
+  {
+   "term": "seiyu",
+   "w": 3,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "voice"
+  },
+  {
+   "term": "selestia",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "setup",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "upload"
+  },
+  {
+   "term": "sfx",
+   "w": 4,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "se"
+  },
+  {
+   "term": "shader",
+   "w": 5,
+   "dim": "theme",
+   "cat": "shader"
+  },
+  {
+   "term": "shinano",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "shinra",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "shirt",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "shoes",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "short hair",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "short"
+  },
+  {
+   "term": "shorts",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "silent's cel shading",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "simplified chinese",
+   "w": 5,
+   "dim": "locale"
+  },
+  {
+   "term": "sio",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "sion",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "skin",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "skin"
+  },
+  {
+   "term": "skin shader",
+   "w": 4,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "skin"
+  },
+  {
+   "term": "skirt",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "skybox",
+   "w": 3,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "skybox"
+  },
+  {
+   "term": "sneakers",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "socks",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "socks"
+  },
+  {
+   "term": "sound",
+   "w": 5,
+   "dim": "theme",
+   "cat": "audio"
+  },
+  {
+   "term": "sound effect",
+   "w": 4,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "se"
+  },
+  {
+   "term": "source file",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "psd"
+  },
+  {
+   "term": "speaker",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "spring joint",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "stage",
+   "w": 3,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "world_prop"
+  },
+  {
+   "term": "sunao shader",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "sunglasses",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "glasses"
+  },
+  {
+   "term": "swimsuit",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "underwear"
+  },
+  {
+   "term": "switch",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "sword",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "sync",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "network"
+  },
+  {
+   "term": "t shirt",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "table",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "furniture"
+  },
+  {
+   "term": "tail",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "tail"
+  },
+  {
+   "term": "tattoo",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "tattoo"
+  },
+  {
+   "term": "template",
+   "w": 2,
+   "dim": "generic"
+  },
+  {
+   "term": "textrans tool",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "texture",
+   "w": 5,
+   "dim": "theme",
+   "cat": "texture"
+  },
+  {
+   "term": "texture atlas",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "thry's avatar performance tools",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "tights",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "socks"
+  },
+  {
+   "term": "toggle",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "toggler",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "tokyo",
+   "w": 4,
+   "dim": "locale"
+  },
+  {
+   "term": "tool",
+   "w": 5,
+   "dim": "theme",
+   "cat": "tool"
+  },
+  {
+   "term": "tool box",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "toolbox",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "toon",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "toon standard",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "tops",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "track",
+   "w": 4,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "music"
+  },
+  {
+   "term": "tracker",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "tracker"
+  },
+  {
+   "term": "tracking",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "tracker"
+  },
+  {
+   "term": "tshirt",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "tutorial",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "twintail",
+   "w": 4,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "twintail"
+  },
+  {
+   "term": "udon",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "udon sharp",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "udonsharp",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "ui",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "uni",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "uniform"
+  },
+  {
+   "term": "unitools",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "convert"
+  },
+  {
+   "term": "unity asset store tool",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "convert"
+  },
+  {
+   "term": "unity toon shader",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "unitypackage",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "universal",
+   "w": 3,
+   "dim": "avatar"
+  },
+  {
+   "term": "upd",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "upload",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "upload"
+  },
+  {
+   "term": "upm",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "utilities",
+   "w": 5,
+   "dim": "theme",
+   "cat": "tool"
+  },
+  {
+   "term": "utility",
+   "w": 5,
+   "dim": "theme",
+   "cat": "tool"
+  },
+  {
+   "term": "uts",
+   "w": 5,
+   "dim": "tool",
+   "cat": "shader"
+  },
+  {
+   "term": "vampire physics",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "vampirephysics",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "physics"
+  },
+  {
+   "term": "ver",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "version",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "vest",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "vfx",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "fx_prop"
+  },
+  {
+   "term": "video",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "video"
+  },
+  {
+   "term": "voice",
+   "w": 3,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "voice"
+  },
+  {
+   "term": "voicepack",
+   "w": 3,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "voice"
+  },
+  {
+   "term": "vrc audio",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "sound"
+  },
+  {
+   "term": "vrc face tracking",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "vrc lens",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "vrc photo",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "vrc picture to clipboard",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "vrc quest tools",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "vrcemote",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "vrcfury",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "vrchat sdk",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "vrchatsdk",
+   "w": 4,
+   "dim": "install"
+  },
+  {
+   "term": "vrclens",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "vrcquesttools",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "optimizer"
+  },
+  {
+   "term": "walk",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "wardrobe",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "closet"
+  },
+  {
+   "term": "weapon",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "window",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "editor"
+  },
+  {
+   "term": "wings",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "wings"
+  },
+  {
+   "term": "wink",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "wmv",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "video"
+  },
+  {
+   "term": "world",
+   "w": 5,
+   "dim": "theme",
+   "cat": "world"
+  },
+  {
+   "term": "yukata",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "kimono"
+  },
+  {
+   "term": "zbrush",
+   "w": 4,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "modeling"
+  },
+  {
+   "term": "zh",
+   "w": 3,
+   "dim": "locale"
+  },
+  {
+   "term": "zip tool",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "compress"
+  },
+  {
+   "term": "アイ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "eye"
+  },
+  {
+   "term": "アイシャドウ",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "アイリ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "アクセ",
+   "w": 5,
+   "dim": "theme",
+   "cat": "accessory"
+  },
+  {
+   "term": "アクセサリー",
+   "w": 5,
+   "dim": "theme",
+   "cat": "accessory"
+  },
+  {
+   "term": "アセット",
+   "w": 1,
+   "dim": "generic"
+  },
+  {
+   "term": "アドオン",
+   "w": 5,
+   "dim": "theme",
+   "cat": "plugin"
+  },
+  {
+   "term": "アニメ",
+   "w": 5,
+   "dim": "theme",
+   "cat": "animation"
+  },
+  {
+   "term": "アニメーション",
+   "w": 5,
+   "dim": "theme",
+   "cat": "animation"
+  },
+  {
+   "term": "アニメーター",
+   "w": 4,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "controller"
+  },
+  {
+   "term": "あのん",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "アバター",
+   "w": 5,
+   "dim": "theme",
+   "cat": "model"
+  },
+  {
+   "term": "アホ毛",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "bangs"
+  },
+  {
+   "term": "いちご",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "いなば",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "イヤリング",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "earring"
+  },
+  {
+   "term": "インテリア",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "decor"
+  },
+  {
+   "term": "インポート",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "upload"
+  },
+  {
+   "term": "ウィング",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "wings"
+  },
+  {
+   "term": "ウェア",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "ウェポン",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "weapon"
+  },
+  {
+   "term": "えく",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "エフェクト",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "fx_prop"
+  },
+  {
+   "term": "エフェクトシェーダー",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "effect"
+  },
+  {
+   "term": "エリュシオン",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "お面",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "mask"
+  },
+  {
+   "term": "ガイド",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "ガウン",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "dress"
+  },
+  {
+   "term": "カチューシャ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "hairwear"
+  },
+  {
+   "term": "かばん",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "bag"
+  },
+  {
+   "term": "カメラ",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "camera"
+  },
+  {
+   "term": "かんざし",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "hairwear"
+  },
+  {
+   "term": "キーバインド",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "ききょう",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "キプフェル",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ギミック",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "interactive"
+  },
+  {
+   "term": "キャップ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "headwear"
+  },
+  {
+   "term": "キャラ",
+   "w": 5,
+   "dim": "theme",
+   "cat": "model"
+  },
+  {
+   "term": "キャラクター",
+   "w": 5,
+   "dim": "theme",
+   "cat": "model"
+  },
+  {
+   "term": "クマリー",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "グルス",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "クローズ",
+   "w": 5,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "グローブ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "gloves"
+  },
+  {
+   "term": "けものみみ",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ears"
+  },
+  {
+   "term": "コーデ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "outfit"
+  },
+  {
+   "term": "コート",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "コンタクト",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "eye"
+  },
+  {
+   "term": "サウンド",
+   "w": 5,
+   "dim": "theme",
+   "cat": "audio"
+  },
+  {
+   "term": "サングラス",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "glasses"
+  },
+  {
+   "term": "サンプル",
+   "w": 2,
+   "dim": "generic"
+  },
+  {
+   "term": "シェーダー",
+   "w": 5,
+   "dim": "theme",
+   "cat": "shader"
+  },
+  {
+   "term": "ジェスチャー",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "しお",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "シオン",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "しっぽ",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "tail"
+  },
+  {
+   "term": "しなの",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "シナノ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "シフォン",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ジャケット",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "シャツ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "シューズ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "ショーツ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "ショート",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "short"
+  },
+  {
+   "term": "ショコラ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "しんら",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "スイーツ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "food"
+  },
+  {
+   "term": "スカート",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "スカイボックス",
+   "w": 3,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "skybox"
+  },
+  {
+   "term": "スクール",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "uniform"
+  },
+  {
+   "term": "ステージ",
+   "w": 5,
+   "dim": "theme",
+   "cat": "world"
+  },
+  {
+   "term": "ストッキング",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "socks"
+  },
+  {
+   "term": "スニーカー",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "ズボン",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "セーター",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "セーラー",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "uniform"
+  },
+  {
+   "term": "セット",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "セットアップ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "outfit"
+  },
+  {
+   "term": "セレスティア",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ソックス",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "socks"
+  },
+  {
+   "term": "タイツ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "socks"
+  },
+  {
+   "term": "タトゥー",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "tattoo"
+  },
+  {
+   "term": "ダブルテール",
+   "w": 4,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "twintail"
+  },
+  {
+   "term": "タンクトップ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "ダンス",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "action"
+  },
+  {
+   "term": "チーク",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "ちせ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "チュートリアル",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "ツール",
+   "w": 5,
+   "dim": "theme",
+   "cat": "tool"
+  },
+  {
+   "term": "ツインテール",
+   "w": 4,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "twintail"
+  },
+  {
+   "term": "ツノ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "horn"
+  },
+  {
+   "term": "テーブル",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "furniture"
+  },
+  {
+   "term": "デカール",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "tattoo"
+  },
+  {
+   "term": "テクスチャ",
+   "w": 5,
+   "dim": "theme",
+   "cat": "texture"
+  },
+  {
+   "term": "デニム",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "デモ映像",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "video"
+  },
+  {
+   "term": "テンプレート",
+   "w": 2,
+   "dim": "generic"
+  },
+  {
+   "term": "ドキュメント",
+   "w": 3,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "doc"
+  },
+  {
+   "term": "ニット",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "ネコミミ",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ears"
+  },
+  {
+   "term": "ネックレス",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "necklace"
+  },
+  {
+   "term": "ネメシス",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "パーカー",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "パーティクル",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "fx_prop"
+  },
+  {
+   "term": "バック",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "bag"
+  },
+  {
+   "term": "バッグ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "bag"
+  },
+  {
+   "term": "パンチラ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "socks"
+  },
+  {
+   "term": "パンツ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "bottom"
+  },
+  {
+   "term": "パンプス",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "ピアス",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "earring"
+  },
+  {
+   "term": "ブーツ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "shoes"
+  },
+  {
+   "term": "フード",
+   "w": 3,
+   "dim": "theme",
+   "cat": "prop",
+   "sub": "food"
+  },
+  {
+   "term": "フェイス",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "フェイスセット",
+   "w": 3,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "expression"
+  },
+  {
+   "term": "フェイスマップ",
+   "w": 3,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "head"
+  },
+  {
+   "term": "フェイスマップ メイク",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "ふく",
+   "w": 5,
+   "dim": "theme",
+   "cat": "clothing"
+  },
+  {
+   "term": "ブラウス",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "top"
+  },
+  {
+   "term": "プラグイン",
+   "w": 5,
+   "dim": "theme",
+   "cat": "plugin"
+  },
+  {
+   "term": "プリセット",
+   "w": 3,
+   "dim": "theme",
+   "cat": "animation",
+   "sub": "preset"
+  },
+  {
+   "term": "フルセット",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "finished"
+  },
+  {
+   "term": "プロジェクトファイル",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "psd"
+  },
+  {
+   "term": "プロップ",
+   "w": 5,
+   "dim": "theme",
+   "cat": "prop"
+  },
+  {
+   "term": "ベース",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "base"
+  },
+  {
+   "term": "ヘア",
+   "w": 5,
+   "dim": "theme",
+   "cat": "hair"
+  },
+  {
+   "term": "ヘアー",
+   "w": 5,
+   "dim": "theme",
+   "cat": "hair"
+  },
+  {
+   "term": "ヘアアクセ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "hairwear"
+  },
+  {
+   "term": "ヘアカラー",
+   "w": 4,
+   "dim": "theme",
+   "cat": "hair"
+  },
+  {
+   "term": "ペイントツール",
+   "w": 3,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "texturing"
+  },
+  {
+   "term": "ベスト",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "coat"
+  },
+  {
+   "term": "ボイス",
+   "w": 3,
+   "dim": "theme",
+   "cat": "audio",
+   "sub": "voice"
+  },
+  {
+   "term": "ボタン",
+   "w": 4,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "menu_ui"
+  },
+  {
+   "term": "ポニーテール",
+   "w": 4,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "twintail"
+  },
+  {
+   "term": "ボブ",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "short"
+  },
+  {
+   "term": "ポレン",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "マスク",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "mask"
+  },
+  {
+   "term": "マットキャップ",
+   "w": 2,
+   "dim": "tool",
+   "cat": "material",
+   "sub": "matcap"
+  },
+  {
+   "term": "マップ",
+   "w": 4,
+   "dim": "theme",
+   "cat": "world",
+   "sub": "map"
+  },
+  {
+   "term": "マテリアル",
+   "w": 5,
+   "dim": "theme",
+   "cat": "material"
+  },
+  {
+   "term": "まとめ",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "まとめ売り",
+   "w": 2,
+   "dim": "generic",
+   "cat": "other",
+   "sub": "bundle"
+  },
+  {
+   "term": "マニュアル",
+   "w": 4,
+   "dim": "theme",
+   "cat": "reference",
+   "sub": "tutorial"
+  },
+  {
+   "term": "マヌカ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "まばたき",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "まぶしい",
+   "w": 3,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "まめ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "まめひなた",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "マヤ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "みさき",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "みずき",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ミトン",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "gloves"
+  },
+  {
+   "term": "みなせ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ミルティナ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ミルフィ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "メイク",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "メガネ",
+   "w": 4,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "glasses"
+  },
+  {
+   "term": "モーション",
+   "w": 5,
+   "dim": "theme",
+   "cat": "animation"
+  },
+  {
+   "term": "もえ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "モデリング",
+   "w": 4,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "modeling"
+  },
+  {
+   "term": "モデル",
+   "w": 5,
+   "dim": "theme",
+   "cat": "model"
+  },
+  {
+   "term": "ユーティリティ",
+   "w": 2,
+   "dim": "theme",
+   "cat": "tool",
+   "sub": "other"
+  },
+  {
+   "term": "ユニバーサル",
+   "w": 3,
+   "dim": "avatar"
+  },
+  {
+   "term": "ライム",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ラシュシャ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ラスク",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ラムネ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ランジェリー",
+   "w": 3,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "underwear"
+  },
+  {
+   "term": "リップ",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "makeup"
+  },
+  {
+   "term": "リップシンク",
+   "w": 5,
+   "dim": "tool",
+   "cat": "plugin",
+   "sub": "expression"
+  },
+  {
+   "term": "リファレンス",
+   "w": 5,
+   "dim": "theme",
+   "cat": "reference"
+  },
+  {
+   "term": "リボン",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "headwear"
+  },
+  {
+   "term": "リボン ヘア",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "hairwear"
+  },
+  {
+   "term": "リムライト",
+   "w": 3,
+   "dim": "tool",
+   "cat": "shader",
+   "sub": "effect"
+  },
+  {
+   "term": "リメイク",
+   "w": 4,
+   "dim": "tool",
+   "cat": "model",
+   "sub": "retrofit"
+  },
+  {
+   "term": "リュック",
+   "w": 3,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "bag"
+  },
+  {
+   "term": "リング",
+   "w": 2,
+   "dim": "theme",
+   "cat": "accessory",
+   "sub": "ring"
+  },
+  {
+   "term": "ルナリット",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ルミナ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "ルルネ",
+   "w": 5,
+   "dim": "avatar"
+  },
+  {
+   "term": "レイヤー付き",
+   "w": 4,
+   "dim": "theme",
+   "cat": "texture",
+   "sub": "psd"
+  },
+  {
+   "term": "ローブ",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "dress"
+  },
+  {
+   "term": "ロング",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "long"
+  },
+  {
+   "term": "ロングヘア",
+   "w": 3,
+   "dim": "theme",
+   "cat": "hair",
+   "sub": "long"
+  },
+  {
+   "term": "ワールド",
+   "w": 5,
+   "dim": "theme",
+   "cat": "world"
+  },
+  {
+   "term": "ワンピース",
+   "w": 4,
+   "dim": "theme",
+   "cat": "clothing",
+   "sub": "dress"
+  }
+ ]
+}

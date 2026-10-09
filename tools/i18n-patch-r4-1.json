@@ -1,0 +1,47 @@
+{
+  "zh-CN": {
+    "library": {
+      "queueRunning": "{{project}} · 正在导入 {{done}}/{{total}}（成功 {{ok}} · 失败 {{failed}}）",
+      "queueDone": "{{project}} · 这批跑完：成功 {{ok}}、失败 {{failed}}、未执行 {{notRun}}",
+      "queueBusy": "已排队（{{reason}}）· 第 {{n}} 次重试 · {{s}} 秒后再试",
+      "qQueued": "排队中",
+      "qRunning": "进行中",
+      "qOk": "成功（新 {{created}} · 覆盖 {{overwritten}}）",
+      "qFailed": "失败",
+      "qCancelled": "已取消",
+      "qNotRun": "未执行",
+      "importMsgRaw": "{{msg}}",
+      "qUnknown": "结果未知（没等到终态）"
+    }
+  },
+  "en": {
+    "library": {
+      "queueRunning": "{{project}} · importing {{done}}/{{total}} ({{ok}} ok · {{failed}} failed)",
+      "queueDone": "{{project}} · batch finished: {{ok}} ok, {{failed}} failed, {{notRun}} not run",
+      "queueBusy": "Queued ({{reason}}) · retry {{n}} · next try in {{s}}s",
+      "qQueued": "queued",
+      "qRunning": "running",
+      "qOk": "ok ({{created}} new · {{overwritten}} overwritten)",
+      "qFailed": "failed",
+      "qCancelled": "cancelled",
+      "qNotRun": "not run",
+      "importMsgRaw": "{{msg}}",
+      "qUnknown": "unknown (no final result)"
+    }
+  },
+  "ja": {
+    "library": {
+      "queueRunning": "{{project}} · インポート中 {{done}}/{{total}}（成功 {{ok}}・失敗 {{failed}}）",
+      "queueDone": "{{project}} · この一括完了：成功 {{ok}}、失敗 {{failed}}、未実行 {{notRun}}",
+      "queueBusy": "待機中（{{reason}}）· {{n}} 回目再試行 · {{s}} 秒後",
+      "qQueued": "待機中",
+      "qRunning": "実行中",
+      "qOk": "成功（新規 {{created}}・上書き {{overwritten}}）",
+      "qFailed": "失敗",
+      "qCancelled": "キャンセル済み",
+      "qNotRun": "未実行",
+      "importMsgRaw": "{{msg}}",
+      "qUnknown": "結果不明（終態未達）"
+    }
+  }
+}
