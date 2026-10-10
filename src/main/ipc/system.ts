@@ -6,6 +6,7 @@ import type { DirectoryProbe } from '../../shared/wizardState'
 import { getSettings } from '../services/settings'
 import { P, resourceRoot } from '../services/paths'
 import { isForbiddenTarget } from '../security/paths'
+import { libraryRootProblem } from '../security/libraryRoot'
 import { freeBytesOf } from '../import/extractRoot'
 import { isSupportedInputName } from '../unpack/magic'
 import type { IpcRegistrar } from './types'
@@ -117,6 +118,8 @@ export function registerSystem(ipc: IpcRegistrar['ipc'], getWindow: () => Browse
       capped: false,
       skipped: 0
     }
+    probe.problemKey = libraryRootProblem(target)
+    if (probe.problemKey) return probe
     try {
       if (!fs.statSync(target).isDirectory()) return probe
       probe.exists = true

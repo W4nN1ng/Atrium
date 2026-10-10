@@ -34,7 +34,7 @@
   "nav": {
     "inbox": "Inbox",
     "pending": "Needs review",
-    "recent": "Recently imported",
+    "recent": "Recently added",
     "favorites": "Favorites",
     "collections": "Collections",
     "categories": "Categories",
@@ -233,10 +233,13 @@
     "reviewConfirmBody": "{{count}} item(s) will leave “Needs review”. This only flips a flag: no files move, no category changes, confidence untouched. Changed your mind? Use “Put back for review” on that card.",
     "reviewConfirmOk": "Confirm",
     "dropNoLocalPath": "No local path for those files — they may not be on disk (images from a browser, or a line inside an archive window, behave like this). Try dragging a folder from Explorer, or use Inbox → Pick files…",
-    "dropNothing": "That drop carried no files — maybe text or a shortcut. Try dragging a folder from Explorer, or use Inbox → Pick files…"
+    "dropNothing": "That drop carried no files — maybe text or a shortcut. Try dragging a folder from Explorer, or use Inbox → Pick files…",
+    "importConfirmTitle": "Confirm import into Unity",
+    "importConfirmAction": "Confirm import",
+    "importConfirmIntro": "{{total}} files will be imported. No existing files need to be overwritten."
   },
   "inbox": {
-    "title": "Ingest queue",
+    "title": "Assets to organize",
     "clear": "Clear list",
     "pickFiles": "Pick files…",
     "stage": {
@@ -254,9 +257,9 @@
       "duplicate": "Duplicate"
     },
     "active": "{{count}} in progress",
-    "m2Note": "Drop → read the content → classify. Low-confidence ones wait for you; corrections are remembered.",
+    "m2Note": "Added assets are scanned and given suggested categories. Review the results; corrections improve future suggestions.",
     "autoExtractOff": "Auto-extract is off: only the original file and its entry list are recorded",
-    "confidence": "confidence {{value}}%",
+    "confidence": "Category match {{value}}%",
     "why": "Why this category",
     "suspectedSource": "Suspected source: booth.pm/items/{{id}} (needs confirming)",
     "splitInto": "Read as a bundle, split into {{count}} items · {{bundle}}",
@@ -282,7 +285,10 @@
     "scopeAll": "Everything pending",
     "bundleCard": "Recognised as a collection · {{count}} items (one card, not split)",
     "bundleMore": "{{count}} more…",
-    "bundleNoSplit": "Stored together: categories are recorded, no file inside gets moved"
+    "bundleNoSplit": "Stored together: categories are recorded, no file inside gets moved",
+    "emptyTitle": "Add your first asset",
+    "emptyHint": "Drop a ZIP, Unity package, or asset folder here, or select files below. Atrium reads the contents and suggests a category.",
+    "nextStepHint": "Add assets → confirm their category → browse All assets. Select and connect a target project when importing into Unity."
   },
   "unity": {
     "errNoProject": "No record of this project — refresh the project list first",
@@ -347,11 +353,17 @@
     "bridgeAskNote": "Always install applies to this project only. It is not the login-startup switch (Settings → General), and the install-for-every-project switch is in Settings → Unity.",
     "bridgeAskInstall": "Install",
     "bridgeAskAlways": "Always install (this project)",
-    "bridgeAskNever": "Not now",
+    "bridgeAskNever": "Never ask for this project",
     "bridgeAskMore": "{{n}} more project(s) are waiting for the same question — answer this one and the next appears.",
     "autoInstalled": "Bridge installed into {{name}} automatically: {{count}} files → {{to}}",
     "autoInstallFailed": "Could not install the bridge into {{name}} automatically — want to decide?",
-    "bridgeAskSilenceRest": "Do not ask about the other {{n}}"
+    "bridgeAskSilenceRest": "Do not ask about the other {{n}}",
+    "connectTitle": "Connect Unity projects",
+    "connectIntro": "Select projects to import assets into Unity. You can organize assets now and connect later.",
+    "connectLater": "Connect later",
+    "connectSelected": "Connect selected ({{n}})",
+    "connectAutomatic": "Automatically install the connector for selected projects in future",
+    "connectFilesNote": "Connecting installs the Atrium plugin in the project’s Packages folder. Unselected projects are skipped this time; connect them later from Current project."
   },
   "settings": {
     "title": "Settings",
@@ -383,9 +395,9 @@
     "dirTemplateHint": "Available: {category} {subcategory} {name} {version} {avatar} {author} {year}",
     "keepOriginal": "Keep the original archive",
     "autoExtract": "Extract into _extracted/",
-    "autoExtractHint": "Off by default: your library is 25 GB and extraction multiplies it",
-    "confidenceAuto": "Auto-archive threshold",
-    "confidenceConfirm": "Needs-review threshold",
+    "autoExtractHint": "Off by default to save space. When enabled, extracted contents are saved too; combine with Keep original archives.",
+    "confidenceAuto": "Auto-archive match threshold",
+    "confidenceConfirm": "Match threshold for skipping review",
     "grouping": "Group variants",
     "bundleSplit": "Split bundles",
     "unityExe": "Unity.exe path",
@@ -543,7 +555,11 @@
     "remergeBadge": "{{from}} cards → 1",
     "remergeNewGroup": "needs a new group",
     "remergeMore": "{{count}} more not listed",
-    "openLogDir": "Open log folder"
+    "openLogDir": "Open log folder",
+    "invalidThreshold": "Classification thresholds must be between 0 and 1.",
+    "keepOriginalHint": "When off, original archives move to undo storage only after extracted files are saved. Unextracted archives and original Unity packages are kept.",
+    "confidenceAutoHint": "0–1; automatically archive matches at this threshold when review is not required. Higher is more cautious.",
+    "confidenceConfirmHint": "0–1; matches below this threshold require classification review."
   },
   "toast": {
     "trashDone": "Moved to Recycle Bin",
@@ -808,7 +824,7 @@
   },
   "wizard": {
     "title": "First-time setup",
-    "subtitle": "Three steps and you are running — everything stays editable in Settings",
+    "subtitle": "Four steps; change any option later in Settings",
     "skip": "Set up later",
     "back": "Back",
     "next": "Next",
@@ -816,7 +832,7 @@
     "touchesDisk": "writes to disk",
     "step1": {
       "title": "1. Where the library lives",
-      "body": "Pick a folder for the library. Atrium archives assets only inside it; the database, thumbnails, staging and logs live in the app data folder, not here.",
+      "body": "Choose a dedicated folder for organized assets, separate from your Unity projects.",
       "pick": "Choose folder",
       "pickTitle": "Pick the library folder",
       "probing": "Looking at that folder…",
@@ -824,22 +840,24 @@
       "warnSystemDrive": "It is on C:. Workable, but the library only grows — another drive is usually better.",
       "warnLowFree": "Less than 20 GB free on this drive, which may not be enough to unpack big archives.",
       "askTitle": "That folder already has assets. What should Atrium do?",
-      "adoptTitle": "Adopt this library",
-      "adoptBody": "Registers what is already there without moving or renaming a single file, and turns off auto-archive so every card waits for your confirmation.",
+      "adoptTitle": "Register existing assets",
+      "adoptBody": "Scan and register existing assets, keeping their locations and names. Automatic archiving is turned off.",
       "adoptShort": "adopted",
-      "freshTitle": "Treat it as empty",
-      "freshBody": "Nothing is registered or moved; new assets get archived into this folder and may mix with your existing layout.",
+      "freshTitle": "Save newly added assets only",
+      "freshBody": "Existing files stay as they are. New assets are saved here by category; an empty folder is recommended.",
       "freshShort": "empty library",
       "chooseThis": "Use this",
       "needRoot": "Pick the library folder first (this step cannot be skipped)",
       "facts": {
         "dirs": "{{n}} top-level folders",
-        "files": "{{n}} files Atrium can ingest",
+        "files": "{{n}} supported asset files",
         "unknown": "Some subfolders could not be read, so the file count is unknown",
         "free": "{{size}} free"
       },
       "typePath": "…or paste a path here",
-      "look": "Look at it"
+      "look": "Look at it",
+      "unityProject": "This folder belongs to a Unity project. Choose a separate asset library folder; connect Unity in a later step.",
+      "forbidden": "Choose a dedicated asset folder, rather than a drive root or system directory."
     },
     "step2": {
       "title": "2. Where assets come from",
@@ -849,11 +867,11 @@
       "remove": "Remove"
     },
     "step3": {
-      "title": "3. Install the Unity bridge",
-      "body": "The bridge is a small editor script written only into the project’s Packages/ folder — it never touches Assets/. You can skip it and install later under Settings → Unity.",
+      "title": "③ Connect Unity projects (optional)",
+      "body": "Install the Atrium connector to import into Unity. Select projects to connect, or install later from Current project.",
       "none": "No Unity projects found. Add a project root and come back, or skip for now.",
       "installed": "installed",
-      "run": "Install to the selected",
+      "run": "Connect selected projects",
       "onlyPackages": "Writes only Packages/com.avca.bridge, never Assets/",
       "resultOk": "installed {{copied}} files → {{target}}",
       "resultBad": "failed: {{error}}",
@@ -868,7 +886,7 @@
       "summary": "Check before you finish"
     },
     "summary": {
-      "libraryRoot": "Library folder",
+      "libraryRoot": "Asset library folder",
       "mode": "Handling",
       "watched": "Watched folders",
       "bridges": "Bridges installed",

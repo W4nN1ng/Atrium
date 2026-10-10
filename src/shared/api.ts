@@ -385,7 +385,7 @@ export interface AApi {
      */
     answerBridgeAsk(
       projectId: string,
-      choice: 'install-once' | 'always' | 'never'
+      choice: 'install-once' | 'always' | 'never' | 'later'
     ): Promise<{ ok: boolean; saved: 'always' | 'never' | null; error?: string }>
     /**
      * M7 Q10 · 「剩下这些都不再问」。

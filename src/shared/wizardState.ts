@@ -159,6 +159,7 @@ export interface DirectoryFacts {
  * 比 `DirectoryFacts` 多两个字段，都是给界面用的，**不参与判定**（判定只看上面那五个）。
  */
 export interface DirectoryProbe extends DirectoryFacts {
+  problemKey?: string | null
   /** 探的是哪个目录（原样带回，界面之后要拿它落 `libraryRoot`） */
   path: string
   /** 数到封顶了（界面要写成"500+"而不是"500"，别谎报精确值） */

@@ -293,10 +293,15 @@ export function Inbox(): JSX.Element {
 
       {items.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
-          <div className="text-[15px]">{t('library.emptyTitle')}</div>
+          <div className="text-[18px] font-medium">{t('inbox.emptyTitle')}</div>
           <div className="max-w-md text-[12px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-            {t('library.emptyHint')}
+            {t('inbox.emptyHint')}
           </div>
+          <Button variant="accent" className="mt-3" onClick={async () => {
+            const picked = await window.a.system.pickFiles()
+            if (picked.length) await ingestPaths(picked)
+          }}>{t('inbox.pickFiles')}</Button>
+          <div className="mt-4 max-w-md text-[12px] leading-relaxed" style={{ color: 'var(--muted)' }}>{t('inbox.nextStepHint')}</div>
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">

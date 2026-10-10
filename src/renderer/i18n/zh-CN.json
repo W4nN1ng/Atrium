@@ -34,7 +34,7 @@
   "nav": {
     "inbox": "收件箱",
     "pending": "待确认",
-    "recent": "最近导入",
+    "recent": "最近添加",
     "favorites": "收藏",
     "collections": "集合",
     "categories": "分类",
@@ -233,10 +233,13 @@
     "reviewConfirmBody": "将把 {{count}} 条从「待复核」里移出。这只改一个标记：不搬文件、不改分类、也不动置信度。反悔的话在那张卡上点「重新排进待复核」。",
     "reviewConfirmOk": "确认标记",
     "dropNoLocalPath": "没拿到这些文件的本地路径 —— 它们可能不在磁盘上（浏览器里的图片、压缩包窗口里的一行都会这样）。试试从资源管理器拖文件夹进来，或用「收件箱 → 选择文件…」。",
-    "dropNothing": "这次拖拽没带上文件 —— 可能拖的是文字或快捷方式。试试从资源管理器拖文件夹进来，或用「收件箱 → 选择文件…」。"
+    "dropNothing": "这次拖拽没带上文件 —— 可能拖的是文字或快捷方式。试试从资源管理器拖文件夹进来，或用「收件箱 → 选择文件…」。",
+    "importConfirmTitle": "确认导入到 Unity",
+    "importConfirmAction": "确认导入",
+    "importConfirmIntro": "将导入 {{total}} 个文件。没有发现需要覆盖的已有文件。"
   },
   "inbox": {
-    "title": "摄取队列",
+    "title": "待整理的素材",
     "clear": "清空列表",
     "pickFiles": "选择文件…",
     "stage": {
@@ -254,9 +257,9 @@
       "duplicate": "重复"
     },
     "active": "进行中 {{count}}",
-    "m2Note": "拖入 → 读内容 → 分类。置信度不够的会停下等你确认，你改过的它记住。",
+    "m2Note": "添加素材后会自动读取内容并建议分类。请核对结果；修改过的分类会用于改进后续判断。",
     "autoExtractOff": "当前不自动解压（只登记原件与包内清单）",
-    "confidence": "置信度 {{value}}%",
+    "confidence": "分类匹配度 {{value}}%",
     "why": "为什么这么分",
     "suspectedSource": "疑似来源：booth.pm/items/{{id}}（要确认）",
     "splitInto": "识别为合集，拆成 {{count}} 项 · {{bundle}}",
@@ -282,7 +285,10 @@
     "scopeAll": "全部待确认项",
     "bundleCard": "识别为合集 · 含 {{count}} 项（整包一张卡，不拆开）",
     "bundleMore": "还有 {{count}} 项…",
-    "bundleNoSplit": "入库时保持在一起，只登记分类，不搬动里面的文件"
+    "bundleNoSplit": "入库时保持在一起，只登记分类，不搬动里面的文件",
+    "emptyTitle": "先添加一个素材试试",
+    "emptyHint": "把 ZIP、unitypackage 或素材文件夹拖到这里，也可以点击下面的按钮。Atrium 会读取内容并建议分类。",
+    "nextStepHint": "添加素材 → 确认分类 → 在「全部素材」中查看。要导入 Unity 时，再选择并连接目标工程。"
   },
   "unity": {
     "errNoProject": "库里没有这个工程的记录，先刷新工程列表",
@@ -347,11 +353,17 @@
     "bridgeAskNote": "「以后都自动安装」只对这个工程有效，不是开机自启 —— 开机自启在「设置 → 常规」里；「对所有工程都自动装」的开关在「设置 → Unity」。",
     "bridgeAskInstall": "安装",
     "bridgeAskAlways": "以后都自动安装（只这个工程）",
-    "bridgeAskNever": "暂不",
+    "bridgeAskNever": "不再询问此工程",
     "bridgeAskMore": "另外还有 {{n}} 个工程要问，答完这条接着问下一条。",
     "autoInstalled": "已自动为「{{name}}」装好桥接：{{count}} 个文件 → {{to}}",
     "autoInstallFailed": "「{{name}}」自动装桥接没成功，问你一下怎么办",
-    "bridgeAskSilenceRest": "剩下 {{n}} 个都不再问"
+    "bridgeAskSilenceRest": "剩下 {{n}} 个都不再问",
+    "connectTitle": "连接 Unity 工程",
+    "connectIntro": "想把素材一键导入 Unity？请勾选要连接的工程。也可以先整理素材，稍后再连接。",
+    "connectLater": "稍后连接",
+    "connectSelected": "连接所选工程（{{n}}）",
+    "connectAutomatic": "以后为勾选的工程自动安装连接插件",
+    "connectFilesNote": "连接会在工程的 Packages 文件夹中安装 Atrium 插件。未勾选的工程本次跳过，以后可在「当前工程」中手动连接。"
   },
   "settings": {
     "title": "设置",
@@ -383,9 +395,9 @@
     "dirTemplateHint": "可用 {category} {subcategory} {name} {version} {avatar} {author} {year}",
     "keepOriginal": "保留原始压缩包",
     "autoExtract": "自动解压到 _extracted/",
-    "autoExtractHint": "默认关闭：库有 25 GB，全量解压会成倍占空间",
-    "confidenceAuto": "自动归档阈值",
-    "confidenceConfirm": "待确认阈值",
+    "autoExtractHint": "默认关闭以节省空间。开启后会同时保存解压内容；可配合「保留原始压缩包」设置使用。",
+    "confidenceAuto": "自动入库的最低匹配度",
+    "confidenceConfirm": "无需确认的最低匹配度",
     "grouping": "开启资产归并",
     "bundleSplit": "开启合集拆分",
     "unityExe": "Unity.exe 路径",
@@ -543,7 +555,11 @@
     "remergeBadge": "{{from}} 张并成 1 张",
     "remergeNewGroup": "要新建一组",
     "remergeMore": "还有 {{count}} 张没列出来",
-    "openLogDir": "打开日志位置"
+    "openLogDir": "打开日志位置",
+    "invalidThreshold": "分类匹配度必须在 0 到 1 之间。",
+    "keepOriginalHint": "关闭后，仅在自动解压内容已保存时，将原压缩包移入可撤销暂存区。未解压、解压失败和原始 unitypackage 都会保留。",
+    "confidenceAutoHint": "0–1；达到此匹配度且无需确认时，可自动入库。数值越大越谨慎。",
+    "confidenceConfirmHint": "0–1；低于此匹配度时，必须手动确认分类。"
   },
   "toast": {
     "trashDone": "已移入回收站",
@@ -808,7 +824,7 @@
   },
   "wizard": {
     "title": "首次配置",
-    "subtitle": "三步就能用起来，之后随时能在「设置」里改",
+    "subtitle": "共 4 步，完成后随时可以在「设置」中修改",
     "skip": "稍后配置",
     "back": "上一步",
     "next": "下一步",
@@ -816,7 +832,7 @@
     "touchesDisk": "会动磁盘",
     "step1": {
       "title": "① 素材库存哪儿",
-      "body": "选一个文件夹当库根。Atrium 只往这里归档素材；数据库、缩略图、暂存和日志不在这里，它们在应用数据目录。",
+      "body": "选择一个专门保存素材的文件夹。以后整理好的素材会放在这里。请与 Unity 工程目录分开。",
       "pick": "选择文件夹",
       "pickTitle": "选库根目录",
       "probing": "正在看这个目录…",
@@ -824,22 +840,24 @@
       "warnSystemDrive": "它在 C 盘。能用，但素材库会越长越大，建议换到别的盘。",
       "warnLowFree": "这个盘剩余空间不到 20 GB，解压大压缩包时可能不够用。",
       "askTitle": "这里已经有素材了，要怎么处置？",
-      "adoptTitle": "接管这个库",
-      "adoptBody": "只把里面的东西登记进库，一个文件都不搬、不改名；同时关掉「高置信度自动归档」，每张卡都等你点确认才动盘。",
+      "adoptTitle": "登记已有素材",
+      "adoptBody": "扫描并登记现有素材，保留原来的文件位置和名称，同时关闭自动入库。",
       "adoptShort": "接管",
-      "freshTitle": "当成空库",
-      "freshBody": "不登记、不搬动目录里原有的东西；以后归档的新素材按分类建在这个目录下，可能和你原来的结构混在一起。",
+      "freshTitle": "只保存以后添加的素材",
+      "freshBody": "现有文件保持原样。以后添加的素材会按分类存到这里；建议使用空文件夹。",
       "freshShort": "空库",
       "chooseThis": "就按这个来",
       "needRoot": "先把库根选好（这一步不能跳）",
       "facts": {
         "dirs": "顶层目录 {{n}} 个",
-        "files": "Atrium 吃得下的文件 {{n}} 个",
+        "files": "支持的素材文件 {{n}} 个",
         "unknown": "有些子目录读不到，文件数没法确定",
         "free": "剩余空间 {{size}}"
       },
       "typePath": "或者把路径贴在这里",
-      "look": "看这个目录"
+      "look": "看这个目录",
+      "unityProject": "这是 Unity 工程目录，不能作为素材保存位置。请另建一个文件夹，例如 E:\\wn\\Atrium素材库。Unity 工程会在后面的步骤单独连接。",
+      "forbidden": "请选择专门保存素材的文件夹，不能使用盘符根目录或系统目录。"
     },
     "step2": {
       "title": "② 素材从哪儿来",
@@ -849,11 +867,11 @@
       "remove": "移除"
     },
     "step3": {
-      "title": "③ 给 Unity 工程装桥接",
-      "body": "桥接是一小段编辑器脚本，只写进工程的 Packages/ 目录，不碰 Assets/。跳过也行，以后在「设置 → Unity」里随时补装。",
+      "title": "③ 连接 Unity 工程（可跳过）",
+      "body": "想把素材导入 Unity 时，需要先安装 Atrium 连接插件。勾选要连接的工程；也可以稍后在「当前工程」页面安装。",
       "none": "没发现 Unity 工程。加了工程根目录之后再回来，或者先跳过。",
       "installed": "已装",
-      "run": "装勾上的这些",
+      "run": "连接勾选的工程",
       "onlyPackages": "只写 Packages/com.avca.bridge，不动 Assets/",
       "resultOk": "装了 {{copied}} 个文件 → {{target}}",
       "resultBad": "没装上：{{error}}",
@@ -868,7 +886,7 @@
       "summary": "走之前确认一下"
     },
     "summary": {
-      "libraryRoot": "库根",
+      "libraryRoot": "素材保存文件夹",
       "mode": "处理方式",
       "watched": "监视文件夹",
       "bridges": "这次装了桥接",
