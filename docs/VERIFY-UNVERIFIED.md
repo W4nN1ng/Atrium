@@ -1119,3 +1119,13 @@ https://github.com/W4nN1ng/Atrium/releases/tag/v0.2.0 —— 五条裁定他一�
 | 他的账被动了没有 | ✅ 逐列核过（拿装之前的库副本比）：`asset` 53 行里 50 行变的**只有 `cover_image`**，名字/分类/路径/父子/needs_review 一格没动；`search_alias` 937 行**集合一字不差**（只是重建时行序变了）；`journal` 仍是 800 行、`variant`/`tag`/`import_log` 全一字不差；`settings.json` 多出来的就是 ⑥ 那两个戳（`autoRemergeRunAt` + `autoRemergeRunRoot`，装之前只读量过：他现在这套库顶层人口 0 张 → **⑥ 并 0 处**） |
 | 对账口径本身 | ⚠ 第一次跑这条是**红**的 —— 因为工具的白名单只有 `project`，把"补封面"和"重建索引改了行序"当成改动。口径哭狼来了比没口径更坏，所以把它改成**按列**：`asset` 只允许 `cover_image` 变、`search_alias` 比集合不比行序，其余任何一格动一样照样红 |
 
+
+### 公开发布 v0.4.0（2026-10-11 00:1x，他一句「现在把最新版发到 GitHub 上」）
+
+| 检查 | 结果 |
+| --- | --- |
+| 发布页 | https://github.com/W4nN1ng/Atrium/releases/tag/v0.4.0（tag `v0.4.0` → 提交 `2a762d1`，两个资产 `state=uploaded`） |
+| 正文与本地是否同一份 | ✅ `tools/verify-release-page.cjs`：与 `docs/release-body-0.4.0.md` 逐字一致，且**术语残留 0 条**（工具顺手查 schema/IPC/GUID/里程碑编号这类词） |
+| 资产指纹 | ✅ 正文里两串 SHA-256 = **GitHub 自己算的 `digest`**（`41574c4b…7257a7` / `c0e31d1d…a8e834`）；远端 `size` 87,033,645 / 86,799,537 = 本地字节数 |
+| 直链能不能下 | ✅ 跟一次重定向后 **206 + 头两字节 `MZ`** |
+| 第一次 `--create` 的结果 | ⚠ **停在"tag 还没推"这一步**（我只 `git push origin main`，没带 `--follow-tags`）—— 一句人话报错、什么都没建。这条闸门是对的：正文和哈希挂在哪个 tag 上，不能靠人记 |
