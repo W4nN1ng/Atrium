@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AssetCard, CategoryConfig } from '../../shared/types'
 import { dimChips } from '../../shared/variantDims'
+import { reviewConfirmCount, reviewTargets, showBatchReview, showReviewAllOnScreen } from '../../shared/reviewState'
 import { useUi } from '../stores/ui'
 import { MergeSuggestBar } from './MergeSuggestBar'
+import { Modal } from './ui'
 import { fileUrl } from '../lib/format'
 
 /** 分类 key → 当前语言的显示名（提示条要把 'clothing/outfit' 写成「服装 / 套装」） */
@@ -275,6 +277,18 @@ export function AssetGrid(): JSX.Element {
   const categories = useUi((s) => s.categories)
   const locale = i18n.language as 'zh-CN' | 'en' | 'ja'
   const [hint, setHint] = useState<{ rules: number; token: string; category: string; subcategory: string | null } | null>(null)
+  /** 第 9 轮 ① · 「标记已复核」的二次确认（Q2 甲：批量出口必须有确认，且要说清条数） */
+  const setReview = useUi((s) => s.setReview)
+  const [reviewAsk, setReviewAsk] = useState<{ ids: string[]; n: number } | null>(null)
+
+  /**
+   * 这一屏与"选中的那些"里真正会变的行。判据全在 `shared/reviewState.ts`
+   * （合集卡与附属在那层就被剔掉了 —— 它们各自的复核走各自那条路，不留两个入口）。
+   */
+  const onReviewScreen = nav === 'review'
+  const reviewable = cards.map((c) => ({ id: c.id, needsReview: c.needsReview, isBundle: c.isBundle }))
+  const selectedReview = reviewTargets(reviewable.filter((c) => selection.includes(c.id)), 'done')
+  const screenReview = reviewTargets(reviewable, 'done')
 
   useEffect(() => {
     if (nav !== 'review') {
@@ -338,6 +352,30 @@ export function AssetGrid(): JSX.Element {
               {t('library.batchImport', { count: selection.length })}
             </button>
           ) : null}
+          {/*
+            第 9 轮 ① · 待复核的批量出口（A2）。
+            59 条待复核里绝大多数是单卡，而原来唯一那颗"标记已复核"长在合集详情里 ——
+            单卡进得去出不来。这两颗只在**待复核视图**里出（判据在 shared/reviewState.ts）：
+            在别的视图里也长，用户会以为"待复核"是个可以批量抹掉的过滤器，而不是要逐条看过的状态。
+          */}
+          {showBatchReview({ onReviewScreen, selected: selection.length, targets: selectedReview.length }) ? (
+            <button
+              type="button"
+              className="btn px-2 py-0.5"
+              onClick={() => setReviewAsk({ ids: selectedReview, n: reviewConfirmCount(selectedReview.length) })}
+            >
+              {t('library.markReviewedN', { count: reviewConfirmCount(selectedReview.length) })}
+            </button>
+          ) : null}
+          {showReviewAllOnScreen({ onReviewScreen, targets: screenReview.length }) ? (
+            <button
+              type="button"
+              className="btn btn-ghost px-2 py-0.5"
+              onClick={() => setReviewAsk({ ids: screenReview, n: reviewConfirmCount(screenReview.length) })}
+            >
+              {t('library.reviewAllOnScreen', { count: reviewConfirmCount(screenReview.length) })}
+            </button>
+          ) : null}
           <button type="button" className="btn px-2 py-0.5" onClick={() => void undoLast()} title="Ctrl+Z">
             {t('common.undo')}
           </button>
@@ -391,6 +429,40 @@ export function AssetGrid(): JSX.Element {
           ))}
         </div>
       )}
+
+      {/*
+        二次确认（Q2 甲）。条数只来自"真的会变的行数"（`reviewConfirmCount`），
+        不是 `selection.length` —— 选到已经看过的卡时那两个数不一样，说错数字比不说更糟。
+      */}
+      <Modal
+        open={!!reviewAsk}
+        onOpenChange={(v) => {
+          if (!v) setReviewAsk(null)
+        }}
+        title={t('library.reviewConfirmTitle')}
+        footer={
+          <>
+            <button type="button" className="btn px-3 py-1" onClick={() => setReviewAsk(null)}>
+              {t('common.cancel')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-accent px-3 py-1"
+              onClick={() => {
+                const a = reviewAsk
+                setReviewAsk(null)
+                if (a) void setReview(a.ids, false)
+              }}
+            >
+              {t('library.reviewConfirmOk')}
+            </button>
+          </>
+        }
+      >
+        <div className="text-[12px] leading-relaxed" style={{ color: 'var(--muted)' }}>
+          {t('library.reviewConfirmBody', { count: reviewAsk?.n ?? 0 })}
+        </div>
+      </Modal>
     </div>
   )
 }

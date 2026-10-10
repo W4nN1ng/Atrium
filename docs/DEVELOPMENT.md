@@ -47,11 +47,85 @@ SHA-256 逐位相同**、直链 `curl -r 0-15` 回 206 且头两字节 `MZ`、�
 过程里踩的两个坑（`upload_url` 的 URI 模板、以及"分块解码把中文烧成 U+FFFD 造成假差异"）记在
 `docs/VERIFY-UNVERIFIED.md` §13 与 `tools/gh-release.cjs` 文件头。**第 8 轮到此关闭。**
 
+**第 9 轮进行中（2026-10-10）：① 待复核的出口、② B4 存量重并都已落地并在打包版上跑通；
+③ B2 经实测取消（目标人群 0 行，见下面 ② 那节），④ 收尾未做。**
+这一版改动**还没重打包**，Release 页上那两个 exe 仍然是第 8 轮的产物。
+
 > **这一行下面那份"没做"清单在 2026-10-07 之前是过期的**：它把已经交付的
 > "改分类搬文件 / 多选卡批量导入 / 变体分列 / 类别口语 / 首次弹桥接安装窗"还列在 ❌ 里。
 > 过期清单比没清单更坏，所以本轮按 `tools/selfcheck-r4.cjs` 与
 > `tests/spec-coverage.spec.ts` 的 R4 一节逐条重核过再改写。
 > 想知道"哪一件是哪一轮做的、证据在哪个文件"，看那两处，别看提交信息。
+
+---
+
+## 开发计划第 9 轮（进行中）· 2026-10-10
+
+**为什么开这一轮**：他 2026-10-09 两句原话 ——「这里待复核，但是我怎么找不到如何让他们变成已复核」
++「同一件衣服，比如 Libero 还是没用自动分成一个合集」。方案与裁定在
+[`PROMPT-R9-REVIEW-MERGE.md`](PROMPT-R9-REVIEW-MERGE.md)（Q1 乙 / Q2 甲 / Q3 乙 / Q4 甲 / Q5 甲 / Q6 乙 / Q7 甲 / Q8 乙）。
+
+### ① 待复核的出口（A1+A2，已落地）
+
+`needs_review` 是 R2d 加的，但清掉它那颗按钮一直长在 `BundleDetail.tsx:437`（合集详情的成员列表里）——
+对单卡来说"待复核"是个**进得去、出不来**的状态，而 README 和 Release 正文里写着"等你看一眼"。
+判据落在 `src/shared/reviewState.ts`（本仓零 DOM 测试，判据留在组件里等于没测）：
+单卡给主按钮「标记已复核」、干净卡给次要链接「重新排进待复核」（Q3 乙：反悔的方式就是再点一次，
+不进 journal）、合集卡与附属一律不出（同一个意图不留两个入口）；工具栏两颗批量按钮**绑视图不绑选中数**，
+二次确认里的条数只来自"真的会变的行数"（Q2 甲）。
+
+**顺手挖出来的第二个死账**（不在计划里，同一类病）：`BundleDetail` 那颗老按钮 ① 只清成员行、
+不清容器行，而容器行的 `needs_review` 入库时是 `items.some(...)`（`commit.ts:540`）——
+成员全清完它还是 1，于是这张合集卡永远留在待复核，而单卡那颗对 `isBundle` 又一律不出；
+② 它直接摸 IPC、不刷 `refreshMeta()`，点完侧栏那个数不动。两处一起改了。
+
+**证据**：`tests/shared/review-state.spec.ts` 20 条 + `tests/renderer/review-wiring.spec.ts` 13 条
+（接线单独一份，因为本轮修的缺陷本身就是"通道全通、没人调用"）；
+`tools/verify-red-r9.cjs` 15 处变异**全部被接住**，其中两处是回扫时才发现的**假绿**
+（`n: reviewConfirmCount(` 能同时匹配两颗按钮 → 拆成两条；"一个都没选"喂的是 `targets:0` → 改喂 3）；
+活体 `tools/live-r9-review.cjs` 在打包版上红 0 条，截图 `docs/screenshots/r9-01..09*.png`，
+七行夹具的 `library_path` 全程没动、沙盒库根还是 7 个文件。全量 `npm test`：**1402 passed / 9 skipped**。
+
+**没验的**：真库那 59 条一条没动（沙盒的 `needs_review` 是手写的，"怎么被写上"由 `tests/library/commit*.spec.ts` 管）；
+英文/日文界面没截图核过；附属"不给出口"只钉在判据与接线两层，活体没走到合集二级列表里那条附属的详情。
+
+**这一轮的工具账**（三条都是"看着像产品缺陷、其实是验收工具自己坏了"）：
+`taskkill /IM Atrium.exe /F` 会连带杀掉他正在用的那个真实例 → 改成按 `ExecutablePath` 认人；
+PowerShell 控制台默认 cp936，中文路径回来是乱码 → 比较前先 `[Console]::OutputEncoding=UTF8`；
+注入页面的表达式写成 `(()=> 声明; 声明)`（箭头函数没花括号时函数体只能是一个表达式）→ SyntaxError 被
+`waitUntil` 的 try/catch 吞掉，表现成"界面没起来" → 补了 `tools/check-live-exprs.cjs`，不启动应用 1 秒验完。
+
+### ② B4 存量重并（已落地；§一 的根因写错了，这里更正）
+
+他报的第二句「Libero 还是没自动分成一个合集」，量完发现**判据早就对了**：
+20 个文件名喂给现在的 `deriveGroupKey` 全塌成一个键，全库 `variantUnknown` **0 行**，
+存量违反"键与变体一致"的组 **0 组** —— 那 12 张散卡的变体值写的是 `UNIVERSAL`（通用适配），不是模型名。
+库里那 13 个老键是 §B2 之前写的，而 `reanalyze.ts` 的 `recompute()` 刻意不动 `group_key`，
+所以"再点一次重新分析"治不了它。**症状 100% 在存量**，真实作用面积 = **1 处合并、少 12 张卡**。
+⇒ 由此 **B2 不做**（目标人群 0 行），**B1/B3 不重写**（`bracket-variant.spec.ts` 已经钉住），
+② 这一格经他点头改成 B4。可复跑的探针：`AVCA_KEY_RESCAN=1 npx vitest run tests/real/realdb-key-rescan.spec.ts`。
+
+新模块 `src/main/library/remerge.ts`：`planRemerge` 只读预览 / `applyRemerge` 落地，
+分组**直接复用 `planGroups()`**（歧义闸门与 #40 的"必须同目录"都在里面），不另造模糊匹配。
+新 journal op `remerge`（四步倒序撤销：删新变体 → 塞回旧组与它的变体行 → 改回组键 → 改回成员归属），
+一个事务一个 batch_id。四段链路：两条通道 → `main/ipc/assets.ts`（**落地时重扫，不信前端那份预览**）
+→ preload → `RemergePanel`（设置 · 维护，紧跟 #40 那栏 —— 两栏是反方向的同一件事，都得在）。
+
+**证据**：`tests/library/remerge.spec.ts` 17 条 + `tests/renderer/remerge-wiring.spec.ts` 6 条；
+`tools/verify-red-r9.cjs` 扩到 **25 处变异全部被接住**；全量 `npm test` 1425 passed / 10 skipped；
+活体 `tools/live-r9-remerge.cjs` 在打包版上 14 条判据 0 红
+（截图 `docs/screenshots/r9b-01-preview.png` / `r9b-02-after-merge.png` / `r9b-03-after-undo.png`）。
+
+**这一格里被抓出来的四个我自己的错**（都进了代码注释，因为它们各自都是一类坑）：
+① `dir` 喂成文件路径（`shelf()` 不取 dirname）→ 一簇都报不出来，表现成"无事可做"，
+补了**正向对照**用例才钉得住；② 变体写了归并键内部那份大写值（`ICHIGO`），真库存原样词形；
+③ 用了 `planGroups` 的 `p.variants`，而多体型的包按 `commit.ts` 的不变量**不该**写变体；
+④ 预览徽章 `moved + droppedGroups` 在 20 张卡上写成 24，且面板只列前 8 行、
+排在前面的恰好是"已经不动的那批" —— 活体第一眼就看出不对。
+
+**还没证的**：真库那一次没跑（Q6 乙，清单可生成，等他点头）；英文/日文界面没截图核过；
+`tests/perf/scale.spec.ts > 增量 upsert` 在全量并行下偶发红（0.657 vs 阈值 0.6；单独跑 0.317），
+本轮没碰索引热路径，判它负载敏感 → 任务 #100。
 
 M1 交付的是骨架：窗口能开、三栏界面、三语 i18n、托盘 + 单实例 + 全局热键、SQLite 全表建好、外置分类表读通、工程发现落库。
 M2 交付的是"拖进去 → 认格式 → 手工分类 → 归档落库 → Ctrl+Z 真撤销"这条最小可用链路。

@@ -227,7 +227,15 @@
     "backedUpCount": "{{count}} overwritten file(s) backed up",
     "backedUpNothing": "Nothing was backed up — the files it would overwrite aren't actually on disk",
     "rollbackDeleteFailed": "; {{count}} could not be deleted and may still be in the project",
-    "setupNeeded": "Library not set up — click to continue"
+    "setupNeeded": "Library not set up — click to continue",
+    "markReviewed": "Mark as reviewed",
+    "markUnreviewed": "Put back for review",
+    "reviewAfterEditHint": "Category fixed? Tap here to mark it reviewed — editing the category never clears the flag by itself",
+    "markReviewedN": "Mark as reviewed ({{count}})",
+    "reviewAllOnScreen": "Mark all on this screen ({{count}})",
+    "reviewConfirmTitle": "Mark these as reviewed?",
+    "reviewConfirmBody": "{{count}} item(s) will leave “Needs review”. This only flips a flag: no files move, no category changes, confidence untouched. Changed your mind? Use “Put back for review” on that card.",
+    "reviewConfirmOk": "Confirm"
   },
   "inbox": {
     "title": "Ingest queue",
@@ -527,7 +535,19 @@
     "vaultUnavailable": "System encryption is unavailable on this machine, so nothing new can be stored; entries below may also be unreadable.",
     "vaultEmpty": "None yet.",
     "vaultUnreadable": "unreadable",
-    "vaultUnreadableHint": "Happens after moving to another machine or Windows account (the encryption is bound to the current user). This entry is useless now — feel free to delete it."
+    "vaultUnreadableHint": "Happens after moving to another machine or Windows account (the encryption is bound to the current user). This entry is useless now — feel free to delete it.",
+    "remerge": "Re-merge items that should be one card",
+    "remergeFieldHint": "Some older entries were filed before the grouping rules changed. This re-applies today's rules to what's already in the library — it only updates grouping, and never moves a file.",
+    "remergeHint": "Press Check first and see exactly what would merge. Ctrl+Z undoes the whole batch afterwards.",
+    "remergeScan": "Check",
+    "remergeApply": "Merge ({{count}})",
+    "remergeNone": "Nothing to re-merge — every group already matches the current rules",
+    "remergeScanned": "Looked at {{scanned}} cards; {{moved}} of them would move under another card",
+    "remergeAmbiguous": "{{count}} more look too similar to merge automatically — left for you to decide",
+    "remergeDone": "Merged: {{clusters}} groups / {{moved}} cards moved / {{groups}} empty groups removed",
+    "remergeBadge": "{{from}} cards → 1",
+    "remergeNewGroup": "needs a new group",
+    "remergeMore": "{{count}} more not listed"
   },
   "toast": {
     "trashDone": "Moved to Recycle Bin",
@@ -540,7 +560,9 @@
     "undoSteps": "Undone {{steps}} step(s): {{moved}} item(s) moved back, {{dirs}} empty folder(s) removed, {{assets}} record(s) deleted",
     "undoStopped": "Undo stopped at step {{step}}: {{error}}",
     "learnedNow": "Learned {{rules}} rules — next time something mentions “{{token}}” it will be classified the same way",
-    "undoRearchived": "Undone {{steps}} step(s): {{moved}} file(s) back in place, {{assets}} record(s) restored (no asset records were deleted)"
+    "undoRearchived": "Undone {{steps}} step(s): {{moved}} file(s) back in place, {{assets}} record(s) restored (no asset records were deleted)",
+    "reviewDone": "Marked {{count}} as reviewed",
+    "reviewReopened": "Put {{count}} back for review"
   },
   "error": {
     "loadFailed": "Load failed: {{message}}",

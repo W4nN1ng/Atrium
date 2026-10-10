@@ -7,6 +7,7 @@ import { Badge, Button, Field, Select, Switch } from '../components/ui'
 import { HealthPanel } from '../components/HealthPanel'
 import { RebundlePanel } from '../components/RebundlePanel'
 import { RegroupPanel } from '../components/RegroupPanel'
+import { RemergePanel } from '../components/RemergePanel'
 import { ReanalyzePanel } from '../components/ReanalyzePanel'
 import { TaxonomyPanel } from '../components/TaxonomyPanel'
 import { LearnModelsPanel } from '../components/LearnModelsPanel'
@@ -479,6 +480,14 @@ export function Settings(): JSX.Element {
               {/* #40：归并的前提是同一目录。V4 只挡"以后"，存量靠这一栏按目录拆开 */}
               <Field label={t('settings.regroup')} hint={t('settings.regroupHint')}>
                 <RegroupPanel />
+              </Field>
+              {/*
+                第 9 轮 ② · B4：和上面那栏是**反方向**的同一件事 ——
+                Regroup 把"以后不该并的"拆开，Remerge 把"规则修好之前错拆开的"并回去。
+                两栏都必须存在：只留一个，另一类症状就没人管。
+              */}
+              <Field label={t('settings.remerge')} hint={t('settings.remergeFieldHint')}>
+                <RemergePanel />
               </Field>
               {/* 改动单 2 §交付 4：改完规则要能把已入库的数据重算一遍，且按下前先看到影响条数 */}
               <Field label={t('settings.reanalyzeTitle')}>

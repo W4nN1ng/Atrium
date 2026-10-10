@@ -252,7 +252,7 @@ export interface WorkerJob {
   learning?: Array<[string, LearningRow[]]>
   /** 原始路径的目录链，语料权重 2.5（§1.2） */
   dirChain?: string[]
-  /** 用户词典（%APPDATA%Alexicon.user.json）；打包后 resources 只读，所以单独传 */
+  /** 用户词典（`%APPDATA%\A\lexicon.user.json`）；打包后 resources 只读，所以单独传 */
   userLexicon?: string
   /** 关掉就只出指纹不分类（设置里"自动分类"关着时） */
   classify?: boolean

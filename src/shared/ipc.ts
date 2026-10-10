@@ -162,6 +162,9 @@ export const IpcInvoke = {
     /** #40：跨目录误并的归并组按目录拆开（只读预览 + 写库两步） */
     PlanRegroup: 'health:plan-regroup',
     ApplyRegroup: 'health:apply-regroup',
+    /** 第 9 轮 ② · B4 存量重并：只读预览 / 落地（纯库操作，可 Ctrl+Z） */
+    PlanRemerge: 'health:plan-remerge',
+    ApplyRemerge: 'health:apply-remerge',
     /** 「重新分析」：先只读扫描给出影响条数，用户按下才写库（改动单 2 §交付 4） */
     PlanReanalyze: 'health:plan-reanalyze',
     ApplyReanalyze: 'health:apply-reanalyze',

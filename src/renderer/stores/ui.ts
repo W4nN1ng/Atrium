@@ -396,6 +396,11 @@ interface UiState {
   closeRearchive(): void
   resolvePending(id: string, accept: boolean): Promise<void>
   trashSelected(): Promise<void>
+  /**
+   * 第 9 轮 ①：改「待复核」标记。走现成的 `assets:set-review`（后端早就通了，
+   * 只是渲染层除了合集详情那颗按钮以外没人调它）。返回真的改了几行。
+   */
+  setReview(ids: string[], needReview: boolean): Promise<number>
   /** 把当前选中的素材加进某个集合（第 1 份 F8：集合是"手动 + 规则"两种成员来源） */
   addToCollection(collectionId: string): Promise<void>
   undoLast(): Promise<void>
@@ -1124,6 +1129,32 @@ export const useUi = create<UiState>((set, get) => {
         await Promise.all([refreshList(), refreshMeta()])
       } catch (e) {
         get().toast('bad', e instanceof Error ? e.message : String(e))
+      }
+    },
+
+    async setReview(ids, needReview) {
+      /**
+       * 这条**不进 journal、不进撤销账**（第 9 轮 Q3 乙）。它只改一列元数据，
+       * 而 `undoLast` 那条链上 op 白名单与 `register` 的顺序都有语义，
+       * 为一列布尔值去动它，风险大于收益。反悔的方式是"再点一次取消标记"。
+       */
+      if (!ids.length) return 0
+      try {
+        const r = await window.a.assets.setReview(ids, needReview)
+        get().toast(
+          'ok',
+          i18next.t(needReview ? 'toast.reviewReopened' : 'toast.reviewDone', { count: r.updated })
+        )
+        /**
+         * 待复核视图里刚标完的那几张会立刻从这一屏消失，
+         * 选中集不清就会留下"选中了 3 张但屏幕上一张都没有"的鬼状态（M4 实测踩过同一类）。
+         */
+        set({ selection: [], detail: null, detailId: null })
+        await Promise.all([refreshList(), refreshMeta()])
+        return r.updated
+      } catch (e) {
+        get().toast('bad', e instanceof Error ? e.message : String(e))
+        return 0
       }
     },
 

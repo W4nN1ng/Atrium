@@ -49,6 +49,18 @@ export interface JournalPayload {
    * 它们要改的只是**库里的路径字符串**，那部分走 `fieldChanges`。
    */
   moves?: Array<{ from: string; to: string }>
+  /**
+   * remerge（第 9 轮 ② · B4 存量重并）：
+   *  - `groupPatch` = 被改名（换成新归并键）的那些组，存**旧值**；
+   *  - `droppedGroups` = 被合并后清空、连带删掉的组行 + 它们身上的变体行。
+   *
+   * 两组都必须存原样，**不能"撤销时重算一遍"**：撤销的时候规则可能又被改了，
+   * 重算出来的和当初那次正向操作根本不是同一份（`reanalyze` 那条注释讲的同一件事）。
+   */
+  groupPatch?: Array<{ id: string; from: Record<string, unknown> }>
+  droppedGroups?: Array<{ row: unknown; variants: unknown[] }>
+  /** remerge：这次往目标组新插的变体行 id，撤销时按这份清单删，绝不按值删 */
+  addedVariants?: string[]
   /** 人类可读描述，"操作历史"面板直接显示 */
   label?: string
   libraryRoot?: string
@@ -114,7 +126,7 @@ export function lastRevertible(db: Db): JournalRow | null {
    * 导入的撤销走的是 `unity:rollback-import` / `unity:rollback-batch`（要 Unity 在线），
    * 它和"把文件搬回去"是两条链，别混进 Ctrl+Z。
    */
-  const OPS = ['move', 'copy', 'extract', 'mkdir', 'rename', 'trash', 'register', 'reparent', 'reanalyze', 'collection_backfill', 'rearchive']
+  const OPS = ['move', 'copy', 'extract', 'mkdir', 'rename', 'trash', 'register', 'reparent', 'remerge', 'reanalyze', 'collection_backfill', 'rearchive']
   const row = db
     .prepare(
       `SELECT * FROM journal WHERE undone = 0 AND status = 'done'

@@ -1,0 +1,50 @@
+{
+  "zh-CN": {
+    "library": {
+      "markReviewed": "标记已复核",
+      "markUnreviewed": "重新排进待复核",
+      "reviewAfterEditHint": "分类改好了？点这里标记已复核 —— 改分类不会自动清掉标记",
+      "markReviewedN": "标记已复核（{{count}}）",
+      "reviewAllOnScreen": "这一屏全部标记已复核（{{count}}）",
+      "reviewConfirmTitle": "要把这些标成已复核吗",
+      "reviewConfirmBody": "将把 {{count}} 条从「待复核」里移出。这只改一个标记：不搬文件、不改分类、也不动置信度。反悔的话在那张卡上点「重新排进待复核」。",
+      "reviewConfirmOk": "确认标记"
+    },
+    "toast": {
+      "reviewDone": "已把 {{count}} 条标成已复核",
+      "reviewReopened": "已把 {{count}} 条放回待复核"
+    }
+  },
+  "en": {
+    "library": {
+      "markReviewed": "Mark as reviewed",
+      "markUnreviewed": "Put back for review",
+      "reviewAfterEditHint": "Category fixed? Tap here to mark it reviewed — editing the category never clears the flag by itself",
+      "markReviewedN": "Mark as reviewed ({{count}})",
+      "reviewAllOnScreen": "Mark all on this screen ({{count}})",
+      "reviewConfirmTitle": "Mark these as reviewed?",
+      "reviewConfirmBody": "{{count}} item(s) will leave “Needs review”. This only flips a flag: no files move, no category changes, confidence untouched. Changed your mind? Use “Put back for review” on that card.",
+      "reviewConfirmOk": "Confirm"
+    },
+    "toast": {
+      "reviewDone": "Marked {{count}} as reviewed",
+      "reviewReopened": "Put {{count}} back for review"
+    }
+  },
+  "ja": {
+    "library": {
+      "markReviewed": "確認済みにする",
+      "markUnreviewed": "未確認に戻す",
+      "reviewAfterEditHint": "分類を直したらここを押して確認済みに —— 分類の編集だけではマークは消えません",
+      "markReviewedN": "確認済みにする（{{count}}）",
+      "reviewAllOnScreen": "この画面全体を確認済みにする（{{count}}）",
+      "reviewConfirmTitle": "確認済みにしますか？",
+      "reviewConfirmBody": "{{count}} 件が「未確認」から外れます。マークだけの変更です：ファイルは動かず、分類も信頼度も変わりません。戻すときはそのカードの「未確認に戻す」を押してください。",
+      "reviewConfirmOk": "確認"
+    },
+    "toast": {
+      "reviewDone": "{{count}} 件を確認済みにしました",
+      "reviewReopened": "{{count}} 件を未確認に戻しました"
+    }
+  }
+}

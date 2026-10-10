@@ -1,6 +1,8 @@
 node_modules/
 out/
 dist/
+# 活体临时换的第二个产物目录（`-c.directories.output=dist-r9b`，见 tools/live-r9-remerge.cjs 头注）
+dist-r9b/
 # 下载缓存：Electron 本体 zip(112MB) / 7-Zip 安装器 / sqlite 预编译 tar.gz
 # 全部由 tools/setup-native.cjs 与 tools/fetch-7z.cjs 按需重下，不进仓库
 vendor/cache/

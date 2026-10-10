@@ -1,0 +1,50 @@
+{
+  "zh-CN": {
+    "settings": {
+      "remerge": "把同一件衣服重新并成一张卡",
+      "remergeFieldHint": "早先收进来的东西，归并规则后来改过了。这一栏按现在的规则重算一遍分组 —— 只改库里的归属，一个文件都不挪。",
+      "remergeHint": "先点「检查一遍」，看清要合并什么再决定。做完可以按 Ctrl+Z 整批退回。",
+      "remergeScan": "检查一遍",
+      "remergeApply": "合并（{{count}} 处）",
+      "remergeNone": "没有需要重并的 —— 库里每一组都和现在的规则一致",
+      "remergeScanned": "看了 {{scanned}} 张卡，其中 {{moved}} 张会挪到别的卡下面",
+      "remergeAmbiguous": "另有 {{count}} 处名字太像、不敢自动并，留给你自己判断",
+      "remergeDone": "合并完：{{clusters}} 处 / 挪了 {{moved}} 张卡 / 清掉 {{groups}} 个空分组",
+      "remergeBadge": "{{from}} 张并成 1 张",
+      "remergeNewGroup": "要新建一组",
+      "remergeMore": "还有 {{count}} 张没列出来"
+    }
+  },
+  "en": {
+    "settings": {
+      "remerge": "Re-merge items that should be one card",
+      "remergeFieldHint": "Some older entries were filed before the grouping rules changed. This re-applies today's rules to what's already in the library — it only updates grouping, and never moves a file.",
+      "remergeHint": "Press Check first and see exactly what would merge. Ctrl+Z undoes the whole batch afterwards.",
+      "remergeScan": "Check",
+      "remergeApply": "Merge ({{count}})",
+      "remergeNone": "Nothing to re-merge — every group already matches the current rules",
+      "remergeScanned": "Looked at {{scanned}} cards; {{moved}} of them would move under another card",
+      "remergeAmbiguous": "{{count}} more look too similar to merge automatically — left for you to decide",
+      "remergeDone": "Merged: {{clusters}} groups / {{moved}} cards moved / {{groups}} empty groups removed",
+      "remergeBadge": "{{from}} cards → 1",
+      "remergeNewGroup": "needs a new group",
+      "remergeMore": "{{count}} more not listed"
+    }
+  },
+  "ja": {
+    "settings": {
+      "remerge": "同じ服をもう一度ひとつのカードにまとめる",
+      "remergeFieldHint": "以前取り込んだ物は、分類ルールが変更される前に登録されました。今のルールで庫内のグループを直し直します。ファイルは一切動きません。",
+      "remergeHint": "まず「チェック」を押して、何が変わるか確認してから決めてください。実行後 Ctrl+Z で一括に戻せます。",
+      "remergeScan": "チェック",
+      "remergeApply": "まとめる（{{count}} 件）",
+      "remergeNone": "まとめる必要はありません — 今のルールと一致しています",
+      "remergeScanned": "{{scanned}} 枚を確認、うち {{moved}} 枚が別のカードに移動します",
+      "remergeAmbiguous": "名前が似すぎて自動でまとめられないものが {{count}} 件、判断はあなたに任せます",
+      "remergeDone": "完了：{{clusters}} 件 / {{moved}} 枚を移動 / 空のグループ {{groups}} 件を削除",
+      "remergeBadge": "{{from}} 枚 → 1 枚",
+      "remergeNewGroup": "新しいグループが必要",
+      "remergeMore": "ほか {{count}} 枚は未表示"
+    }
+  }
+}

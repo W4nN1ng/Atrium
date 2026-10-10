@@ -3,7 +3,7 @@ import path from 'node:path'
 import type { Db } from '../db'
 import { appendJournal, getJournal, journalPayload, lastRevertible, listBatch, markUndone } from '../db/repos/journal'
 import { deleteAssetRow, upsertAsset } from '../db/repos/asset'
-import type { AssetRow, JournalRow } from '../../shared/types'
+import type { AssetGroupRow, AssetRow, JournalRow } from '../../shared/types'
 import { SIDECAR_FILENAME } from '../../shared/constants'
 import { ensureDir, moveToHold, moveTree, pathExists } from './fsx'
 import { undoRearchive } from './rearchive'
@@ -151,6 +151,68 @@ async function undoOne(deps: UndoDeps, row: JournalRow): Promise<UndoStep> {
         }
       })()
       return { note: `退回 ${n} 条`, kind: 'restored', count: 0 }
+    }
+    case 'remerge': {
+      /**
+       * 第 9 轮 ② · B4 存量重并的撤销。四步，**顺序不能换**（正着做是"改挂 → 删空组 → 补变体"，
+       * 倒着撤就是"删新变体 → 塞回组和它的变体 → 改回组键 → 改回成员的 group_id"）：
+       *
+       *  1. 先删这次往目标组新插的变体行 —— 按 payload 里那份 **id 清单**删，
+       *     绝不按 (kind,value) 删：同一个值可能是别的批次合法插进来的。
+       *  2. 把被合并掉、连带删掉的旧组行和它们的变体行原样塞回去。
+       *     **必须在改 group_id 之前**做，否则第 4 步的 UPDATE 会指向一个还不存在的组，
+       *     开了 `foreign_keys=ON` 直接 constraint failed（`reparent` 那条踩过一次，同一个理）。
+       *  3. 组键改回旧值。
+       *  4. 成员的 group_id 改回旧值。
+       *
+       * 全程不碰盘：重并本来就一个文件都没搬，撤销自然也没什么可搬回来的。
+       */
+      const p3 = journalPayload(row)
+      const added = (p3.addedVariants ?? []) as string[]
+      const drops = (p3.droppedGroups ?? []) as Array<{ row: AssetGroupRow; variants: Array<Record<string, unknown>> }>
+      const patches = (p3.groupPatch ?? []) as Array<{ id: string; from: Record<string, unknown> }>
+      const changes = (p3.fieldChanges ?? []) as Array<{ id: string; from: Record<string, unknown> }>
+      let n = 0
+      db.transaction(() => {
+        for (const vid of added) {
+          const info = db.prepare(`DELETE FROM variant WHERE id = ?`).run(vid)
+          n += Number(info.changes ?? 0)
+        }
+        for (const d of drops) {
+          const g = d.row
+          if (!g?.id) continue
+          if (db.prepare(`SELECT 1 AS x FROM asset_group WHERE id = ?`).get(g.id)) continue
+          db.prepare(
+            `INSERT INTO asset_group (id, group_key, name, category, subcategory, created_at, updated_at, dir_key)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          ).run(g.id, g.group_key, g.name, g.category, g.subcategory ?? null, g.created_at, g.updated_at, g.dir_key ?? null)
+          for (const v of d.variants ?? []) {
+            if (!v['id']) continue
+            db.prepare(
+              `INSERT OR IGNORE INTO variant (id, group_id, asset_id, variant_kind, variant_value)
+               VALUES (?, ?, ?, ?, ?)`
+            ).run(v['id'], v['group_id'], v['asset_id'], v['variant_kind'], v['variant_value'])
+          }
+          n++
+        }
+        for (const gp of patches) {
+          const keys = Object.keys(gp.from).filter((k) => k !== 'id')
+          if (!keys.length) continue
+          if (!db.prepare(`SELECT 1 AS x FROM asset_group WHERE id = ?`).get(gp.id)) continue
+          db.prepare(`UPDATE asset_group SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`).run(
+            ...keys.map((k) => gp.from[k] ?? null),
+            gp.id
+          )
+          n++
+        }
+        for (const c of changes) {
+          const gid = (c.from['group_id'] as string | null | undefined) ?? null
+          if (!db.prepare(`SELECT 1 AS x FROM asset WHERE id = ?`).get(c.id)) continue
+          db.prepare(`UPDATE asset SET group_id = ?, updated_at = ? WHERE id = ?`).run(gid, Date.now(), c.id)
+          n++
+        }
+      })()
+      return { note: `退回归并 ${n} 项（文件未动）`, kind: 'restored', count: 0 }
     }
     case 'reparent': {
       /**

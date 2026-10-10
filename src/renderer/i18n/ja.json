@@ -227,7 +227,15 @@
     "backedUpCount": "上書き対象のファイル {{count}} 個をバックアップしました",
     "backedUpNothing": "バックアップはありません：上書き対象とされたファイルがディスク上に無い",
     "rollbackDeleteFailed": "；{{count}} 個は削除できず、プロジェクトに残っている可能性があります",
-    "setupNeeded": "ライブラリ未設定 ― クリックして続行"
+    "setupNeeded": "ライブラリ未設定 ― クリックして続行",
+    "markReviewed": "確認済みにする",
+    "markUnreviewed": "未確認に戻す",
+    "reviewAfterEditHint": "分類を直したらここを押して確認済みに —— 分類の編集だけではマークは消えません",
+    "markReviewedN": "確認済みにする（{{count}}）",
+    "reviewAllOnScreen": "この画面全体を確認済みにする（{{count}}）",
+    "reviewConfirmTitle": "確認済みにしますか？",
+    "reviewConfirmBody": "{{count}} 件が「未確認」から外れます。マークだけの変更です：ファイルは動かず、分類も信頼度も変わりません。戻すときはそのカードの「未確認に戻す」を押してください。",
+    "reviewConfirmOk": "確認"
   },
   "inbox": {
     "title": "取り込みキュー",
@@ -527,7 +535,19 @@
     "vaultUnavailable": "このマシンではシステム暗号が使えないため新規保存はできません。既存の項目も解読できないことがあります。",
     "vaultEmpty": "まだありません。",
     "vaultUnreadable": "解読不能",
-    "vaultUnreadableHint": "マシンや Windows アカウントを変えるとおきます（暗号は現在のユーザーに紐づく）。この項目はもう使えないので削除して構いません。"
+    "vaultUnreadableHint": "マシンや Windows アカウントを変えるとおきます（暗号は現在のユーザーに紐づく）。この項目はもう使えないので削除して構いません。",
+    "remerge": "同じ服をもう一度ひとつのカードにまとめる",
+    "remergeFieldHint": "以前取り込んだ物は、分類ルールが変更される前に登録されました。今のルールで庫内のグループを直し直します。ファイルは一切動きません。",
+    "remergeHint": "まず「チェック」を押して、何が変わるか確認してから決めてください。実行後 Ctrl+Z で一括に戻せます。",
+    "remergeScan": "チェック",
+    "remergeApply": "まとめる（{{count}} 件）",
+    "remergeNone": "まとめる必要はありません — 今のルールと一致しています",
+    "remergeScanned": "{{scanned}} 枚を確認、うち {{moved}} 枚が別のカードに移動します",
+    "remergeAmbiguous": "名前が似すぎて自動でまとめられないものが {{count}} 件、判断はあなたに任せます",
+    "remergeDone": "完了：{{clusters}} 件 / {{moved}} 枚を移動 / 空のグループ {{groups}} 件を削除",
+    "remergeBadge": "{{from}} 枚 → 1 枚",
+    "remergeNewGroup": "新しいグループが必要",
+    "remergeMore": "ほか {{count}} 枚は未表示"
   },
   "toast": {
     "trashDone": "ごみ箱に入れました",
@@ -540,7 +560,9 @@
     "undoSteps": "{{steps}} ステップ取り消し：{{moved}} 項目を戻し、空フォルダ {{dirs}} 個を削除、記録 {{assets}} 件を削除",
     "undoStopped": "取り消しを {{step}} ステップ目で中止：{{error}}",
     "learnedNow": "{{rules}} 件のルールを学習しました。次回「{{token}}」を含む素材は同じ分類になります",
-    "undoRearchived": "{{steps}} ステップ取り消し：ファイル {{moved}} 件を元へ戻し、記録 {{assets}} 件を元に戻しました（素材記録は削除していません）"
+    "undoRearchived": "{{steps}} ステップ取り消し：ファイル {{moved}} 件を元へ戻し、記録 {{assets}} 件を元に戻しました（素材記録は削除していません）",
+    "reviewDone": "{{count}} 件を確認済みにしました",
+    "reviewReopened": "{{count}} 件を未確認に戻しました"
   },
   "error": {
     "loadFailed": "読み込み失敗：{{message}}",

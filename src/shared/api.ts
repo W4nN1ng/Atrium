@@ -485,6 +485,10 @@ export interface AApi {
     planRegroup(): Promise<RegroupPlanView>
     /** keys 给空数组 = 拆开预览里的全部；给 groupKey 就只拆那几个组。纯库操作，可 Ctrl+Z */
     applyRegroup(keys: string[]): Promise<{ groups: number; moved: number; createdGroups: number }>
+    /** 第 9 轮 ② · B4 存量重并的只读预览（一行都不改） */
+    planRemerge(): Promise<RemergePlanView>
+    /** keys 给空数组 = 处理预览里的全部；给了 groupKey 只并那几簇。纯库操作，可 Ctrl+Z */
+    applyRemerge(keys: string[]): Promise<{ moved: number; droppedGroups: number; keyOnly: number; clusters: number }>
     /** 只读扫描：僵尸 / 重复 / 相似 / 游离 / 大文件 / 孤儿变体；under = 只扫这一棵子树 */
     scan(opts?: { under?: string | null }): Promise<HealthReport>
     /** 从 .avca.json 侧车补回丢掉的库记录 + 重建内存检索索引 */
@@ -547,6 +551,27 @@ export interface RegroupPlanView {
   /** 同一产品的 zip 与已解压副本 —— 按裁定 #16 保持归并，故意没动 */
   kept: Array<{ groupKey: string; groupName: string; dirs: string[]; reason: string }>
   affected: number
+}
+
+/**
+ * 第 9 轮 ② · B4 存量重并的只读预览（`library/remerge.ts`）。
+ *
+ * 每一簇 = "按现在的键规则，这几张卡本来就该是一张"。`rows` 只给前若干条够看清楚，
+ * `fromKey → toKey` 是这一轮唯一能证明"为什么并得对"的证据 —— 光给个数字没人敢点。
+ */
+export interface RemergePlanView {
+  scanned: number
+  /** 被 §B2 安全保护 3 挡住的处数（同目录 ≥3 个不同前缀塌成同一个键）—— 不许瞒着不说 */
+  skippedAmbiguous: number
+  clusters: Array<{
+    groupKey: string
+    name: string
+    /** true = 这一簇没有现成的组可复用，要新建一个 */
+    newGroup: boolean
+    moved: number
+    droppedGroups: number
+    rows: Array<{ name: string; fromKey: string | null; toKey: string }>
+  }>
 }
 
 /** 「重新分析」只读扫描给界面看的那份摘要（明细只给前 50 条，够看清楚要改什么就行） */export interface ReanalyzePlanView {

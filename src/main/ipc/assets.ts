@@ -16,6 +16,7 @@ import { isInside } from '../security/paths'
 import { learnedHint } from '../classify/learning'
 import { scanRebundle, applyRebundle } from '../library/rebundle'
 import { planRegroup, applyRegroup } from '../library/regroup'
+import { planRemerge, applyRemerge } from '../library/remerge'
 import { scanMergeSuggestions, applyMergeSuggestion, dismissMergeSuggestion, dirLabel } from '../library/mergeSuggest'
 import { planReanalyze, applyReanalyze, dropJunkRows } from '../library/reanalyze'
 import { planModelCollections, applyModelCollections } from '../library/modelCollections'
@@ -729,6 +730,48 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
     broadcast('data:changed', { reason: 'regroup' })
     log.info(`#40 拆开跨目录归并组：${r.groups} 组 / ${r.moved} 行 / 新建 ${r.createdGroups} 个组`)
     return { groups: r.groups, moved: r.moved, createdGroups: r.createdGroups }
+  })
+
+  /*
+   * 第 9 轮 ② · B4 存量重并（`library/remerge.ts` 的头注讲了为什么需要它）。
+   *
+   * ⚠ 落地时**重扫一遍再执行**，不信前端传来的那份预览：预览是用户点开那一刻的库，
+   * 中间只要有任何一次入库/改分类，那份就过期了 —— 拿过期预览写库等于按旧地图挪新数据。
+   * `keys` 给空 = 处理预览里的全部；给了 groupKey 就只处理那几簇（和 regroup 那两条同口径）。
+   */
+  ipc.handle('health:plan-remerge', () => {
+    const plan = planRemerge(getDb(), mainLexicon())
+    return {
+      scanned: plan.scanned,
+      skippedAmbiguous: plan.skippedAmbiguous,
+      clusters: plan.clusters.map((c) => ({
+        groupKey: c.groupKey,
+        name: c.name,
+        newGroup: !c.keepGroupId,
+        moved: c.moveAssetIds.length,
+        droppedGroups: c.dropGroupIds.length,
+        rows: c.rows.map((r) => ({ name: r.name, fromKey: r.fromKey, toKey: r.toKey }))
+      }))
+    }
+  })
+
+  ipc.handle('health:apply-remerge', (keys: unknown) => {
+    const db = getDb()
+    const lex = mainLexicon()
+    const full = planRemerge(db, lex)
+    const want =
+      Array.isArray(keys) && keys.length ? new Set(keys.filter((x): x is string => typeof x === 'string')) : null
+    const picked = want ? full.clusters.filter((c) => want.has(c.groupKey)) : full.clusters
+    if (!picked.length) return { moved: 0, droppedGroups: 0, keyOnly: 0, clusters: 0 }
+    const r = applyRemerge(db, { ...full, clusters: picked }, lex)
+    /**
+     * 归并关系变了 → 卡片分组、聚合视图的变体数、检索里的组别名全跟着变。
+     * 只广播 data:changed 不够：`reclassify` 那次踩过"索引没重建，搜不到刚改过的东西"，
+     * 所以这里连检索索引一起刷（reason 让订阅方自己决定刷什么）。
+     */
+    broadcast('data:changed', { reason: 'remerge' })
+    log.info(`B4 存量重并：${picked.length} 簇 / 改挂 ${r.moved} 张卡 / 合并掉 ${r.droppedGroups} 个组`)
+    return { moved: r.moved, droppedGroups: r.droppedGroups, keyOnly: r.keyOnly, clusters: picked.length }
   })
 
   /**

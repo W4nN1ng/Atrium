@@ -227,7 +227,15 @@
     "backedUpCount": "被覆盖的文件已备份 {{count}} 个",
     "backedUpNothing": "没东西可备份：冲突框说会盖掉的文件其实不在盘上",
     "rollbackDeleteFailed": "；有 {{count}} 个没能删掉，工程里可能还留着",
-    "setupNeeded": "库还没配好，点这里继续设置"
+    "setupNeeded": "库还没配好，点这里继续设置",
+    "markReviewed": "标记已复核",
+    "markUnreviewed": "重新排进待复核",
+    "reviewAfterEditHint": "分类改好了？点这里标记已复核 —— 改分类不会自动清掉标记",
+    "markReviewedN": "标记已复核（{{count}}）",
+    "reviewAllOnScreen": "这一屏全部标记已复核（{{count}}）",
+    "reviewConfirmTitle": "要把这些标成已复核吗",
+    "reviewConfirmBody": "将把 {{count}} 条从「待复核」里移出。这只改一个标记：不搬文件、不改分类、也不动置信度。反悔的话在那张卡上点「重新排进待复核」。",
+    "reviewConfirmOk": "确认标记"
   },
   "inbox": {
     "title": "摄取队列",
@@ -527,7 +535,19 @@
     "vaultUnavailable": "这台机器的系统加密现在不可用，所以存不了新密码；下面已有的那些也可能解不开。",
     "vaultEmpty": "一条都没有。",
     "vaultUnreadable": "解不开",
-    "vaultUnreadableHint": "换过机器或换过 Windows 账户之后就会这样（加密绑定当前用户）。这条留着也没用了，可以删掉。"
+    "vaultUnreadableHint": "换过机器或换过 Windows 账户之后就会这样（加密绑定当前用户）。这条留着也没用了，可以删掉。",
+    "remerge": "把同一件衣服重新并成一张卡",
+    "remergeFieldHint": "早先收进来的东西，归并规则后来改过了。这一栏按现在的规则重算一遍分组 —— 只改库里的归属，一个文件都不挪。",
+    "remergeHint": "先点「检查一遍」，看清要合并什么再决定。做完可以按 Ctrl+Z 整批退回。",
+    "remergeScan": "检查一遍",
+    "remergeApply": "合并（{{count}} 处）",
+    "remergeNone": "没有需要重并的 —— 库里每一组都和现在的规则一致",
+    "remergeScanned": "看了 {{scanned}} 张卡，其中 {{moved}} 张会挪到别的卡下面",
+    "remergeAmbiguous": "另有 {{count}} 处名字太像、不敢自动并，留给你自己判断",
+    "remergeDone": "合并完：{{clusters}} 处 / 挪了 {{moved}} 张卡 / 清掉 {{groups}} 个空分组",
+    "remergeBadge": "{{from}} 张并成 1 张",
+    "remergeNewGroup": "要新建一组",
+    "remergeMore": "还有 {{count}} 张没列出来"
   },
   "toast": {
     "trashDone": "已移入回收站",
@@ -540,7 +560,9 @@
     "undoSteps": "已撤销 {{steps}} 步：搬回 {{moved}} 项、清掉 {{dirs}} 个空目录、移除 {{assets}} 条记录",
     "undoStopped": "撤销在第 {{step}} 步停下：{{error}}",
     "learnedNow": "已经学会 {{rules}} 条规则，下次带「{{token}}」的东西会照这个分",
-    "undoRearchived": "已撤销 {{steps}} 步：{{moved}} 项文件搬回原位、{{assets}} 条记录改回原样（素材记录没被删）"
+    "undoRearchived": "已撤销 {{steps}} 步：{{moved}} 项文件搬回原位、{{assets}} 条记录改回原样（素材记录没被删）",
+    "reviewDone": "已把 {{count}} 条标成已复核",
+    "reviewReopened": "已把 {{count}} 条放回待复核"
   },
   "error": {
     "loadFailed": "加载失败：{{message}}",
