@@ -24,6 +24,13 @@ export function toastText(p: ToastPayload): string {
   return msg(p.textKey, p.textParams, p.text)
 }
 
+/** Electron prefixes thrown IPC errors; translate the embedded key, preserving unknown errors. */
+export function errorText(error: unknown): string {
+  const text = error instanceof Error ? error.message : String(error)
+  const key = text.match(/i18n:([A-Za-z0-9_.]+)/)?.[1]
+  return key && i18next.exists(key) ? String(i18next.t(key)) : text
+}
+
 /** 拖放被拒的原因：code 是 err.* 键 */
 export function rejectText(r: {
   path: string

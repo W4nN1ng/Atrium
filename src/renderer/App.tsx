@@ -96,12 +96,12 @@ export function App(): JSX.Element {
     const onKey = (e: KeyboardEvent): void => {
       const target = e.target as HTMLElement | null
       const typing = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      if (typing || e.isComposing) return
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
         e.preventDefault()
         void undoLast()
         return
       }
-      if (typing) return
       if (e.key === 'Escape') clearSelection()
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
         e.preventDefault()

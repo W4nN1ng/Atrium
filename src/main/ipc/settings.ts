@@ -3,7 +3,7 @@ import log from 'electron-log'
 import type { AppSettings, CategoryConfig } from '../../shared/types'
 import { getSettings, resetSettings, setSettings, onSettingsChanged } from '../services/settings'
 import { loadCategories, saveCategories } from '../services/categories'
-import { isForbiddenLibraryRoot } from '../security/paths'
+import { libraryRootProblem } from '../security/libraryRoot'
 import { getDb } from '../db'
 import { listLearning, deleteLearning } from '../db/repos/journal'
 import { addUserTerm, builtinLexiconCount, readUserTerms, removeUserTerm } from '../services/userLexicon'
@@ -11,19 +11,31 @@ import { assetIndex, rebuildIndex, setCategoryConfig } from '../search'
 import type { IpcRegistrar } from './types'
 
 export function registerSettings({ ipc, broadcast }: IpcRegistrar): void {
+  const validate = (patch: Partial<AppSettings>): void => {
+    if (patch.libraryRoot) {
+      const problem = libraryRootProblem(patch.libraryRoot)
+      if (problem) throw new Error('i18n:' + problem)
+    }
+    for (const key of ['confidenceAuto', 'confidenceConfirm'] as const) {
+      const value = patch[key]
+      if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 1)) {
+        throw new Error('i18n:settings.invalidThreshold')
+      }
+    }
+  }
   ipc.handle('settings:get-all', (): AppSettings => getSettings())
 
   ipc.handle('settings:set', (key: unknown, value: unknown): AppSettings => {
     if (typeof key !== 'string') throw new Error('设置项名无效')
-    return setSettings({ [key]: value } as Partial<AppSettings>)
+    const patch = { [key]: value } as Partial<AppSettings>
+    validate(patch)
+    return setSettings(patch)
   })
 
   ipc.handle('settings:set-many', (patch: unknown): AppSettings => {
     if (!patch || typeof patch !== 'object') throw new Error('设置项无效')
     const p = patch as Partial<AppSettings>
-    if (p.libraryRoot && isForbiddenLibraryRoot(p.libraryRoot)) {
-      throw new Error('不能把盘符根或系统目录设为库根')
-    }
+    validate(p)
     const next = setSettings(p)
     if (p.autoLaunch !== undefined) {
       // 开机自启由首启向导确认后才会被打开，绝不由程序擅自写启动项

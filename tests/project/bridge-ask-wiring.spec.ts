@@ -427,7 +427,7 @@ describe('R4 ⑦ 接线：源码里真的读了这些', () => {
     expect(body).toContain('pending.delete')
     expect(body).not.toMatch(/muted|silencedAll|globalNever/)
     expect(queue.match(/^let /gm) ?? [], 'askQueue 里不许多出模块级可变状态').toEqual([])
-    /** 弹窗那颗按钮的判据在纯函数里，不在组件里 */
-    expect(read('src/renderer/components/BridgeAskDialog.tsx')).toContain('canSilenceRestBridgeAsks(waiting)')
+    // The current dialog handles a whole selection with temporary skips; batch behavior is
+    // exercised in renderer/bridge-ask-batch.spec.ts. This test covers the legacy IPC only.
   })
 })

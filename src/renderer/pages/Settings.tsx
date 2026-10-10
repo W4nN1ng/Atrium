@@ -241,7 +241,7 @@ export function Settings(): JSX.Element {
                   onBlur={() => void patch({ extractRoot: draft.extractRoot })}
                 />
               </Field>
-              <Field label={t('settings.keepOriginal')} inline>
+              <Field label={t('settings.keepOriginal')} hint={t('settings.keepOriginalHint')} inline>
                 <Switch checked={draft.keepOriginalArchive} onChange={(v) => void patch({ keepOriginalArchive: v })} />
               </Field>
               <Field label={t('settings.autoExtract')} hint={t('settings.autoExtractHint')} inline>
@@ -257,7 +257,7 @@ export function Settings(): JSX.Element {
 
           {tab === 'classify' ? (
             <>
-              <Field label={t('settings.confidenceAuto')} hint="0 – 1">
+              <Field label={t('settings.confidenceAuto')} hint={t('settings.confidenceAutoHint')}>
                 <input
                   className="input"
                   style={{ width: 110 }}
@@ -270,7 +270,7 @@ export function Settings(): JSX.Element {
                   onBlur={() => void patch({ confidenceAuto: draft.confidenceAuto })}
                 />
               </Field>
-              <Field label={t('settings.confidenceConfirm')} hint="0 – 1">
+              <Field label={t('settings.confidenceConfirm')} hint={t('settings.confidenceConfirmHint')}>
                 <input
                   className="input"
                   style={{ width: 110 }}

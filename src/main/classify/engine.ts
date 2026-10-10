@@ -42,6 +42,8 @@ export interface ClassifyDeps {
   learning?: Map<string, LearningRow[]>
   /** 递归深度保护（合集拆完还要给子项分类） */
   depth?: number
+  confidenceConfirm?: number
+  confidenceAuto?: number
 }
 
 interface Candidate {
@@ -330,7 +332,7 @@ function classifyOne(ingest: IngestResult, deps: ClassifyDeps): AssetUnit {
   confidence = Math.max(0, Math.min(1, confidence))
 
 
-  const status: AssetUnit['status'] = confidence >= TH_CONFIRM ? 'archived' : 'pending_confirm'
+  const status: AssetUnit['status'] = confidence >= (deps.confidenceConfirm ?? TH_CONFIRM) ? 'archived' : 'pending_confirm'
   const contentType: ContentType =
     hard.contentType !== 'unknown' ? hard.contentType : ingest.metadata.previewImages.length ? 'texture' : 'unknown'
 
@@ -447,7 +449,7 @@ export function classify(ingest: IngestResult, deps: ClassifyDeps): Classificati
         for (const i of items) i.unit.bundleRef = null
         return { units: items.map((i) => i.unit) }
       }
-      const bundleUnit = bundleSelfUnit(ingest, plan, items)
+      const bundleUnit = bundleSelfUnit(ingest, plan, items, deps)
       return {
         units: [bundleUnit],
         bundle: { name: plan.name, coverImage: plan.coverImage },
@@ -479,7 +481,8 @@ function sumVersions(item: BundleItemResult): number {
 function bundleSelfUnit(
   ingest: IngestResult,
   plan: NonNullable<ReturnType<typeof planBundle>>,
-  items: BundleItemResult[]
+  items: BundleItemResult[],
+  deps: ClassifyDeps
 ): AssetUnit {
   const tally = new Map<string, number>()
   for (const i of items) tally.set(i.unit.category, (tally.get(i.unit.category) ?? 0) + 1)
@@ -501,13 +504,16 @@ function bundleSelfUnit(
    * 不能因为走了合集分支就把名字和版本丢掉。
    */
   const cleaned = cleanDisplayName(ingest.rawName)
+  const confidence = plan.oneProduct ? worst * 0.9 : worst
   return {
     tempId: ingest.assetId + ':bundle',
     name: plan.name,
     category,
     subcategory,
-    confidence: plan.oneProduct ? worst * 0.9 : worst,
-    status: worst >= TH_AUTO ? 'archived' : 'pending_confirm',
+    confidence,
+    status: items.every((item) => item.unit.status === 'archived') && worst >= (deps.confidenceAuto ?? TH_AUTO)
+      && confidence >= (deps.confidenceConfirm ?? TH_CONFIRM)
+      ? 'archived' : 'pending_confirm',
     contentType: 'bundle',
     targetAvatars: avatars,
     tags,

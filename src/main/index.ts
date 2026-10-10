@@ -227,17 +227,34 @@ function bootstrap(): void {
     })
 
     const s = getSettings()
-    const hotkey = s.globalHotkey || DEFAULT_HOTKEY
-    const ok = globalShortcut.register(hotkey, () => showMiniDropAtCursor())
+    let hotkey = s.globalHotkey?.trim() || DEFAULT_HOTKEY
+    let ok = false
+    try {
+      ok = globalShortcut.register(hotkey, () => showMiniDropAtCursor())
+    } catch (error) {
+      log.warn('无效热键 ' + hotkey + '，恢复默认热键：' + String(error))
+      hotkey = DEFAULT_HOTKEY
+      ok = globalShortcut.register(hotkey, () => showMiniDropAtCursor())
+    }
     if (!ok) log.warn('全局热键 ' + hotkey + ' 注册失败（可能被别的程序占用）')
 
     onSettingsChanged((next) => {
       refreshTray()
       folderWatcher?.sync()
-      if (next.globalHotkey !== hotkey) {
+      const nextHotkey = next.globalHotkey?.trim() || DEFAULT_HOTKEY
+      if (nextHotkey !== hotkey) {
         globalShortcut.unregisterAll()
-        if (!globalShortcut.register(next.globalHotkey, () => showMiniDropAtCursor())) {
-          log.warn('新热键 ' + next.globalHotkey + ' 注册失败')
+        let registered = false
+        try {
+          registered = globalShortcut.register(nextHotkey, () => showMiniDropAtCursor())
+        } catch (error) {
+          log.warn('无效热键 ' + nextHotkey + '：' + String(error))
+        }
+        if (registered) {
+          hotkey = nextHotkey
+        } else {
+          log.warn('新热键 ' + nextHotkey + ' 注册失败，恢复原热键 ' + hotkey)
+          globalShortcut.register(hotkey, () => showMiniDropAtCursor())
         }
       }
     })

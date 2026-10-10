@@ -10,7 +10,7 @@ import { setAssetTags, addAssetTags } from '../db/repos/meta'
 import { appendJournal } from '../db/repos/journal'
 import { renderSegments } from './template'
 import { dirKeyOf } from '../../shared/pathkey'
-import { ensureDir, moveToHold, moveFile, moveTree, pathExists, uniquePath } from './fsx'
+import { ensureDir, moveToHold, moveFile, moveTree, pathExists, uniquePath, listTree } from './fsx'
 import { writeSidecar, type SidecarData } from './sidecar'
 import { cleanDisplayName } from '../../shared/naming'
 
@@ -77,6 +77,7 @@ export interface CommitDeps {
   template: string
   storageMode: StorageMode
   autoExtract: boolean
+  keepOriginalArchive?: boolean
   /** 丢弃暂存内容时挪到这里，可撤销 —— 绝不直接 rm */
   holdDir: string
   appVersion: string
@@ -346,6 +347,7 @@ export async function commitAsset(deps: CommitDeps, input: CommitInput): Promise
   await ensureDir(destRoot)
 
   let archiveInLibrary: string | null = null
+  let extractedContent: string | null = null
   if (input.sourcePath) {
     const base = path.basename(input.sourcePath)
     const dest = await uniquePath(path.join(destRoot, base))
@@ -379,8 +381,21 @@ export async function commitAsset(deps: CommitDeps, input: CommitInput): Promise
           appendJournal(db, { op: 'extract', from: input.stagingPath, to: dest, label: '提交解压内容' }, { batchId })
         )
         await moveTree(input.stagingPath, dest)
+        extractedContent = dest
       }
     }
+  }
+
+  // Only retire a generic archive after real files have been saved. Unity packages remain importable.
+  if (archiveInLibrary && deps.keepOriginalArchive === false && deps.autoExtract &&
+      u.kind === 'archive' && extractedContent && (await listTree(extractedContent)).some((f) => !f.isDir)) {
+    const original = archiveInLibrary
+    await ensureDir(deps.holdDir)
+    const held = await uniquePath(path.join(deps.holdDir, path.basename(original)))
+    journalIds.push(appendJournal(db, { op: 'trash', trashed: [{ from: original, to: held }],
+      label: '原压缩包移入可撤销暂存区' }, { batchId }))
+    if (await moveFile(original, held) === 'copied') await fs.promises.unlink(original)
+    archiveInLibrary = null
   }
 
   const rel = persistRelations(db, assetId, u, dirKeyOf(destRoot))

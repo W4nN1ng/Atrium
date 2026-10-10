@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -92,6 +92,59 @@ afterAll(() => {
 })
 
 describe('归档模式入库', () => {
+  it('原压缩包在另一卷暂存时，撤销仍能完整恢复且清掉库中的副本', async () => {
+    const src = path.join(root, 'inbox', 'cross-volume.zip')
+    const staging = path.join(root, 'staging', 'cross-volume')
+    touch(src)
+    touch(path.join(staging, 'Dress.unitypackage'))
+    const r = await commitAsset(deps({ autoExtract: true, keepOriginalArchive: false }), {
+      unit: mkUnit({ name: '跨卷撤销', kind: 'archive' }), sourcePath: src, stagingPath: staging
+    })
+    const rename = vi.spyOn(fs.promises, 'rename').mockRejectedValueOnce(Object.assign(new Error('Cross-device'), { code: 'EXDEV' }))
+    try {
+      const outcome = await undoLast({ db, holdDir: path.join(root, 'hold') })
+      expect(outcome.ok, outcome.error).toBe(true)
+      expect(fs.readFileSync(src)).toEqual(Buffer.alloc(64, 0x5a))
+      expect(fs.existsSync(r.libraryPath!)).toBe(false)
+    } finally { rename.mockRestore() }
+  })
+  it('关闭保留原压缩包：成功落盘解压内容后，原包移入可撤销暂存区', async () => {
+    const src = path.join(root, 'inbox', 'extracted.zip')
+    const staging = path.join(root, 'staging', 'extracted')
+    touch(src)
+    touch(path.join(staging, '衣服.unitypackage'))
+    const r = await commitAsset(deps({ autoExtract: true, keepOriginalArchive: false }), {
+      unit: mkUnit({ name: '提取衣服', kind: 'archive' }), sourcePath: src, stagingPath: staging
+    })
+    expect(r.archiveInLibrary).toBeNull()
+    expect(getAsset(db, r.assetId)?.source_path).toBeNull()
+    expect(fs.existsSync(path.join(r.libraryPath!, '_extracted', '衣服.unitypackage'))).toBe(true)
+    expect(fs.existsSync(path.join(r.libraryPath!, 'extracted.zip'))).toBe(false)
+    await undoLast({ db, holdDir: path.join(root, 'hold') })
+    expect(fs.existsSync(src)).toBe(true)
+    expect(fs.readFileSync(src)).toEqual(Buffer.alloc(64, 0x5a))
+  })
+
+  it.each([null, 'empty'])('没有成功解压内容时仍保留唯一原包 (%s)', async (stage) => {
+    const src = path.join(root, 'inbox', `fallback-${stage}.zip`)
+    touch(src)
+    const staging = stage ? path.join(root, 'staging', 'empty') : null
+    if (staging) fs.mkdirSync(staging, { recursive: true })
+    const r = await commitAsset(deps({ autoExtract: true, keepOriginalArchive: false }), {
+      unit: mkUnit({ name: `保留-${stage}`, kind: 'archive' }), sourcePath: src, stagingPath: staging
+    })
+    expect(r.archiveInLibrary).not.toBeNull()
+    expect(fs.existsSync(r.archiveInLibrary!)).toBe(true)
+  })
+
+  it('关闭保留压缩包不影响原始 unitypackage', async () => {
+    const src = path.join(root, 'inbox', 'raw.unitypackage')
+    touch(src)
+    const r = await commitAsset(deps({ autoExtract: true, keepOriginalArchive: false }), {
+      unit: mkUnit({ name: 'Unity原包' }), sourcePath: src, stagingPath: null
+    })
+    expect(fs.existsSync(r.archiveInLibrary!)).toBe(true)
+  })
   it('原件搬进 库/插件/动作类/名称/，目录模板用的是磁盘语言', async () => {
     const src = path.join(root, 'inbox', 'GoLoco.v.1.8.6u.unitypackage')
     touch(src, 128)

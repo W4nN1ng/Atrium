@@ -345,8 +345,8 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
     const id = String(i.projectId ?? '')
     if (!id) return { ok: false, error: '没给工程 id' }
     const choice = String(i.choice ?? '')
-    const answer = bridgeAskAnswerFor(choice as 'install-once' | 'always' | 'never')
-    if (!['install-once', 'always', 'never'].includes(choice)) {
+    const answer = bridgeAskAnswerFor(choice as 'install-once' | 'always' | 'never' | 'later')
+    if (!['install-once', 'always', 'never', 'later'].includes(choice)) {
       return { ok: false, error: '不认识的回答：' + choice }
     }
     setBridgeAsk(db, id, answer)

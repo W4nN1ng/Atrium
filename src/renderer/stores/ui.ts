@@ -61,7 +61,7 @@ import {
   type ImportQueue
 } from '../../shared/importQueue'
 import i18next, { changeLocale } from '../i18n'
-import { msg, rejectText, toastText, type ToastPayload } from '../lib/msg'
+import { msg, rejectText, toastText, errorText, type ToastPayload } from '../lib/msg'
 
 export type NavKey = 'inbox' | 'pending' | 'recent' | 'favorites' | 'project' | 'settings' | string
 
@@ -503,7 +503,8 @@ interface UiState {
    */
   handleProjectFirstSeen(event: BridgeFirstSeenEvent): void
   /** 三按钮的答案（`install-once` 不写库，下次第一次发现还会问） */
-  answerBridgeAsk(choice: 'install-once' | 'always' | 'never'): Promise<void>
+  answerBridgeAsk(choice: 'install-once' | 'always' | 'never' | 'later'): Promise<void>
+  resolveBridgeAsks(projectIds: string[], automatic: boolean): Promise<void>
   /** 关掉弹窗**不算回答**（什么都不写，下次启动还会再问） */
   dismissBridgeAsk(): void
   /** M7 Q10 · 「剩下这些都不再问」：除屏幕上这条之外，每条各写一行 never */
@@ -1015,7 +1016,7 @@ export const useUi = create<UiState>((set, get) => {
         set({ settings: next })
         if (patch.libraryRoot !== undefined) await get().boot()
       } catch (e) {
-        get().toast('bad', e instanceof Error ? e.message : String(e))
+        get().toast('bad', errorText(e))
       }
     },
 
@@ -1049,7 +1050,7 @@ export const useUi = create<UiState>((set, get) => {
       try {
         const probe = await window.a.system.probeDirectory(raw)
         set({ wizardProbe: probe })
-        if (adoptOrFresh(probe) === 'fresh') await get().wizardChooseLibrary('fresh')
+        if (!probe.problemKey && adoptOrFresh(probe) === 'fresh') await get().wizardChooseLibrary('fresh')
       } catch (e) {
         get().toast('bad', e instanceof Error ? e.message : String(e))
       } finally {
@@ -1065,6 +1066,7 @@ export const useUi = create<UiState>((set, get) => {
      * 现在由 `libraryChoicePatch` 代劳，判定与用例在 `tests/shared/wizard-state.spec.ts`。
      */
     async wizardChooseLibrary(mode) {
+      if (get().wizardProbe?.problemKey) return
       const root = get().wizardProbe?.path
       if (!root) return
       const patch: Partial<AppSettings> = {
@@ -1464,7 +1466,7 @@ export const useUi = create<UiState>((set, get) => {
                 packagePath: null
               }
             }))
-            if (item.conflicts.length) {
+            if (item.conflicts.length || s.settings.confirmBeforeImport) {
               set((st) => ({
                 importFlow: {
                   ...st.importFlow,
@@ -1514,7 +1516,7 @@ export const useUi = create<UiState>((set, get) => {
         }
 
         /** 5. 有冲突 → 挂起等用户选（§5.1④ 三选一），不擅自覆盖 */
-        if (pre.conflicts.length) {
+        if (pre.conflicts.length || s.settings.confirmBeforeImport) {
           set((st) => ({
             importFlow: {
               ...st.importFlow,
@@ -2048,21 +2050,43 @@ export const useUi = create<UiState>((set, get) => {
     },
 
     /** 三按钮的答案。`install-once` 不写库（下次第一次发现还会问） */
-    async answerBridgeAsk(choice: 'install-once' | 'always' | 'never') {
+    async answerBridgeAsk(choice: 'install-once' | 'always' | 'never' | 'later') {
       const t = i18next.t.bind(i18next)
       const cur = get().bridgeAsk[0]
       /** 先出队再干活：装的过程要几秒，期间不该让用户再点一次 */
       set({ bridgeAsk: get().bridgeAsk.slice(1) })
       if (!cur) return
       try {
-        await window.a.unity.answerBridgeAsk(cur.projectId, choice)
-        if (choice !== 'never') {
+        const saved = await window.a.unity.answerBridgeAsk(cur.projectId, choice)
+        if (!saved.ok) throw new Error(saved.error ?? t('project.installFailed'))
+        if (choice === 'install-once' || choice === 'always') {
           const r = await window.a.unity.installBridge(cur.projectId)
           if (!r.ok) get().toast('bad', r.error ?? t('project.installFailed'))
           else get().toast('ok', r.alreadyInstalled ? t('project.installAlready', { name: cur.name }) : t('project.installDone', { name: cur.name, count: r.copied }))
         }
       } catch (e) {
         get().toast('bad', e instanceof Error ? e.message : String(e))
+      }
+    },
+
+    async resolveBridgeAsks(projectIds, automatic) {
+      const pending = get().bridgeAsk
+      const ids = new Set(projectIds)
+      // Consume this visible batch once. Newly discovered projects can still join the queue.
+      set({ bridgeAsk: [] })
+      for (const project of pending) {
+        const choice = ids.has(project.projectId) ? (automatic ? 'always' : 'install-once') : 'later'
+        try {
+          const saved = await window.a.unity.answerBridgeAsk(project.projectId, choice)
+          if (!saved.ok) throw new Error(saved.error ?? i18next.t('project.installFailed'))
+          if (choice === 'later') continue
+          const result = await window.a.unity.installBridge(project.projectId)
+          if (!result.ok) throw new Error(result.error ?? i18next.t('project.installFailed'))
+          get().toast('ok', i18next.t(result.alreadyInstalled ? 'project.installAlready' : 'project.installDone',
+            { name: project.name, count: result.copied }))
+        } catch (e) {
+          get().toast('bad', `${project.name}: ${e instanceof Error ? e.message : String(e)}`)
+        }
       }
     },
 

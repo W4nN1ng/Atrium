@@ -61,14 +61,14 @@ export function FirstRunWizard(): JSX.Element | null {
   const facts = useMemo(
     () => ({
       libraryRoot: settings.libraryRoot,
-      libraryRootForbidden: false,
+      libraryRootForbidden: !!probe?.problemKey,
       /** 库根已经落定但没记方式（老库、或手改过 settings.json）→ 当成建空库，不再拦 */
       libraryChoice: settings.libraryMode,
       watchedFolders: settings.watchedFolders,
       bridgesInstalled: results.filter((r) => r.ok).length,
       autoLaunchAsked: settings.autoLaunchAsked
     }),
-    [settings, results]
+    [settings, results, probe]
   )
   const done = stepDone(facts)
   const askAdopt = probe ? adoptOrFresh(probe) === 'ask' : false
@@ -198,7 +198,11 @@ export function FirstRunWizard(): JSX.Element | null {
                 ) : null}
               </div>
 
-              {probe ? (
+              {probe?.problemKey ? (
+                <div role="alert" className="rounded-md border p-3 text-[13px]" style={{ color: 'var(--bad)', borderColor: 'var(--line)' }}>
+                  {t(probe.problemKey)}
+                </div>
+              ) : probe ? (
                 <div className="flex flex-col gap-2 rounded-md p-3" style={{ border: '1px solid var(--line)' }}>
                   <div className="text-[11px]" style={{ color: 'var(--muted)' }}>
                     {probe.path}

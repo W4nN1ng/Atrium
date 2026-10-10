@@ -154,26 +154,29 @@ export function ImportFlow(): JSX.Element | null {
         onOpenChange={(v) => {
           if (!v) void resolve('cancel')
         }}
-        title={t('library.conflictTitle', { count: pending?.conflicts.length ?? 0 })}
+        title={pending?.conflicts.length ? t('library.conflictTitle', { count: pending.conflicts.length }) : t('library.importConfirmTitle')}
         footer={
           <>
             <Button onClick={() => void resolve('cancel')}>{t('common.cancel')}</Button>
-            <Button onClick={() => void resolve('continue')}>{t('library.conflictContinue')}</Button>
-            <Button variant="accent" onClick={() => void resolve('continue-with-backup')}>
-              {t('library.conflictContinueBackup')}
+            <Button variant={pending?.conflicts.length ? 'default' : 'accent'} onClick={() => void resolve('continue')}>
+              {t(pending?.conflicts.length ? 'library.conflictContinue' : 'library.importConfirmAction')}
             </Button>
+            {pending?.conflicts.length ? <Button variant="accent" onClick={() => void resolve('continue-with-backup')}>
+              {t('library.conflictContinueBackup')}
+            </Button> : null}
           </>
         }
       >
         <div className="flex flex-col gap-3 text-[12px]">
+          <div>{flow.packageName} → {flow.projectName}</div>
           <div style={{ color: 'var(--muted)' }}>
-            {t('library.conflictIntro', {
+            {t(pending?.conflicts.length ? 'library.conflictIntro' : 'library.importConfirmIntro', {
               total: pending?.entryCount ?? 0,
               fresh: pending?.fresh ?? 0
             })}
           </div>
 
-          <div
+          {pending?.conflicts.length ? <div
             className="max-h-[220px] overflow-y-auto rounded border px-2 py-1 font-mono text-[11px]"
             style={{ borderColor: 'var(--line-2)', background: 'var(--panel-2)' }}
           >
@@ -185,11 +188,11 @@ export function ImportFlow(): JSX.Element | null {
                 </div>
               </div>
             ))}
-          </div>
+          </div> : null}
 
-          <div style={{ color: 'var(--muted)' }}>
+          {pending?.conflicts.length ? <div style={{ color: 'var(--muted)' }}>
             {backupOverwritten ? t('library.conflictBackupOn') : t('library.conflictBackupOff')}
-          </div>
+          </div> : null}
         </div>
       </Modal>
     </>

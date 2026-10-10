@@ -62,6 +62,38 @@ function mk(input: {
 const deps = (): Parameters<typeof classify>[1] => ({ lex, categories })
 const one = (ingest: IngestResult): ClassificationResult => classify(ingest, deps())
 
+describe('用户分类阈值', () => {
+  it('合集汇总后的评分低于确认线时不能自动入库', () => {
+    const input = mk({ name: 'ABT 1.3.0', dirs: ['插件'], entries: [
+      'ABT left.unitypackage', 'ABT right.unitypackage', 'ABT nopose.unitypackage'
+    ] })
+    const result = classify(input, { ...deps(), confidenceConfirm: 0.98, confidenceAuto: 0.75 })
+    expect(result.units[0].confidence).toBeLessThan(0.98)
+    expect(result.tree?.items.every((item) => item.unit.status === 'archived')).toBe(true)
+    expect(result.units[0].status).toBe('pending_confirm')
+  })
+  it('合集的高分不能绕过子项的待确认状态', () => {
+    const input = mk({ name: 'ABT 1.3.0', dirs: ['插件'], entries: [
+      'ABT 左手.unitypackage', 'ABT 右手.unitypackage', 'ABT 无姿势.unitypackage'
+    ] })
+    const result = classify(input, { ...deps(), confidenceConfirm: 1, confidenceAuto: 0.1 })
+    expect(result.tree?.items.length).toBeGreaterThan(0)
+    expect(result.tree?.items.every((item) => item.unit.status === 'pending_confirm')).toBe(true)
+    expect(result.units[0].status).toBe('pending_confirm')
+  })
+  it('确认阈值会改变同一素材的待确认状态，默认评分保持不变', () => {
+    const input = mk({ name: 'Dress.zip', entries: ['Assets/Clothes/Dress.prefab'] })
+    const normal = one(input).units[0]
+    expect(normal.confidence).toBeGreaterThan(0.4)
+    expect(normal.confidence).toBeLessThan(1)
+    const strict = classify(input, { ...deps(), confidenceConfirm: 1 }).units[0]
+    const relaxed = classify(input, { ...deps(), confidenceConfirm: 0.1 }).units[0]
+    expect(strict.confidence).toBe(normal.confidence)
+    expect(strict.status).toBe('pending_confirm')
+    expect(relaxed.status).toBe('archived')
+  })
+})
+
 describe('§7 特例 3：ABT 1.3.0【汉化 闲鱼@月见汐音】', () => {
   const r = () =>
     one(

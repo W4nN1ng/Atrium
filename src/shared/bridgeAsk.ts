@@ -22,6 +22,7 @@
  */
 
 export type BridgeAskAnswer = 'always' | 'never'
+export type BridgeAskChoice = 'install-once' | 'always' | 'never' | 'later'
 export type BridgeAskDecision = 'ask' | 'auto' | 'quiet'
 
 export interface BridgeAskInput {
@@ -78,10 +79,10 @@ export function bridgeAskDecision(i: BridgeAskInput): BridgeAskDecision {
 }
 
 /**
- * 弹窗上三个按钮各对应存什么答案。
- * `[安装]` = 这次装，下次还问；`[以后都自动安装]` = 存 always；`[暂不]` = 存 never。
+ * 安装一次和稍后连接不保存永久意愿；自动连接存 always。
+ * never 仅供明确选择「不再询问此工程」的旧接口使用。
  */
-export function bridgeAskAnswerFor(choice: 'install-once' | 'always' | 'never'): BridgeAskAnswer | null {
+export function bridgeAskAnswerFor(choice: BridgeAskChoice): BridgeAskAnswer | null {
   if (choice === 'always') return 'always'
   if (choice === 'never') return 'never'
   return null
