@@ -942,3 +942,42 @@ https://github.com/W4nN1ng/Atrium/releases/tag/v0.2.0 —— 五条裁定他一�
   先 `node tools/kill-sandbox.cjs`，不行就等锁自己放。
 - 🟡 `tests/perf/scale.spec.ts > 增量 upsert` 在全量并行下偶发红（0.657 vs 阈值 0.6；单独跑 0.317）。
   本轮没碰索引热路径 → 判为负载敏感，另立任务 #100，**不含糊过去**。
+
+---
+
+## 16. 第 9 轮 ⑤ · 收尾与 `v0.3.0` 发布（2026-10-10 中午）
+
+### 发布前过的闸
+
+| 检查 | 结果 |
+| --- | --- |
+| 全量回归（改完 worker.ts 注释 + 版本号之后重跑） | ✅ 1425 passed / 10 skipped |
+| `tools/verify-red-r9.cjs` 25 处变异 | ✅ 每处撤掉都有用例变红 |
+| `tools/pkg-version.cjs`（asar 里版本号 / license / 依赖闭包 / asar 不比源码旧） | ✅ 0.3.0 / MIT / 87 个顶层包 ⊆ 91 个闭包 |
+| asar 里 ①② 的文案与通道名 | ✅ 「标记已复核」「把同一件衣服重新并成一张卡」「health:plan-remerge」都在 |
+| 两场活体在**最终这份** `dist/win-unpacked` 上重跑 | ✅ ① 14 条 + ② 16 条，合计 0 红 |
+| 发布页正文 vs `docs/release-body-0.3.0.md` | ✅ 逐字一致；术语扫描（schema/IPC/asar/代号…）0 命中 |
+| 正文两串 SHA-256 vs GitHub 自己算的 `digest` | ✅ 逐位相同 |
+| 直链（跟一次 302 之后） | ✅ 两个都 206 + 头两字节 `MZ`，全长 87,031,669 / 86,797,584 = 本地字节数 |
+
+### 顺手修掉的两处"工具自己会骗人"
+
+1. `tools/gh-release.cjs` 与 `tools/verify-release-page.cjs` 里**硬编码了 `0.2.0`**（tag、正文文件名、
+   指纹正则三处）。忘了改的表现不是报错，而是**拿 0.2.0 的页面比 0.2.0 的正文，照样打全绿**。
+   现在两处都从 `package.json` 取版本号（要临时发别的号用 `AVCA_RELEASE_VERSION=`）。
+2. `tools/live-r9-remerge.cjs` 第一次在 `dist/win-unpacked` 上跑，卡在"点了合并没回报"，
+   而主进程日志里连一条 remerge 都没有 —— 因为脚本把 `clickText` 的返回值丢了，
+   `NOELEMENT` 和 `CLICKED` 一样安静。逐步探针走同一条路是成功的（日志有
+   「B4 存量重并：1 簇 / 改挂 12 张卡」），判它是脚本没点着；
+   从现在起点没点着当场报。**"判它是工具问题"如果没有证据，就还是猜。**
+
+### 还没证的 / 没做的
+
+- ❌ **这台机器上装着的仍是 0.2.0**（他选了"先不装，只出包"）。所以 0.3.0 的
+  **覆盖安装行为**（升级不弹向导、数据不动）在这一版上**没有实测**。
+- ❌ **真库那一次存量重并未执行**（#97，等他点头）。
+- 🟡 0.2.0 那页的 `Atrium-portable-0.2.0.exe` 仍是 19:25 的旧构建（旧图标、无 ①②）。
+  `/releases/latest` 现在指向 0.3.0，正常路径拿不到它；要不要删那条旧资产等他决定。
+- 🟡 `tests/perf/scale.spec.ts > 增量 upsert` 在全量并行下偶发红（0.657 vs 阈值 0.6；单独跑 0.317）→ #100。
+- 🟡 `dist/win-unpacked/Atrium.exe` 今天出现过系统级 EBUSY 锁（按进程名/模块都查不到持有者），
+  后来自己放了；重打包时若再撞上，先 `node tools/kill-sandbox.cjs`。

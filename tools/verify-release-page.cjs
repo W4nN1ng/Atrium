@@ -3,11 +3,20 @@ const fs = require('node:fs')
 const cp = require('node:child_process')
 const https = require('node:https')
 
+/**
+ * 版本从 `package.json` 取（和 `tools/gh-release.cjs` 同一个来源）。
+ * 原来这里连着三处硬编码 `0.2.0`（tag、正文文件名、指纹正则），
+ * 发 0.3.0 时如果忘了改，它会拿 0.2.0 的页面去比 0.3.0 的正文 ——
+ * **报出来的还是"✅ 一致"**，因为两边都来自同一个旧文件。
+ */
+const VERSION = process.env.AVCA_RELEASE_VERSION || JSON.parse(fs.readFileSync('package.json', 'utf8')).version
+const TAG = 'v' + VERSION
+
 const r = cp.spawnSync('git', ['credential', 'fill'], { input: 'protocol=https\nhost=github.com\n\n', encoding: 'utf8' })
 const tok = /^password=(.*)$/m.exec(r.stdout)[1].trim()
 
 https.get(
-  'https://api.github.com/repos/W4nN1ng/Atrium/releases/tags/v0.2.0',
+  'https://api.github.com/repos/W4nN1ng/Atrium/releases/tags/' + TAG,
   { headers: { Authorization: 'Bearer ' + tok, 'User-Agent': 'verify' } },
   (res) => {
     res.setEncoding('utf8')
@@ -15,7 +24,7 @@ https.get(
     res.on('data', (d) => (b += d))
     res.on('end', () => {
       const j = JSON.parse(b)
-      const L = fs.readFileSync('docs/release-body-0.2.0.md', 'utf8').split(/\r?\n/)
+      const L = fs.readFileSync(`docs/release-body-${VERSION}.md`, 'utf8').split(/\r?\n/)
       if (L[0].startsWith('# ')) L.splice(0, 2)
       const want = L.join('\n').trim() + '\n'
       console.log('正文与本地逐字一致：', want === j.body ? '✅' : '❌ 差 ' + (j.body.length - want.length) + ' 字符')
@@ -24,7 +33,7 @@ https.get(
 
       const dig = {}
       for (const a of j.assets) dig[a.name.replace(/\.exe$/, '')] = (a.digest || '').replace('sha256:', '')
-      const claimed = [...j.body.matchAll(/`(Atrium-\w+-0\.2\.0\.exe)` — `([a-f0-9]{64})`/g)]
+      const claimed = [...j.body.matchAll(new RegExp('`(Atrium-\\w+-' + VERSION.replace(/\./g, '\\.') + '\\.exe)` — `([a-f0-9]{64})`', 'g'))]
       console.log('正文里列了 ' + claimed.length + ' 串指纹：')
       for (const m of claimed) {
         const name = m[1].replace(/\.exe$/, '')

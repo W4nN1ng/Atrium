@@ -32,12 +32,20 @@ const cp = require('node:child_process')
 
 const OWNER = 'W4nN1ng'
 const REPO = 'Atrium'
-const TAG = 'v0.2.0'
-const NAME = 'Atrium 0.2.0'
 const HERE = __dirname
 const ROOT = path.resolve(HERE, '..')
 
-const ASSETS = ['dist/Atrium-Setup-0.2.0.exe', 'dist/Atrium-portable-0.2.0.exe']
+/**
+ * 版本从 `package.json` 取，不在这里写死。
+ * 上一版这里是硬编码的 `v0.2.0` —— 那样每次发版都得记得改三处（TAG / NAME / ASSETS），
+ * 而"忘了改"的表现很坏：正文和哈希是 0.3.0 的，Release 挂在 v0.2.0 上、
+ * 或者干脆把旧 tag 又发一遍。版本号只有一个来源，就是 `package.json`。
+ * 要临时发别的号：`AVCA_RELEASE_VERSION=0.3.1 node tools/gh-release.cjs --check`。
+ */
+const VERSION = process.env.AVCA_RELEASE_VERSION || JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version
+const TAG = 'v' + VERSION
+const NAME = 'Atrium ' + VERSION
+const ASSETS = [`dist/Atrium-Setup-${VERSION}.exe`, `dist/Atrium-portable-${VERSION}.exe`]
 
 function die(msg) {
   console.error('✗ ' + msg)
@@ -190,7 +198,7 @@ async function main() {
   /** 换掉已经公开发布过的二进制，要显式说一声 */
   const replaceAssets = argv.includes('--replace-assets')
   const bi = argv.indexOf('--body-file')
-  const bodyFile = bi >= 0 ? argv[bi + 1] : 'docs/release-body-0.2.0.md'
+  const bodyFile = bi >= 0 ? argv[bi + 1] : `docs/release-body-${VERSION}.md`
 
   console.log('仓库 https://api.github.com/repos/' + OWNER + '/' + REPO)
   const fails = []
