@@ -454,8 +454,18 @@ export function Settings(): JSX.Element {
                   >
                     {t('settings.openAppData')}
                   </Button>
-                  <Button onClick={() => toast('info', t('common.notImplemented', { milestone: 'M7' }))}>
-                    {t('settings.exportLogs')}
+                  {/*
+                    第 10 轮 F：这颗原来按下只弹一句「该功能将在 M7 交付」——
+                    按钮看着能用、实际什么都没做，而那句承诺本身会过期（报障 1 就是同一族病）。
+                    现在做的是"日志"这件事的真版本：打开日志所在文件夹，
+                    要发给别人排查，在那里复制那个文件就行。
+                  */}
+                  <Button
+                    onClick={() => {
+                      if (paths) void window.a.system.reveal(paths.logs).catch((e: Error) => toast('bad', e.message))
+                    }}
+                  >
+                    {t('settings.openLogDir')}
                   </Button>
                 </div>
               </Field>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useUi } from './stores/ui'
 import { Sidebar, StatusBar, Toasts, TopBar } from './components/chrome'
@@ -9,20 +9,43 @@ import { RearchiveDialog } from './components/RearchiveDialog'
 import { MemberPicker } from './components/MemberPicker'
 import { ModelBackfillDialog } from './components/ModelBackfillDialog'
 import { ProjectBanner } from './components/ProjectBanner'
+import { RemergeNotice } from './components/RemergeNotice'
 import { AutoLaunchAsk } from './components/AutoLaunchAsk'
 import { BridgeAskDialog } from './components/BridgeAskDialog'
 import { FirstRunWizard } from './components/FirstRunWizard'
 import { wizardGate } from '../shared/wizardState'
+import { dropEmptyKey, type DropEmptyInfo } from '../shared/dropDiagnostics'
 import { Inbox } from './pages/Inbox'
 import { Library } from './pages/Library'
 import { Project } from './pages/Project'
 import { Collections } from './pages/Collections'
 import { Settings } from './pages/Settings'
 
+/**
+ * 第 10 轮 E：拖进来了、却没解析出本地路径时**必须说一句**。
+ *
+ * 老写法是 `if (paths.length) onPaths(paths)`，else 什么都不做 ——
+ * 他录屏里那次「把西装拖进 A，A 一点反应也没有」，读到的就是这个静默。
+ * 说什么由 `shared/dropDiagnostics.ts` 判（"带了文件但没路径"和"压根没文件"是两件事，
+ * 那边的用例钉着），这里只负责把它变成一条 toast。
+ */
+function useDropEmpty(): (info: DropEmptyInfo) => void {
+  const { t } = useTranslation()
+  const toast = useUi((s) => s.toast)
+  return useCallback(
+    (info: DropEmptyInfo) => {
+      const key = dropEmptyKey(info)
+      if (key) toast('warn', t(key))
+    },
+    [t, toast]
+  )
+}
+
 function MiniDrop(): JSX.Element {
   const { t } = useTranslation()
   const ingestPaths = useUi((s) => s.ingestPaths)
-  const { active, handlers } = useDropZone(ingestPaths)
+  const onEmpty = useDropEmpty()
+  const { active, handlers } = useDropZone(ingestPaths, onEmpty)
   const items = useUi((s) => s.ingestItems)
 
   useEffect(() => {
@@ -66,7 +89,8 @@ export function App(): JSX.Element {
   const clearSelection = useUi((s) => s.clearSelection)
   const settings = useUi((s) => s.settings)
   const wizardStartedHere = useUi((s) => s.wizardStartedHere)
-  const { active, handlers } = useDropZone(ingestPaths)
+  const onEmpty = useDropEmpty()
+  const { active, handlers } = useDropZone(ingestPaths, onEmpty)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -160,6 +184,11 @@ export function App(): JSX.Element {
       <TopBar />
       {/* M6 ⑤：自动切换的横幅。挂在 App 这一层 —— 它要活过切页（用户此刻很可能正在别的页面上） */}
       <ProjectBanner />
+      {/*
+        第 9 轮 ⑥：自动收拾完历史遗留那句告知。同样挂在 App 这一层，
+        因为它产生的那一刻用户可能正停在任何页面上，而它要说的事只和"卡片分组"有关。
+      */}
+      <RemergeNotice />
       {/*
         导入流程的常驻界面：冲突确认对话框 + 进行中提示 + 上次结果条（带撤销）。
         **必须挂在 App 这一层**，不能挂在发起导入的组件里 ——

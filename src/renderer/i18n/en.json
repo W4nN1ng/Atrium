@@ -17,7 +17,6 @@
     "trayShow": "Show main window",
     "trayDrop": "Quick drop window",
     "trayQuit": "Quit Atrium",
-    "notImplemented": "Coming in {{milestone}}",
     "undo": "Undo",
     "redo": "Redo",
     "trash": "Move to Recycle Bin",
@@ -82,7 +81,6 @@
     "fixCategory": "Wrong? Fix it here",
     "contentPkg": "Package contents",
     "none": "None",
-    "importDeferred": "Unity import arrives in M5. Nothing happened.",
     "revealHint": "The card's “reveal in folder” is not wired yet (cards carry no disk path). Use the detail panel for now.",
     "importToUnityHint": "Import into the currently selected Unity project. Conflicts are listed before anything is overwritten.",
     "importing": "Importing {{name}}",
@@ -101,7 +99,7 @@
     "rollbackPartial": "Undone: deleted {{deleted}}, restored {{restored}}; {{lost}} overwritten files had no backup and cannot be recovered",
     "rollbackFailed": "Undo import failed",
     "noImportablePackage": "This asset has no .unitypackage that can be imported directly (it may be a folder or an archive)",
-    "multiplePackages": "This asset contains {{count}} packages; importing the first one. Batch selection ships in M5-B",
+    "multiplePackages": "This asset has {{count}} packages — importing the first one. Open the card to pick a different one.",
     "conflictTitle": "This package will overwrite {{count}} existing files in the project",
     "conflictIntro": "The package has {{total}} entries, {{fresh}} of them new. Files to be overwritten (left = what the project has now, right = what the package would put there):",
     "conflictIncoming": "in package:",
@@ -130,7 +128,6 @@
     "bundleLowConf": "Low confidence",
     "bundleImportWhole": "Import whole collection",
     "bundleImportSelected": "Import selected to Unity",
-    "bundleImportSoon": "Unity import ships in M5",
     "bundleSelected": "{{count}} selected",
     "reviewEmpty": "Nothing needs review",
     "reviewHint": "These were committed with low confidence. Fix the wrong ones, then mark reviewed.",
@@ -157,7 +154,6 @@
     "mergeDone": "Merged {{count}} assets into one container card",
     "containerModelBadge": "model",
     "dblclickHint": "Double-click a container card to open it; double-click an asset card to import into Unity",
-    "pickMembersFirst": "This container holds {{count}} packages — pick which ones first (batch selection ships in M5-B ⑥)",
     "batchResult": "Batch: {{ok}} imported, {{failed}} failed, {{notRun}} not run, {{blocked}} skipped",
     "batchDone": "Imported {{ok}} packages",
     "bundleImportMembers": "Pick packages to Unity",
@@ -165,7 +161,7 @@
     "memberTitle": "Pick the packages to import",
     "memberLoading": "Listing packages in this container…",
     "memberFound": "Found {{count}} .unitypackage files",
-    "memberOpenHint": "This container holds {{count}} packages — A won't pick for you, tick them in the panel",
+    "memberOpenHint": "This container holds {{count}} packages — it won't pick for you, tick them in the panel",
     "memberTooBroad": "“{{matched}}” matched {{hits}}/{{total}}, which is no signal at all, so nothing was ticked — please pick",
     "memberNoPreselect": "No name-based hint found, so nothing is ticked — please pick",
     "memberStart": "Extract and check these {{count}}",
@@ -175,7 +171,7 @@
     "memberUnderHint": "Big packages are slow to import and fill up the extract folder",
     "memberReload": "List again",
     "memberPicked": "{{count}} ticked · {{size}} total · {{batches}} batch(es)",
-    "memberWillBatch": "At most {{max}} per batch: {{batches}} batches, A asks before each one",
+    "memberWillBatch": "At most {{max}} per batch: {{batches}} batches, it asks before each one",
     "memberUnknownSize": "size unknown",
     "memberDepth": "level {{depth}}",
     "memberOnDisk": "already on disk",
@@ -190,7 +186,7 @@
     "memberAllFresh": "{{count}} all new",
     "memberMoreConflicts": "{{count}} more not listed",
     "memberOutcome": "This batch: {{ok}} imported, {{bad}} failed, {{skip}} not run",
-    "memberHalfBatch": "A stopped after the failure instead of continuing; what is already in the project stays — roll the batch back or undo rows",
+    "memberHalfBatch": "It stopped after the failure instead of continuing; what is already in the project stays — roll the batch back or undo rows",
     "memberUndoHint": "Rollback uses this batch's GUID whitelist and deletes only what it created; overwritten files without a backup cannot be recovered",
     "memberNextBatch": "Next batch ({{left}} left)",
     "memberStopBatches": "Stop here",
@@ -201,7 +197,7 @@
     "noteNeedsPassword": "This container needs a password; the list may be incomplete",
     "noteCappedCount": "{{count}} more members were cut off by the count limit and not listed",
     "noteCappedDepth": "{{depth}} members are deeper than the depth limit and were not listed",
-    "noteNestedArchive": "There are archives inside the archive: A handles one level only",
+    "noteNestedArchive": "There are archives inside the archive: it handles one level only",
     "noteListFailed": "Some entries could not be listed (see above) — that does not mean there are no packages",
     "queueRunning": "{{project}} · importing {{done}}/{{total}} ({{ok}} ok · {{failed}} failed)",
     "queueDone": "{{project}} · batch finished: {{ok}} ok, {{failed}} failed, {{notRun}} not run",
@@ -235,7 +231,9 @@
     "reviewAllOnScreen": "Mark all on this screen ({{count}})",
     "reviewConfirmTitle": "Mark these as reviewed?",
     "reviewConfirmBody": "{{count}} item(s) will leave “Needs review”. This only flips a flag: no files move, no category changes, confidence untouched. Changed your mind? Use “Put back for review” on that card.",
-    "reviewConfirmOk": "Confirm"
+    "reviewConfirmOk": "Confirm",
+    "dropNoLocalPath": "No local path for those files — they may not be on disk (images from a browser, or a line inside an archive window, behave like this). Try dragging a folder from Explorer, or use Inbox → Pick files…",
+    "dropNothing": "That drop carried no files — maybe text or a shortcut. Try dragging a folder from Explorer, or use Inbox → Pick files…"
   },
   "inbox": {
     "title": "Ingest queue",
@@ -255,7 +253,6 @@
       "cancelled": "Cancelled",
       "duplicate": "Duplicate"
     },
-    "m1Note": "M1 wires drop → validation → queue only. Extraction, dedup, classification and archiving land in M2.",
     "active": "{{count}} in progress",
     "m2Note": "Drop → read the content → classify. Low-confidence ones wait for you; corrections are remembered.",
     "autoExtractOff": "Auto-extract is off: only the original file and its entry list are recorded",
@@ -325,7 +322,6 @@
     "bridgeMissing": "Bridge not installed",
     "refresh": "Refresh project list",
     "none": "No projects found yet. Set a project root in Settings → Unity.",
-    "m1Note": "Running state is now decided by the union of three probes (lockfile / bridge heartbeat / process command line). Auto-switching collections and the top banner are still to come, in the rest of M5-A.",
     "unityVersion": "Unity version",
     "bannerSwitched": "Recognised “{{project}}” · opened the {{collection}} collection",
     "bannerStillSearching": "still searching “{{q}}”",
@@ -375,7 +371,7 @@
     "themeDark": "Dark",
     "themeLight": "Light",
     "autoLaunch": "Start at login (minimized to tray)",
-    "autoLaunchHint": "A must keep running in the tray to notice Unity starting",
+    "autoLaunchHint": "Atrium must keep running in the tray to notice Unity starting",
     "minimizeToTray": "Minimize to tray when closed",
     "hotkey": "Global hotkey for quick drop",
     "libraryRoot": "Library root",
@@ -404,7 +400,6 @@
     "rebuildIndex": "Rebuild index from sidecar files",
     "rebuildHint": "The lifesaver when the database is corrupt",
     "openAppData": "Open data folder",
-    "exportLogs": "Export logs",
     "version": "Version",
     "stack": "Stack",
     "license": "Licenses",
@@ -504,18 +499,18 @@
     "extractRootHint": "Where .unitypackage files pulled out of archives are unpacked. Empty = a sibling of the library root (E:\\vrc\\A → E:\\vrc\\A__extract). It must not be inside the library or on drive C. Deleted right after use, and pruned again at startup.",
     "extractRootPlaceholder": "Empty = automatically use A__extract next to the library root (same drive)",
     "autoSwitchBehavior": "Auto-pop behaviour",
-    "autoSwitchBehaviorHint": "What A should do when it notices a Unity project just opened",
+    "autoSwitchBehaviorHint": "What it should do when it notices a Unity project just opened",
     "asbAlways": "Always bring the window up",
     "asbWhenMatched": "Only when a collection matches (recommended)",
     "asbNever": "Never — just update the top bar",
-    "trayRequiredNote": "A can only notice Unity starting while it is running: sitting in the tray is fine, quitting the app stops the auto-switch. “Start with Windows” and “minimise to tray” are two different settings, both above.",
-    "autoLaunchAskTitle": "Start A with Windows and keep it in the tray?",
-    "autoLaunchAskBody": "You just opened a Unity project. A has to be running to switch to the matching collection — with start-with-Windows on, it waits in the tray after you log in. Leaving it off is fine too; open A yourself and auto-switching still works.",
+    "trayRequiredNote": "Atrium can only notice Unity starting while it is running: sitting in the tray is fine, quitting the app stops the auto-switch. “Start with Windows” and “minimise to tray” are two different settings, both above.",
+    "autoLaunchAskTitle": "Start Atrium with Windows and keep it in the tray?",
+    "autoLaunchAskBody": "You just opened a Unity project. Atrium has to be running to switch to the matching collection — with start-with-Windows on, it waits in the tray after you log in. Leaving it off is fine too; open Atrium yourself and auto-switching still works.",
     "autoLaunchAskYes": "Start with Windows",
     "autoLaunchAskNo": "No thanks",
     "synonymsTitle": "Category nicknames",
     "synonymsHint": "Write down what you actually call each kind of asset. Searching “clothes” and getting assets filed under “Clothing” works because of this list, not a hard-coded word table.",
-    "synonymsKanjiHint": "Japanese kanji names (e.g. 束縛) are not found by their romanisation (sokubaku): that needs a multi-megabyte reading dictionary and still gets polyphonic characters wrong, so A does not do it. Put the original name in the asset notes and it becomes searchable.",
+    "synonymsKanjiHint": "Japanese kanji names (e.g. 束縛) are not found by their romanisation (sokubaku): that needs a multi-megabyte reading dictionary and still gets polyphonic characters wrong, so it does not do it. Put the original name in the asset notes and it becomes searchable.",
     "synonymsAddPh": "Add a nickname",
     "synonymsAdd": "Add",
     "synonymsSaved": "Saved — the search index was rebuilt to match",
@@ -531,13 +526,13 @@
       "tooMany": "At most {{max}} nicknames per category — remove a few first"
     },
     "vaultTitle": "Remembered passwords",
-    "vaultHint": "Archives whose password you asked A to keep. The passwords themselves are never shown here — you can only delete them.",
+    "vaultHint": "Archives whose password you asked Atrium to keep. The passwords themselves are never shown here — you can only delete them.",
     "vaultUnavailable": "System encryption is unavailable on this machine, so nothing new can be stored; entries below may also be unreadable.",
     "vaultEmpty": "None yet.",
     "vaultUnreadable": "unreadable",
     "vaultUnreadableHint": "Happens after moving to another machine or Windows account (the encryption is bound to the current user). This entry is useless now — feel free to delete it.",
     "remerge": "Re-merge items that should be one card",
-    "remergeFieldHint": "Some older entries were filed before the grouping rules changed. This re-applies today's rules to what's already in the library — it only updates grouping, and never moves a file.",
+    "remergeFieldHint": "Some older entries were filed before the grouping rules changed. The app re-applies today's rules by itself the first time it starts after an update — grouping only, never a file. Use this panel when you want to check again by hand.",
     "remergeHint": "Press Check first and see exactly what would merge. Ctrl+Z undoes the whole batch afterwards.",
     "remergeScan": "Check",
     "remergeApply": "Merge ({{count}})",
@@ -547,7 +542,8 @@
     "remergeDone": "Merged: {{clusters}} groups / {{moved}} cards moved / {{groups}} empty groups removed",
     "remergeBadge": "{{from}} cards → 1",
     "remergeNewGroup": "needs a new group",
-    "remergeMore": "{{count}} more not listed"
+    "remergeMore": "{{count}} more not listed",
+    "openLogDir": "Open log folder"
   },
   "toast": {
     "trashDone": "Moved to Recycle Bin",
@@ -562,7 +558,9 @@
     "learnedNow": "Learned {{rules}} rules — next time something mentions “{{token}}” it will be classified the same way",
     "undoRearchived": "Undone {{steps}} step(s): {{moved}} file(s) back in place, {{assets}} record(s) restored (no asset records were deleted)",
     "reviewDone": "Marked {{count}} as reviewed",
-    "reviewReopened": "Put {{count}} back for review"
+    "reviewReopened": "Put {{count}} back for review",
+    "undoStale": "You did something after that step, so this undo has expired — nothing was changed",
+    "undoRemerged": "Merge undone: {{cards}} cards went back under their own card — no files were touched"
   },
   "error": {
     "loadFailed": "Load failed: {{message}}",
@@ -577,12 +575,12 @@
     "keywordsHint": "Comma separated; lowercased and kana-normalized",
     "matchMode": "Match mode",
     "priority": "Priority",
-    "autoSwitchNote": "Auto-switching arrives in M6; rules are stored now",
+    "autoSwitchNote": "When a Unity project is detected opening, the matching collection is switched to per these rules. Changes take effect right away — no restart.",
     "addTo": "Add to collection…",
     "added": "Added {{count}} to “{{name}}”",
     "backfillCta": "Fill in from library",
     "backfillHint": "Scan which models the library actually has and create the missing collections in one go",
-    "backfillEmptyHint": "No collections yet, so A has nowhere to switch when Unity opens. Create a first batch from the models in your library.",
+    "backfillEmptyHint": "No collections yet, so there is nowhere to switch when Unity opens. Create a first batch from the models in your library.",
     "backfillTitle": "Create collections from the models in your library",
     "backfillLoading": "Counting models in the library…",
     "backfillSummary": "Will create {{count}} collections covering {{covered}} assets.",
@@ -599,8 +597,6 @@
   "ingest": {
     "apiNotReady": "Ingest engine is not up yet",
     "queued": "Registered, waiting to ingest",
-    "m1Stopped": "M1 skeleton: only path validation ran. Unpacking, dedup, classification and archiving land in M2.",
-    "pauseLater": "Pause / resume arrive in M2",
     "needPassword": "This archive needs a password:",
     "retry": "Retry",
     "commit": "Archive it",
@@ -643,8 +639,6 @@
     "vaultFailed": "Could not store the password (system encryption error) — the password was NOT saved as plain text"
   },
   "undo": {
-    "fsLater": "Undo for file-system operations like “{{label}}” arrives in M2 ({{op}})",
-    "importLater": "Import undo depends on the Unity bridge and arrives in M5",
     "unsupported": "This operation cannot be undone"
   },
   "err": {
@@ -658,7 +652,7 @@
     "pathOutside": "Path escapes the root: {{target}} is not inside {{root}}",
     "splitContinuation": "This is a continuation volume; switched to the first part \"{{path}}\"",
     "containsRegistered": "This folder already contains {{count}} registered asset(s) — ingesting the whole thing would move them too",
-    "extractNoLibrary": "No asset library is set, so A cannot derive a safe extraction folder. Point 设置 → 库 (Library) at your library, or fill in the extraction folder below.",
+    "extractNoLibrary": "No asset library is set, so it cannot derive a safe extraction folder. Point 设置 → 库 (Library) at your library, or fill in the extraction folder below.",
     "extractNoRoot": "The extraction folder is empty or could not be derived (library root: {{libraryRoot}}).",
     "extractInsideLibrary": "The extraction folder must not live inside the library: {{extractRoot}} is inside {{libraryRoot}}. Otherwise temporary copies would show up as \"unregistered assets\" and get committed into the library.",
     "extractOnSystemDrive": "The extraction folder must not be on drive C (the system drive is tight): {{extractRoot}}. Move it to the drive that holds your assets in Settings → Library.",
@@ -787,7 +781,7 @@
       "noRoot": "No library folder is set, so there is nowhere to move to",
       "indexed": "This asset is in “register only” mode — its files were never in the library",
       "missing": "The original folder is gone ({{path}})",
-      "outside": "It is not inside the library ({{path}}) — A does not move other people's folders",
+      "outside": "It is not inside the library ({{path}}) — it does not move other people's folders",
       "samePlace": "The new category resolves to the folder it already sits in — nothing to move",
       "unknown": "No reason given"
     }
@@ -802,7 +796,7 @@
   },
   "installed": {
     "title": "Imported into ({{count}})",
-    "empty": "No import records for this asset in A's log",
+    "empty": "No import records for this asset in Atrium's log",
     "current": "current target",
     "timeUnknown": "time unknown",
     "ghost": "project no longer in the list",
@@ -810,7 +804,7 @@
     "created": "{{count}} new",
     "overwritten": "{{count}} overwritten",
     "rolledBack": "{{count}} rolled back",
-    "noteLogOnly": "Scope: only imports made through A are listed. Assets you imported by hand inside Unity are invisible here, and so is a later manual delete — those rows still count as imported."
+    "noteLogOnly": "Scope: only imports made through Atrium are listed. Assets you imported by hand inside Unity are invisible here, and so is a later manual delete — those rows still count as imported."
   },
   "wizard": {
     "title": "First-time setup",
@@ -822,14 +816,14 @@
     "touchesDisk": "writes to disk",
     "step1": {
       "title": "1. Where the library lives",
-      "body": "Pick a folder for the library. A archives assets only inside it; the database, thumbnails, staging and logs live in the app data folder, not here.",
+      "body": "Pick a folder for the library. Atrium archives assets only inside it; the database, thumbnails, staging and logs live in the app data folder, not here.",
       "pick": "Choose folder",
       "pickTitle": "Pick the library folder",
       "probing": "Looking at that folder…",
       "notFound": "That folder is gone (disk unplugged?) — pick another one",
       "warnSystemDrive": "It is on C:. Workable, but the library only grows — another drive is usually better.",
       "warnLowFree": "Less than 20 GB free on this drive, which may not be enough to unpack big archives.",
-      "askTitle": "That folder already has assets. What should A do?",
+      "askTitle": "That folder already has assets. What should Atrium do?",
       "adoptTitle": "Adopt this library",
       "adoptBody": "Registers what is already there without moving or renaming a single file, and turns off auto-archive so every card waits for your confirmation.",
       "adoptShort": "adopted",
@@ -840,7 +834,7 @@
       "needRoot": "Pick the library folder first (this step cannot be skipped)",
       "facts": {
         "dirs": "{{n}} top-level folders",
-        "files": "{{n}} files A can ingest",
+        "files": "{{n}} files Atrium can ingest",
         "unknown": "Some subfolders could not be read, so the file count is unknown",
         "free": "{{size}} free"
       },
@@ -849,7 +843,7 @@
     },
     "step2": {
       "title": "2. Where assets come from",
-      "body": "Watched folders: drop files in and A queues them. Skip it if you like — drag & drop, the Explorer \"Send to Atrium\" entry and the command line all keep working.",
+      "body": "Watched folders: drop files in and it queues them. Skip it if you like — drag & drop, the Explorer \"Send to Atrium\" entry and the command line all keep working.",
       "add": "Add a watched folder",
       "empty": "None yet (you can skip this step)",
       "remove": "Remove"
@@ -867,10 +861,10 @@
     },
     "step4": {
       "title": "4. Last bits",
-      "body": "A has to stay in the tray to switch collections the moment Unity starts. Start it with Windows?",
+      "body": "Atrium has to stay in the tray to switch collections the moment Unity starts. Start it with Windows?",
       "launchYes": "Start with Windows",
       "launchNo": "No, I’ll open it myself",
-      "launchHint": "Changeable any time under Settings → General. Without it A still works — you just have to open it first.",
+      "launchHint": "Changeable any time under Settings → General. Without it Atrium still works — you just have to open it first.",
       "summary": "Check before you finish"
     },
     "summary": {
@@ -881,5 +875,16 @@
       "autoLaunch": "Start with Windows",
       "hotkey": "Global hotkey"
     }
+  },
+  "remerge": {
+    "autoDone": "Merged {{moved}} cards that were really the same item ({{clusters}} places)",
+    "autoDetail": "Show what changed",
+    "autoDetailHide": "Hide",
+    "autoUndo": "Undo",
+    "autoOk": "Got it",
+    "autoLineMerged": "{{name}}: {{count}} cards folded in",
+    "autoLineKeyfix": "{{name}}: cards untouched — only fixed so future ones group by themselves",
+    "autoMore": "{{count}} more — the full list is under Settings → Maintenance",
+    "autoFoot": "No files, categories or covers were touched — only which card these belong to."
   }
 }

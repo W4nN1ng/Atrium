@@ -640,6 +640,12 @@ export interface AssetUnit {
   /** §B2：方括号变体槽位原文（`Shinano_ATTITUDE The Royal Bunny`），UI 解释"为什么并到一起" */
   variantRaw?: string | null
   filePaths: string[]
+  /**
+   * 第 10 轮 C：这一件在**父目录里的相对位置**（`件1` / `4533350\护目镜`）。
+   * 摊平出来的筐由 `planBundle` 标上它，登记那一步用它算每件事自己的源路径
+   * （见 `shared/flattenUnits.ts`）—— 少了它，22 件会全部登记到筐那一层目录上。
+   */
+  sourceRelPath?: string | null
   packageEntries?: PackageEntry[]
   coverImage?: string
   /**
@@ -916,6 +922,26 @@ export interface AppSettings {
    * 把 skip 写成 done 的话，用户拿到的是一个"看着配好了、拖什么都报错"的软件。
    */
   onboardingSkippedAt: string | null
+  /**
+   * 第 9 轮 ⑥ · 「自动收拾历史遗留」在这台机器上跑过的时刻（ISO），null = 还没跑过。
+   *
+   * 这条时间戳是整个设计的**刹车**：它保证"自动并"只发生一次。
+   * 没有它，用户手动撤销之后下次开机又被并一遍 —— 那是程序跟用户抢方向盘，
+   * 比原来那四步确认糟得多。撤销之后不想再被打扰 = 它已经是 true，不会再自己变回去。
+   *
+   * 顺带一个成本考虑：检查本身要给每张顶层卡跑一次归并键，所以**查过但没东西可收拾**
+   * 也照样落这个值（把"每次开机全库扫一遍只为确认没事"变成"每台机器一次"）。
+   */
+  autoRemergeRunAt: string | null
+  /**
+   * 第 10 轮 #112 · 落上面那个时间戳时用的是**哪套库根**。
+   *
+   * 为什么要有这一列：`autoRemergeRunAt` 是整个设计的刹车，但它原来只记"什么时候跑过"，
+   * 于是把素材库整体搬到另一块盘之后，那套新库里的旧账永远不会被自动收拾
+   * —— 刹车本来防的是"同一批卡被并两遍"，跟"换了一套库"根本是两件事。
+   * 判据在 `shared/autoRemerge.ts` 的 `remergeAlreadyRun`。
+   */
+  autoRemergeRunRoot: string | null
 }
 
 // ---------------------------------------------------------------- 第 3 份契约（M5 实现，类型先就位）

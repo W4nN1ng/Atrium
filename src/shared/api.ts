@@ -307,7 +307,12 @@ export interface AApi {
   }
   journal: {
     list(limit?: number): Promise<JournalRow[]>
-    undoLast(): Promise<UndoResult>
+    /**
+     * 撤销最新那一批（Ctrl+Z 的语义）。
+     * 第 9 轮 ⑥ 起可以带 `onlyBatchId`：带了就**只可能**撤那一批 ——
+     * 最新那一批不是它时一行都不动，回报 `toast.undoStale`。告知条上的撤销走这条。
+     */
+    undoLast(onlyBatchId?: string | null): Promise<UndoResult>
   }
   ingest: {
     fromPaths(paths: string[]): Promise<{ accepted: string[]; rejected: RejectedPath[] }>
@@ -488,7 +493,7 @@ export interface AApi {
     /** 第 9 轮 ② · B4 存量重并的只读预览（一行都不改） */
     planRemerge(): Promise<RemergePlanView>
     /** keys 给空数组 = 处理预览里的全部；给了 groupKey 只并那几簇。纯库操作，可 Ctrl+Z */
-    applyRemerge(keys: string[]): Promise<{ moved: number; droppedGroups: number; keyOnly: number; clusters: number }>
+    applyRemerge(keys: string[]): Promise<{ moved: number; droppedGroups: number; keyOnly: number; clusters: number; batchId: string }>
     /** 只读扫描：僵尸 / 重复 / 相似 / 游离 / 大文件 / 孤儿变体；under = 只扫这一棵子树 */
     scan(opts?: { under?: string | null }): Promise<HealthReport>
     /** 从 .avca.json 侧车补回丢掉的库记录 + 重建内存检索索引 */

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 第 8 轮 ⑤ —— **真装** `Atrium-Setup-0.2.0.exe` 到这台机器，并验"覆盖安装之后用户改动不丢"。
+ * 第 8 轮 ⑤ —— **真装** `dist` 里最新那个 `Atrium-Setup-*.exe` 到这台机器，并验"覆盖安装之后用户改动不丢"。
  *
  * ## 为什么这一场值得单独一个工具，而且门槛拉满
  *
@@ -52,7 +52,23 @@ const DB = path.join(A, 'library.db')
 const SETTINGS = path.join(A, 'settings.json')
 const CATEGORIES_USER = path.join(A, 'categories.user.json')
 const SNAPSHOT = path.join(os.tmpdir(), 'avca-r8-snapshot.json')
-const SETUP = process.env.AVCA_SETUP_EXE || path.join(HERE, 'dist', 'Atrium-Setup-0.2.0.exe')
+/** 徽章那句断言要比的版本号 —— 从仓库 package.json 取，不写死在工具里（写死过一次，换版本就假红） */
+const PKG_VERSION = require(path.join(__dirname, '..', 'package.json')).version
+
+/**
+ * 默认挑 `dist` 里**最新的那一个** `Atrium-Setup-*.exe`。
+ * 原来这里写死 `Atrium-Setup-0.2.0.exe` —— 换版本号时忘了改这个工具，
+ * 就会拿旧包去覆盖安装（比不装更糟：装的还是旧代码，而版本号看着是装过了）。
+ */
+const SETUP =
+  process.env.AVCA_SETUP_EXE ||
+  (() => {
+    const dir = path.join(HERE, 'dist')
+    const cands = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /^Atrium-Setup-.*\.exe$/i.test(f)) : []
+    if (!cands.length) return path.join(dir, 'Atrium-Setup.exe')
+    cands.sort((a, b) => fs.statSync(path.join(dir, b)).mtimeMs - fs.statSync(path.join(dir, a)).mtimeMs)
+    return path.join(dir, cands[0])
+  })()
 const INSTALL_DIR = process.env.AVCA_INSTALL_DIR || path.join(process.env.LOCALAPPDATA, 'Programs', 'Atrium')
 const INSTALLED_EXE = path.join(INSTALL_DIR, 'Atrium.exe')
 const PORT = process.env.AVCA_CDP_PORT || '9242'
@@ -75,7 +91,23 @@ const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex').slice
 /* ---------------------------------------------------------------- 只读指纹 */
 
 /** 允许变的表与列：任何一次正常启动都会刷 project 的这两列，别的都不许动 */
-const VOLATILE = { project: new Set(['last_seen', 'is_running']) }
+/**
+ * "允许变"的表与列。
+ *
+ * 第 10 轮装 0.4.0 之后第一次启动，逐表对账报了两条红，查完**都不是他的账被动了**：
+ *  - `asset` 50 行变的**只有 `cover_image`**（日志：缩略图补齐：查了 50 条，新出 32 张封面）——
+ *    启动时给没封面的卡补封面，这是设计行为，名字/分类/路径/父子关系/needs_review 一格没动（逐列核过）；
+ *  - `search_alias` 937 行**内容一字不差、只是行序变了**（启动重建索引是"清表重灌"，rowid 顺序自然变）。
+ * 原来这张白名单只有 project，所以这两种"合法的自我刷新"都算红 ——
+ * **口径哭狼来了比没口径更坏**：下次真出问题时没人信它。所以这里把它们按列钉清楚，
+ * 其余任何一格变动照样红。
+ */
+const VOLATILE = {
+  project: new Set(['last_seen', 'is_running']),
+  asset: new Set(['cover_image']),
+  /** 别名表整张都是机器从素材内容推出来的；比的是"集合"，不比行序 */
+  search_alias: new Set(['asset_id', 'field', 'alias'])
+}
 
 function fingerprint() {
   if (!fs.existsSync(DB)) die('真库不在：' + DB)
@@ -88,7 +120,15 @@ function fingerprint() {
       .all()
       .map((r) => r.name)
     for (const t of names) {
-      const rows = db.prepare(`SELECT * FROM ${t}`).all()
+      /**
+       * **按内容排序之后再哈希**：行序不是"数据的事实"。
+       * 启动时重建检索索引走的是"清表重灌"，937 条别名一条没变、rowid 顺序却换了，
+       * 不排序的话 `search_alias` 每次都对不上（第 10 轮装完第一次启动就是这么报红的）。
+       */
+      const rows = db
+        .prepare(`SELECT * FROM ${t}`)
+        .all()
+        .sort((a, b) => (JSON.stringify(a) < JSON.stringify(b) ? -1 : 1))
       out.rows[t] = rows.length
       out.tables[t] = sha(Buffer.from(JSON.stringify(rows), 'utf8'))
       /**
@@ -156,6 +196,8 @@ function diffSnapshots(before, after) {
     const a = after.vol_rows[t] || []
     const cols = Object.keys(a[0] || b[0] || {})
     const mapB = new Map(b.map((r) => [r.id ?? r.path ?? JSON.stringify(r), r]))
+    /** "允许变"的那一列按列汇总，别一行打一条 —— 50 张封面会刷出 50 行噪音，而噪音会把口径淹掉 */
+    const agg = new Map()
     for (const row of a) {
       const old = mapB.get(row.id ?? row.path ?? JSON.stringify(row))
       if (!old) {
@@ -165,9 +207,17 @@ function diffSnapshots(before, after) {
       for (const c of cols) {
         if (JSON.stringify(old[c]) === JSON.stringify(row[c])) continue
         if (!VOLATILE[t].has(c)) bad.push(`${t}.${c} 变了：${JSON.stringify(old[c])} → ${JSON.stringify(row[c])}（行 ${row.name}）`)
-        else notes.push(`${t}.${c} 按预期刷新：${JSON.stringify(old[c])} → ${JSON.stringify(row[c])}（行 ${row.name}）`)
+        else {
+          const k = t + '.' + c
+          const rec = agg.get(k) || { n: 0, wasEmpty: 0, sample: '' }
+          rec.n++
+          if (old[c] === null || old[c] === undefined || old[c] === '') rec.wasEmpty++
+          if (!rec.sample) rec.sample = `${JSON.stringify(old[c])} → ${JSON.stringify(row[c])}（行 ${row.name ?? row.id}）`
+          agg.set(k, rec)
+        }
       }
     }
+    for (const [k, rec] of agg) notes.push(`${k} 按预期刷新：${rec.n} 行（其中 ${rec.wasEmpty} 行原来为空）　例：${rec.sample}`)
     if (b.length !== a.length) bad.push(`${t} 行数变了：${b.length} → ${a.length}`)
   }
   for (const k of Object.keys(after.files)) {
@@ -228,12 +278,78 @@ function backupRealData() {
   return dest
 }
 
+/**
+ * #93：装之前**轮询到 `Atrium.exe` 一个都不剩**，不许用固定 sleep。
+ *
+ * 为什么这条值得单独写：NSIS 覆盖安装会去写正在运行的 exe —— 轻则报"文件被占用"，
+ * 重则装成半个新版本。Electron 的渲染/GPU 子进程比主进程**晚死几秒**，
+ * 主进程退了、子进程还锁着 dll，那一刻按安装就是这批坑的来源。
+ * 固定 sleep 2 秒既可能不够（还在退），也白等（早就退了）。
+ *
+ * 装的时候他机器上有 Atrium 在跑 → **默认拒绝**（关他的程序要先说一声）；
+ * 明确要关就带 `AVCA_KILL=1`，那时走"发关闭请求 → 继续轮询"这条路，仍然不用固定 sleep。
+ */
+function runningAtrium() {
+  let out = ''
+  try {
+    out = sh(
+      'powershell',
+      [
+        '-NoProfile',
+        '-Command',
+        '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Get-CimInstance Win32_Process -Filter "Name=\'Atrium.exe\'" | Select-Object ProcessId,ExecutablePath | ConvertTo-Json -Compress'
+      ],
+      { encoding: 'utf8' }
+    ).trim()
+  } catch {
+    return []
+  }
+  if (!out) return []
+  let parsed = JSON.parse(out)
+  if (!Array.isArray(parsed)) parsed = [parsed]
+  return parsed.filter((p) => p && p.ProcessId)
+}
+
+function waitNoAtrium() {
+  const deadline = Date.now() + 60000
+  let killed = false
+  for (;;) {
+    const list = runningAtrium()
+    if (!list.length) {
+      console.log('  Atrium 进程：0 个 ✔（轮询到全部退出，没用固定 sleep）')
+      return
+    }
+    if (Date.now() > deadline) {
+      die(
+        '等了 60 秒还有 ' + list.length + ' 个 Atrium.exe 在跑：\n    ' +
+          list.map((p) => p.ProcessId + ' ' + (p.ExecutablePath || '')).join('\n    ') +
+          '\n  覆盖安装会写正在运行的 exe —— 先让他自己退，或者明确带 AVCA_KILL=1 让本工具发关闭请求'
+      )
+    }
+    if (process.env.AVCA_KILL === '1' && !killed) {
+      killed = true
+      console.log('  AVCA_KILL=1：给 ' + list.length + ' 个实例发关闭请求（不带 /F，让它自己收尾）')
+      for (const p of list) {
+        try {
+          sh('taskkill', ['/PID', String(p.ProcessId)], { stdio: 'ignore' })
+        } catch {
+          /* 已经退了 */
+        }
+      }
+    } else {
+      console.log('  还有 ' + list.length + ' 个 Atrium.exe 在跑，每 500ms 再看一次…')
+    }
+    sleepSync(500)
+  }
+}
+
 function runInstaller(why) {
   if (process.env.AVCA_REAL_INSTALL !== '1') die('这一步会真装到这台机器（' + why + '）。确认就带 AVCA_REAL_INSTALL=1 再跑')
   if (!fs.existsSync(SETUP)) die('安装包不在：' + SETUP + '（先 npm run build）')
   const unis = unityBusy()
   if (unis.length) die('真 Unity 编辑器开着，拒绝起安装版：\n    ' + unis.join('\n    ').slice(0, 300))
   console.log('真 Unity：没开着 ✔')
+  waitNoAtrium()
   backupRealData()
   console.log('  跑安装器（' + why + '）：' + path.basename(SETUP) + ' /S')
   try {
@@ -328,7 +444,7 @@ function stageInstall() {
   ok(text.indexOf('首次配置') < 0, '⭐ 老用户（库根早就配过）**没有被首启向导拦住**')
   ok(text.indexOf('库还没配好') < 0, '侧栏没有"库还没配好"（库根是设好的）')
   ok(text.indexOf('收件箱') >= 0, '进的是主界面（屏上有「收件箱」）')
-  ok(/0\.2\.0/.test(text), '⭐ 右上角徽章写的是 v0.2.0（内部代号 R4/M7 不再上界面）', (text.match(/v\d\.\d\.\d[^\n]*/) || ['没找到版本号'])[0])
+  ok(text.includes('v' + PKG_VERSION), '⭐ 右上角徽章写的是 v' + PKG_VERSION + '（版本号从 package.json 取，不再写死在工具里）', (text.match(/v\d\.\d\.\d[^\n]*/) || ['没找到版本号'])[0])
   ok(/库根目录[:：]\s*E:/.test(text) || /E:[\\/]vrc/.test(text), '状态栏显示的还是他的真库根', (text.match(/库根目录[^\n]*/) || ['—'])[0])
   const after = fingerprint()
   ok(diffSnapshots(before, after), '装完 + 起过一次之后逐表对账：除 project 的 last_seen/is_running 外一字不差')
@@ -344,7 +460,7 @@ function stageOverwrite() {
   runInstaller('覆盖安装')
   const { text } = bootAndInspect()
   ok(text.indexOf('首次配置') < 0, '⭐ 覆盖安装之后**没有被当成全新安装**（不弹向导）')
-  ok(/0\.2\.0/.test(text), '覆盖安装之后版本还是 v0.2.0')
+  ok(text.includes('v' + PKG_VERSION), '覆盖安装之后版本还是 v' + PKG_VERSION)
   const after = fingerprint()
   const same = diffSnapshots(before, after)
   ok(same, '⭐ 覆盖安装之后用户改动全在（口语增量 / 设置 / 已学规则 / 密码库 / 素材记录）')

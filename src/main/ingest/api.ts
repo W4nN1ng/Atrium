@@ -6,7 +6,8 @@ import log from 'electron-log'
 import type { BundlePreview, ClassifiedUnitView, IngestItemState } from '../../shared/api'
 import type { AssetUnit, ClassificationResult, ContentType, SourcePlatform } from '../../shared/types'
 import { ulid } from '../../shared/ulid'
-import { cleanDisplayName } from '../../shared/naming'
+import { cleanDisplayName, tagsWithAltName } from '../../shared/naming'
+import { isFlattenedBasket, unitRawName, unitSourcePath } from '../../shared/flattenUnits'
 import { TaskQueue } from '../lib/queue'
 import { findSplitSiblings, type ProbeResult } from '../unpack/magic'
 import { findAssetByHash } from '../db/repos/asset'
@@ -524,12 +525,21 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       sourcePlatform: model?.sourceUrl ? platformOfUrl(model.sourceUrl) : null,
       sourceItemId: model?.sourceItemId ?? null,
       sourceItemIdConfidence: model?.sourceItemIdConfidence ?? null,
-      tags: model?.tags ?? [],
+      /**
+       * 第 10 轮 D：主名让位给磁盘名之后，**包内那个名字不许丢** —— 塞进 tags。
+       * 判据抽在 `shared/naming.ts` 的 `tagsWithAltName`（那边有用例钉着：去重、空值不改引用）。
+       */
+      tags: tagsWithAltName(model?.tags, container?.altName),
       targetAvatars: model?.targetAvatars ?? [],
       groupKey: s.groupingEnabled ? model?.groupKey ?? null : null,
       bundleRef: s.bundleSplitEnabled ? model?.bundleRef ?? res.classification?.bundle?.name ?? null : null,
       bundleName: s.bundleSplitEnabled ? res.classification?.bundle?.name ?? null : null,
-      reason: model?.reason || 'M2 手工分类（未走自动分类）',
+      /**
+       * 第 10 轮 F：原来这句是 `'M2 手工分类（未走自动分类）'`。
+       * `reason` 是会显示在详情面板「为什么这么判」里的用户可见文案，
+       * 而里程碑编号对他没有任何信息量 —— 只会变成一句过期的话（报障 1 同族）。
+       */
+      reason: model?.reason || '手工分类（没走自动判断）',
       hash: res.hash,
       sizeBytes: over.sizeBytes ?? res.sizeBytes,
       needsReview: batch && confidence < s.confidenceAuto,
@@ -612,8 +622,11 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
      * §A2/§A3：整个容器的清单只分析一次，主体/附属/名字都从这一份来。
      * 合集子项**不**套它（见 unitFromModel 的注释）—— 那会把全部附属资源
      * 重复挂到每一个子项下面。
+     *
+     * 第 10 轮 D：第三个参数是**他拖进来的那个文件/目录名**，它不垃圾就当主名；
+     * 被压下去的包内名走 `info.altName`（进 tags，别丢）。
      */
-    const info = containerInfoOf(res, [model?.name ?? null, path.basename(job.item.sourcePath)])
+    const info = containerInfoOf(res, [model?.name ?? null], path.basename(job.item.sourcePath))
 
     /**
      * 合集：整包登记成三级（合集 → 子项 → 版本），**永远不动磁盘**（改动单 §7.1）。
@@ -651,6 +664,63 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       registrar.broadcast('data:changed', { reason: 'ingest-commit', id: r.bundleAssetId })
       finishCommit(job, r.bundleAssetId, r.createdIds, batchId, batch)
       return r.bundleAssetId
+    }
+
+    /**
+     * 第 10 轮 C 的后半程 —— **这一截是活体抓出来的，不是单测抓出来的**。
+     *
+     * `classify()` 早就把筐摊成 N 个单元了，可这条登记路径只读 `units[0]`：
+     * 22 件里只落了 1 行，而那一行还被容器分析的名字盖成 `道具22件` ——
+     * 他在界面上看到的仍然是"一个筐一张卡"。判据实现了、调用点没接，就是这个样子。
+     *
+     * 现在逐件登记，并且**一律索引、不搬盘**：把一个筐里 22 个子目录各搬各的家，
+     * 中途出错就是半个库散在两地，理由和合集那条（§7.1）一模一样。
+     */
+    const flatUnits = res.classification?.units ?? []
+    if (isFlattenedBasket(flatUnits, !!tree)) {
+      /**
+       * 确认卡上那一个分类下拉是**整筐共用的**：只有用户真的改过它（和引擎给第一件的结果不一样）
+       * 才当成"这批都算这个类"；`一键全部入库` 传回来的就是 `units[0]` 自己的分类，那种不能覆盖
+       * 其余 21 件各自的判定 —— 否则一件 `RKPlayer` 会被 22 件里的第一件拽成同一个类。
+       */
+      const pickedCategory = input.category && input.category !== flatUnits[0].category ? input.category : undefined
+      const createdIds: string[] = []
+      for (const u of flatUnits) {
+        const src = unitSourcePath(job.item.sourcePath, u)
+        /**
+         * 这一件自己的体积（整个筐的体积背 22 遍就会把库统计撑爆，见合集那条注释）。
+         * 两边都归一到正斜杠再比：`filePaths` 是分类层拼的，`entries.path` 是清单层读的。
+         */
+        const want = new Set(u.filePaths.map((p) => p.replace(/\\/g, '/')))
+        const own = res.entries.filter((e) => !e.isDir && want.has(String(e.path).replace(/\\/g, '/')))
+        const ownBytes = own.reduce((a, e) => a + (e.size ?? 0), 0)
+        const perUnit = unitFromModel(
+          u,
+          {
+            name: undefined,
+            category: pickedCategory,
+            subcategory: pickedCategory ? input.subcategory : null,
+            rawName: unitRawName(u) ?? undefined,
+            sizeBytes: ownBytes > 0 ? ownBytes : undefined
+          },
+          job,
+          res,
+          s,
+          false,
+          batch,
+          /** 容器那份清单说的是**整个筐**，套到每件上会把全部附属重复挂一遍、还会把名字统一盖成筐名 */
+          null
+        )
+        const one = await commitAsset(
+          { ...deps, storageMode: 'indexed' },
+          { unit: perUnit, stagingPath: res.stagingPath, sourcePath: src, assetId: ulid(), batchId }
+        )
+        createdIds.push(one.assetId)
+      }
+      const primaryId = createdIds[0] ?? assetId
+      registrar.broadcast('data:changed', { reason: 'ingest-commit', id: primaryId })
+      finishCommit(job, primaryId, createdIds, batchId, batch)
+      return primaryId
     }
 
     const unit = unitFromModel(model, input, job, res, s, isDir, batch, info)

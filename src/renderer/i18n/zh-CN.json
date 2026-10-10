@@ -17,7 +17,6 @@
     "trayShow": "显示主窗口",
     "trayDrop": "迷你投放窗",
     "trayQuit": "退出 Atrium",
-    "notImplemented": "该功能将在 {{milestone}} 交付",
     "undo": "撤销",
     "redo": "重做",
     "trash": "移入回收站",
@@ -82,7 +81,6 @@
     "fixCategory": "改错了？在这里修正",
     "contentPkg": "包内清单",
     "none": "无",
-    "importDeferred": "Unity 导入在 M5 交付。现在什么都不会发生。",
     "revealHint": "卡片上的「打开所在文件夹」还没接（卡片数据里不带磁盘路径）。先在详情面板里用它。",
     "importToUnityHint": "导入到当前选中的 Unity 工程。有冲突会先列出来问你。",
     "importing": "正在导入 {{name}}",
@@ -101,7 +99,7 @@
     "rollbackPartial": "已撤销：删掉 {{deleted}} 个、还原 {{restored}} 个；另有 {{lost}} 个被覆盖的文件当时没开备份，内容找不回来了",
     "rollbackFailed": "撤销导入失败",
     "noImportablePackage": "这个素材里没有可直接导入的 .unitypackage（它可能是个文件夹或压缩包）",
-    "multiplePackages": "这个素材里有 {{count}} 个包，先导第一个；批量选择在 M5-B 交付",
+    "multiplePackages": "这个素材里有 {{count}} 个包，这次先导第 1 个；想导别的，进这张卡里面勾",
     "conflictTitle": "这个包会覆盖工程里 {{count}} 个已有文件",
     "conflictIntro": "包内共 {{total}} 项，其中 {{fresh}} 项是新建的。要覆盖的文件如下（左边是工程里的现有文件，右边是包里要盖上去的）：",
     "conflictIncoming": "包内：",
@@ -130,7 +128,6 @@
     "bundleLowConf": "置信度低",
     "bundleImportWhole": "整包导入 Unity",
     "bundleImportSelected": "导入选中项到 Unity",
-    "bundleImportSoon": "Unity 导入在 M5 交付",
     "bundleSelected": "已选 {{count}} 项",
     "reviewEmpty": "没有待复核的素材",
     "reviewHint": "这些是一键入库时置信度不够的，改完点「标记已复核」",
@@ -157,7 +154,6 @@
     "mergeDone": "已合并 {{count}} 个素材成一张容器卡",
     "containerModelBadge": "模型",
     "dblclickHint": "双击容器卡进入内部；双击普通素材卡导入 Unity",
-    "pickMembersFirst": "这个容器里有 {{count}} 个包，得先勾要导哪些 —— 进容器内部视图勾选（分批选择在 M5-B ⑥）",
     "batchResult": "这批：成功 {{ok}} 个、失败 {{failed}} 个、没执行 {{notRun}} 个、跳过 {{blocked}} 个",
     "batchDone": "已导入 {{ok}} 个包",
     "bundleImportMembers": "选包导入 Unity",
@@ -166,7 +162,7 @@
     "memberLoading": "正在列这个容器里的包…",
     "memberFound": "找到 {{count}} 个 .unitypackage",
     "memberOpenHint": "这个容器里有 {{count}} 个包 —— 哪个都不替你选，在面板里勾",
-    "memberTooBroad": "「{{matched}}」命中了 {{hits}}/{{total}} 个，这不算区分度，A 不替你选 —— 请自己勾",
+    "memberTooBroad": "「{{matched}}」命中了 {{hits}}/{{total}} 个，这不算区分度，它不替你选 —— 请自己勾",
     "memberNoPreselect": "没找到能当依据的名字，所以谁都没勾 —— 请勾",
     "memberStart": "抽取并检查这 {{count}} 个",
     "memberPickAll": "全选",
@@ -201,7 +197,7 @@
     "noteNeedsPassword": "这个容器要密码，清单可能不完整",
     "noteCappedCount": "还有 {{count}} 个成员被数量上限挡在外面，没列出来",
     "noteCappedDepth": "有 {{depth}} 个成员太深（超过层数上限），没列出来",
-    "noteNestedArchive": "包里还套着压缩包：A 只处理一层，那里面的包看不见",
+    "noteNestedArchive": "包里还套着压缩包：它只处理一层，那里面的包看不见",
     "noteListFailed": "有东西列不出来（见上面原因），这不代表里面没有包",
     "queueRunning": "{{project}} · 正在导入 {{done}}/{{total}}（成功 {{ok}} · 失败 {{failed}}）",
     "queueDone": "{{project}} · 这批跑完：成功 {{ok}}、失败 {{failed}}、未执行 {{notRun}}",
@@ -235,7 +231,9 @@
     "reviewAllOnScreen": "这一屏全部标记已复核（{{count}}）",
     "reviewConfirmTitle": "要把这些标成已复核吗",
     "reviewConfirmBody": "将把 {{count}} 条从「待复核」里移出。这只改一个标记：不搬文件、不改分类、也不动置信度。反悔的话在那张卡上点「重新排进待复核」。",
-    "reviewConfirmOk": "确认标记"
+    "reviewConfirmOk": "确认标记",
+    "dropNoLocalPath": "没拿到这些文件的本地路径 —— 它们可能不在磁盘上（浏览器里的图片、压缩包窗口里的一行都会这样）。试试从资源管理器拖文件夹进来，或用「收件箱 → 选择文件…」。",
+    "dropNothing": "这次拖拽没带上文件 —— 可能拖的是文字或快捷方式。试试从资源管理器拖文件夹进来，或用「收件箱 → 选择文件…」。"
   },
   "inbox": {
     "title": "摄取队列",
@@ -255,7 +253,6 @@
       "cancelled": "已取消",
       "duplicate": "重复"
     },
-    "m1Note": "M1 只跑通了「拖放 → 校验 → 队列」；解压、查重、分类、入库在 M2 交付",
     "active": "进行中 {{count}}",
     "m2Note": "拖入 → 读内容 → 分类。置信度不够的会停下等你确认，你改过的它记住。",
     "autoExtractOff": "当前不自动解压（只登记原件与包内清单）",
@@ -325,7 +322,6 @@
     "bridgeMissing": "桥接未安装",
     "refresh": "刷新工程列表",
     "none": "还没发现工程。在设置 → Unity 里指定工程根目录。",
-    "m1Note": "运行状态已由三路取并集判定（锁文件 / 桥接心跳 / 进程命令行）。自动切换集合与顶部横幅还没做，在 M5-A 剩余部分交付。",
     "unityVersion": "Unity 版本",
     "bannerSwitched": "已识别为「{{project}}」项目 · 自动打开 {{collection}} 集合",
     "bannerStillSearching": "仍在搜索「{{q}}」",
@@ -347,7 +343,7 @@
     },
     "bannerRuleMissing": "那个集合已经不在了，没能记住（先刷新一下集合列表再试）",
     "bridgeAskTitle": "刚发现工程「{{name}}」",
-    "bridgeAskBody": "这个工程还没装 A 的桥接。装了它，A 才知道 Unity 开没开、什么时候在忙、导入能不能落地。桥接只放进工程的 Packages/ 目录，不动 Assets/、不改你的场景。",
+    "bridgeAskBody": "这个工程还没装 Atrium 的桥接。装了它，Atrium 才知道 Unity 开没开、什么时候在忙、导入能不能落地。桥接只放进工程的 Packages/ 目录，不动 Assets/、不改你的场景。",
     "bridgeAskNote": "「以后都自动安装」只对这个工程有效，不是开机自启 —— 开机自启在「设置 → 常规」里；「对所有工程都自动装」的开关在「设置 → Unity」。",
     "bridgeAskInstall": "安装",
     "bridgeAskAlways": "以后都自动安装（只这个工程）",
@@ -375,7 +371,7 @@
     "themeDark": "深色",
     "themeLight": "浅色",
     "autoLaunch": "开机自启（最小化到托盘）",
-    "autoLaunchHint": "A 必须常驻托盘才能感知 Unity 启动",
+    "autoLaunchHint": "Atrium 必须常驻托盘才能感知 Unity 启动",
     "minimizeToTray": "关窗时缩到托盘",
     "hotkey": "全局投放热键",
     "libraryRoot": "库根目录",
@@ -404,7 +400,6 @@
     "rebuildIndex": "从侧车文件重建索引",
     "rebuildHint": "数据库损坏时的救命功能",
     "openAppData": "打开数据目录",
-    "exportLogs": "导出日志",
     "version": "版本",
     "stack": "技术栈",
     "license": "开源许可",
@@ -504,18 +499,18 @@
     "extractRootHint": "从压缩包里取 .unitypackage 时的临时落脚处。留空 = 自动用库根的兄弟目录（库在 E:\\vrc\\A 就是 E:\\vrc\\A__extract）。不许放在素材库里，也不许放在 C 盘；用完即删，开机还会再清一次。",
     "extractRootPlaceholder": "留空 = 自动放在库根旁边的 A__extract（和库同一个盘）",
     "autoSwitchBehavior": "自动弹出行为",
-    "autoSwitchBehaviorHint": "检测到某个 Unity 工程刚打开时，A 该做什么",
+    "autoSwitchBehaviorHint": "检测到某个 Unity 工程刚打开时，它该做什么",
     "asbAlways": "每次都弹出主窗口",
     "asbWhenMatched": "仅当匹配到集合时（推荐）",
     "asbNever": "从不，只更新顶栏状态",
-    "trayRequiredNote": "A 只有开着才能感知 Unity 启动：关到托盘时照常工作，彻底退出后不会自动切换。「开机自启」和「关窗口收进托盘」是两件事，各在上面对应的位置设置。",
-    "autoLaunchAskTitle": "要让 A 开机常驻托盘吗？",
-    "autoLaunchAskBody": "刚检测到你打开了 Unity 工程。A 必须开着才能自动切到对应集合 —— 勾了开机自启，下次登录 Windows 它就在托盘里等着。不勾也行，手动打开 A 一样能自动切。",
+    "trayRequiredNote": "Atrium 只有开着才能感知 Unity 启动：关到托盘时照常工作，彻底退出后不会自动切换。「开机自启」和「关窗口收进托盘」是两件事，各在上面对应的位置设置。",
+    "autoLaunchAskTitle": "要让 Atrium 开机常驻托盘吗？",
+    "autoLaunchAskBody": "刚检测到你打开了 Unity 工程。Atrium 必须开着才能自动切到对应集合 —— 勾了开机自启，下次登录 Windows 它就在托盘里等着。不勾也行，手动打开 Atrium 一样能自动切。",
     "autoLaunchAskYes": "开机自启",
     "autoLaunchAskNo": "不用了",
     "synonymsTitle": "分类口语叫法",
     "synonymsHint": "你平时怎么叫这一类东西，就写进来。搜「衣服」能找到归在「服装」里的素材，靠的就是这里，不是程序里写死的词表。",
-    "synonymsKanjiHint": "日语汉字原名（例如「束縛」）用罗马字 sokubaku 搜不到：那要挂几 MB 的汉字读音词典，而且多音字照样错，所以 A 不做。把原名整段写进素材备注，就能搜到了。",
+    "synonymsKanjiHint": "日语汉字原名（例如「束縛」）用罗马字 sokubaku 搜不到：那要挂几 MB 的汉字读音词典，而且多音字照样错，所以它不做。把原名整段写进素材备注，就能搜到了。",
     "synonymsAddPh": "加一个口语叫法",
     "synonymsAdd": "添加",
     "synonymsSaved": "已保存，检索索引已经跟着重建",
@@ -537,7 +532,7 @@
     "vaultUnreadable": "解不开",
     "vaultUnreadableHint": "换过机器或换过 Windows 账户之后就会这样（加密绑定当前用户）。这条留着也没用了，可以删掉。",
     "remerge": "把同一件衣服重新并成一张卡",
-    "remergeFieldHint": "早先收进来的东西，归并规则后来改过了。这一栏按现在的规则重算一遍分组 —— 只改库里的归属，一个文件都不挪。",
+    "remergeFieldHint": "早先收进来的东西，归并规则后来改过了。升级后第一次启动时程序会自己按现在的规则重算一遍分组，一个文件都不挪；这一栏是给你想再手动检查一次时用的。",
     "remergeHint": "先点「检查一遍」，看清要合并什么再决定。做完可以按 Ctrl+Z 整批退回。",
     "remergeScan": "检查一遍",
     "remergeApply": "合并（{{count}} 处）",
@@ -547,7 +542,8 @@
     "remergeDone": "合并完：{{clusters}} 处 / 挪了 {{moved}} 张卡 / 清掉 {{groups}} 个空分组",
     "remergeBadge": "{{from}} 张并成 1 张",
     "remergeNewGroup": "要新建一组",
-    "remergeMore": "还有 {{count}} 张没列出来"
+    "remergeMore": "还有 {{count}} 张没列出来",
+    "openLogDir": "打开日志位置"
   },
   "toast": {
     "trashDone": "已移入回收站",
@@ -562,7 +558,9 @@
     "learnedNow": "已经学会 {{rules}} 条规则，下次带「{{token}}」的东西会照这个分",
     "undoRearchived": "已撤销 {{steps}} 步：{{moved}} 项文件搬回原位、{{assets}} 条记录改回原样（素材记录没被删）",
     "reviewDone": "已把 {{count}} 条标成已复核",
-    "reviewReopened": "已把 {{count}} 条放回待复核"
+    "reviewReopened": "已把 {{count}} 条放回待复核",
+    "undoStale": "那一步之后你又做了别的操作，这次撤销已经过期，我什么都没动",
+    "undoRemerged": "已撤销这次合并：{{cards}} 张卡回到自己原来的位置，文件一个都没动"
   },
   "error": {
     "loadFailed": "加载失败：{{message}}",
@@ -577,12 +575,12 @@
     "keywordsHint": "逗号分隔，会做小写与假名归一化",
     "matchMode": "匹配方式",
     "priority": "优先级",
-    "autoSwitchNote": "自动切换集合在 M6 生效，这里先把规则存好",
+    "autoSwitchNote": "检测到某个 Unity 工程刚打开时，按这里的规则切到对应集合。改完立刻生效，不用重启。",
     "addTo": "加入集合…",
     "added": "{{count}} 项已加入「{{name}}」",
     "backfillCta": "按库里出现过的模型补建",
     "backfillHint": "扫一遍库里标了模型的素材，把还没建的集合一次补齐",
-    "backfillEmptyHint": "还没有集合。打开 Unity 时 A 没地方可切 —— 先按库里出现过的模型补建一批。",
+    "backfillEmptyHint": "还没有集合。打开 Unity 时它没地方可切 —— 先按库里出现过的模型补建一批。",
     "backfillTitle": "按库里出现过的模型补建集合",
     "backfillLoading": "正在数库里的模型…",
     "backfillSummary": "将建 {{count}} 个集合，覆盖 {{covered}} 条素材。",
@@ -599,8 +597,6 @@
   "ingest": {
     "apiNotReady": "摄取引擎还没起来",
     "queued": "已登记，等待摄取",
-    "m1Stopped": "M1 骨架：只做了路径校验。解压、查重、分类、入库在 M2 交付。",
-    "pauseLater": "暂停 / 继续在 M2 交付",
     "needPassword": "这个压缩包需要密码：",
     "retry": "重试",
     "commit": "确认入库",
@@ -643,22 +639,20 @@
     "vaultFailed": "没能存下密码（系统加密报错）—— 密码没有被明文保存"
   },
   "undo": {
-    "fsLater": "「{{label}}」这类文件系统操作的撤销引擎在 M2 交付（{{op}}）",
-    "importLater": "导入撤销依赖 Unity 桥接，在 M5 交付",
     "unsupported": "这类操作不支持撤销"
   },
   "err": {
     "emptyPath": "空路径",
     "notAbsolute": "不是绝对路径：{{path}}",
     "forbiddenTarget": "系统目录不允许摄取：{{path}}",
-    "selfIngest": "这是 A 自己的目录，不能自摄：{{path}}",
+    "selfIngest": "这是 Atrium 自己的目录，不能自摄：{{path}}",
     "alreadyInLibrary": "已在库内，无需重复摄取：{{path}}",
     "notStringPath": "不是有效的字符串路径",
     "statFailed": "读不到这个文件：{{path}}",
     "pathOutside": "路径越界：{{target}} 不在 {{root}} 内",
     "splitContinuation": "这是分卷的后续卷，已改为处理「{{path}}」",
     "containsRegistered": "这个目录里已经有 {{count}} 条登记过的素材，整吞会把它们一起搬走",
-    "extractNoLibrary": "还没有设置素材库，A 推不出安全的抽取目录。请到 设置 → 库 指一次库根，或直接在「抽取目录」里填一个。",
+    "extractNoLibrary": "还没有设置素材库，它推不出安全的抽取目录。请到 设置 → 库 指一次库根，或直接在「抽取目录」里填一个。",
     "extractNoRoot": "抽取目录为空或推导失败（库根：{{libraryRoot}}）。",
     "extractInsideLibrary": "抽取目录不能位于素材库之内：{{extractRoot}} 在 {{libraryRoot}} 里面。否则临时抽出来的副本会被当成「没登记的素材」报进游离列表，点一次重新登记就把垃圾灌进库。",
     "extractOnSystemDrive": "抽取目录不能在 C 盘（系统盘空间紧张）：{{extractRoot}}。请到 设置 → 库 改到素材所在的那个盘。",
@@ -787,7 +781,7 @@
       "noRoot": "还没设置素材库，不知道要搬到哪儿",
       "indexed": "这件是「只登记不搬」，文件本来就不在库里",
       "missing": "原来的目录已经找不到了（{{path}}）",
-      "outside": "它现在不在素材库里面（{{path}}），A 不挪别人目录里的东西",
+      "outside": "它现在不在素材库里面（{{path}}），它不挪别人目录里的东西",
       "samePlace": "新分类算出来的目录就是现在这个位置，没什么要搬的",
       "unknown": "没说明原因"
     }
@@ -802,7 +796,7 @@
   },
   "installed": {
     "title": "在哪些工程装过（{{count}}）",
-    "empty": "A 的导入日志里没有这条素材的记录",
+    "empty": "Atrium 的导入日志里没有这条素材的记录",
     "current": "当前目标",
     "timeUnknown": "时间未知",
     "ghost": "工程已从清单里消失",
@@ -810,7 +804,7 @@
     "created": "新建 {{count}}",
     "overwritten": "覆盖 {{count}}",
     "rolledBack": "退回 {{count}} 次",
-    "noteLogOnly": "口径：只统计通过 A 导入的那几次。你自己在 Unity 里手动 Import 过的，A 查不到；导完之后又在工程里手动删掉的，这里仍然算「装过」。"
+    "noteLogOnly": "口径：只统计通过 Atrium 导入的那几次。你自己在 Unity 里手动 Import 过的，它查不到；导完之后又在工程里手动删掉的，这里仍然算「装过」。"
   },
   "wizard": {
     "title": "首次配置",
@@ -822,7 +816,7 @@
     "touchesDisk": "会动磁盘",
     "step1": {
       "title": "① 素材库存哪儿",
-      "body": "选一个文件夹当库根。A 只往这里归档素材；数据库、缩略图、暂存和日志不在这里，它们在应用数据目录。",
+      "body": "选一个文件夹当库根。Atrium 只往这里归档素材；数据库、缩略图、暂存和日志不在这里，它们在应用数据目录。",
       "pick": "选择文件夹",
       "pickTitle": "选库根目录",
       "probing": "正在看这个目录…",
@@ -840,7 +834,7 @@
       "needRoot": "先把库根选好（这一步不能跳）",
       "facts": {
         "dirs": "顶层目录 {{n}} 个",
-        "files": "A 吃得下的文件 {{n}} 个",
+        "files": "Atrium 吃得下的文件 {{n}} 个",
         "unknown": "有些子目录读不到，文件数没法确定",
         "free": "剩余空间 {{size}}"
       },
@@ -849,7 +843,7 @@
     },
     "step2": {
       "title": "② 素材从哪儿来",
-      "body": "监视文件夹：往里丢东西 A 会自动排队收编。不想开也没关系 —— 拖放、资源管理器右键「发送到 Atrium」、命令行这三条路照常用。",
+      "body": "监视文件夹：往里丢东西它会自动排队收编。不想开也没关系 —— 拖放、资源管理器右键「发送到 Atrium」、命令行这三条路照常用。",
       "add": "添加监视文件夹",
       "empty": "一个都没加（这一步可以先跳过）",
       "remove": "移除"
@@ -867,10 +861,10 @@
     },
     "step4": {
       "title": "④ 收尾",
-      "body": "A 得在托盘里活着，才能在 Unity 一启动就自动切到对应集合。要不要开机自启？",
+      "body": "Atrium 得在托盘里活着，才能在 Unity 一启动就自动切到对应集合。要不要开机自启？",
       "launchYes": "开机自启",
       "launchNo": "不用，我手动开",
-      "launchHint": "这一项以后在「设置 → 常规」随时能改。不勾也能用，只是每次得先把 A 打开。",
+      "launchHint": "这一项以后在「设置 → 常规」随时能改。不勾也能用，只是每次得先把 Atrium 打开。",
       "summary": "走之前确认一下"
     },
     "summary": {
@@ -881,5 +875,16 @@
       "autoLaunch": "开机自启",
       "hotkey": "全局热键"
     }
+  },
+  "remerge": {
+    "autoDone": "帮你把 {{moved}} 张其实是同一件东西的卡并到了一起（{{clusters}} 处）",
+    "autoDetail": "看看改了什么",
+    "autoDetailHide": "收起",
+    "autoUndo": "撤销",
+    "autoOk": "知道了",
+    "autoLineMerged": "{{name}}：并进来 {{count}} 张",
+    "autoLineKeyfix": "{{name}}：卡没动，只是让它以后能自动收到一起",
+    "autoMore": "还有 {{count}} 处，在「设置 → 维护」里能看到全部",
+    "autoFoot": "文件、分类、封面都没动 —— 只是这几张卡从此算同一件东西。"
   }
 }

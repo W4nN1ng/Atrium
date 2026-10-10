@@ -105,6 +105,11 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
   const config = useUi((s) => s.categories)
   const toast = useUi((s) => s.toast)
   const openMemberPicker = useUi((s) => s.openMemberPicker)
+  /** 第 10 轮 B：容器里每一行也是素材卡，那颗「导入」必须走和外面网格同一条路 */
+  const importAsset = useUi((s) => s.importAsset)
+  const openDetail = useUi((s) => s.openDetail)
+  const pickAllMembers = useUi((s) => s.pickAllMembers)
+  const settings = useUi((s) => s.settings)
   const setNav = useUi((s) => s.setNav)
   const refreshMeta = useUi((s) => s.refreshMeta)
   /** 第 9 轮 ① · 复核标记走 store 那条（它会连着刷侧栏那个数），不再直接摸 IPC */
@@ -223,14 +228,23 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
         setPicked(shown.map((r) => r.id))
         return
       }
+      /**
+       * Enter = 打开成员选择面板。
+       *
+       * 第 10 轮之前这里是 `toast('bad', 'Unity 导入在 M5 交付')` —— 一句过期的占位话。
+       * 为什么不直接导 `picked` 里那几张：面板要的是**包**（`relPath`），而这里的行是**卡**，
+       * 一张卡背后可能是 1 个包也可能是 3 个版本，替他映射等于替他做决定。
+       * 所以 Enter 与那颗按钮走同一个入口，勾哪个由他在面板里说。
+       */
       if (e.key === 'Enter' && picked.length) {
         e.preventDefault()
-        toast('bad', t('library.bundleImportSoon'))
+        void openMemberPicker(bundleId)
+        toast('info', t('library.memberAllHint'))
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [setNav, shown, picked.length, toast, t])
+  }, [setNav, shown, picked.length, toast, t, bundleId, openMemberPicker])
 
   if (missing) {
     return (
@@ -251,7 +265,15 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
   const attachments = [...(view.attachments ?? []), ...view.items.flatMap((i) => i.attachments ?? [])]
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
+    /**
+     * ⚠ `min-h-0` 不是多余的：这一层是 `main`（列向 flex）里的 `flex-1` 子元素，
+     * 不写 `min-h-0` 就是 `min-height:auto` —— 它会被 20 多行列表撑到内容那么高，
+     * 于是下面那个 `overflow-y-auto` 永远拿不到"有下界的盒子"，
+     * **滚动条不出现、滚轮按下去一点反应都没有**，最下面几行直接看不着（第 10 轮报障 2）。
+     * 外面每个页面根（AssetGrid / Inbox / Collections / Project / Settings）都带着这一句，
+     * 全仓就这一处漏了 —— 2026-10-10 扫过确认。
+     */
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {/* 面包屑：可点返回（§B6） */}
       <div className="flex shrink-0 items-center gap-1 border-b px-3 py-2 text-[12px]" style={{ borderColor: 'var(--line)' }}>
         <button type="button" className="btn btn-ghost px-1.5 py-0.5" onClick={() => setNav('all')}>
@@ -271,7 +293,20 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
           {labelOf(config, b.category, b.subcategory, locale)}
         </span>
         <div className="ml-auto flex items-center gap-2">
-          <Button title={t('library.bundleImportSoon')} disabled>
+          {/*
+            第 10 轮 Q3 甲：这颗以前是 `disabled` + 一句"Unity 导入在 M5 交付"。
+            现在它**开面板并把包全预勾上** —— 不静默替他导 22 个包，也不再是颗假按钮。
+            （预勾要在 `openMemberPicker` 拉完清单之后做，所以这里是 async 串起来。）
+          */}
+          <Button
+            disabled={busy}
+            onClick={() => {
+              void (async () => {
+                await openMemberPicker(bundleId)
+                pickAllMembers()
+              })()
+            }}
+          >
             {t('library.bundleImportWhole')}
           </Button>
           <Button disabled={busy} onClick={() => void dissolve()}>
@@ -344,7 +379,17 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
                 key={r.id}
                 className="flex items-center gap-2 border-b px-3 py-1.5 text-[12px]"
                 style={{ borderColor: 'var(--line)' }}
-                onDoubleClick={() => toast('bad', t('library.bundleImportSoon'))}
+                /**
+                 * 第 10 轮 Q1 甲：**和外面那张网格一模一样** —— 先开详情，再按设置里的
+                 * 「双击行为」决定要不要导（判据在 `shared/memberPick.ts:cardImportChoice`：
+                 * 单个包直接导、多个包弹成员面板，不替他挑）。
+                 * 以前这里是一句过期的 `toast('bad','Unity 导入在 M5 交付')`。
+                 */
+                onDoubleClick={() => {
+                  void openDetail(r.id)
+                  if (settings.doubleClickAction === 'import') void importAsset(r.id)
+                  else if (settings.doubleClickAction === 'reveal') toast('info', t('library.revealHint'))
+                }}
               >
                 <input type="checkbox" checked={picked.includes(r.id)} onChange={(e) => toggle(r.id, e.target.checked)} />
                 <span className="min-w-0 flex-1 truncate" title={r.rawName}>
@@ -363,7 +408,8 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
                 <span className="w-[70px] shrink-0 text-right text-[11px] tabular-nums" style={{ color: 'var(--muted)' }}>
                   {humanBytes(r.sizeBytes, locale)}
                 </span>
-                <Button className="shrink-0" disabled title={t('library.bundleImportSoon')}>
+                {/* 第 10 轮 B：这颗以前是 disabled 的占位，现在和双击同一条路（多个包会弹面板） */}
+                <Button className="shrink-0" onClick={() => void importAsset(r.id)} title={t('library.importToUnityHint')}>
                   {t('common.import')}
                 </Button>
               </div>

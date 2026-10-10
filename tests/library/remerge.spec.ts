@@ -344,6 +344,21 @@ describe('applyRemerge · 落地', () => {
     expect(count(`SELECT COUNT(*) AS n FROM variant`)).toBe(varsBefore)
   })
 
+  it('⭐ 撤销之后那句人话报的是"退回几张卡"，不是 0', async () => {
+    /**
+     * 通用的 `toast.undoSteps` 长这样：「已撤销 1 步：搬回 0 项、清掉 0 个空目录、
+     * 移除 0 条记录」—— 重并不搬文件、不删记录，三个数全是 0，等于什么都没说，
+     * 而实际有 12 张卡回到了自己原来的卡下面。第一版这里就是 `count: 0`。
+     */
+    seedLibero()
+    const r0 = applyRemerge(db, planRemerge(db, lex), lex)
+    expect(r0.moved).toBe(12)
+    const r = await undoLast({ db, holdDir: path.join(root, 'hold'), onlyBatchId: r0.batchId })
+    expect(r.ok, `撤销失败：${r.error ?? ''}`).toBe(true)
+    expect(r.messageKey, '整批都是重并时该走它自己那句').toBe('toast.undoRemerged')
+    expect(r.messageParams, '那句里"退回几张卡"必须是真数').toMatchObject({ cards: 12 })
+  })
+
   it('⭐ 不留孤儿行：组里还有附属就不许删那个组', async () => {
     seedLibero()
     /** 往一个要被合并掉的组里塞一条附属：它不在人口里，但组不能因此被删 */
@@ -369,6 +384,120 @@ describe('applyRemerge · 落地', () => {
     const rows = db.prepare(`SELECT op, batch_id FROM journal`).all() as Array<{ op: string; batch_id: string }>
     expect(rows.filter((r) => r.op === 'remerge').length).toBe(1)
     expect(new Set(rows.map((r) => r.batch_id)).size).toBe(1)
+  })
+})
+
+/**
+ * 第 9 轮 ⑥ · 告知条那个「撤销」的靶子。
+ *
+ * 自动并完之后，告知条会挂十几秒。那十几秒里用户完全可能又动了库（丢个包进来、
+ * 再并一批）。那时按老的 `undoLast` 语义撤的是**最新那一批** —— 撤错了东西，
+ * 而条上说的还是"撤掉我帮你并的那 12 张"。指错目标的撤销比不撤销糟得多。
+ */
+describe('undoLast · onlyBatchId（告知条那个「撤销」只可能撤自己那一批）', () => {
+  const DIR2 = 'E:/vrc/A/头饰/第二包'
+
+  /** 某个目录下还挂着几个组（撤销前后拿它当"这一簇并上了没"的证据） */
+  const groupsIn = (dir: string): number =>
+    count(`SELECT COUNT(DISTINCT group_id) AS n FROM asset WHERE library_path LIKE '${dir}%' AND group_id IS NOT NULL`)
+
+  /**
+   * 在**另一个目录**铺两行同样该并的名字（先只铺、不动库）。
+   * 有了它才谈得上"比第一批更新的那一批" —— 没有新批次，onlyBatchId 这道闸永远撞不到。
+   */
+  function seedSecondRows(): void {
+    for (const raw of [
+      'Libero[Selestia_ATTITUDE The Royal Bunny]_1.01.unitypackage',
+      'Libero[Airi_ATTITUDE The Royal Bunny]_1.03.unitypackage'
+    ]) {
+      const model = modelOf(raw).toLowerCase()
+      const g = makeGroup(`libero ${model} attitude the royal bunny`, 'Libero', 'clothing', DIR2.toLowerCase())
+      const id = addRow({ groupId: g, raw, libraryPath: `${DIR2}/${raw}` })
+      addVariant(db, { groupId: g, assetId: id, kind: 'avatar', value: 'UNIVERSAL' })
+    }
+    expect(groupsIn(DIR2)).toBe(2)
+  }
+
+  /** 只并"落在某个目录里的那一簇"，好让两批之间有明确的先后 */
+  function applyBatchIn(dir: string): string {
+    const full = planRemerge(db, lex)
+    const picked = full.clusters.filter((c) => {
+      const first = getAsset(db, c.rows[0]?.assetId)
+      return String(first?.library_path ?? '').startsWith(dir)
+    })
+    expect(picked.length, `${dir} 里没有该并的一簇，用例前提没了`).toBeGreaterThan(0)
+    const r = applyRemerge(db, { ...full, clusters: picked }, lex)
+    expect(r.moved, `${dir} 那批没真的动库，用例前提没了`).toBeGreaterThan(0)
+    return r.batchId
+  }
+
+  it('⭐ 不是最新那一批 → 一行都不动，并如实回报"过期"', async () => {
+    seedLibero()
+    const first = applyBatchIn(DIR)
+    seedSecondRows()
+    applyBatchIn(DIR2)
+    const afterAny = snapshot()
+    const r = await undoLast({ db, holdDir: path.join(root, 'hold'), onlyBatchId: first })
+    expect(r.ok).toBe(false)
+    expect(r.undone).toBe(0)
+    expect(r.messageKey).toBe('toast.undoStale')
+    expect(r.assetIds, '半途失败时才该给空数组；这里压根没动手').toEqual([])
+    /** 最要紧的一句：拒绝就是真拒绝 —— 不是"撤了一半再说没撤" */
+    expect(snapshot()).toBe(afterAny)
+    expect(count(`SELECT COUNT(*) AS n FROM journal WHERE undone = 1 AND undo_of IS NULL`)).toBe(0)
+  })
+
+  it('⭐ 不带 onlyBatchId 时行为一点没变：键盘 Ctrl+Z 撤的是最新那一批', async () => {
+    seedLibero()
+    applyBatchIn(DIR)
+    seedSecondRows()
+    applyBatchIn(DIR2)
+    expect(groupsIn(DIR)).toBe(1)
+    const r = await undoLast({ db, holdDir: path.join(root, 'hold') })
+    expect(r.ok, `撤销失败：${r.error ?? ''}`).toBe(true)
+    expect(r.undone).toBeGreaterThan(0)
+    /** 拆回来的是第二批，Libero 那一簇还并着 —— 证明它没有越过新批次去撤旧账 */
+    expect(groupsIn(DIR2)).toBe(2)
+    expect(groupsIn(DIR)).toBe(1)
+  })
+
+  it('新批次撤干净之后，旧批次就又变成"最新那一批"，这时候撤得掉', async () => {
+    seedLibero()
+    seedSecondRows()
+    const before = snapshot()
+    const first = applyBatchIn(DIR)
+    applyBatchIn(DIR2)
+    /** 先确认闸是活的：此刻 DIR2 那批更新，撤 first 必须被拒 */
+    expect((await undoLast({ db, holdDir: path.join(root, 'hold'), onlyBatchId: first })).ok).toBe(false)
+    await undoLast({ db, holdDir: path.join(root, 'hold') })
+    const r = await undoLast({ db, holdDir: path.join(root, 'hold'), onlyBatchId: first })
+    expect(r.ok, `撤销失败：${r.error ?? ''}`).toBe(true)
+    /** 两批都撤干净 = 回到起点，逐字段比快照 */
+    expect(snapshot()).toBe(before)
+  })
+
+  it('撤销标记自己不算"可撤销的一步"（否则那道闸永远说自己过期）', async () => {
+    /**
+     * 这条钉的是一个很容易踩的结构：`appendJournal(..., { isUndo: true })` 把标记行的
+     * `undone` 直接写成 1。哪天它写成 0，`lastRevertible` 就会先捞到那条标记（batch_id 是空的），
+     * 于是告知条上的撤销**永远**回答"过期了" —— 而单看那道闸的代码看不出毛病。
+     */
+    seedLibero()
+    const first = applyBatchIn(DIR)
+    const r = await undoLast({ db, holdDir: path.join(root, 'hold'), onlyBatchId: first })
+    expect(r.ok, `撤销失败：${r.error ?? ''}`).toBe(true)
+    expect(count(`SELECT COUNT(*) AS n FROM journal WHERE undo_of IS NOT NULL AND undone = 0`)).toBe(0)
+    /** 撤过的批次不许再撤第二次：那批已经全是 undone，闸会说过期 —— 这正是对的 */
+    expect((await undoLast({ db, holdDir: path.join(root, 'hold'), onlyBatchId: first })).ok).toBe(false)
+  })
+
+  it('告知条上那个 id 必须真的能拿到（不回报 batchId，撤销就没有靶子）', () => {
+    seedLibero()
+    const r = applyRemerge(db, planRemerge(db, lex), lex)
+    expect(typeof r.batchId).toBe('string')
+    expect(r.batchId.length).toBeGreaterThan(10)
+    /** 而且这个 id 真的落在账本上 —— 空字符串的靶子等于没有靶子 */
+    expect(count(`SELECT COUNT(*) AS n FROM journal WHERE batch_id = '${r.batchId}'`)).toBeGreaterThan(0)
   })
 })
 

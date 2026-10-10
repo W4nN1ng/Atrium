@@ -17,7 +17,6 @@
     "trayShow": "メインウィンドウを表示",
     "trayDrop": "クイックドロップ",
     "trayQuit": "Atrium を終了",
-    "notImplemented": "{{milestone}} で対応予定",
     "undo": "戻す",
     "redo": "やり直し",
     "trash": "ごみ箱へ",
@@ -82,7 +81,6 @@
     "fixCategory": "違う？ ここで直せます",
     "contentPkg": "パッケージ内容",
     "none": "なし",
-    "importDeferred": "Unity 読み込みは M5 です。何も起きていません。",
     "revealHint": "カードの「フォルダを開く」は未接続です（カードのデータにディスクパスがありません）。今は詳細パネルから使ってください。",
     "importToUnityHint": "現在選択中の Unity プロジェクトへ読み込みます。上書きが発生する場合は先に一覧で確認します。",
     "importing": "{{name}} を読み込み中",
@@ -101,7 +99,7 @@
     "rollbackPartial": "取り消しました：削除 {{deleted}} 件、復元 {{restored}} 件。上書きされた {{lost}} 件はバックアップが無く復元できません",
     "rollbackFailed": "読み込みの取り消しに失敗しました",
     "noImportablePackage": "この素材には直接読み込める .unitypackage がありません（フォルダか圧縮ファイルの可能性）",
-    "multiplePackages": "この素材には {{count}} 個のパッケージがあります。まず最初の1つを読み込みます。複数選択は M5-B です",
+    "multiplePackages": "この素材には {{count}} 個のパッケージがあります。今回は 1 番目を読み込みます。ほかを選ぶならカードの中に入って勾付けしてください",
     "conflictTitle": "このパッケージはプロジェクト内の {{count}} 個の既存ファイルを上書きします",
     "conflictIntro": "パッケージは {{total}} 項目、うち {{fresh}} 項目が新規です。上書きされるファイル（左＝現在のプロジェクト、右＝パッケージ側）：",
     "conflictIncoming": "パッケージ内：",
@@ -130,7 +128,6 @@
     "bundleLowConf": "信頼度低め",
     "bundleImportWhole": "まとめて Unity へ",
     "bundleImportSelected": "選択を Unity へ",
-    "bundleImportSoon": "Unity インポートは M5 で実装",
     "bundleSelected": "{{count}} 件選択",
     "reviewEmpty": "再確認はなし",
     "reviewHint": "信頼度が低く一括登録された項目です。直したら「確認済み」を押してください。",
@@ -157,7 +154,6 @@
     "mergeDone": "{{count}} 点を 1 枚の容器カードにまとめました",
     "containerModelBadge": "モデル",
     "dblclickHint": "容器カードはダブルクリックで中へ、素材カードはダブルクリックで Unity へインポート",
-    "pickMembersFirst": "このコンテナには {{count}} 個のパッケージがあります。どれを導するか選んでください（選択 UI は M5-B ⑥）",
     "batchResult": "このバッチ：成功 {{ok}}、失敗 {{failed}}、未実行 {{notRun}}、スキップ {{blocked}}",
     "batchDone": "{{ok}} 個のパッケージを導入しました",
     "bundleImportMembers": "パッケージを選んで Unity へ",
@@ -165,7 +161,7 @@
     "memberTitle": "導入するパッケージを選ぶ",
     "memberLoading": "このコンテナ内のパッケージを列挙中…",
     "memberFound": "{{count}} 個の .unitypackage が見つかりました",
-    "memberOpenHint": "このコンテナには {{count}} 個のパッケージがあります。A は選べません、パネルで選んでください",
+    "memberOpenHint": "このコンテナには {{count}} 個のパッケージがあります。Atrium は選べません、パネルで選んでください",
     "memberTooBroad": "「{{matched}}」が {{hits}}/{{total}} 個にヒット。区別にならないので何も選びませんでした、自分で選んでください",
     "memberNoPreselect": "根拠になる名前が見つからなかったので、何も選んでいません —— 選んでください",
     "memberStart": "この {{count}} 個を展開して確認",
@@ -201,7 +197,7 @@
     "noteNeedsPassword": "このコンテナはパスワードが必要、一覧は不完全かも",
     "noteCappedCount": "数量上限で他 {{count}} 個が未表示です",
     "noteCappedDepth": "段数が深く {{depth}} 個が未表示です",
-    "noteNestedArchive": "アーカイブの中にさらにアーカイブ：A は 1 段しか扱いません",
+    "noteNestedArchive": "アーカイブの中にさらにアーカイブ：Atrium は 1 段しか扱いません",
     "noteListFailed": "読め要素があります（上に理由）。中身が無いという意味ではありません",
     "queueRunning": "{{project}} · インポート中 {{done}}/{{total}}（成功 {{ok}}・失敗 {{failed}}）",
     "queueDone": "{{project}} · この一括完了：成功 {{ok}}、失敗 {{failed}}、未実行 {{notRun}}",
@@ -235,7 +231,9 @@
     "reviewAllOnScreen": "この画面全体を確認済みにする（{{count}}）",
     "reviewConfirmTitle": "確認済みにしますか？",
     "reviewConfirmBody": "{{count}} 件が「未確認」から外れます。マークだけの変更です：ファイルは動かず、分類も信頼度も変わりません。戻すときはそのカードの「未確認に戻す」を押してください。",
-    "reviewConfirmOk": "確認"
+    "reviewConfirmOk": "確認",
+    "dropNoLocalPath": "これらのファイルのローカルパスを取得できませんでした。ディスク上にない可能性があります（ブラウザの画像、解凍ウィンドウ内の一行など）。エクスプローラーからフォルダをドラッグするか、「受信箱 → ファイルを選択…」を使ってください。",
+    "dropNothing": "このドラッグにはファイルが含まれていません（文字やショートカットの可能性）。エクスプローラーからフォルダをドラッグするか、「受信箱 → ファイルを選択…」を使ってください。"
   },
   "inbox": {
     "title": "取り込みキュー",
@@ -255,7 +253,6 @@
       "cancelled": "キャンセル",
       "duplicate": "重複"
     },
-    "m1Note": "M1 は「ドロップ → 検証 → キュー」まで。解凍・重複チェック・分類・登録は M2 です。",
     "active": "処理中 {{count}}",
     "m2Note": "投入 → 内容を読んで分類。信頼度が低い物は確認を待ち、一度直すと記憶します。",
     "autoExtractOff": "自動解凍はオフ（原本と一覧のみ登録）",
@@ -325,7 +322,6 @@
     "bridgeMissing": "ブリッジ未インストール",
     "refresh": "一覧を更新",
     "none": "プロジェクトが見つかりません。設定 → Unity でルート指定してください。",
-    "m1Note": "起動状態は三系統の OR 判定（ロックファイル / ブリッジ心跳 / プロセスコマンドライン）になりました。コレクションの自動切り替えと上部バナーは M5-A の残りで対応します。",
     "unityVersion": "Unity バージョン",
     "bannerSwitched": "「{{project}}」プロジェクトを認識 · {{collection}} コレクションを開きました",
     "bannerStillSearching": "検索「{{q}}」はそのまま",
@@ -404,7 +400,6 @@
     "rebuildIndex": "サイドカーからインデックスを再構築",
     "rebuildHint": "DB が壊れたときの命綱",
     "openAppData": "データフォルダを開く",
-    "exportLogs": "ログを書き出す",
     "version": "バージョン",
     "stack": "技術構成",
     "license": "ライセンス",
@@ -504,18 +499,18 @@
     "extractRootHint": "圧縮ファイルから .unitypackage を取り出すときの一時置き場です。空欄 = ライブラリ根の兄弟フォルダ（E:\\vrc\\A なら E:\\vrc\\A__extract）。ライブラリ内と C ドライブは不可。使い終えたら即削除、起動時にもまとめて掃除します。",
     "extractRootPlaceholder": "空欄 = ライブラリ根の隣の A__extract を自動使用（同じドライブ上）",
     "autoSwitchBehavior": "自動でウィンドウを出す条件",
-    "autoSwitchBehaviorHint": "Unity プロジェクトが開かれたことを検知したとき、A がどう動くか",
+    "autoSwitchBehaviorHint": "Unity プロジェクトが開かれたことを検知したとき、Atrium がどう動くか",
     "asbAlways": "毎回ウィンドウを出す",
     "asbWhenMatched": "コレクションに該当するときだけ（おすすめ）",
     "asbNever": "出さない。上部バーの状態だけ更新",
-    "trayRequiredNote": "A が Unity の起動を感知できるのは起動している間だけです。トレイに畳んだ状態なら動作しますが、終了すると自動切り替えは起きません。「ログイン時に起動」と「ウィンドウをトレイに畳む」は別の設定です。",
-    "autoLaunchAskTitle": "A をログイン時に起動してトレイに常駐させますか？",
-    "autoLaunchAskBody": "Unity プロジェクトを開いたことを検知しました。対応コレクションへの自動切り替えには A が起動している必要があります。オフでも、手動で A を開けば自動切り替えは動きます。",
+    "trayRequiredNote": "Atrium が Unity の起動を感知できるのは起動している間だけです。トレイに畳んだ状態なら動作しますが、終了すると自動切り替えは起きません。「ログイン時に起動」と「ウィンドウをトレイに畳む」は別の設定です。",
+    "autoLaunchAskTitle": "Atrium をログイン時に起動してトレイに常駐させますか？",
+    "autoLaunchAskBody": "Unity プロジェクトを開いたことを検知しました。対応コレクションへの自動切り替えには Atrium が起動している必要があります。オフでも、手動で Atrium を開けば自動切り替えは動きます。",
     "autoLaunchAskYes": "ログイン時に起動",
     "autoLaunchAskNo": "結構です",
     "synonymsTitle": "分類口語名",
     "synonymsHint": "普段そう呼ぶ名前をここに書いてください。「衣服」で検索して「服装」分類の素材が出るのはこの一覧のおかげで、プログラムに埋め込んだ語彙表ではありません。",
-    "synonymsKanjiHint": "漢字の原名（例：束縛）はローマ字 sokubaku では検索できません：数 MB の読み辞書が必要で、多音字は結局間違えるため A ではやりません。原名をそのまま素材の備考に書けば検索できます。",
+    "synonymsKanjiHint": "漢字の原名（例：束縛）はローマ字 sokubaku では検索できません：数 MB の読み辞書が必要で、多音字は結局間違えるため Atrium ではやりません。原名をそのまま素材の備考に書けば検索できます。",
     "synonymsAddPh": "口語名を追加",
     "synonymsAdd": "追加",
     "synonymsSaved": "保存しました。検索インデックスも再構築済み",
@@ -537,7 +532,7 @@
     "vaultUnreadable": "解読不能",
     "vaultUnreadableHint": "マシンや Windows アカウントを変えるとおきます（暗号は現在のユーザーに紐づく）。この項目はもう使えないので削除して構いません。",
     "remerge": "同じ服をもう一度ひとつのカードにまとめる",
-    "remergeFieldHint": "以前取り込んだ物は、分類ルールが変更される前に登録されました。今のルールで庫内のグループを直し直します。ファイルは一切動きません。",
+    "remergeFieldHint": "以前取り込んだ物は、分類ルールが変わる前に登録されました。更新後の初回起動時に今のルールで庫内のグループを自動で直し直します。ファイルは一切動きません。ここは手でもう一度確認したいときに使ってください。",
     "remergeHint": "まず「チェック」を押して、何が変わるか確認してから決めてください。実行後 Ctrl+Z で一括に戻せます。",
     "remergeScan": "チェック",
     "remergeApply": "まとめる（{{count}} 件）",
@@ -547,7 +542,8 @@
     "remergeDone": "完了：{{clusters}} 件 / {{moved}} 枚を移動 / 空のグループ {{groups}} 件を削除",
     "remergeBadge": "{{from}} 枚 → 1 枚",
     "remergeNewGroup": "新しいグループが必要",
-    "remergeMore": "ほか {{count}} 枚は未表示"
+    "remergeMore": "ほか {{count}} 枚は未表示",
+    "openLogDir": "ログフォルダを開く"
   },
   "toast": {
     "trashDone": "ごみ箱に入れました",
@@ -562,7 +558,9 @@
     "learnedNow": "{{rules}} 件のルールを学習しました。次回「{{token}}」を含む素材は同じ分類になります",
     "undoRearchived": "{{steps}} ステップ取り消し：ファイル {{moved}} 件を元へ戻し、記録 {{assets}} 件を元に戻しました（素材記録は削除していません）",
     "reviewDone": "{{count}} 件を確認済みにしました",
-    "reviewReopened": "{{count}} 件を未確認に戻しました"
+    "reviewReopened": "{{count}} 件を未確認に戻しました",
+    "undoStale": "その後に別の操作があったため、この取り消しは無効です。何も変更していません",
+    "undoRemerged": "まとめを取り消しました：{{cards}} 枚が元のカードに戻りました。ファイルは一切動いていません"
   },
   "error": {
     "loadFailed": "読み込み失敗：{{message}}",
@@ -577,7 +575,7 @@
     "keywordsHint": "カンマ区切り。小文字化とかな正規化あり",
     "matchMode": "一致方式",
     "priority": "優先度",
-    "autoSwitchNote": "自動切替は M6 です。ルールはここで保存されます",
+    "autoSwitchNote": "Unity プロジェクトが開かれたことを検知すると、ここのルールに従って対応コレクションに切り替えます。変更はすぐ反映されます（再起動不要）。",
     "addTo": "コレクションに追加…",
     "added": "{{count}} 件を「{{name}}」に追加しました",
     "backfillCta": "ライブラリのモデルから作成",
@@ -599,8 +597,6 @@
   "ingest": {
     "apiNotReady": "取り込みエンジンがまだ起動していません",
     "queued": "登録済み、取り込み待ち",
-    "m1Stopped": "M1 は骨組みのみ：パス検証だけ実行しました。解凍・重複・分類・登録は M2 です。",
-    "pauseLater": "一時停止／再開は M2 です",
     "needPassword": "この圧縮ファイルはパスワードが必要です：",
     "retry": "再試行",
     "commit": "登録する",
@@ -643,15 +639,13 @@
     "vaultFailed": "パスワードを保存できませんでした（システム暗号のエラー）―― 平文では保存していません"
   },
   "undo": {
-    "fsLater": "「{{label}}」のようなファイル操作の取り消しは M2 です（{{op}}）",
-    "importLater": "読み込みの取り消しは Unity ブリッジに依存するため M5 です",
     "unsupported": "この操作は取り消せません"
   },
   "err": {
     "emptyPath": "パスが空です",
     "notAbsolute": "絶対パスではありません：{{path}}",
     "forbiddenTarget": "システムフォルダは取り込めません：{{path}}",
-    "selfIngest": "A 自身のフォルダなので取り込みを拒否：{{path}}",
+    "selfIngest": "Atrium 自身のフォルダなので取り込みを拒否：{{path}}",
     "alreadyInLibrary": "すでにライブラリ内です：{{path}}",
     "notStringPath": "有効なパス文字列ではありません",
     "statFailed": "このファイルを読めません：{{path}}",
@@ -787,7 +781,7 @@
       "noRoot": "素材ライブラリが未設定のため移動先を決められません",
       "indexed": "これは「登録のみ」モードで、そもそもファイルはライブラリにありません",
       "missing": "元のフォルダが見つかりません（{{path}}）",
-      "outside": "ライブラリの外にあります（{{path}}）。A は他フォルダを動かしません",
+      "outside": "ライブラリの外にあります（{{path}}）。Atrium は他フォルダを動かしません",
       "samePlace": "新しい分類のフォルダが現在の場所と同じで、移動はありません",
       "unknown": "理由が示されませんでした"
     }
@@ -802,7 +796,7 @@
   },
   "installed": {
     "title": "インストール済みのプロジェクト（{{count}}）",
-    "empty": "A のインポートログにこの素材の記録はありません",
+    "empty": "Atrium のインポートログにこの素材の記録はありません",
     "current": "現在の対象",
     "timeUnknown": "日時不明",
     "ghost": "一覧から消えたプロジェクト",
@@ -810,7 +804,7 @@
     "created": "新規 {{count}}",
     "overwritten": "上書き {{count}}",
     "rolledBack": "巻き戻し {{count}} 回",
-    "noteLogOnly": "範囲：A 経由のインポートのみを集計しています。Unity 内で手動インポートしたものは映らず、後で手動削除した場合もここでは「インストール済み」のままです。"
+    "noteLogOnly": "範囲：Atrium 経由のインポートのみを集計しています。Unity 内で手動インポートしたものは映らず、後で手動削除した場合もここでは「インストール済み」のままです。"
   },
   "wizard": {
     "title": "初回セットアップ",
@@ -840,7 +834,7 @@
       "needRoot": "まずライブラリフォルダを選んでください（このステップはスキップできません）",
       "facts": {
         "dirs": "最上位フォルダ {{n}} 件",
-        "files": "A が扱えるファイル {{n}} 件",
+        "files": "Atrium が扱えるファイル {{n}} 件",
         "unknown": "一部のサブフォルダを読めず、ファイル数は確定できません",
         "free": "空き容量 {{size}}"
       },
@@ -849,7 +843,7 @@
     },
     "step2": {
       "title": "② 素材の取り込み元",
-      "body": "監視フォルダ：ファイルを置くだけで A がキューに入れます。使わなくても大丈夫です ―― ドラッグ＆ドロップ、エクスプローラの「Atrium に送信」、コマンドラインはそのまま使えます。",
+      "body": "監視フォルダ：ファイルを置くだけで Atrium がキューに入れます。使わなくても大丈夫です ―― ドラッグ＆ドロップ、エクスプローラの「Atrium に送信」、コマンドラインはそのまま使えます。",
       "add": "監視フォルダを追加",
       "empty": "まだありません（このステップはスキップできます）",
       "remove": "削除"
@@ -867,10 +861,10 @@
     },
     "step4": {
       "title": "④ 仕上げ",
-      "body": "Unity の起動時にコレクションを自動で切り替えるには、A がトレイにいる必要があります。起動時に自動で立ち上げますか？",
+      "body": "Unity の起動時にコレクションを自動で切り替えるには、Atrium がトレイにいる必要があります。起動時に自動で立ち上げますか？",
       "launchYes": "自動起動する",
       "launchNo": "手動で開く",
-      "launchHint": "後から「設定 → 一般」で変更できます。オフでも使えますが、その都度 A を開く必要があります。",
+      "launchHint": "後から「設定 → 一般」で変更できます。オフでも使えますが、その都度 Atrium を開く必要があります。",
       "summary": "始める前に確認"
     },
     "summary": {
@@ -881,5 +875,16 @@
       "autoLaunch": "自動起動",
       "hotkey": "グローバルホットキー"
     }
+  },
+  "remerge": {
+    "autoDone": "同じ物だった {{moved}} 枚をひとつにまとめました（{{clusters}} 件）",
+    "autoDetail": "何を変えたか見る",
+    "autoDetailHide": "閉じる",
+    "autoUndo": "取り消す",
+    "autoOk": "わかった",
+    "autoLineMerged": "{{name}}：{{count}} 枚をまとめ込み",
+    "autoLineKeyfix": "{{name}}：カードは動かさず、今後の自動整理だけ直しました",
+    "autoMore": "ほか {{count}} 件は「設定 → メンテナンス」に全部見えます",
+    "autoFoot": "ファイルも分類もサムネイルも動いていません。どのカードに属するかだけが変わりました。"
   }
 }

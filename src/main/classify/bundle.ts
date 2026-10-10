@@ -341,6 +341,26 @@ function flattenChild(childName: string, files: FileEntry[], depth: number): Can
 }
 
 /**
+ * 第 10 轮 C（他 2026-10-10 批的 Q2 甲）：这个名字是**筐**还是**一件商品**？
+ *
+ * 判据只有形状这一条：**`CONTAINER_RE` 命中、而 `BUNDLE_NAME_RE` 没命中**。
+ *
+ *  - `道具22件` / `ERP用12件` / `插件17件` / `更新` / `重要！` → **筐**：
+ *    下面装的是各家的东西，它自己不该成为一张卡（他的原话：
+ *    「明明这个文件夹的名字都叫道具22件了，那就意味着这是 22 件不同厂家出的道具」）。
+ *  - `插件道具合集-初音的VRC小店` / `○○セット` → **不是筐**，是卖家打包卖的一件商品 →
+ *    照旧建一张合集卡（02 号 §验收 5 那条没被推翻，被推翻的只是"筐也当一张卡"）。
+ *
+ * ⚠ 和"同一件衣服的多个素体适配"**完全无关** —— 那条走 `groupKey`（`containerKind='merged'`），
+ * 20 个 Libero 该并成一张卡，这条判据一点不着它。反向夹具里必须留着它。
+ */
+export function isBasketOnlyName(name: string | null | undefined): boolean {
+  const s = (name ?? '').trim()
+  if (!s) return false
+  return CONTAINER_RE.test(s) && !BUNDLE_NAME_RE.test(s)
+}
+
+/**
  * 只看**名字**的合集判据（§2.1 的 ①③）。
  * 刻意不含"子项 ≥3"那条 —— 那条要靠看内容，否则库根的 `贴图/皮肤` 会因为
  * 里面有三件素材就被当成合集（那是分类结构，不是筐）。

@@ -49,5 +49,9 @@ export const DEFAULTS: AppSettings = {
   watchedFolders: [],
   onboardingDone: false,
   onboardingStep: 1,
-  onboardingSkippedAt: null
+  onboardingSkippedAt: null,
+  /** 第 9 轮 ⑥ · 自动收拾历史遗留只跑一次；撤销过也不许自己又并回去 */
+  autoRemergeRunAt: null,
+  /** 第 10 轮 #112 · 上一次跑的时候是哪套库（换了库要松开那道刹车，见 `remergeAlreadyRun`） */
+  autoRemergeRunRoot: null
 }

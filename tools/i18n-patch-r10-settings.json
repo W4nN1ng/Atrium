@@ -1,0 +1,17 @@
+{
+  "zh-CN": {
+    "settings": {
+      "openLogDir": "打开日志位置"
+    }
+  },
+  "en": {
+    "settings": {
+      "openLogDir": "Open log folder"
+    }
+  },
+  "ja": {
+    "settings": {
+      "openLogDir": "ログフォルダを開く"
+    }
+  }
+}

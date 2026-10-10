@@ -27,7 +27,7 @@ import { appendJournal } from '../db/repos/journal'
 import { deriveGroupKey } from '../classify/groupKey'
 import { splitContainer } from '../fingerprint/primary'
 import type { Lexicon } from '../classify/lexicon'
-import { cleanDisplayName, isMeaninglessName, pickMeaningfulName } from '../../shared/naming'
+import { cleanDisplayName, isMeaninglessName, nameIsGarbage as sharedNameIsGarbage, pickMeaningfulName } from '../../shared/naming'
 import { isJunkSegment, isJunkRelPath } from '../../shared/junk'
 import { ulid } from '../../shared/ulid'
 import type { AssetRow } from '../../shared/types'
@@ -68,16 +68,11 @@ export interface ReanalyzePlan {
  * 那种残骸、以及空串。
  */
 function nameIsGarbage(name: string): boolean {
-  const n = (name ?? '').trim()
-  if (!n) return true
-  if (isMeaninglessName(n)) return true
-  if (/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(n)) return true
-  if (/\b[0-9a-f]{16,}\b/i.test(n)) return true
-  /** 展示名不该带扩展名（改名那一步没剥干净就是残骸） */
-  if (/\.(zip|rar|7z|tar|gz|tgz|unitypackage|png|jpe?g|gif|webp|psd|pdf|txt|md|html?)$/i.test(n)) return true
-  /** 旧版本正则的另一种残骸：`佳兔工具箱.0版本` 这种"x.0版本"尾巴 */
-  if (/\.\d+(?:版本|ver(?:sion)?|の)/i.test(n)) return true
-  return false
+  /**
+   * 第 10 轮 D：判据本体搬到了 `shared/naming.ts`（那边还要给"容器取名"用）。
+   * 留这个壳是因为本文件里有十几处按名字调用，改名不值当；**规则只有一份**。
+   */
+  return sharedNameIsGarbage(name)
 }
 
 /**

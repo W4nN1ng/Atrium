@@ -1,0 +1,50 @@
+{
+  "zh-CN": {
+    "remerge": {
+      "autoDone": "帮你把 {{moved}} 张其实是同一件东西的卡并到了一起（{{clusters}} 处）",
+      "autoDetail": "看看改了什么",
+      "autoDetailHide": "收起",
+      "autoUndo": "撤销",
+      "autoOk": "知道了",
+      "autoLineMerged": "{{name}}：并进来 {{count}} 张",
+      "autoLineKeyfix": "{{name}}：卡没动，只是让它以后能自动收到一起",
+      "autoMore": "还有 {{count}} 处，在「设置 → 维护」里能看到全部",
+      "autoFoot": "文件、分类、封面都没动 —— 只是这几张卡从此算同一件东西。"
+    },
+    "toast": {
+      "undoStale": "那一步之后你又做了别的操作，这次撤销已经过期，我什么都没动"
+    }
+  },
+  "en": {
+    "remerge": {
+      "autoDone": "Merged {{moved}} cards that were really the same item ({{clusters}} places)",
+      "autoDetail": "Show what changed",
+      "autoDetailHide": "Hide",
+      "autoUndo": "Undo",
+      "autoOk": "Got it",
+      "autoLineMerged": "{{name}}: {{count}} cards folded in",
+      "autoLineKeyfix": "{{name}}: cards untouched — only fixed so future ones group by themselves",
+      "autoMore": "{{count}} more — the full list is under Settings → Maintenance",
+      "autoFoot": "No files, categories or covers were touched — only which card these belong to."
+    },
+    "toast": {
+      "undoStale": "You did something after that step, so this undo has expired — nothing was changed"
+    }
+  },
+  "ja": {
+    "remerge": {
+      "autoDone": "同じ物だった {{moved}} 枚をひとつにまとめました（{{clusters}} 件）",
+      "autoDetail": "何を変えたか見る",
+      "autoDetailHide": "閉じる",
+      "autoUndo": "取り消す",
+      "autoOk": "わかった",
+      "autoLineMerged": "{{name}}：{{count}} 枚をまとめ込み",
+      "autoLineKeyfix": "{{name}}：カードは動かさず、今後の自動整理だけ直しました",
+      "autoMore": "ほか {{count}} 件は「設定 → メンテナンス」に全部見えます",
+      "autoFoot": "ファイルも分類もサムネイルも動いていません。どのカードに属するかだけが変わりました。"
+    },
+    "toast": {
+      "undoStale": "その後に別の操作があったため、この取り消しは無効です。何も変更していません"
+    }
+  }
+}

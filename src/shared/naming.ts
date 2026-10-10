@@ -124,10 +124,38 @@ export function isMeaninglessName(s: string): boolean {
   if (LONG_HEX_RE.test(t)) return true
   if (/^(image|img|photo|screenshot|pic|picture|untitled|无标题|新建|new)[\s._-]*\d*$/i.test(t)) return true
   if (/^\d{5,}$/.test(t)) return true
-  if (t.length < 3) return true
+  /**
+   * ⚠ "太短就算没信息量"这条**只对拉丁字母和数字成立**。
+   * 第 10 轮 D 就是撞在这个上面：他真库里那个目录就叫 **`修女`**（两个字，信息量很足），
+   * 老规则把它判成"太短"，于是主名让位给了包内的 `Holy Spice Kaguya` ——
+   * 用户看到的是"我拖的是修女，怎么出来一张英文卡"。
+   * 中日韩一个字顶拉丁一个词，2 个就够读；纯 ASCII 才要 ≥3。
+   */
+  if (t.length < 3 && !/[\u3040-\u30ff\u31f0-\u31ff\u4e00-\u9fff\uac00-\ud7af]/.test(t)) return true
   // 去掉扩展名后只剩分隔符
   const core = t.replace(/\.[A-Za-z0-9]+$/, '')
   if (!core.replace(/[\s._\-()[\]【】]+/g, '')) return true
+  return false
+}
+
+/**
+ * 这个名字**能不能当素材的主名**（第 10 轮 D 把它从 `reanalyze.ts` 提到 shared）。
+ *
+ * 和 `isMeaninglessName` 的差别只有两条：还挂着扩展名、以及旧版本正则咬剩的 `.0版本` 残骸。
+ * 为什么要单独有这一条：**同一个判断现在有三个人要做** ——
+ * 「重新分析」要不要改名、容器取名时磁盘名够不够格、以及第 10 轮"包内名不许顶掉他拖进来的名字"。
+ * 各写一遍必漂（M5-3 一天内漂过两次，那件事记在本文件开头）。
+ */
+export function nameIsGarbage(name: string): boolean {
+  const n = (name ?? '').trim()
+  if (!n) return true
+  if (isMeaninglessName(n)) return true
+  if (/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(n)) return true
+  if (/\b[0-9a-f]{16,}\b/i.test(n)) return true
+  /** 展示名不该带扩展名（改名那一步没剥干净就是残骸） */
+  if (/\.(zip|rar|7z|tar|gz|tgz|unitypackage|png|jpe?g|gif|webp|psd|pdf|txt|md|html?)$/i.test(n)) return true
+  /** 旧版本正则的另一种残骸：`佳兔工具箱.0版本` 这种尾巴 */
+  if (/\.\d+(?:版本|ver(?:sion)?|の)/i.test(n)) return true
   return false
 }
 
@@ -251,6 +279,24 @@ export function modelNamesFromVariantRaw(raw: string | null | undefined): string
     .split(COMPOSITE_SEP_RE)
     .map((x) => x.trim())
     .filter((x) => x.length >= 2)
+}
+
+/**
+ * 第 10 轮 D：主名让位给磁盘名之后，**被压下去的那个名字不许丢** —— 塞进 tags。
+ *
+ * 走 tags 而不是新开一列是有理由的：tag 已经进检索索引、也已经在卡片上露出来，
+ * 用户以后按 `Holy Spice Kaguya` 搜照样搜得到这张「修女」，只是它不再是主名。
+ * 单独抽出来是因为这一步原来写在 `ingest/api.ts` 的一个大对象字面量里，
+ * **没有任何用例看着它** —— 判据在 shared 才测得到，这是本仓库一贯的那条规矩。
+ *
+ * 不改动传进来的数组（调用方给的是 `model?.tags ?? []`，那种引用别处还在用）。
+ */
+export function tagsWithAltName(tags: readonly string[] | null | undefined, altName: string | null | undefined): string[] {
+  const base = tags ? [...tags] : []
+  const s = (altName ?? '').trim()
+  if (!s) return base
+  if (base.includes(s)) return base
+  return [...base, s]
 }
 
 /**

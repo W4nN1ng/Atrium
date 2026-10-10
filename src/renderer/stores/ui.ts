@@ -41,11 +41,14 @@ import {
   libraryChoicePatch,
   skipPatch,
   startedHereFrom,
+  wizardGate,
   type DirectoryProbe,
   type LibraryChoice,
   type WizardStep
 } from '../../shared/wizardState'
 import { rearchiveDialogState, type RearchivePending } from '../../shared/rearchiveDialog'
+/** 第 9 轮 ⑥ · 自动收拾历史遗留：判据与文案参数都在 shared（本仓零 DOM 测试，留在组件里等于没测） */
+import { remergeAlreadyRun, shouldApplyAutoRemerge, shouldProbeAutoRemerge } from '../../shared/autoRemerge'
 import {
   EMPTY_QUEUE,
   applyBusy,
@@ -366,8 +369,21 @@ interface UiState {
   importFlow: ImportFlowState
   toasts: Toast[]
   dropActive: boolean
+  /**
+   * 第 9 轮 ⑥ · 「自动收拾历史遗留」之后那条告知。
+   *
+   * 放 store 而不是组件里：它是**启动过程中**产生的，而那时主界面可能还没切到任何
+   * 会挂这个条的位置；组件一卸载（切页、切视图）告知就跟着消失，用户还没来得及看。
+   * 同一类先例：`importFlow`、`memberPicker` 都在这层。
+   */
+  remergeNotice: { clusters: number; moved: number; batchId: string; items: Array<{ name: string; moved: number; rows: number }> } | null
 
   boot(): Promise<void>
+  /** 第 9 轮 ⑥ · 启动后静默收拾一次历史遗留（判据在 `shared/autoRemerge.ts`，**一套库只跑一次**） */
+  maybeAutoRemerge(): Promise<void>
+  dismissRemergeNotice(): void
+  /** 告知条上的「撤销」：只撤 `remergeNotice.batchId` 那一批，不是"最新那一步" */
+  undoRemerge(): Promise<void>
   refreshList(): Promise<void>
   refreshMeta(): Promise<void>
   openDetail(id: string | null): Promise<void>
@@ -786,6 +802,7 @@ export const useUi = create<UiState>((set, get) => {
     },
     toasts: [],
     dropActive: false,
+    remergeNotice: null,
 
     async boot() {
       try {
@@ -830,10 +847,108 @@ export const useUi = create<UiState>((set, get) => {
          */
         const pending = await window.a.unity.pendingBridgeAsk()
         for (const ev of pending) get().handleProjectFirstSeen(ev)
+        /**
+         * 第 9 轮 ⑥ · 自动收拾一次历史遗留。
+         *
+         * **不 await**：这件事可能要在几千张卡上跑一遍归并键，把它挂在 boot 的尾巴上
+         * 等于让每个用户开机都慢一下。它自己会弹告知，什么时候好什么时候弹。
+         * 判据全在 `shared/autoRemerge.ts`（含"一套库只跑一次"那道刹车）。
+         */
+        void get().maybeAutoRemerge()
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
         set({ bootError: msg })
         console.error('[boot]', e)
+      }
+    },
+
+    /**
+     * 第 9 轮 ⑥ · 启动后自动收拾一次"规则修好之前留下的旧账"。
+     *
+     * 为什么敢自动：**这个操作不搬文件、不改用户手调过的分类、不动置信度，
+     * 而且 `Ctrl+Z` 一次整批退回**。② 那次我把它做成设置里四步，理由是"先让用户确认"，
+     * 但真正的安全垫从来不是那一下点击 —— 是这三条性质。判据与"只跑一次"那道刹车
+     * 都在 `shared/autoRemerge.ts`，这里只做编排。
+     *
+     * ⚠ 落 `autoRemergeRunAt` 的时机：只要**查成功了就落**，不管有没有真的合并。
+     *   同时落 `autoRemergeRunRoot`（第 10 轮 #112）：那道刹车**按库判**，
+     *   他把素材库整体换到另一块盘上时，新库里的旧账还得能被收拾一次。
+     * 不这么做的话，每次开机都要全库跑一遍归并键只为确认"没事可做"（成本见那份 shared 的注释）。
+     * 反过来，查失败（主进程报错）**不落**时间戳 —— 下次开机还得再试，
+     * 不然一个偶发错误就把这件事永久跳过了。
+     *
+     * ⚠ 告知条上的数字各来自哪一次：标题那两句用**执行结果**（`r.moved` / `r.clusters`），
+     * 展开的明细用刚才那份**预览**。主进程落地时自己重扫过一遍，所以理论上可能对不上，
+     * 差别的来源只有"这中间库又变了"那种毫秒级窗口 —— 宁可明细稍旧，也不能拿旧预览去写库。
+     */
+    async maybeAutoRemerge() {
+      const s = get()
+      const st = s.settings
+      if (
+        !shouldProbeAutoRemerge({
+          alreadyRun: remergeAlreadyRun({ runAt: st.autoRemergeRunAt, runRoot: st.autoRemergeRunRoot }, st.libraryRoot),
+          booted: s.booted,
+          libraryReady: !!st.libraryRoot,
+          wizardOpen:
+            wizardGate({
+              onboardingDone: st.onboardingDone,
+              onboardingSkippedAt: st.onboardingSkippedAt,
+              startedHere: s.wizardStartedHere,
+              booted: s.booted
+            }) === 'wizard',
+          miniView: typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('view') === 'mini'
+        })
+      ) {
+        return
+      }
+      try {
+        const plan = await window.a.health.planRemerge()
+        if (!shouldApplyAutoRemerge(plan.clusters.length)) {
+          await s.patchSettings({ autoRemergeRunAt: new Date().toISOString(), autoRemergeRunRoot: st.libraryRoot })
+          return
+        }
+        const items = plan.clusters.map((c) => ({ name: c.name, moved: c.moved, rows: c.rows.length }))
+        const r = await window.a.health.applyRemerge([])
+        await s.patchSettings({ autoRemergeRunAt: new Date().toISOString(), autoRemergeRunRoot: st.libraryRoot })
+        await Promise.all([refreshList(), refreshMeta()])
+        /**
+         * `batchId` 必须带上：告知条那个「撤销」撤的是**这一批**，不是"当时最新的那一步"。
+         * 少了它，用户在条出现的这十几秒里导了个包，点撤销就把刚导的东西撤掉了。
+         */
+        set({ remergeNotice: { clusters: r.clusters, moved: r.moved, batchId: r.batchId, items } })
+      } catch {
+        /**
+         * 静默：这是启动时顺手做的一件事，失败了不该弹错误条吓人 ——
+         * 库里那些卡并没并上不影响它能不能被找到、被导入。
+         * 但也不落时间戳，下次开机还会试；设置里那一栏永远还在，人想手动收拾也走得通。
+         */
+      }
+    },
+
+    dismissRemergeNotice() {
+      set({ remergeNotice: null })
+    },
+
+    /**
+     * 告知条上的「撤销」。**带着那一批的 id 走**（原因见 `UndoDeps.onlyBatchId`）：
+     * 如果已经不是最新一批，主进程一行都不动、只回报"过期"，这里就弹一句实话、条子留着 ——
+     * 让用户自己决定是"知道了"还是去账本里查，比程序替他猜要撤哪一步稳妥。
+     */
+    async undoRemerge() {
+      const n = get().remergeNotice
+      if (!n?.batchId) return
+      try {
+        const r = await window.a.journal.undoLast(n.batchId)
+        const text = msg(r.messageKey, r.messageParams, r.message ?? r.error)
+        if (r.ok && r.undone > 0) {
+          get().toast('ok', text || i18next.t('toast.undoDone'))
+          set({ remergeNotice: null, selection: [], detail: null, detailId: null })
+          await Promise.all([refreshList(), refreshMeta()])
+          return
+        }
+        get().toast('warn', text || i18next.t('toast.undoNone'))
+      } catch (e) {
+        get().toast('bad', e instanceof Error ? e.message : String(e))
       }
     },
 

@@ -1,0 +1,17 @@
+{
+  "zh-CN": {
+    "toast": {
+      "undoRemerged": "已撤销这次合并：{{cards}} 张卡回到自己原来的位置，文件一个都没动"
+    }
+  },
+  "en": {
+    "toast": {
+      "undoRemerged": "Merge undone: {{cards}} cards went back under their own card — no files were touched"
+    }
+  },
+  "ja": {
+    "toast": {
+      "undoRemerged": "まとめを取り消しました：{{cards}} 枚が元のカードに戻りました。ファイルは一切動いていません"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "zh-CN": {
+    "library": {
+      "dropNoLocalPath": "没拿到这些文件的本地路径 —— 它们可能不在磁盘上（浏览器里的图片、压缩包窗口里的一行都会这样）。试试从资源管理器拖文件夹进来，或用「收件箱 → 选择文件…」。",
+      "dropNothing": "这次拖拽没带上文件 —— 可能拖的是文字或快捷方式。试试从资源管理器拖文件夹进来，或用「收件箱 → 选择文件…」。"
+    }
+  },
+  "en": {
+    "library": {
+      "dropNoLocalPath": "No local path for those files — they may not be on disk (images from a browser, or a line inside an archive window, behave like this). Try dragging a folder from Explorer, or use Inbox → Pick files…",
+      "dropNothing": "That drop carried no files — maybe text or a shortcut. Try dragging a folder from Explorer, or use Inbox → Pick files…"
+    }
+  },
+  "ja": {
+    "library": {
+      "dropNoLocalPath": "これらのファイルのローカルパスを取得できませんでした。ディスク上にない可能性があります（ブラウザの画像、解凍ウィンドウ内の一行など）。エクスプローラーからフォルダをドラッグするか、「受信箱 → ファイルを選択…」を使ってください。",
+      "dropNothing": "このドラッグにはファイルが含まれていません（文字やショートカットの可能性）。エクスプローラーからフォルダをドラッグするか、「受信箱 → ファイルを選択…」を使ってください。"
+    }
+  }
+}

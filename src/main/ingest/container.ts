@@ -12,7 +12,7 @@
 import type { FileEntry } from '../../shared/types'
 import type { WorkerResult } from './worker'
 import { splitContainer, type ContainerSplit } from '../fingerprint/primary'
-import { cleanDisplayName, pickMeaningfulName } from '../../shared/naming'
+import { cleanDisplayName, nameIsGarbage, pickMeaningfulName } from '../../shared/naming'
 import type { AttachmentInput } from '../library/commit'
 
 /** worker 两种清单（解压后的散文件 / 包内条目）统一成 FileEntry[] */
@@ -33,16 +33,29 @@ export interface ContainerInfo {
   attachments: AttachmentInput[]
   /** §A3 取名优先级算出来的名字；一个候选都不合格时为 null（调用方回退到原来的名字） */
   name: string | null
+  /**
+   * 第 10 轮 D：被主名**压下去**的那个候选（主名用磁盘名时，它就是包内主体名，反之亦然）。
+   * 不许丢 —— 调用方要把它塞进 tags，否则 `修女` 改成主名之后，
+   * 以后按卖家叫法 `Holy Spice Kaguya` 就搜不到了。
+   */
+  altName: string | null
   /** 从主体名字里剥出来的版本号（`Kiss Sound Gimmick 1.0` → `1.0`） */
   version: string | null
 }
 
 /**
- * @param res        worker 结果
- * @param fallbacks  取名兜底候选，按优先级往后排：主体所在目录名、容器目录名、原名。
- *                   主体文件名由这里自己从清单里取，调用方不用管。
+ * @param res          worker 结果
+ * @param fallbacks    取名兜底候选，按优先级往后排：主体所在目录名、容器目录名、原名。
+ *                     主体文件名由这里自己从清单里取，调用方不用管。
+ * @param droppedName  **他拖进来的那个文件/目录名**（第 10 轮 D）。它不垃圾时就是主名 ——
+ *                     用户是按这个名字在资源管理器里找东西的，包内那个卖家起的英文名顶掉它，
+ *                     界面上就成了「我拖的是『修女』，怎么出来一张 Holy Spice Kaguya」。
  */
-export function containerInfoOf(res: Pick<WorkerResult, 'looseFiles' | 'entries'>, fallbacks: Array<string | null | undefined>): ContainerInfo {
+export function containerInfoOf(
+  res: Pick<WorkerResult, 'looseFiles' | 'entries'>,
+  fallbacks: Array<string | null | undefined>,
+  droppedName?: string | null
+): ContainerInfo {
   const split = splitContainer(entriesOfResult(res))
 
   /**
@@ -66,7 +79,22 @@ export function containerInfoOf(res: Pick<WorkerResult, 'looseFiles' | 'entries'
     return base ? base.replace(/\.[A-Za-z0-9]+$/, '') : null
   })()
 
-  const name = pickMeaningfulName([primaryBase, split.primaryRoot, ...fallbacks])
+  /**
+   * 第 10 轮 D：**他拖进来的那个名字优先**。
+   *
+   * 老写法是 `pickMeaningfulName([primaryBase, split.primaryRoot, ...fallbacks])` ——
+   * 包内主体名无条件排第一，于是 `修女/` 变成一张叫 `Holy Spice Kaguya` 的卡、
+   * `4533350巧克力/` 变成 `Valentines Choco`（真库里三行全这样，2026-10-10 只读查出来的）。
+   * 现在只在磁盘名**垃圾**（UUID / 长 hex / 还挂着扩展名 / 纯数字 / 太短）时才让主体名赢 ——
+   * 那正是 §A3 当初要治的病（拿 `d6b99874-… base resized.jpg` 当素材名），不能修过头放回来。
+   */
+  const dropped = (droppedName ?? '').trim()
+  const droppedClean = dropped ? cleanDisplayName(dropped).name || dropped : ''
+  const droppedWins = !!droppedClean && !nameIsGarbage(droppedClean)
+  const fromInside = pickMeaningfulName([primaryBase, split.primaryRoot])
+  const name = droppedWins ? droppedClean : fromInside ?? pickMeaningfulName(fallbacks)
+  /** 被压下去的那一个：谁当主名，另一个就得留档（调用方塞进 tags，搜得到才算没丢） */
+  const altName = name && fromInside && fromInside !== name ? fromInside : null
   const version = name && primaryBase ? cleanDisplayName(primaryBase).version : null
-  return { split, attachments, name, version }
+  return { split, attachments, name, altName, version }
 }

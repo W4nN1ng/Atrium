@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RemergePlanView } from '../../shared/api'
+import { msg } from '../lib/msg'
 import { useUi } from '../stores/ui'
 import { Badge, Button } from './ui'
 
@@ -32,6 +33,12 @@ export function RemergePanel(): JSX.Element {
   const [plan, setPlan] = useState<RemergePlanView | null>(null)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
+  /**
+   * 刚才那次合并的批次 id。
+   * 第 9 轮 ⑥ 之后撤销**带靶子**：撤的就是这一次，不是"当时最新的那一步"。
+   * 用户在合并完去干了别的、再回来点这颗，撤错东西比不撤糟。
+   */
+  const [lastBatch, setLastBatch] = useState('')
 
   async function scan(): Promise<void> {
     setBusy(true)
@@ -52,11 +59,12 @@ export function RemergePanel(): JSX.Element {
     try {
       /** 空数组 = 处理预览里的全部；主进程会**重扫一遍**再落地，不信这份预览 */
       const r = await window.a.health.applyRemerge([])
-      const msg = t('settings.remergeDone', { clusters: r.clusters, moved: r.moved, groups: r.droppedGroups })
-      setNote(msg)
+      const text = t('settings.remergeDone', { clusters: r.clusters, moved: r.moved, groups: r.droppedGroups })
+      setNote(text)
+      setLastBatch(r.batchId)
       setPlan(null)
       await Promise.all([refreshList(), refreshMeta()])
-      toast('ok', msg)
+      toast('ok', text)
     } catch (e) {
       toast('bad', e instanceof Error ? e.message : String(e))
     } finally {
@@ -94,8 +102,10 @@ export function RemergePanel(): JSX.Element {
             type="button"
             className="btn btn-ghost px-1.5 py-0.5 text-[11px]"
             onClick={async () => {
-              const u = await window.a.journal.undoLast()
-              toast(u.ok ? 'ok' : 'bad', u.message ?? '')
+              const u = await window.a.journal.undoLast(lastBatch || null)
+              /** 走 messageKey：原先这里直接 toast 主进程那句中文，切英文/日文界面也还是中文 */
+              toast(u.ok ? 'ok' : 'warn', msg(u.messageKey, u.messageParams, u.message ?? u.error))
+              if (u.ok && u.undone > 0) setNote('')
               await Promise.all([refreshList(), refreshMeta()])
             }}
           >

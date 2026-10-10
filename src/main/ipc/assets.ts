@@ -549,8 +549,17 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
   })
 
   ipc.handle('journal:list', (limit?: unknown) => listJournal(getDb(), typeof limit === 'number' ? limit : 200))
-  ipc.handle('journal:undo-last', async () => {
-    const r = await undoLast({ db: getDb(), holdDir: P.trashHold() })
+  /**
+   * Ctrl+Z。`batchId` 一般不传（键盘那次就是"撤最新一步"）；
+   * 第 9 轮 ⑥ 那条告知条会传它自己那一批的 id，让"撤销"只可能撤到它说的那件事上
+   * —— 见 `UndoDeps.onlyBatchId`。传了但不是最新那一批 → 一行不动，如实说不撤销。
+   */
+  ipc.handle('journal:undo-last', async (batchId?: unknown) => {
+    const r = await undoLast({
+      db: getDb(),
+      holdDir: P.trashHold(),
+      onlyBatchId: typeof batchId === 'string' && batchId ? batchId : null
+    })
     /**
      * 撤销会删掉库记录。索引里留着就是"搜得到但点不开"的幽灵卡片，
      * 而一次撤销涉及的条目不多，直接全量重建最省事也最难漏。
@@ -762,7 +771,7 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
     const want =
       Array.isArray(keys) && keys.length ? new Set(keys.filter((x): x is string => typeof x === 'string')) : null
     const picked = want ? full.clusters.filter((c) => want.has(c.groupKey)) : full.clusters
-    if (!picked.length) return { moved: 0, droppedGroups: 0, keyOnly: 0, clusters: 0 }
+    if (!picked.length) return { moved: 0, droppedGroups: 0, keyOnly: 0, clusters: 0, batchId: '' }
     const r = applyRemerge(db, { ...full, clusters: picked }, lex)
     /**
      * 归并关系变了 → 卡片分组、聚合视图的变体数、检索里的组别名全跟着变。
@@ -771,7 +780,11 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
      */
     broadcast('data:changed', { reason: 'remerge' })
     log.info(`B4 存量重并：${picked.length} 簇 / 改挂 ${r.moved} 张卡 / 合并掉 ${r.droppedGroups} 个组`)
-    return { moved: r.moved, droppedGroups: r.droppedGroups, keyOnly: r.keyOnly, clusters: picked.length }
+    /**
+     * `batchId` 是给第 9 轮 ⑥ 那条告知条用的：它的「撤销」只撤这一批，
+     * 不撤"当时最新的那一步"。少了这个返回值，自动跑完之后撤销就没有靶子。
+     */
+    return { moved: r.moved, droppedGroups: r.droppedGroups, keyOnly: r.keyOnly, clusters: picked.length, batchId: r.batchId }
   })
 
   /**

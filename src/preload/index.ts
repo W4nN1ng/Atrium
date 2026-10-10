@@ -106,7 +106,7 @@ const api: AApi = {
   },
   journal: {
     list: (limit) => invoke('journal:list', limit),
-    undoLast: () => invoke('journal:undo-last')
+    undoLast: (batchId?: string | null) => invoke('journal:undo-last', batchId ?? null)
   },
   ingest: {
     fromPaths: (paths) => invoke('ingest:from-paths', paths),

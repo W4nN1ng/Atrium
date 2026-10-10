@@ -24,7 +24,7 @@ import { buildCorpus, type Corpus, type CorpusToken } from '../fingerprint/corpu
 import { applyHardRules } from '../fingerprint/hardRules'
 import { deriveGroupKey } from './groupKey'
 import type { LexEntry, Lexicon } from './lexicon'
-import { planBundle } from './bundle'
+import { isBasketOnlyName, planBundle } from './bundle'
 import { cleanDisplayName } from '../../shared/naming'
 
 export interface LearningRow {
@@ -410,6 +410,11 @@ export function classify(ingest: IngestResult, deps: ClassifyDeps): Classificati
       if (!unit) continue
       unit.bundleRef = plan.name
       unit.filePaths = it.entries.map((e) => it.relPath + '/' + e.relPath)
+      /**
+       * 第 10 轮 C 的后半程：登记那一步要知道"这一件在父目录里的哪一层"，
+       * 否则 22 件会全部登记到筐那一层目录上（`shared/flattenUnits.ts` 用它算源路径）。
+       */
+      unit.sourceRelPath = it.relPath
       if (it.sourceItemId && !unit.sourceItemId) {
         /** 纯数字目录名只能算"疑似"来源（§1.3），不许当已确认 */
         unit.sourceItemId = it.sourceItemId
@@ -426,6 +431,22 @@ export function classify(ingest: IngestResult, deps: ClassifyDeps): Classificati
       })
     }
     if (items.length) {
+      /**
+       * 第 10 轮 C（他 2026-10-10 批的 Q2 甲）：**名字本身就是个筐**（`道具22件`、`ERP用12件`、
+       * `更新`、`重要！`）时，不建容器卡 —— 里面那几件各自成顶层素材。
+       *
+       * 他的原话是「明明这个文件夹的名字都叫道具22件了，那就意味着这是 22 件不同厂家出的道具，
+       * 不应该分成合集」。而**同一件衣服的多个素体适配仍然并成一张卡** —— 那条走的是
+       * `groupKey`（`containerKind='merged'`），和"目录名是不是筐"是两条互不相干的路，
+       * 所以这里只拦 `isBasketName`，不碰归并型。
+       *
+       * 外层是买来的合集（名字写着"合集/セット/まとめ"）时照旧建一张卡，
+       * 里面那个筐在 `flattenChild` 里就已经被摊平成若干项了（一层层到产品为止）。
+       */
+      if (isBasketOnlyName(ingest.rawName)) {
+        for (const i of items) i.unit.bundleRef = null
+        return { units: items.map((i) => i.unit) }
+      }
       const bundleUnit = bundleSelfUnit(ingest, plan, items)
       return {
         units: [bundleUnit],

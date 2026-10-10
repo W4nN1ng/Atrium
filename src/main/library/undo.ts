@@ -18,6 +18,17 @@ export interface UndoDeps {
   db: Db
   /** 撤销过程中产生的"多余文件"挪到这里，不直接 rm */
   holdDir: string
+  /**
+   * 第 9 轮 ⑥ · **只撤这一批**，别的都不许碰（告知条上那个「撤销」用的就是它）。
+   *
+   * 为什么需要这道闸：告知条出现在启动之后，而它存在的那十几秒里用户完全可能
+   * 又丢了个包进去。那时按 `undoLast` 的语义撤的是**最新那一批** —— 也就是他刚导的东西，
+   * 可条上写的是"撤掉我帮你并的那 12 张"。指错目标的撤销比不撤销糟得多。
+   *
+   * 所以这里不做"想办法撤到旧批次"（旧批次之上可能已经有别的操作踩着它，
+   * 抽掉会留下半截状态），只做**拒绝**：最新那一批不是它，就一行都不动、如实回报。
+   */
+  onlyBatchId?: string | null
 }
 
 export interface UndoOutcome {
@@ -173,6 +184,13 @@ async function undoOne(deps: UndoDeps, row: JournalRow): Promise<UndoStep> {
       const patches = (p3.groupPatch ?? []) as Array<{ id: string; from: Record<string, unknown> }>
       const changes = (p3.fieldChanges ?? []) as Array<{ id: string; from: Record<string, unknown> }>
       let n = 0
+      /**
+       * ⚠ 单独数"改回原来那张卡下面的成员"有几张：这句是要**报给用户看的**
+       * （告知条上点撤销之后那句），而 `n` 把删掉的变体行、塞回来的组、改回的组键
+       * 全混在一起 —— 拿它当"退回几张卡"就是谎报。（第一版这里直接 `count: 0`，
+       * 于是撤销成功之后界面说「搬回 0 项」。）
+       */
+      let cards = 0
       db.transaction(() => {
         for (const vid of added) {
           const info = db.prepare(`DELETE FROM variant WHERE id = ?`).run(vid)
@@ -210,9 +228,14 @@ async function undoOne(deps: UndoDeps, row: JournalRow): Promise<UndoStep> {
           if (!db.prepare(`SELECT 1 AS x FROM asset WHERE id = ?`).get(c.id)) continue
           db.prepare(`UPDATE asset SET group_id = ?, updated_at = ? WHERE id = ?`).run(gid, Date.now(), c.id)
           n++
+          cards++
         }
       })()
-      return { note: `退回归并 ${n} 项（文件未动）`, kind: 'restored', count: 0 }
+      /**
+       * `count` 报的是**改回原位的卡片数**，不是 `n`：那个数是"变体行 + 组行 + 组键 + 成员"
+       * 混在一起的总项数，界面拿它拼成人话就会写成"搬回 40 项"这种没人看得懂的东西。
+       */
+      return { note: `退回归并 ${n} 项（其中 ${cards} 张卡回到原来的卡下面，文件未动）`, kind: 'restored', count: cards }
     }
     case 'reparent': {
       /**
@@ -315,7 +338,13 @@ async function undoOne(deps: UndoDeps, row: JournalRow): Promise<UndoStep> {
       return { note: `撤销补建集合：删掉 ${dropped} 个${tail}`, kind: 'collections', count: dropped }
     }
     case 'import':
-      throw new Error('导入撤销依赖 Unity 桥接，将在 M5 交付')
+      /**
+       * 第 10 轮 Q6 甲：原来这句是「导入撤销依赖 Unity 桥接，将在 M5 交付」——
+       * 桥接早就交付了，话还停在那里。而且 `import` **不在** `lastRevertible` 的白名单里
+       * （M5-B 摘掉的，理由见 `journal.ts` 那段注释），所以正常走不到这里；
+       * 留这一句是给"哪天有人把它加回白名单"准备的实话，不是给用户的预告。
+       */
+      throw new Error('导入的退回走「最近导入 → 退回」那条（要 Unity 在线），不在 Ctrl+Z 里')
     default:
       throw new Error(`不支持撤销的操作类型：${row.op}`)
   }
@@ -334,6 +363,18 @@ export async function undoLast(deps: UndoDeps): Promise<UndoOutcome> {
     }
 
   const batchId = head.batch_id
+  /**
+   * 告知条上的「撤销」带着它自己那一批的 id。最新那一批要是已经换成别的了
+   * （用户在这十几秒里又导了个包），就**什么都不做** —— 详见 `UndoDeps.onlyBatchId`。
+   */
+  if (deps.onlyBatchId && head.batch_id !== deps.onlyBatchId)
+    return {
+      ok: false,
+      undone: 0,
+      assetIds: [],
+      messageKey: 'toast.undoStale',
+      message: '那一步之后又有新的操作，这次撤销已经过期，没有动任何东西'
+    }
   /**
    * 整批按 id 倒序撤（后来的先撤）。但 `register` 必须**留到最后** ——
    * 它只做记账清理（删本批新建、且**已经空了**的组），所以得等同一批里的
@@ -411,6 +452,14 @@ export async function undoLast(deps: UndoDeps): Promise<UndoOutcome> {
    * 卡片连记录一起被删、还被 EV_UNDONE 退回收件箱，等于把归档状态弄丢。
    */
   const inPlace = rows.some((r) => r.op === 'rearchive')
+  /**
+   * 一整批都是重并（第 9 轮 ②/⑥ 那种）时说另一句。
+   *
+   * 通用的那句 `toast.undoSteps` 长这样：「已撤销 1 步：搬回 0 项、清掉 0 个空目录、
+   * 移除 0 条记录」—— 三个数对重并来说全是 0，等于什么都没说，而实际是 12 张卡回到了
+   * 自己原来的卡下面。重并不搬文件、不删记录，所以它必须有自己的口径。
+   */
+  const remergeOnly = rows.length > 0 && rows.every((r) => r.op === 'remerge')
   // 整批撤干净了才删库记录，否则界面会留一张指向已消失目录的幽灵卡片
   if (!inPlace && undone === rows.length && touchedAssets.size) {
     for (const id of touchedAssets) deleteAssetRow(db, id)
@@ -422,15 +471,17 @@ export async function undoLast(deps: UndoDeps): Promise<UndoOutcome> {
     batchId,
     undone,
     /** 搬回去的那批用另一句文案：它没删任何记录，混在一起说就是撒谎 */
-    messageKey: inPlace ? 'toast.undoRearchived' : 'toast.undoSteps',
+    messageKey: inPlace ? 'toast.undoRearchived' : remergeOnly ? 'toast.undoRemerged' : 'toast.undoSteps',
     messageParams: inPlace
       ? { steps: undone, moved: stats.rearchived, assets: touchedAssets.size }
-      : {
-          steps: undone,
-          moved: stats.moved + stats.restored,
-          dirs: stats.dirs,
-          assets: touchedAssets.size
-        },
+      : remergeOnly
+        ? { steps: undone, cards: stats.restored }
+        : {
+            steps: undone,
+            moved: stats.moved + stats.restored,
+            dirs: stats.dirs,
+            assets: touchedAssets.size
+          },
     assetIds: inPlace ? [] : Array.from(touchedAssets),
     message: `已撤销 ${undone} 步：${notes.join('；')}`
   }

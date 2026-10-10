@@ -58,7 +58,14 @@ describe('B4 的链路：通道 → 主进程 → preload → 界面', () => {
     const panel = stripComments(read('src/renderer/components/RemergePanel.tsx'))
     expect(panel).toContain('window.a.health.planRemerge()')
     expect(panel).toContain('window.a.health.applyRemerge([])')
-    expect(panel).toContain('window.a.journal.undoLast()')
+    /**
+     * ⑥ 之后撤销**带靶子**：那颗撤的是"刚才那一次"，不是"当时最新的那一步"。
+     * （面板上没有告知条那个十几秒的窗口，但用户完全可能合并完先去别处点两下再回来。）
+     */
+    expect(panel).toContain('window.a.journal.undoLast(lastBatch || null)')
+    expect(panel).toContain('setLastBatch(r.batchId)')
+    /** 文案走 messageKey：直接 toast 主进程那句中文，切了英文界面也还是中文 */
+    expect(panel).toContain('msg(u.messageKey, u.messageParams')
     /** 只读预览 + 落地两段分开：不许有"打开页面就自己改库"的路径 */
     expect(panel).not.toMatch(/useEffect\([^)]*applyRemerge/)
   })
