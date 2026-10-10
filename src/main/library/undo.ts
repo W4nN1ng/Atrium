@@ -5,8 +5,17 @@ import { appendJournal, getJournal, journalPayload, lastRevertible, listBatch, m
 import { deleteAssetRow, upsertAsset } from '../db/repos/asset'
 import type { AssetGroupRow, AssetRow, JournalRow } from '../../shared/types'
 import { SIDECAR_FILENAME } from '../../shared/constants'
-import { ensureDir, moveToHold, moveTree, pathExists } from './fsx'
+import { ensureDir, moveToHold, moveTree, moveFile, pathExists } from './fsx'
 import { undoRearchive } from './rearchive'
+
+/** Restoring a held archive must also work when the hold folder is on another volume. */
+async function restorePath(source: string, destination: string): Promise<void> {
+  if ((await fs.promises.stat(source)).isDirectory()) {
+    await moveTree(source, destination)
+  } else if (await moveFile(source, destination) === 'copied') {
+    await fs.promises.unlink(source)
+  }
+}
 
 /**
  * Ctrl+Z 的实现。撤销单位是"一次操作"：
@@ -81,7 +90,7 @@ async function undoOne(deps: UndoDeps, row: JournalRow): Promise<UndoStep> {
       if (!(await pathExists(p.to))) throw new Error(`撤销中止：${p.to} 已经不在这儿了，没敢乱动`)
       if (await pathExists(p.from)) throw new Error(`撤销中止：原位置 ${p.from} 已被别的东西占用，没敢覆盖`)
       await ensureDir(path.dirname(p.from))
-      await moveTree(p.to, p.from)
+      await restorePath(p.to, p.from)
       return { note: `搬回 ${path.basename(p.from)}`, kind: 'moved', count: 1 }
     }
     /**
@@ -127,7 +136,7 @@ async function undoOne(deps: UndoDeps, row: JournalRow): Promise<UndoStep> {
       for (const t of p.trashed ?? []) {
         if ((await pathExists(t.to)) && !(await pathExists(t.from))) {
           await ensureDir(path.dirname(t.from))
-          await moveTree(t.to, t.from)
+          await restorePath(t.to, t.from)
           back++
         }
       }

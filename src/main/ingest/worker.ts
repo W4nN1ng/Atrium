@@ -231,7 +231,8 @@ async function runClassification(job: WorkerJob, entries: Array<{ path: string; 
       warnings: []
     }
     const learning = new Map(job.learning ?? [])
-    return classify(ingest, { lex: lexiconFor(job.resourceRoot, job.userLexicon), categories: categoriesFor(job.resourceRoot), learning })
+    return classify(ingest, { lex: lexiconFor(job.resourceRoot, job.userLexicon), categories: categoriesFor(job.resourceRoot), learning,
+      confidenceConfirm: job.confidenceConfirm, confidenceAuto: job.confidenceAuto })
   } catch {
     return null
   }
@@ -256,6 +257,8 @@ export interface WorkerJob {
   userLexicon?: string
   /** 关掉就只出指纹不分类（设置里"自动分类"关着时） */
   classify?: boolean
+  confidenceConfirm?: number
+  confidenceAuto?: number
 }
 
 export type WorkerMessage =
@@ -444,9 +447,21 @@ async function handle(job: WorkerJob): Promise<void> {
   let extraPaths: string[] = []
   if (job.classify !== false) {
     progress(job.jobId, 'fingerprinting', 0.7, 'ingest.msg.diggingPackage', '读取内层 unitypackage')
-    const dug = stagingPath
-      ? await digStagedUnitypackages(stagingPath, loose.map((f) => ({ relPath: f.relPath, size: f.size })))
-      : await digUnitypackages(job, entries)
+    let dug: { extraPaths: string[]; parsed: number; failed: number }
+    if (isUnityPackage) {
+      const parsed = await parseUnitypackage(job.sourcePath, { scanRefs: false, maxEntries: 1200 })
+      if (!parsed.ok) {
+        post({ type: 'error', jobId: job.jobId, code: 'ingest.corruptArchive', message: parsed.error ?? 'Invalid Unity package' })
+        return
+      }
+      const paths: string[] = []
+      pushUnityPaths(parsed, paths)
+      dug = { extraPaths: paths, parsed: 1, failed: 0 }
+    } else {
+      dug = stagingPath
+        ? await digStagedUnitypackages(stagingPath, loose.map((f) => ({ relPath: f.relPath, size: f.size })))
+        : await digUnitypackages(job, entries)
+    }
     extraPaths = dug.extraPaths
     if (dug.parsed) {
       warnings.push({

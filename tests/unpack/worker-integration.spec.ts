@@ -2,128 +2,116 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { builtinModules } from 'node:module'
 import { Worker } from 'node:worker_threads'
+import { build } from 'vite'
+import { buildRealUnitypackage, makeZip } from '../helpers/containers'
+import type { WorkerResult } from '../../src/main/ingest/worker'
 
-/**
- * 真 worker 集成测试：直接跑编译产物 out/main/worker.js，
- * 用用户库里的真实压缩包验证"哈希 → 探测 → 列清单 → 解压"整条链路。
- * 没先 build 或包不在，就整组跳过（不误报失败）。
- */
-
-const WORKER = path.resolve(process.cwd(), 'out/main/worker.js')
-const BIN = path.resolve(process.cwd(), 'resources/bin')
-const LIB = 'E:\\vrc\\A'
-const RAR_RAR = path.join(LIB, '插件', 'shinano表情', '6117553 Shinano_FaceAnimation.rar.rar')
-const JP_ZIP = path.join(LIB, '衣服', '【束縛チャイナ】', '束縛チャイナFULLSET.zip')
-
+const ROOT = process.cwd()
+const BIN = path.join(ROOT, 'resources/bin')
 let tmp: string
+let workerFile: string
+let direct: string
+let nested: string
+let japanese: string
 
-function runWorker(sourcePath: string, extract: boolean): Promise<{ messages: unknown[]; result?: any; needPassword?: boolean; error?: any }> {
+/** Build the current source, independently of stale out/ and private real-world packages. */
+beforeAll(async () => {
+  tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'avca-worker-fixtures-'))
+  await build({
+    configFile: false, logLevel: 'silent',
+    build: {
+      target: 'node20', outDir: path.join(tmp, 'compiled'), emptyOutDir: false, minify: false,
+      lib: { entry: path.join(ROOT, 'src/main/ingest/worker.ts'), formats: ['cjs'], fileName: () => 'worker.cjs' },
+      rollupOptions: { external: id => id.startsWith('node:') || builtinModules.includes(id) || id === 'electron' }
+    }
+  })
+  workerFile = path.join(tmp, 'compiled/worker.cjs')
+  direct = await buildRealUnitypackage(path.join(tmp, '123456.unitypackage'), ['Assets/Shinano/服装/套装/Dress.prefab'])
+  const files = path.join(tmp, 'files')
+  fs.mkdirSync(path.join(files, 'nested'), { recursive: true })
+  fs.copyFileSync(direct, path.join(files, 'nested/123456.unitypackage'))
+  fs.writeFileSync(path.join(files, '無料_日本語.txt'), 'Japanese filename fixture')
+  nested = makeZip(files, path.join(tmp, '123456.zip'), ['nested'])
+  japanese = makeZip(files, path.join(tmp, 'japanese.zip'), ['無料_日本語.txt'])
+})
+
+afterAll(() => {
+  if (tmp) fs.rmSync(tmp, { recursive: true, force: true })
+})
+
+async function runWorker(sourcePath: string, extract: boolean, settings: object = {}): Promise<WorkerResult> {
   return new Promise((resolve, reject) => {
-    const w = new Worker(WORKER)
-    const messages: unknown[] = []
-    const out: { messages: unknown[]; result?: unknown; needPassword?: boolean; error?: unknown } = { messages }
-    const jobId = 'test-' + Date.now()
-    const timer = setTimeout(() => {
-      void w.terminate()
-      reject(new Error('worker 超时 60 秒'))
-    }, 60000)
-
-    w.on('message', (m: Record<string, unknown>) => {
-      messages.push(m)
-      if (m.type === 'need-password') {
-        out.needPassword = true
-        clearTimeout(timer)
-        void w.terminate()
-        resolve(out)
-      }
-      if (m.type === 'error') {
-        out.error = m
-        clearTimeout(timer)
-        void w.terminate()
-        resolve(out)
-      }
-      if (m.type === 'done') {
-        out.result = m.result
-        clearTimeout(timer)
-        void w.terminate()
-        resolve(out)
-      }
-    })
-    w.on('error', (e) => {
+    const worker = new Worker(workerFile)
+    const jobId = `fixture-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const timer = setTimeout(() => { void worker.terminate(); reject(new Error('Worker timed out')) }, 30000)
+    worker.on('error', error => { clearTimeout(timer); void worker.terminate(); reject(error) })
+    worker.on('message', async message => {
+      if (!['done', 'error', 'need-password'].includes(message.type)) return
       clearTimeout(timer)
-      reject(e)
+      await worker.terminate()
+      if (message.type === 'done') resolve(message.result)
+      else reject(new Error(message.message ?? message.type))
     })
-    w.postMessage({
-      type: 'job',
-      jobId,
-      sourcePath,
-      stagingPath: path.join(tmp, jobId),
-      extract,
-      backendDirs: [BIN]
+    worker.postMessage({
+      type: 'job', jobId, sourcePath, stagingPath: path.join(tmp, jobId), extract,
+      backendDirs: [BIN], resourceRoot: path.join(ROOT, 'resources'), learning: [], ...settings
     })
   })
 }
 
-beforeAll(() => {
-  tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'avca-worker-'))
-})
-afterAll(() => {
-  fs.rmSync(tmp, { recursive: true, force: true })
-})
-
-const built = fs.existsSync(WORKER)
-
-describe.skipIf(!built)('worker 流水线（真包）', () => {
-  it('单层 rar：指纹 + 包内清单都对，且不落解压内容', async () => {
-    const r = await runWorker(RAR_RAR, false)
-    expect(r.error, JSON.stringify(r.error)).toBeUndefined()
-    const res = r.result as {
-      hash: string
-      probe: { format: string; isArchive: boolean; extMismatch: boolean }
-      entries: Array<{ path: string }>
-      stagingPath: string | null
-      warnings: Array<{ key: string; params?: Record<string, string | number>; message?: string }>
-    }
-    expect(res.hash).toMatch(/^[0-9a-f]{16}$/)
-    expect(res.probe.format).toBe('rar')
-    expect(res.probe.isArchive).toBe(true)
-    expect(res.probe.extMismatch, '双重 .rar 扩展名不该被当成不符').toBe(false)
-    expect(res.entries.some((e) => e.path.includes('無料')), '条目名要解对：' + res.entries.map((e) => e.path).join(',')).toBe(true)
-    expect(res.stagingPath, '没开自动解压就不该有暂存目录').toBeNull()
-    // 提示只给 i18n key，中文留在 message 里当日志兜底
-    expect(res.warnings.map((w) => w.key)).toContain('ingest.warn.notExtracted')
-    expect(res.warnings.every((w) => typeof w.key === 'string' && w.key.includes('.')), 'warning 必须是 key 形态').toBe(true)
-    // 进度消息必须出现过，UI 才有进度条可画；而且每条都得带 key，否则英文界面会退回中文
-    const progress = r.messages.filter((m) => (m as { type: string }).type === 'progress')
-    expect(progress.length).toBeGreaterThan(0)
-    for (const m of progress) {
-      const mm = m as { messageKey?: string }
-      expect(mm.messageKey, `进度消息缺 messageKey：${JSON.stringify(m)}`).toBeTruthy()
-    }
-  }, 90000)
-
-  it('开了自动解压：暂存目录里真的落下了日文名文件', async () => {
-    const r = await runWorker(RAR_RAR, true)
-    const res = r.result as { stagingPath: string | null; looseFiles: Array<{ relPath: string }> }
-    expect(res.stagingPath).toBeTruthy()
-    const names = (res.looseFiles ?? []).map((f) => f.relPath)
-    expect(names.some((n) => n.includes('無料') || n.includes('Shinano'))).toBe(true)
-    expect(names.every((n) => !n.includes('\uFFFD'))).toBe(true)
-  }, 90000)
-
-  it('日文 zip：列清单时条目名不带替换符', async () => {
-    const r = await runWorker(JP_ZIP, false)
-    const res = r.result as { entries: Array<{ path: string }>; entryCount: number; probe: { format: string } }
-    expect(res.probe.format).toBe('zip')
-    expect(res.entryCount).toBeGreaterThan(0)
-    const joined = res.entries.map((e) => e.path).join('\n')
-    expect(joined).not.toContain('\uFFFD')
-  }, 90000)
-})
-
-describe.skipIf(built)('worker 流水线', () => {
-  it('没编译产物时给出可执行的提示，而不是静默跳过', () => {
-    expect(WORKER, '先跑 npm run build:dir 或 npx electron-vite build 再跑这个测试').toBeTruthy()
+describe('worker pipeline with generated packages', () => {
+  it('passes the confirmation threshold through the real worker', async () => {
+    const strict = await runWorker(direct, false, { confidenceConfirm: 1 })
+    const relaxed = await runWorker(direct, false, { confidenceConfirm: 0.1 })
+    expect(strict.classification?.units[0].status).toBe('pending_confirm')
+    expect(relaxed.classification?.units[0].status).toBe('archived')
   })
+  it('reports corrupt direct packages without changing the source file', async () => {
+    const corrupt = path.join(tmp, 'broken.unitypackage')
+    const bytes = Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0xff, 0x00])
+    fs.writeFileSync(corrupt, bytes)
+    await expect(runWorker(corrupt, false)).rejects.toThrow()
+    expect(fs.readFileSync(corrupt)).toEqual(bytes)
+  })
+  it('reads a Japanese ZIP listing without extracting it', async () => {
+    const result = await runWorker(japanese, false)
+    expect(result.hash).toMatch(/^[0-9a-f]{16}$/)
+    expect(result.probe.format).toBe('zip')
+    expect(result.entries.some(e => e.path === '無料_日本語.txt')).toBe(true)
+    expect(result.stagingPath).toBeNull()
+    expect(result.warnings.map(w => w.key)).toContain('ingest.warn.notExtracted')
+  })
+  it('extracts Japanese names when requested', async () => {
+    const result = await runWorker(japanese, true)
+    expect(result.stagingPath).toBeTruthy()
+    expect(fs.readFileSync(path.join(result.stagingPath!, '無料_日本語.txt'), 'utf8')).toBe('Japanese filename fixture')
+    expect(result.looseFiles.some(e => e.relPath === '無料_日本語.txt')).toBe(true)
+  })
+  it('classifies direct unitypackage content like the identical package nested in ZIP', async () => {
+    const before = fs.readFileSync(direct)
+    const a = await runWorker(direct, false)
+    const b = await runWorker(nested, false)
+    expect(b.classification?.units[0].category).toBe('clothing')
+    expect(a.classification?.units[0].category).toBe(b.classification?.units[0].category)
+    expect(a.classification?.units[0].targetAvatars).toContain('Shinano')
+    expect(a.classification?.units[0].filePaths).toContain('Assets/Shinano/服装/套装/Dress.prefab')
+    expect(fs.readFileSync(direct)).toEqual(before)
+    expect(a.stagingPath).toBeNull()
+  })
+  it('keeps a direct unitypackage intact even when automatic extraction is enabled', async () => {
+    const result = await runWorker(direct, true)
+    expect(result.classification?.units[0].category).toBe('clothing')
+    expect(result.stagingPath).toBeNull()
+    expect(fs.existsSync(direct)).toBe(true)
+  })
+})
+
+const realRoot = process.env.AVCA_REAL_LIB
+const realRar = realRoot ? path.join(realRoot, '插件/shinano表情/6117553 Shinano_FaceAnimation.rar.rar') : null
+it.skipIf(!realRar || !fs.existsSync(realRar))('optional real RAR fixture from AVCA_REAL_LIB', async () => {
+  const result = await runWorker(realRar!, false)
+  expect(result.probe.format).toBe('rar')
+  expect(result.entries.length).toBeGreaterThan(0)
 })

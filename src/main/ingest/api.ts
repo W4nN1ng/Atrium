@@ -437,7 +437,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
          * 拆包成多项时**不自动入库** —— 一次动一堆目录，出错太难解释，交回人看。
          */
         const top = cls?.units[0]
-        if (s.autoArchive && top && units.length === 1 && top.confidence >= s.confidenceAuto) {
+        if (s.autoArchive && top && top.status === 'archived' && units.length === 1 && top.confidence >= s.confidenceAuto) {
           log.info(`自动归档：${top.name} → ${top.category}/${top.subcategory ?? '-'}（${top.confidence.toFixed(2)}）`)
           try {
             await commit(job, { name: '', category: '', subcategory: null })
@@ -460,6 +460,8 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       sourcePath: item.sourcePath,
       stagingPath,
       extract: s.autoExtract,
+      confidenceConfirm: s.confidenceConfirm,
+      confidenceAuto: s.confidenceAuto,
       password: job.password ?? undefined,
       backendDirs: [bundledBinDir()],
       // 分类要在 worker 里跑（§12 坑 8：不占主线程），词典/分类表/已学规则都从这边传过去
@@ -614,6 +616,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       template: s.dirTemplate,
       storageMode: willMove ? s.storageMode : 'indexed',
       autoExtract: s.autoExtract,
+      keepOriginalArchive: s.keepOriginalArchive,
       holdDir: P.trashHold(),
       appVersion: app.getVersion()
     }

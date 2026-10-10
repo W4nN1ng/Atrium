@@ -6,19 +6,20 @@ import { listArchive, extractArchive, resolveBackend, parseSltListing } from '..
 import { listZip, extractZip } from '../../src/main/unpack/unzip'
 
 /**
- * 真包回归测试：直接拿用户库里的实际素材验 cp932/GBK 与"单层 rar"判定。
- * 包不在（换机器 / 清理过）就整组跳过，不误报失败。
+ * Optional real-package regression: enabled only by an explicit AVCA_REAL_LIB directory.
+ * The normal suite never searches a contributor's private asset library.
  */
 
 const HERE = process.cwd()
 const BIN = path.resolve(HERE, 'resources/bin')
-const LIB = 'E:\\vrc\\A'
+const LIB = process.env.AVCA_REAL_LIB ?? ''
 
 const RAR_RAR = path.join(LIB, '插件', 'shinano表情', '6117553 Shinano_FaceAnimation.rar.rar')
 const JP_ZIP = path.join(LIB, '衣服', '【束縛チャイナ】', '束縛チャイナFULLSET.zip')
 const GRIMOIR = path.join(LIB, '衣服', '27', 'Grimoir_SHINANO_V1.0.zip')
 
 const has = (p: string): boolean => {
+  if (!LIB) return false
   try {
     return fs.statSync(p).isFile()
   } catch {
