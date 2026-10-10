@@ -36,7 +36,14 @@
 
 ---
 
-## 当前进度：**已发布 `v0.4.0`（2026-10-11 凌晨）—— 开发计划第 1–10 轮全部关闭，本机装的就是 0.4.0**（第 10 轮：容器视图能滚、四颗假按钮接上真动作、筐不再做成一张卡、卡名不再被包内名顶掉、拖放失败会说话、旧文案清干净并立了三条闸；这一版还第一次带上了 ⑥「旧账自动收拾 + 事后告知」）。
+## 当前进度：**已发布 `v0.4.1`（2026-10-11）—— 开发计划第 1–10 轮全部关闭 + 他朋友两条 PR（可靠性与首启，12 条修复）已在 main 上，本机装的就是 0.4.1**。
+0.4.1 相对 0.4.0 **只有那 12 条修复**：本轮我没有改产品代码，做的事是「把合进来的东西验一遍、出包、发出去、装回他机器」。
+版本号 bump 是我提的（他没 bump，`package.json` 在他合并完仍是 0.4.0）；证据见 `docs/VERIFY-UNVERIFIED.md` §19 和下面的 v0.4.1 那一节。
+
+> ⚠ **一条流程例外要记账**：他朋友 2026-10-11 写进 `AGENTS.md` 的约定是「所有改动走 `codex/` 分支 + PR，不要直接推 main」，
+> 而这次发布提交 `e30f5ba` 和 tag `v0.4.1` 是**直推 main** 的 —— 因为用户本人（仓库所有者）在他给了 PR 方案之后
+> 明确改口：「就要合进main，直接推到main上，然后上传release到新版本0.4.1」。这不是我绕的，是他覆盖的。
+> **下次默认仍然按 `AGENTS.md` 走 PR**，除非他再明说一次；`main` 上没有分支保护，所以这条全靠人记。
 
 > 第 10 轮当时那行进度原文留着，免得"当前进度"变成一份只有最新一页的日历：
 > **开发计划第 1–9 轮关闭 + 第 10 轮六件全部落地（源码 0.4.0，含 ⑥）**。⚠ 当时已发布的 `v0.3.0`
@@ -92,7 +99,48 @@ SHA-256 逐位相同**、直链 `curl -r 0-15` 回 206 且头两字节 `MZ`、�
 > 本机也是 0.4.0：`node tools/installed-version.cjs --expect=0.4.0` 读注册表核过（不看 exe 文件属性）。
 
 
-> **这一行下面那份"没做"清单在 2026-10-07 之前是过期的**：它把已经交付的
+## ✅ 已发布：https://github.com/W4nN1ng/Atrium/releases/tag/v0.4.1
+
+2026-10-11 03:24 上线（GitHub `published_at` = `2026-10-10T19:24:37Z`；他一句「就要合进main，直接推到main上，然后上传release到新版本0.4.1」）。
+tag `v0.4.1` → 提交 `e30f5ba`（`chore(release): 0.4.1`：`package.json` 0.4.0→0.4.1、`docs/release-body-0.4.1.md`、
+本轮活体在 0.4.1 产物上重跑出来的四张截图）。传 `Atrium-Setup-0.4.1.exe`（**87,038,119** 字节）与
+`Atrium-portable-0.4.1.exe`（**86,804,019** 字节）。
+
+**这一版的内容 = 他朋友的两条 PR**（`c9969a4` 可靠性/归档/快捷键 + `e5062a4` 协作约定），
+`v0.4.0..HEAD` 一共 39 个文件、+836/−305。我在这之上的活只有"验 + 发"，产品代码一行没改 ——
+所以正文那十二条全是他的修复，用大白话重写了一遍（无术语、无里程碑编号，`verify-release-page.cjs` 顺手查残留）。
+
+发之前过的四道闸（全在合并后的 main 上跑，不是在他分支上）：
+
+| 闸 | 结果 |
+| --- | --- |
+| 全量测试 | ✅ `npx vitest run` **1564 passed / 19 skipped / 0 失败**（TEMP/TMP 指 `E:\avca-tmp`；C 盘只剩 8 GB，别拿 C 盘当临时目录，会红成"数据库磁盘已满"） |
+| 双 `tsc` | ✅ main+renderer 两份 typecheck 都干净 |
+| 两张变异回扫表 | ✅ `verify-red-r10` 47 处、`verify-red-r9` 50 处**全部钉住**（改了源码就该红，改回来才绿）→ 他动 `classify/engine.ts`、`ingest/api.ts`、`App.tsx`、`stores/ui.ts` 这些本轮重灾区，没把我的不变量弄坏 |
+| 产物闸 | ✅ `node tools/pkg-version.cjs`：asar 里 `a-asset-manager 0.4.1`、license MIT、87 个顶层包 = dependencies 闭包 91 个、asar 不比源码旧 |
+| 打包版活体 | ✅ `node tools/live-r10.cjs` 在 `dist/win-unpacked`（0.4.1）上 **34 项全绿 / EXIT=0**，六段都跑：E 拖放、C+D 筐摊平与卡名、D 后半程按包内名搜、A+B 容器滚动与真按钮、F 日志按钮、#112 换库刹车。**C 那几条是重点** —— 上一轮就是在这儿抓出"实现了 ≠ 生效了" |
+
+发完逐条核过：正文与 `docs/release-body-0.4.1.md` **逐字一致**、术语残留 0 条、
+正文两串 SHA-256 = **GitHub 自己算的 `digest`**（`9a4d3332…f0c231a` / `7adf682b…9bb017d`）、
+远端 `size` = 本地两个字节数、`draft=false`、`prerelease=false`、`/releases/latest` 指到 v0.4.1、
+直链 `curl -r 0-15` 回 **206 且头两字节 `MZ`**。
+
+**本机也升到 0.4.1 了**（他那条"每轮结束把我本地的 Atrium 更新好"的规矩）：
+`--stage=snapshot`（装前指纹，23 张素材卡）→ `AVCA_REAL_INSTALL=1 --stage=overwrite` → **红 0 条**：
+覆盖安装后没被当成全新安装（不弹向导）、徽章 `v0.4.1`、15 张表逐行一字不差，
+只有两条按列允许变：`asset.cover_image` 刷了 22 行（原来那 22 格是空的）、`project.last_seen` 9 行（起过一次当然会刷）；
+`settings.json` 九个关键字段一字不变，`categories.user.json` 本来就没有 → 还是本来就没有。
+注册表核过：`DisplayVersion = 0.4.1`（`node tools/installed-version.cjs --expect=0.4.1`）。
+装之前 `waitNoAtrium()` 轮询到 0 个进程、备份三份到 `D:\avca-m7-live\real-backup\pre-overwrite-2026101019265`，
+全程没碰他的素材本体。
+
+> 顺手量到一条他的现状：`settings.libraryRoot` 现在是 **`E:\Atriumdate`**（不再是 `E:\vrc\A`）。
+> ⑥ 那道刹车按库记，换过根目录的库会被当成"还没收拾过"再走一次 —— 这次起过一次没弹告知条，
+> 说明这套库里没有可并的旧账（顶层人口对得上）。
+
+---
+
+
 > "改分类搬文件 / 多选卡批量导入 / 变体分列 / 类别口语 / 首次弹桥接安装窗"还列在 ❌ 里。
 > 过期清单比没清单更坏，所以本轮按 `tools/selfcheck-r4.cjs` 与
 > `tests/spec-coverage.spec.ts` 的 R4 一节逐条重核过再改写。
