@@ -58,7 +58,7 @@ export type TagKind = 'topic' | 'avatar' | 'style' | 'locale' | 'user'
 
 export type SourcePlatform = 'booth' | 'github' | 'gumroad' | 'afdian' | 'other' | null
 
-export type ImportStatus = 'queued' | 'running' | 'ok' | 'failed' | 'cancelled' | 'rolledback'
+export type ImportStatus = 'queued' | 'running' | 'ok' | 'failed' | 'cancelled' | 'rolledback' | 'rollbackpartial'
 
 export type EntryKind =
   | 'prefab'
@@ -500,6 +500,40 @@ export interface JournalRow {
   error: string | null
   batch_id: string | null
   created_at: number
+}
+
+export interface ImportHistoryItem {
+  id: string
+  name: string
+  status: ImportStatus
+  created: number
+  overwritten: number
+  hasBackup: boolean
+  message: string | null
+  canRollback: boolean
+}
+
+export interface ImportHistoryGroup {
+  key: string
+  batchId: string | null
+  projectId: string
+  projectName: string
+  projectPath: string | null
+  at: number | null
+  items: ImportHistoryItem[]
+  rollbackBlockKey: string | null
+}
+
+export interface ImportHistoryQuery {
+  projectId?: string | null
+  offset?: number
+  limit?: number
+}
+
+export interface ImportHistoryPage {
+  groups: ImportHistoryGroup[]
+  total: number
+  offset: number
 }
 
 export interface LearningRow {
@@ -1276,6 +1310,7 @@ export interface BatchRollbackDetail {
   deletedFiles: number
   restoredFiles: number
   unrestorable: number
+  failedToDelete?: number
 }
 
 export interface BatchRollbackOutcome {

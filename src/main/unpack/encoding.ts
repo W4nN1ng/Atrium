@@ -5,12 +5,12 @@ import os from 'node:os'
  * 文本/文件名解码。日文素材的 zip 文件名和 txt 十有八九是 cp932(Shift-JIS)，
  * 按 UTF-8 硬解会得到乱码或 U+FFFD —— 这是这个库的必踩坑（第 1 份 §12 坑 5）。
  *
- * 顺序：UTF-8(BOM) → UTF-8(严格) → cp932 → GBK，取第一个"不像坏码"的。
+ * 顺序：UTF-8(BOM) → UTF-8(严格) → cp932 / GBK / EUC-JP 候选评分。
  * iconv-lite 解 cp932/GBK 时不会抛错（未知字节静默变成 ? ），所以"不抛错"不能只靠 try/catch，
  * 必须再看有没有替换符 —— 这是上一版容易写错的地方。
  */
 
-export type TextEncoding = 'UTF-8(BOM)' | 'UTF-8' | 'cp932' | 'GBK' | 'latin1' | 'empty'
+export type TextEncoding = 'UTF-8(BOM)' | 'UTF-8' | 'cp932' | 'GBK' | 'EUC-JP' | 'latin1' | 'empty'
 
 const UTF8_STRICT = new TextDecoder('utf-8', { fatal: true })
 
@@ -57,6 +57,22 @@ export function scoreDecoded(s: string): number {
     else score -= 1
   }
   return score / Math.sqrt(s.length)
+}
+
+// EUC-JP 与 GBK 的假名字节区重叠，单靠假名/CJK 数量会让「時」与「箕」打平。
+// 常见日中说明文用字只作平手时的弱证据；同时包括简体字，避免偏向日文而损坏 GBK。
+const COMMON_CJK = new Set(
+  [...('一二三四五六七八九十百千万年月日時分秒前後上下左右中大小高低新古長短全文名前場所種類色形' +
+    '本書読説明使用方法設定変更確認必要利用規約禁止許可素材衣装表情髪顔目体耳手足入出取扱追加' +
+    '更新修正専用無断転載個人商営利無料有料対象対応保存削除作成表示動画画像音楽注意問題解決' +
+    '基本初期選択操作適応導着替改済日本語漢字汉化说明仅供个传平台时语们请文件设置备份错误' +
+    '下载上传目录压缩包路径失败重新安装导入帮助测试许可资源版本免费购买步骤如何')]
+)
+
+function scoreCommonCjk(s: string): number {
+  let common = 0
+  for (const ch of s) if (COMMON_CJK.has(ch)) common++
+  return s.length > 0 ? common / Math.sqrt(s.length) : 0
 }
 
 /** 系统 ANSI 码页决定"平手时偏向谁"：中文 Windows 上 GBK 更可能是对的 */
@@ -117,6 +133,20 @@ export function decodeText(buf: Buffer): DecodedText {
   const sGbk = scoreDecoded(asGbk)
   const gbkWins = sGbk > sCp || (sGbk === sCp && preferGbkOnTie())
   const winner = gbkWins ? { text: asGbk, encoding: 'GBK' as const } : { text: asCp932, encoding: 'cp932' as const }
+
+  // 保留 cp932 / GBK 的既有优先级，只有 EUC-JP 提供更强证据时才替换。
+  const asEucJp = iconv.decode(buf, 'euc-jp')
+  if (!hasBadChars(asEucJp) && !suspiciousQuestionRatio(asEucJp)) {
+    const sEucJp = scoreDecoded(asEucJp)
+    const winnerScore = gbkWins ? sGbk : sCp
+    // 单字「時/箕」的原始字节完全相同，弱用字提示不能覆盖既有判断。
+    const enoughEvidence = (asEucJp.match(/[\u3041-\u30ff]/g)?.length ?? 0) >= 2 ||
+      [...asEucJp].filter(ch => COMMON_CJK.has(ch)).length >= 2
+    if (sEucJp > winnerScore ||
+      (sEucJp === winnerScore && enoughEvidence && scoreCommonCjk(asEucJp) > scoreCommonCjk(winner.text))) {
+      return { text: asEucJp, encoding: 'EUC-JP' }
+    }
+  }
   if (!hasBadChars(winner.text) && !suspiciousQuestionRatio(winner.text)) return winner
 
   // 全都不干净：用 latin1 兜底。它能把每个字节都映射成一个字符，
@@ -126,8 +156,8 @@ export function decodeText(buf: Buffer): DecodedText {
 
 /**
  * zip 条目名：flag bit 11 表示"声明是 UTF-8"。
- * 没声明时字节可能是 cp437 / cp932 / GBK / 裸 UTF-8 —— 先按 UTF-8 严格试，
- * 失败再 cp932，再 GBK，最后 cp437。
+ * 没声明时字节可能是 cp932 / GBK / EUC-JP / 裸 UTF-8 —— 先按 UTF-8 严格试，
+ * 失败后候选评分，最后用 latin1 无替换符兜底。
  */
 export function decodeZipName(raw: Buffer, declaredUtf8: boolean): { name: string; encoding: TextEncoding } {
   if (declaredUtf8) {

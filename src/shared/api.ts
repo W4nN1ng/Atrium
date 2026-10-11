@@ -14,6 +14,8 @@ import type { HealthReport,
   ExtractCleanOutcome,
   ExtractUsage,
   ImportPackageResult,
+  ImportHistoryPage,
+  ImportHistoryQuery,
   JournalRow,
   LocaleKey,
   ModelBackfillPlan,
@@ -195,6 +197,7 @@ export interface AApi {
     nudgeFront(on: boolean): Promise<boolean>
     info(): Promise<AppInfo>
     paths(): Promise<PathInfo>
+    backupDatabase(title?: string): Promise<{ cancelled: boolean; path: string | null; bytes: number }>
     /**
      * M7 ③ · 只读探测一个目录（首启向导第 ① 步）。
      * 主进程那边有封顶（深度 3 / 访问 8000 条 / 数到 500 个就停），
@@ -364,6 +367,7 @@ export interface AApi {
     /** 顶栏工程切换器：选中的工程就是导入目标 */
     setTarget(projectId: string | null): Promise<string | null>
     /** 某个素材在哪些工程装过（只读 import_log；GUID 反查是 M5-B 的活） */
+    importHistory(query?: ImportHistoryQuery): Promise<ImportHistoryPage>
     importLogs(assetId: string): Promise<
       Array<{ id: string; project_id: string; status: string; finished_at: number | null; message: string | null }>
     >

@@ -6,6 +6,7 @@ export const IpcInvoke = {
     NudgeFront: 'system:nudge-front',
     Info: 'system:info',
     Paths: 'system:paths',
+    BackupDatabase: 'system:backup-database',
     /** M7 ③ · 首启向导第 ① 步：只读探测一个目录像不像已经有素材（判定在 shared/wizardState.ts） */
     ProbeDirectory: 'system:probe-directory',
     PickDirectory: 'system:pick-directory',
@@ -107,6 +108,7 @@ export const IpcInvoke = {
     SetTarget: 'unity:set-target',
     /** 某个素材在哪些工程装过（只读 import_log） */
     ImportLogs: 'unity:import-logs',
+    ImportHistory: 'unity:import-history',
     /** 桥接模板自检：缺文件时界面要能指出来，而不是点半天"安装"没反应 */
     BridgeTemplateCheck: 'unity:bridge-template-check',
     InstallBridge: 'unity:install-bridge',

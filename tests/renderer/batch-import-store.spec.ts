@@ -303,6 +303,19 @@ describe('确认与收尾', () => {
 })
 
 describe('接线', () => {
+  it('a stopped batch explains the newer overlapping import in the current language', async () => {
+    const useUi = await readyWith([])
+    const { initI18n } = await import('../../src/renderer/i18n')
+    await initI18n('zh-CN')
+    window.a.unity.rollbackBatch = vi.fn(async () => ({ batchId: 'old', attempted: 1, rolledBack: 0,
+      stoppedAt: 'old-import', ok: false, details: [{ importId: 'old-import', relPath: 'old.unitypackage',
+        ok: false, error: 'i18n:importHistory.newerOverlap', deletedFiles: 0, restoredFiles: 0, unrestorable: 0 }] }))
+    useUi.setState(s => ({ batchImport: { ...s.batchImport, outcome: { ok: true, batchId: 'old', imported: 1,
+      failed: 0, notRun: 0, blocked: [], results: [], cleanupFailed: 0, stoppedReasonKey: null } } }))
+    await useUi.getState().rollbackBatchOutcome()
+    expect(useUi.getState().toasts.some(x => x.text.includes('后来的导入修改了同一资源'))).toBe(true)
+    expect(useUi.getState().toasts.some(x => x.text.includes('i18n:'))).toBe(false)
+  })
   it('面板挂在 App 上（发起方是网格/快捷键，它们卸载了面板得还在）', async () => {
     const fs = await import('node:fs')
     const app = fs.readFileSync('src/renderer/App.tsx', 'utf8')

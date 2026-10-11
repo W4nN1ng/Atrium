@@ -114,6 +114,89 @@ describe('§2.1 合集判定', () => {
     expect(planBundle(mk('Some_Avatar_Fullset', [], ['Mesh/a.fbx', 'Mesh/b.mat', 'Textures/t.png', 'Textures/u.png', 'Prefabs/p.prefab']), deps())).toBeNull()
   })
 
+  it('说明目录的文件数量不能把说明、配图和链接变成产品', () => {
+    const plan = planBundle(
+      mk('Clothing Pack', [], [
+        'Shirt.unitypackage',
+        'Pants.unitypackage',
+        'Instructions/readme.txt',
+        'Instructions/help.png',
+        'Instructions/store.url',
+        'Notes/readme.txt',
+        'Notes/changelog.md',
+        'Notes/store.url',
+        'Customer Info/readme.txt',
+        'Customer Info/help.png',
+        'Customer Info/terms.pdf',
+        'cover.png',
+        'readme.txt'
+      ]),
+      deps()
+    )!
+    expect(plan.items.map((i) => i.name)).toEqual(['Pants', 'Shirt'])
+    expect(plan.coverImage).toBe('cover.png')
+  })
+
+  it('只有说明目录凑成三个子目录时不应推断为合集', () => {
+    expect(planBundle(
+      mk('Ordinary Outfit', [], [
+        'Notes/readme.txt', 'Notes/changes.md', 'Notes/store.url',
+        'Guides/install.png', 'Guides/setup.png', 'Guides/help.png',
+        'Links/store.url', 'Links/seller.url', 'Links/video.url'
+      ]),
+      deps()
+    )).toBeNull()
+  })
+
+  it('卖家合集内的嵌套筐也不把说明和结构目录展开为产品', () => {
+    const plan = planBundle(
+      mk('Seller Pack', [], [
+        '道具22件/Shirt/main.unitypackage',
+        '道具22件/Pants/main.unitypackage',
+        '道具22件/Instructions/step1.png',
+        '道具22件/Instructions/step2.png',
+        '道具22件/Instructions/step3.png',
+        '道具22件/Notes/readme.txt',
+        '道具22件/Notes/changelog.md',
+        '道具22件/Notes/store.url',
+        '道具22件/Textures/albedo.png',
+        '道具22件/Textures/normal.png',
+        '道具22件/Textures/mask.png',
+        'Hat.unitypackage'
+      ]),
+      deps()
+    )!
+    expect(plan.items.map((i) => i.name)).toEqual(['Hat', 'Pants', 'Shirt'])
+    expect(plan.containerKind).toBe('collection')
+  })
+
+  it('嵌套筐只有说明时也不回退为一个虚假的产品', () => {
+    const plan = planBundle(
+      mk('Clothing Pack', [], [
+        'Shirt.unitypackage', 'Pants.unitypackage',
+        '道具22件/Instructions/step1.png',
+        '道具22件/Instructions/step2.png',
+        '道具22件/Instructions/step3.png'
+      ]),
+      deps()
+    )!
+    expect(plan.items.map((i) => i.name)).toEqual(['Pants', 'Shirt'])
+  })
+
+  it('只有图像的贴图商品和带说明的贴图商品仍然保留', () => {
+    const plan = planBundle(
+      mk('Makeup Pack', [], [
+        'Rose Makeup/face.png', 'Rose Makeup/body.png', 'Rose Makeup/eye.png',
+        'Silver Makeup/face.png', 'Silver Makeup/body.png', 'Silver Makeup/readme.txt',
+        'cover.png', 'readme.txt'
+      ]),
+      deps()
+    )!
+    expect(plan.items.map((i) => i.name)).toEqual(['Rose Makeup', 'Silver Makeup'])
+    expect(plan.items[0].entries.map((e) => e.relPath)).toEqual(['face.png', 'body.png', 'eye.png'])
+    expect(plan.coverImage).toBe('cover.png')
+  })
+
   it('ABT 那种"一件商品的几个分包"：不再否决，但标 oneProduct（§6.7 要 2 个 Item）', () => {
     const plan = planBundle(
       mk('ABT 1.3.0【汉化 闲鱼@月见汐音】', ['插件'], [

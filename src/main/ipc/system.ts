@@ -10,6 +10,8 @@ import { libraryRootProblem } from '../security/libraryRoot'
 import { freeBytesOf } from '../import/extractRoot'
 import { isSupportedInputName } from '../unpack/magic'
 import type { IpcRegistrar } from './types'
+import { getDb } from '../db'
+import { createDatabaseBackup } from '../db/backup'
 
 /** 探测的三道上限（M7 ③）：判定只需要"有没有"，不需要走完整棵树 */
 const PROBE_DEPTH = 3
@@ -24,6 +26,27 @@ function abs(input: unknown, what = '路径'): string {
 }
 
 export function registerSystem(ipc: IpcRegistrar['ipc'], getWindow: () => BrowserWindow | null, isPrimary: () => boolean): void {
+  let backupBusy = false
+  ipc.handle('system:backup-database', async (title: unknown) => {
+    if (backupBusy) throw new Error('i18n:settings.backupBusy')
+    backupBusy = true
+    try {
+      const now = new Date()
+      const stamp = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()]
+        .map(n => String(n).padStart(2, '0')).join('-')
+      const options: Electron.SaveDialogOptions = {
+        title: typeof title === 'string' ? title.slice(0, 200) : 'Atrium — Database backup',
+        defaultPath: path.join(app.getPath('documents'), `Atrium-database-${stamp}.db`),
+        filters: [{ name: 'SQLite', extensions: ['db', 'sqlite', 'sqlite3'] }],
+        properties: ['createDirectory', 'showOverwriteConfirmation']
+      }
+      const win = getWindow()
+      const chosen = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
+      if (chosen.canceled || !chosen.filePath) return { cancelled: true, path: null, bytes: 0 }
+      const result = await createDatabaseBackup(getDb(), P.db(), chosen.filePath)
+      return { cancelled: false, ...result }
+    } finally { backupBusy = false }
+  })
   /**
    * 截图专用：把主窗口"顶到最前"。
    *

@@ -33,17 +33,26 @@ const BUNDLE_NAME_RE =
  * 光杆"更新/重要/其他/备份"这类是用户自己随手建的筐。
  */
 const CONTAINER_RE =
-  /^\D{0,12}\d+\s*[件個款点种種]|\d+\s*件$|^(更新|重要|其他|其它|その他|备份|バックアップ|新建文件夹|整理|temp|tmp|new folder)/i
+  /^\D{0,12}\d+\s*[件個款点种種]|\d+\s*件$|^(更新|重要|其他|其它|その他|备份|バックアップ|新建文件夹|整理|temp|tmp|new folder)[\s!！。._-]*$/i
 
 /** Booth / 爱发电的商品 id 目录：纯数字 5–8 位 */
 const ID_DIR_RE = /^\d{5,8}$/
 
-/** 能独立分类 = 里面有点东西（不是一张封面图或一个说明文件） */
+const IMAGE_RE = /\.(png|jpe?g|webp)$/i
+const DOCUMENT_RE = /\.(txt|md|html?|url|pdf|rtf|docx?|meta)$/i
+const ATTACHMENT_IMAGE_RE = /^(cover|preview|thumbnails?|readme|help|instructions?|manuals?|guides?|tutorials?)(?:$|[\s_.\-\d])/i
+
+/** 能独立分类 = 有素材内容；三份说明或配图不能单凭数量成为一件商品。 */
 function classifiable(files: FileEntry[]): boolean {
   const real = files.filter((f) => !f.isDir)
   if (!real.length) return false
-  const junk = real.filter((f) => /\.(png|jpe?g|webp|txt|md|html?|url)$/i.test(f.relPath))
-  return real.length > junk.length || real.length >= 3
+  if (real.some((f) => !IMAGE_RE.test(f.relPath) && !DOCUMENT_RE.test(f.relPath))) return true
+  // 保留纯图像贴图商品，以及带 readme 的贴图商品；封面和说明配图不是素材证据。
+  return real.length >= 3 && real.some((f) => {
+    if (!IMAGE_RE.test(f.relPath)) return false
+    const stem = (segs(f.relPath).pop() ?? '').replace(/\.[^.]+$/, '')
+    return !ATTACHMENT_IMAGE_RE.test(stem)
+  })
 }
 
 /** 子项是压缩包还是 unitypackage —— 根下散文件能不能自立成一项要看这个 */
@@ -177,7 +186,12 @@ function splitLeadingId(name: string): { id: string | null; rest: string } {
  * 拆成 Mesh + Textures + Prefabs 三个"素材" —— 等于把一件衣服撕碎。
  */
 const STRUCTURE_DIR_RE =
-  /^(mesh(es)?|textures?|tex|materials?|mats?|shaders?|scripts?|editor|animations?|anim|physics|prefabs?|scenes?|sounds?|aud?ios?|res|resources|fonts?|ui|base|extra|extras|other|reference|references|docs?|documentations?|thumbnails?|icons?|images?|img|plugins?|backup|backups|源文件|说明|图片|贴图|模型|材质|动作|脚本|场景|语音|音效)$/i
+  /^(mesh(es)?|textures?|tex|materials?|mats?|shaders?|scripts?|editor|animations?|anim|physics|prefabs?|scenes?|sounds?|aud?ios?|res|resources|fonts?|ui|base|extra|extras|other|reference|references|docs?|documentations?|instructions?|readmes?|manuals?|guides?|tutorials?|help|licenses?|licences?|thumbnails?|icons?|images?|img|plugins?|backup|backups|源文件|说明|说明书|使用说明|文档|教程|帮助|图片|贴图|模型|材质|动作|脚本|场景|语音|音效)$/i
+
+/** 顶层和嵌套筐使用同一门槛，不能在递归时把说明/结构目录重新当成产品。 */
+function usableChild(name: string, files: FileEntry[]): boolean {
+  return !/^\./.test(name) && !STRUCTURE_DIR_RE.test(name) && (ARCHIVE_RE.test(name) || classifiable(files))
+}
 
 /**
  * 子项名字是不是"同一个产品的几块"（首词高度一致）。
@@ -303,6 +317,7 @@ interface Candidate {
 const MAX_NEST_DEPTH = 3
 
 function flattenChild(childName: string, files: FileEntry[], depth: number): Candidate[] {
+  if (!usableChild(childName, files)) return []
   const directArchives: FileEntry[] = []
   const subDirs = new Map<string, FileEntry[]>()
   for (const f of files) {
@@ -337,7 +352,10 @@ function flattenChild(childName: string, files: FileEntry[], depth: number): Can
       }
     }
   }
-  return out.length ? out : [{ name: childName, rawName: childName, relPath: childName, files, id: null }]
+  if (out.length) return out
+  // 筐里直接存着 prefab/mat 等散装素材时仍保留它；只有被排除的子目录时不回退成假产品。
+  const directFiles = files.filter((f) => segs(f.relPath).length === 1)
+  return classifiable(directFiles) ? [{ name: childName, rawName: childName, relPath: childName, files, id: null }] : []
 }
 
 /**
@@ -388,12 +406,7 @@ export function planBundle(ingest: IngestResult, deps: ClassifyDeps): BundlePlan
   const containerName = CONTAINER_RE.test(ingest.rawName) || ingest.sourceDirChain.some((d) => CONTAINER_RE.test(d))
 
   /** 结构目录（Mesh/Textures/…）不算"子项"，否则一件衣服会被判成合集 */
-  const usable = Array.from(groups.entries()).filter(
-    ([name, files]) =>
-      !/^\./.test(name) &&
-      !STRUCTURE_DIR_RE.test(name) &&
-      (ARCHIVE_RE.test(name) || classifiable(files))
-  )
+  const usable = Array.from(groups.entries()).filter(([name, files]) => usableChild(name, files))
   /** 名字写着合集 / 是容器名时 2 个子项就够（`4952737/INVICTA` + `4185283/M4A1` 这种两个商品的合集） */
   const minChildren = nameSaysBundle || containerName ? 2 : 3
   if (usable.length < minChildren) return null
