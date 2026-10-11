@@ -7,6 +7,7 @@ import { useUi } from '../stores/ui'
 import { MergeSuggestBar } from './MergeSuggestBar'
 import { Modal } from './ui'
 import { fileUrl } from '../lib/format'
+import { CoverBatch } from './CoverBatch'
 
 /** 分类 key → 当前语言的显示名（提示条要把 'clothing/outfit' 写成「服装 / 套装」） */
 function labelOfCat(
@@ -38,6 +39,7 @@ function StatusDot({ status }: { status: AssetCard['status'] }): JSX.Element {
 function Cover({ card }: { card: AssetCard }): JSX.Element {
   const letter = (card.name || card.rawName || '?').trim().slice(0, 1).toUpperCase()
   const [broken, setBroken] = useState(false)
+  useEffect(() => setBroken(false), [card.coverImage])
   // 'none' 是主进程写下的"这包里确实没图"，不是路径 —— 当真 URL 请求会每张卡发一次失败请求
   const hasCover = !!card.coverImage && card.coverImage !== 'none'
   const src = hasCover && !broken ? (/^[a-z]+:/i.test(card.coverImage!) ? card.coverImage! : fileUrl(card.coverImage!)) : null
@@ -314,6 +316,7 @@ export function AssetGrid(): JSX.Element {
           <span className="chip chip-accent">{t('library.selected', { count: selection.length })}</span>
         ) : null}
         <div className="ml-auto flex items-center gap-2">
+          {selection.length ? <CoverBatch assetIds={selection} /> : null}
           {/* 选中的东西能一键收进集合：集合页只管集合本身，成员得在这儿加 */}
           {selection.length && collections.length ? (
             <select

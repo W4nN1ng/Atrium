@@ -33,7 +33,7 @@ function load(loc: string): Record<string, unknown> {
  * 只认 `messageKey:` 前缀的旧扫描规则会整个漏掉，所以改成按命名空间认。
  */
 const KEY_LITERAL_RE =
-  /'((?:ingest|probe|err|toast|settings|library|status|collections|inbox|asset|unity|common|nav|classify|rearchive|installed|variantKind|wizard)\.[A-Za-z0-9_.]+)'/g
+  /'((?:covers|ingest|probe|err|toast|settings|library|status|collections|inbox|asset|unity|common|nav|classify|rearchive|installed|variantKind|wizard)\.[A-Za-z0-9_.]+)'/g
 
 /** 但 'settings.json'、'library.db' 这种是文件名，不是 key */
 const FILE_EXT_RE =

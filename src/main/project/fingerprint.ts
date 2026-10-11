@@ -35,8 +35,8 @@ import log from 'electron-log'
 export const TOP_FOLDERS_MAX = 200
 /**
  * 从哪个桥接版本起 `list_project_assets` 会回 `topFolders` / `avatarDescriptors`。
- * 现在发布的模板是 1.0.0 → 这一版**永远走降级分支**，`avatarDescriptors` 恒为空。
- * 等 Q5 改成"要动 C#"时，把模板版本号抬到 1.1.0，这里就自动接上。
+ * 1.1.0 是尝试读取扩展字段的最低版本。物品封面桥接 1.1.0
+ * 不提供这两个字段，仍保留磁盘目录和 noAvatarDescriptors 降级。
  */
 export const BRIDGE_WITH_ASSET_LIST = '1.1.0'
 /** 指纹采集是"顺手做的"，桥接慢就不要它 —— 5 秒拿不到就退回磁盘那半边 */

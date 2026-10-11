@@ -21,6 +21,7 @@ import path from 'node:path'
 import { P } from '../services/paths'
 import { extractPackagePreview } from '../unpack/unitypackage'
 import type { Db } from '../db'
+import { getCover, referencedCoverKeys } from '../db/repos/covers'
 import {
   COVER_NONE,
   THUMB_MAX_SOURCE_BYTES,
@@ -28,6 +29,7 @@ import {
   pickCoverCandidate,
   thumbKeyFromUrl,
   thumbKeyOf,
+  thumbKeyFromCover,
   thumbUrlFor,
   THUMB_MAX_EDGE
 } from './thumbRules'
@@ -150,15 +152,35 @@ export async function ensureThumb(db: Db, assetId: string, opts: ThumbOptions = 
     .prepare(`SELECT id, hash_xxh64, kind, library_path, source_path, cover_image FROM asset WHERE id = ?`)
     .get(assetId) as ThumbRow | undefined
   if (!row) return { ok: false, url: null, why: '素材不存在' }
+  const chosenKey = thumbKeyFromCover(row.cover_image)
+  if (chosenKey) {
+    const chosenFile = thumbPathFor(chosenKey)
+    if (fs.existsSync(chosenFile) && fs.statSync(chosenFile).size > 0) {
+      return { ok: true, url: row.cover_image }
+    }
+  }
+  // An explicit cover whose cache is missing remains explicit; rebuilding must
+  // not silently replace the user's choice with an unrelated automatic image.
+  if (getCover(db, assetId)) return { ok: false, url: null, why: '已设置的封面缓存丢失，请重新生成或恢复自动封面' }
   const key = thumbKeyOf(row)
   const dest = thumbPathFor(key)
-  const save = (url: string): void => {
-    if (row.cover_image !== url) db.prepare(`UPDATE asset SET cover_image = ? WHERE id = ?`).run(url, assetId)
+  const save = (url: string): boolean => {
+    // Extraction yields to IPC. Only update the unchanged automatic cover;
+    // a user selection made in the meantime always wins.
+    return db.prepare(`UPDATE asset SET cover_image = ? WHERE id = ? AND cover_image IS ?
+      AND NOT EXISTS (SELECT 1 FROM asset_cover WHERE asset_id = ?)`)
+      .run(url, assetId, row.cover_image, assetId).changes > 0
+  }
+  const current = (): ThumbResult => {
+    const latest = db.prepare('SELECT cover_image FROM asset WHERE id = ?').get(assetId) as { cover_image: string | null } | undefined
+    const selected = thumbKeyFromCover(latest?.cover_image)
+    return selected && fs.existsSync(thumbPathFor(selected))
+      ? { ok: true, url: latest!.cover_image }
+      : { ok: false, url: null, why: '封面已变化，未覆盖当前选择' }
   }
   if (fs.existsSync(dest) && fs.statSync(dest).size > 0) {
     const url = thumbUrlFor(key)
-    save(url)
-    return { ok: true, url }
+    return save(url) ? { ok: true, url } : current()
   }
   let sawSomething = false
   const dirs: string[] = []
@@ -175,8 +197,7 @@ export async function ensureThumb(db: Db, assetId: string, opts: ThumbOptions = 
     if (!abs) continue
     const r = writeThumb(abs, key)
     if (r.ok && r.url) {
-      save(r.url)
-      return r
+      return save(r.url) ? r : current()
     }
   }
   // 散图没有 → 伸进 unitypackage 拿卖家自己放的 preview.png（要解压，看 opts.packages 脸色）
@@ -188,8 +209,7 @@ export async function ensureThumb(db: Db, assetId: string, opts: ThumbOptions = 
           if (!pv) continue
           const r = writeThumbFromBuffer(pv.bytes, key)
           if (r.ok && r.url) {
-            save(r.url)
-            return r
+            return save(r.url) ? r : current()
           }
         } catch {
           /* 一个包读不动就试下一个 */
@@ -201,7 +221,7 @@ export async function ensureThumb(db: Db, assetId: string, opts: ThumbOptions = 
   // 现在就标 'none' 的话，以后维护页再也不会去补这些素材的封面。
   const searchedEverything = opts.packages !== false
   if (searchedEverything && sawSomething && row.cover_image !== COVER_NONE) {
-    db.prepare(`UPDATE asset SET cover_image = ? WHERE id = ?`).run(COVER_NONE, assetId)
+    if (!save(COVER_NONE)) return current()
   }
   return { ok: false, url: null, why: '没有可用的图片' }
 }
@@ -247,14 +267,22 @@ export async function backfillThumbs(
 
 /** 删素材时顺手清缓存（回收站里的东西不该继续在缩略图目录留影子） */
 export function forgetThumb(db: Db, assetId: string): void {
-  const row = db.prepare(`SELECT hash_xxh64, id FROM asset WHERE id = ?`).get(assetId) as
-    | { hash_xxh64: string | null; id: string }
+  const row = db.prepare(`SELECT hash_xxh64, id, cover_image FROM asset WHERE id = ?`).get(assetId) as
+    | { hash_xxh64: string | null; id: string; cover_image: string | null }
     | undefined
   if (!row) return
-  try {
-    fs.rmSync(thumbPathFor(thumbKeyOf(row)), { force: true })
-  } catch {
-    /* 缓存删不掉无所谓，维护页的清理会收 */
+  const used = referencedCoverKeys(db, assetId)
+  const others = db.prepare('SELECT id, hash_xxh64, cover_image FROM asset WHERE id != ?').all(assetId) as Array<typeof row & object>
+  for (const other of others) {
+    used.add(thumbKeyOf(other))
+    const key = thumbKeyFromCover(other.cover_image)
+    if (key) used.add(key)
+  }
+  const cover = getCover(db, assetId)
+  const keys = new Set([thumbKeyOf(row), thumbKeyFromCover(row.cover_image), thumbKeyFromCover(cover?.previousImage)])
+  for (const key of keys) {
+    if (!key || used.has(key)) continue
+    try { fs.rmSync(thumbPathFor(key), { force: true }) } catch { /* maintenance retries */ }
   }
 }
 
@@ -279,14 +307,19 @@ export function listThumbKeys(): string[] {
  * 谁引用不到就删，入口再多也不怕。
  */
 export function pruneThumbCache(db: Db): { removed: number; kept: number } {
-  const used = new Set(
-    (db.prepare(`SELECT hash_xxh64, id FROM asset`).all() as Array<{ hash_xxh64: string | null; id: string }>).map(
-      (r) => thumbKeyOf(r)
-    )
-  )
+  const used = referencedCoverKeys(db)
+  for (const row of db.prepare('SELECT id, hash_xxh64, cover_image FROM asset').all() as Array<{ id: string; hash_xxh64: string | null; cover_image: string | null }>) {
+    used.add(thumbKeyOf(row))
+    const key = thumbKeyFromCover(row.cover_image)
+    if (key) used.add(key)
+  }
   let removed = 0
   let kept = 0
   for (const key of listThumbKeys()) {
+    // Keep unconfirmed previews briefly while the user is reviewing a modal.
+    try {
+      if (key.startsWith('preview-') && Date.now() - fs.statSync(thumbPathFor(key)).mtimeMs < 30 * 60_000) { kept++; continue }
+    } catch { continue }
     if (used.has(key)) {
       kept++
       continue

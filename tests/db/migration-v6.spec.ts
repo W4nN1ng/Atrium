@@ -45,11 +45,10 @@ afterEach(() => {
 })
 
 describe('V5 → V6', () => {
-  it('迁移跑完 user_version 落在 SCHEMA_VERSION，且这一版就是 V6', () => {
-    expect(SCHEMA_VERSION).toBe(6)
+  it('迁移包含 V6 并升级至当前 schema，保留已有数据', () => {
     const applied = migrate(db)
-    expect(applied).toBe(1)
-    expect(Number(db.pragma('user_version', { simple: true }))).toBe(6)
+    expect(applied).toBe(MIGRATIONS.filter(m => m.version > 5).length)
+    expect(Number(db.pragma('user_version', { simple: true }))).toBe(SCHEMA_VERSION)
   })
 
   /**
@@ -82,7 +81,7 @@ describe('V5 → V6', () => {
   it('重复迁移不炸（幂等哨兵：migrate 只看 user_version，不该二次执行）', () => {
     migrate(db)
     expect(migrate(db)).toBe(0)
-    expect(Number(db.pragma('user_version', { simple: true }))).toBe(6)
+    expect(Number(db.pragma('user_version', { simple: true }))).toBe(SCHEMA_VERSION)
   })
 
   it('V6 之后 import_log 那三列还在（别把上一版的列挤掉）', () => {

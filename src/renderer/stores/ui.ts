@@ -658,9 +658,16 @@ export const useUi = create<UiState>((set, get) => {
     window.a.on('ingest:progress', (payload) => {
       set({ ingestItems: Array.isArray(payload) ? (payload as IngestItemState[]) : [] })
     })
-    window.a.on('data:changed', () => {
+    window.a.on('data:changed', (payload) => {
       void refreshList()
       void refreshMeta()
+      const change = payload as { reason?: string; assetId?: string } | null
+      const id = get().detailId
+      if (change?.reason === 'cover' && id && change.assetId === id) {
+        void window.a.assets.detail(id).then(detail => {
+          if (get().detailId === id) set({ detail })
+        }).catch(() => undefined)
+      }
     })
     /**
      * M6 ⑤：主进程检测到"某个工程刚打开"并做完了决策。

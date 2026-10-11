@@ -29,7 +29,7 @@ import { dirKeyOf } from '../../shared/pathkey'
  *   意思是"历史遗留的跨目录归并"，新条目不会再吸附进去（要拆交给健康检查）。
  */
 
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS asset (
@@ -359,6 +359,21 @@ CREATE INDEX IF NOT EXISTS idx_import_log_container
 -- 不落库的症状是每次重启 A 都会立刻再弹一次横幅 —— 而重启 A 是常态（改代码、崩了、开机自启）。
 -- 同样**不回填**：NULL = 从没自动切过，第一次检测到 Unity 启动就该切。
 ALTER TABLE project ADD COLUMN last_auto_switch_at INTEGER;
+`
+  },
+  {
+    version: 7,
+    sql: `
+CREATE TABLE asset_cover (
+  asset_id TEXT PRIMARY KEY REFERENCES asset(id) ON DELETE CASCADE,
+  cover_image TEXT NOT NULL,
+  previous_image TEXT,
+  source TEXT NOT NULL CHECK(source IN ('unity', 'image')),
+  project_id TEXT,
+  target_json TEXT,
+  options_json TEXT,
+  updated_at INTEGER NOT NULL
+);
 `
   }
 ]

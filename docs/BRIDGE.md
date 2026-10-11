@@ -5,6 +5,8 @@
 >
 > 实现位置：A 侧 `src/main/bridge/`，Unity 侧 `resources/unity-bridge/com.avca.bridge/`。
 
+> **2026-10-11 更新：** 当前模板为 1.1.0，新增 `object_preview` 能力及物品封面命令，详见第 16 节。下方测试历史中的 1.0.0、旧命令数量和未验证事项描述对应当时版本。
+
 ---
 
 ## 1. 它是什么
@@ -1010,3 +1012,22 @@ busyReason:"Unity 正在运行 Play 模式" / bridgeVersion:1.0.0`，A 那边界
   （本轮 `[fingerprint] … bridgeTooOld` 又抓到一次）。
 
 两条都指向同一处：改 C# 两处 + 重装桥接，TS 一行不用动。要不要在这一版做，等第 6 轮一起裁。
+
+## 16. Unity 物品封面（桥接 1.1.0）
+
+沿用 protocolVersion=1 的本地文件信箱，旧命令保持兼容。心跳新增可选字段 `capabilities: ["object_preview"]`。Atrium 根据此能力识别支持情况，不凭版本号推断；旧桥接可以在封面窗口更新。1.1.0 的本次变更只增加封面能力，尚未实现 `list_project_assets` 的 `topFolders` / `avatarDescriptors`；工程指纹继续使用磁盘目录及缺失 descriptor 的降级。
+
+| 命令 | payload | 结果 data |
+| --- | --- | --- |
+| `get_preview_targets` | `{query: ""}` 读取当前选择；非空 query 搜索 Assets 中的 GameObject 资产，最多 50 个 | `{targets: [{id, name, path, persistent, isScene, sourceGuid}]}` |
+| `render_preview` | `{targetId, direction, background}` | `{relativePath: "previews/<commandId>.png", width: 640, height: 480, rendererCount}` |
+
+方向为 `auto / scene / front / back / left / right / top / bottom`，背景为 `dark / light`。对象优先用 GlobalObjectId；未保存对象退回 `instance:<id>`，标记 persistent=false。Scene 模式复用当前 SceneView 的旋转，中心和距离由对象边界重新计算。其他方向采用世界方向。
+
+Unity 只在 `Temp/AVCABridge/previews/` 写本次请求的 PNG；命令 ID 校验后才能拼接路径，先写临时文件再替换。Atrium 严格校验返回路径、真实目录边界、普通文件、PNG 标记、640×480 和最多 8 MB，再使用 Electron 解码器写入独立缓存。图片确认前不修改卡片，预览有效期为 10 分钟。
+
+预览在编辑模式、Built-in 下运行。渲染器在独立 PreviewRenderUtility 场景直接绘制网格；SkinnedMeshRenderer 先 BakeMesh 冻结当前姿态。材质克隆及 MaterialPropertyBlock 保留显示属性，不实例化源脚本。finally 清理预览场景、临时网格、材质、图片，并还原 RenderTexture.active。源场景、选择、材质和对象不会保存或改变。
+
+BridgeManager 新增请求级 AbortSignal。在排队或等待时取消，撤回该请求自己的 inbox 文件；不会取消先前的导入命令。Unity 已开始的同步 GPU 渲染无法中途抢占，Atrium 会拒绝晚到结果，不替换卡片。临时输出属于 Unity Temp，不进入素材库或 Avatar 上传资源。
+
+业务错误例如 `covers.noMesh`、`covers.missingShader`、`covers.pipelineUnsupported` 通过原有 error/exception/stackTrace 路径返回；封面窗口显示译文和可展开的有界详情，批量任务逐项记录。用户操作说明见 [UNITY-COVERS.md](UNITY-COVERS.md)，验证脚本为 `tools/verify-unity-preview.cs` 及 `tools/verify-cover-ui.cjs`。

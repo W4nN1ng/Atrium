@@ -11,7 +11,7 @@ let source: string
 let db: Db
 
 beforeEach(() => {
-  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'atrium-db-backup-'))
+  dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'atrium-db-backup-')))
   source = path.join(dir, 'library.db')
   db = new Database(source)
   db.pragma('journal_mode = WAL')
