@@ -477,7 +477,7 @@ describe('撤销导入（§5.3 / R-65：只删白名单）', () => {
     })
 
     const rb = await rollbackImport(db, bridge, project, imp.importId)
-    expect(rb.ok).toBe(true)
+    expect(rb.ok).toBe(false)
     expect(rb.unrestorable).toBe(1)
     expect(rb.restoredFiles).toHaveLength(0)
   })

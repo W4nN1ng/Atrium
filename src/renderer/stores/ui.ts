@@ -1682,7 +1682,7 @@ export const useUi = create<UiState>((set, get) => {
       if (!last) return
       try {
         const r = await window.a.unity.rollbackImport(last.importId)
-        if (r.ok) {
+        if (r.ok || ('unrestorable' in r && (r.unrestorable > 0 || (r.failedToDelete?.length ?? 0) > 0))) {
           /**
            * `unrestorable > 0` 时必须**如实说**"有 N 个被覆盖的文件没备份、内容找不回来"，
            * 不能只报"撤销成功" —— 那会让用户以为工程回到了导入前的样子。
@@ -1708,7 +1708,7 @@ export const useUi = create<UiState>((set, get) => {
           get().toast(lost > 0 || stuck > 0 ? 'warn' : 'ok', msg)
           set((s) => ({ importFlow: { ...s.importFlow, last: null } }))
         } else {
-          get().toast('bad', r.error ?? t('library.rollbackFailed'))
+          get().toast('bad', errorText(r.error ?? t('library.rollbackFailed')))
         }
       } catch (e) {
         get().toast('bad', e instanceof Error ? e.message : String(e))
@@ -2238,7 +2238,9 @@ export const useUi = create<UiState>((set, get) => {
           get().toast('ok', t('library.rollbackDone', { deleted: r.details.reduce((a, d) => a + d.deletedFiles, 0), restored: r.details.reduce((a, d) => a + d.restoredFiles, 0) }))
         } else {
           const lost = r.details.reduce((a, d) => a + d.unrestorable, 0)
-          get().toast('warn', t('library.memberRollbackStopped', { done: r.rolledBack, left: r.details.filter((d) => !d.ok).length, lost }))
+          const cause = r.details.find(d => !d.ok)?.error
+          get().toast('warn', t('library.memberRollbackStopped', { done: r.rolledBack, left: r.details.filter((d) => !d.ok).length, lost }) +
+            (cause ? ` · ${errorText(cause)}` : ''))
         }
         await refreshMeta()
       } catch (e) {
@@ -2395,7 +2397,9 @@ export const useUi = create<UiState>((set, get) => {
           )
         } else {
           const lost = r.details.reduce((a, d) => a + d.unrestorable, 0)
-          get().toast('warn', t('library.memberRollbackStopped', { done: r.rolledBack, left: r.details.filter((d) => !d.ok).length, lost }))
+          const cause = r.details.find(d => !d.ok)?.error
+          get().toast('warn', t('library.memberRollbackStopped', { done: r.rolledBack, left: r.details.filter((d) => !d.ok).length, lost }) +
+            (cause ? ` · ${errorText(cause)}` : ''))
         }
         set({ batchImport: { ...get().batchImport, outcome: null } })
         await refreshMeta()

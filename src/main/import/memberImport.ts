@@ -634,7 +634,8 @@ export async function rollbackMemberBatch(
       error: r.error,
       deletedFiles: r.deletedFiles.length,
       restoredFiles: r.restoredFiles.length,
-      unrestorable: r.unrestorable
+      unrestorable: r.unrestorable,
+      failedToDelete: r.failedToDelete?.length ?? 0
     })
     if (!r.ok) {
       out.stoppedAt = row.id

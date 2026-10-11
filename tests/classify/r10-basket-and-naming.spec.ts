@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { FileEntry, IngestResult, CategoryConfig } from '../../src/shared/types'
 import { classify } from '../../src/main/classify/engine'
-import { isBasketOnlyName } from '../../src/main/classify/bundle'
+import { isBasketOnlyName, isCollectionName, looksLikeBundleDir } from '../../src/main/classify/bundle'
 import { containerInfoOf } from '../../src/main/ingest/container'
 import { tagsWithAltName } from '../../src/shared/naming'
 import { loadLexicon, type Lexicon } from '../../src/main/classify/lexicon'
@@ -95,6 +95,25 @@ describe('C · 筐不该成为一张卡（isBasketOnlyName）', () => {
       expect(isBasketOnlyName(n), `${n} 是卖家合集，不是筐`).toBe(false)
     }
     for (const n of ['', null, undefined, '修女', 'Libero']) expect(isBasketOnlyName(n)).toBe(false)
+  })
+
+  it.each(['Templates.2', 'Temporary Clothing', 'TmpAvatar', 'New Folder Outfit', '更新角色', '重要人物'])('%s 的商品名不因容器词前缀被摊平', (name) => {
+    expect(isBasketOnlyName(name)).toBe(false)
+    expect(isCollectionName(name)).toBe(false)
+    expect(looksLikeBundleDir(name, 2)).toBe(false)
+  })
+
+  it.each(['temp', 'TMP', 'new folder', '更新', '重要！', '道具22件', 'ERP用12件'])('%s 的完整容器词仍被识别', (name) => {
+    expect(isBasketOnlyName(name)).toBe(true)
+    expect(isCollectionName(name)).toBe(true)
+    expect(looksLikeBundleDir(name, 2)).toBe(true)
+  })
+
+  it.each(['Templates.2', 'Temporary Clothing'])('%s 有多个产品时保留一张容器卡', (name) => {
+    const r = classify(mk(name, [], ['Shirt/main.unitypackage', 'Pants/main.unitypackage', 'Hat/main.unitypackage']), deps())
+    expect(r.units).toHaveLength(1)
+    expect(r.tree?.containerKind).toBe('merged')
+    expect(r.tree?.items.map((i) => i.name)).toEqual(['Hat', 'Pants', 'Shirt'])
   })
 
   it('⭐ 拖一个筐进来 → 里面每件各自成单元，不产合集卡', () => {

@@ -12,6 +12,7 @@ import { ReanalyzePanel } from '../components/ReanalyzePanel'
 import { TaxonomyPanel } from '../components/TaxonomyPanel'
 import { LearnModelsPanel } from '../components/LearnModelsPanel'
 import { PasswordVaultPanel } from '../components/PasswordVaultPanel'
+import { DatabaseBackupPanel } from '../components/DatabaseBackupPanel'
 
 type TabKey = 'general' | 'library' | 'classify' | 'unity' | 'integration' | 'maintenance' | 'about'
 
@@ -445,6 +446,7 @@ export function Settings(): JSX.Element {
 
           {tab === 'maintenance' ? (
             <>
+              <DatabaseBackupPanel />
               <Field label={t('settings.dataDir')} hint={paths?.dbPath}>
                 <div className="flex gap-2">
                   <Button

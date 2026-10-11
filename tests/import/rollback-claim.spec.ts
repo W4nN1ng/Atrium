@@ -111,6 +111,35 @@ afterEach(() => {
 })
 
 describe('撤销导入的并发闸门（真 Unity 活体抓到的）', () => {
+  it.each(['missing', 'invalid'])('an %s backup cannot count as successful rollback or unblock an older overlapping import', async mode => {
+    const old = seedImport([GUID_A])
+    const newer = seedImport([])
+    const backup = path.join(root, 'pruned-backup')
+    if (mode === 'invalid') { fs.mkdirSync(backup); fs.writeFileSync(path.join(backup, 'manifest.json'), '{broken') }
+    db.prepare('UPDATE import_log SET overwritten_json = ?, backup_dir = ? WHERE id = ?').run(JSON.stringify([GUID_A]), backup, newer)
+    const file = path.join(project, 'Assets', 'A.prefab')
+    fs.writeFileSync(file, 'NEWER CONTENT')
+    const { bridge, deleteCalls } = fakeBridge(() => ({ deleted: ['Assets/A.prefab'], failed: [] }))
+    const partial = await rollbackImport(db, bridge, project, newer)
+    expect(partial.ok).toBe(false)
+    expect(partial.unrestorable).toBe(1)
+    expect((db.prepare('SELECT status FROM import_log WHERE id = ?').get(newer) as { status: string }).status).toBe('rollbackpartial')
+    expect((await rollbackImport(db, bridge, project, old)).error).toBe('i18n:importHistory.newerOverlap')
+    expect(deleteCalls()).toBe(0)
+    expect(fs.readFileSync(file, 'utf8')).toBe('NEWER CONTENT')
+  })
+  it('older rollback never deletes a resource subsequently overwritten by another import', async () => {
+    const old = seedImport([GUID_A])
+    const newer = seedImport([])
+    db.prepare('UPDATE import_log SET overwritten_json = ? WHERE id = ?').run(JSON.stringify([GUID_A]), newer)
+    const { bridge, deleteCalls } = fakeBridge(() => ({ deleted: ['Assets/A.txt'], failed: [] }))
+    const result = await rollbackImport(db, bridge, project, old)
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('i18n:importHistory.newerOverlap')
+    expect(deleteCalls()).toBe(0)
+    expect((db.prepare('SELECT status FROM import_log WHERE id = ?').get(old) as { status: string }).status).toBe('ok')
+  })
+
   it('两次撤销真的撞上时（第一次还卡在桥接里）：只有一次去删，第二次停手且不改写第一次的账', async () => {
     const id = seedImport([GUID_A, GUID_B])
     /**
@@ -163,7 +192,7 @@ describe('撤销导入的并发闸门（真 Unity 活体抓到的）', () => {
     const id = seedImport([GUID_A, GUID_B])
     const { bridge } = fakeBridge(() => ({ deleted: ['Assets/A.txt'], failed: ['Assets/B.txt'] }))
     const r = await rollbackImport(db, bridge, project, id)
-    expect(r.ok).toBe(true)
+    expect(r.ok).toBe(false)
     expect(r.deletedFiles).toEqual(['Assets/A.txt'])
     expect(r.failedToDelete).toEqual(['Assets/B.txt'])
     const row = db.prepare(`SELECT message FROM import_log WHERE id = ?`).get(id) as { message: string }

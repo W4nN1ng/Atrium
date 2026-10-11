@@ -11,6 +11,9 @@ import type {
 } from '../../shared/types'
 import { GUID_BATCH_SIZE, IMPORT_BACKUP_KEEP } from '../../shared/constants'
 import type { Db } from '../db'
+import { rollbackBlockReason } from '../db/repos/importHistory'
+import { readBackupManifest, type BackupSaved } from './backupManifest'
+export { readBackupManifest, type BackupSaved, type BackupManifest } from './backupManifest'
 import { appendJournal, insertImportLog, patchImportLog } from '../db/repos/journal'
 import { getProject } from '../db/repos/unity'
 import { isBridgeInstalled, isHeartbeatStale, readHeartbeat } from '../bridge/mailbox'
@@ -257,11 +260,6 @@ export function rollbackDirFor(importId: string): string {
   return path.join(P.rollback(), importId)
 }
 
-export interface BackupSaved {
-  guid: string
-  assetPath: string
-  file: string
-}
 
 /**
  * 把"将被覆盖"的那些文件从**工程里**复制到备份目录。
@@ -312,19 +310,6 @@ export function backupOverwritten(
   return { dir, saved, missing }
 }
 
-export interface BackupManifest {
-  projectPath: string
-  saved: BackupSaved[]
-  missing: string[]
-}
-
-export function readBackupManifest(dir: string): BackupManifest | null {
-  try {
-    return JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')) as BackupManifest
-  } catch {
-    return null
-  }
-}
 
 /**
  * 只保留最近 `IMPORT_BACKUP_KEEP`（20）次导入的备份，超出**走回收站**（§5.3 / R-66）。
@@ -588,6 +573,9 @@ export async function rollbackImport(
     }
   }
 
+  const blocked = rollbackBlockReason(db, importId)
+  if (blocked) return { ok: false, importId, deletedFiles: [], restoredFiles: [], unrestorable: 0, error: `i18n:${blocked}` }
+
   const created = safeJsonArray(logRow.created_guids_json)
   const overwritten = safeJsonArray(logRow.overwritten_json)
   const deletedFiles: string[] = []
@@ -680,13 +668,16 @@ export async function rollbackImport(
       await bridge.execute(projectPath, 'refresh', {}, { label: '还原后刷新资源库' })
     }
     /** manifest 里的 missing 是"当时就没找到"的，同样算不可还原 */
-    unrestorable = (manifest?.missing.length ?? 0) + restoreFailed
+    const saved = new Set(manifest?.saved.map(s => s.guid.toLowerCase()) ?? [])
+    unrestorable = Math.max(manifest?.missing.length ?? 0,
+      overwritten.filter(g => !saved.has(g.toLowerCase())).length) + restoreFailed
   } else if (overwritten.length) {
     unrestorable = overwritten.length
   }
 
+  const complete = unrestorable === 0 && failedToDelete.length === 0
   patchImportLog(db, importId, {
-    status: 'rolledback',
+    status: complete ? 'rolledback' : 'rollbackpartial',
     finished_at: Date.now(),
     message:
       `撤销：删除 ${deletedFiles.length} 个新建资源、还原 ${restoredFiles.length} 个被覆盖文件` +
@@ -706,7 +697,8 @@ export async function rollbackImport(
     { batchId: importId }
   )
 
-  return { ok: true, importId, deletedFiles, restoredFiles, unrestorable, failedToDelete, error: null }
+  return { ok: complete, importId, deletedFiles, restoredFiles, unrestorable, failedToDelete,
+    error: complete ? null : 'i18n:importHistory.partialWarning' }
 }
 
 function safeJsonArray(json: string | null): string[] {

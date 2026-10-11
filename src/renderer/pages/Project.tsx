@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { ProjectInfo } from '../../shared/types'
 import { useUi } from '../stores/ui'
 import { Badge, Button, EmptyState } from '../components/ui'
+import { ImportHistoryDialog } from '../components/ImportHistoryDialog'
 
 /**
  * Unity 工程页。
@@ -19,6 +20,7 @@ export function Project(): JSX.Element {
   const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [installing, setInstalling] = useState<string | null>(null)
+  const [historyProject, setHistoryProject] = useState<string | null | undefined>(undefined)
   const rows = useUi((s) => s.projects)
   const refreshProjects = useUi((s) => s.refreshProjects)
   const setUnityTarget = useUi((s) => s.setUnityTarget)
@@ -88,7 +90,8 @@ export function Project(): JSX.Element {
         <span className="text-[11px]" style={{ color: 'var(--faint)' }}>
           {t('project.detectNote')}
         </span>
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          <Button onClick={() => setHistoryProject(null)}>{t('importHistory.title')}</Button>
           <Button onClick={() => void load()} disabled={busy}>
             {t('project.refresh')}
           </Button>
@@ -146,6 +149,7 @@ export function Project(): JSX.Element {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1">
+                  <Button onClick={() => setHistoryProject(p.id)}>{t('importHistory.title')}</Button>
                   <Button onClick={() => void setUnityTarget(p.id)} disabled={isTarget}>
                     {t('project.setTarget')}
                   </Button>
@@ -165,6 +169,7 @@ export function Project(): JSX.Element {
         </div>
       )}
 
+      {historyProject !== undefined ? <ImportHistoryDialog projectId={historyProject} onClose={() => setHistoryProject(undefined)} /> : null}
       <div className="shrink-0 border-t px-3 py-2 text-[11px]" style={{ borderColor: 'var(--line)', color: 'var(--muted)' }}>
         {t('project.target')}:{' '}
         {unity.targetProjectId

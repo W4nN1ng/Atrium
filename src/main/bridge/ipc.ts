@@ -5,6 +5,7 @@ import { shell } from 'electron'
 import type { Db } from '../db'
 import { getProject, listProjects, setProjectRunning } from '../db/repos/unity'
 import { listImportLogs } from '../db/repos/journal'
+import { listImportHistory } from '../db/repos/importHistory'
 import { getSettings } from '../services/settings'
 import { bridgeTemplateRoot, bundledBinDir } from '../services/paths'
 import { setBridgeAsk } from '../db/repos/bridgeAsk'
@@ -303,6 +304,14 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
    * 已装过导入的工程（§7 反查"这个素材在哪个工程装过"）。
    * M5-A 只回传 import_log 里的成功记录，不做 GUID 反查（那是 M5-B 的活）。
    */
+  registrar.ipc.handle('unity:import-history', (query: unknown) => {
+    const q = query && typeof query === 'object' ? query as Record<string, unknown> : {}
+    return listImportHistory(db, {
+      projectId: typeof q.projectId === 'string' ? q.projectId : null,
+      offset: typeof q.offset === 'number' ? q.offset : 0,
+      limit: typeof q.limit === 'number' ? q.limit : 20
+    })
+  })
   registrar.ipc.handle('unity:import-logs', (assetId: unknown) => {
     if (typeof assetId !== 'string') return []
     return listImportLogs(db).filter((r) => r.asset_id === assetId)
