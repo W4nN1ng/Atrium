@@ -37,6 +37,7 @@ import type { HealthReport,
   VariantRow
 } from './types'
 import type { DirectoryProbe } from './wizardState'
+import type { CoverBatch, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget } from './covers'
 
 export interface AppInfo {
   name: string
@@ -189,6 +190,19 @@ export interface ListResult {
 
 /** preload 暴露给渲染进程的唯一入口：window.a */
 export interface AApi {
+  covers: {
+    status(assetId: string, projectId: string): Promise<CoverStatus>
+    targets(projectId: string, query: string): Promise<PreviewTarget[]>
+    preview(request: CoverRequest): Promise<CoverPreview>
+    save(assetId: string, previewId: string): Promise<CoverRecord>
+    discard(previewId: string): Promise<void>
+    upload(assetId: string, file: string): Promise<CoverRecord>
+    restore(assetId: string): Promise<void>
+    startBatch(assetIds: string[]): Promise<CoverBatch>
+    batchStatus(batchId: string): Promise<CoverBatch>
+    cancelBatch(batchId: string): Promise<void>
+    upgradeBridge(projectId: string): Promise<{ ok: boolean }>
+  }
   system: {
     /**
      * 截图前把主窗口顶到最前（Chromium 不在前台就不绘制，captureScreenshot 会一直等帧）。

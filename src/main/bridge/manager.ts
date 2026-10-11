@@ -54,6 +54,8 @@ export interface BridgeExecOptions {
   label?: string
   /** 复用调用方的 id（重投、以及"同一条导入重试"场景） */
   id?: string
+  /** Cancel one request without interrupting another project's work. */
+  signal?: AbortSignal
 }
 
 export interface BridgeExecResult {
@@ -310,6 +312,7 @@ export class BridgeManager {
     const s = this.stateOf(projectPath)
     const id = opts.id ?? ulid()
     const label = opts.label ?? type
+    if (this.disposed || opts.signal?.aborted) return Promise.resolve(this.fail(id, 'cancelled', 'covers.cancelled', Date.now(), 0))
     s.queue.push({ id, type, label, enqueuedAt: Date.now() })
 
     const run = async (): Promise<BridgeExecResult> => {
@@ -327,6 +330,20 @@ export class BridgeManager {
     /** 串行闸门：挂在上一条后面，且**无论上一条成功失败都要继续**（失败分支同一个 run） */
     const next = s.chain.then(run, run)
     s.chain = next.catch(() => undefined)
+    if (opts.signal) {
+      const signal = opts.signal
+      return new Promise<BridgeExecResult>((resolve, reject) => {
+        const abort = (): void => {
+          const index = s.queue.findIndex(item => item.id === id)
+          if (index >= 0) s.queue.splice(index, 1)
+          cancelCommandFile(projectPath, id)
+          resolve(this.fail(id, 'cancelled', 'covers.cancelled', Date.now(), 0))
+        }
+        signal.addEventListener('abort', abort, { once: true })
+        if (signal.aborted) abort()
+        void next.then(result => { signal.removeEventListener('abort', abort); resolve(result) }, error => { signal.removeEventListener('abort', abort); reject(error) })
+      })
+    }
     return next
   }
 
@@ -343,14 +360,19 @@ export class BridgeManager {
     const ackTimeoutMs = opts.ackTimeoutMs ?? 10_000
     let retries = 0
 
+    if (this.disposed || opts.signal?.aborted) {
+      return this.fail(id, 'cancelled', 'covers.cancelled', startedAt, retries)
+    }
+
     /** 先确认桥接在跑。没心跳就直接失败 —— 不要让调用方白等到超时 */
     if (!this.isFresh(projectPath)) {
       return this.fail(id, 'error', '桥接没有心跳：这个工程没开着 Unity，或者桥接没装', startedAt, retries)
     }
 
     for (;;) {
-      if (this.disposed) {
-        return this.fail(id, 'cancelled', '程序正在退出，命令已放弃', startedAt, retries)
+      if (this.disposed || opts.signal?.aborted) {
+        cancelCommandFile(projectPath, id)
+        return this.fail(id, 'cancelled', 'covers.cancelled', startedAt, retries)
       }
 
       /**
@@ -376,11 +398,12 @@ export class BridgeManager {
         )
       }
 
-      const waited = await this.waitForResult(projectPath, id, ackTimeoutMs, watchdogMs)
+      const waited = await this.waitForResult(projectPath, id, ackTimeoutMs, watchdogMs, opts.signal)
 
       /** 被 dispose 打断：这是"取消"，不是"桥接没回应" */
       if (waited.aborted) {
-        return this.fail(id, 'cancelled', '程序正在退出，命令已放弃', startedAt, retries)
+        cancelCommandFile(projectPath, id)
+        return this.fail(id, 'cancelled', 'covers.cancelled', startedAt, retries)
       }
 
       if (waited.result) {
@@ -433,7 +456,7 @@ export class BridgeManager {
               /* 监听方自己出错不该影响桥接主流程 */
             }
           }
-          await sleep(delay)
+          await sleep(delay, opts.signal)
           continue
         }
         /** ok / error / cancelled 都是终态，直接回 */
@@ -523,7 +546,8 @@ export class BridgeManager {
     projectPath: string,
     id: string,
     ackTimeoutMs: number,
-    watchdogMs: number
+    watchdogMs: number,
+    signal?: AbortSignal
   ): Promise<{
     result: BridgeResult | null
     everProgressed: boolean
@@ -542,7 +566,7 @@ export class BridgeManager {
 
     try {
       for (;;) {
-        if (this.disposed) {
+        if (this.disposed || signal?.aborted) {
           return { result: null, everProgressed, lastMessage, aborted: true }
         }
 
@@ -595,7 +619,8 @@ export class BridgeManager {
          * 以至于 `dispose()` 会把命令报成"桥接没有回应"（实测 elapsed 只有 210ms），
          * 而正确答案是 `cancelled`。
          */
-        const raced = await this.waitForAny(waiterPromise)
+        const raced = await this.waitForAny(waiterPromise, signal)
+        if (signal?.aborted) return { result: null, everProgressed, lastMessage, aborted: true }
         if (raced.kind === 'value') {
           return { result: raced.value, everProgressed, lastMessage, aborted: false }
         }
@@ -614,7 +639,8 @@ export class BridgeManager {
    * 三种结果分开回报，调用方才能给出正确的终态（尤其 dispose → cancelled）。
    */
   private waitForAny(
-    wakeup: Promise<BridgeResult | null>
+    wakeup: Promise<BridgeResult | null>,
+    signal?: AbortSignal
   ): Promise<{ kind: 'value'; value: BridgeResult } | { kind: 'timeout' } | { kind: 'disposed' }> {
     return new Promise((resolve) => {
       let settled = false
@@ -624,9 +650,13 @@ export class BridgeManager {
         if (settled) return
         settled = true
         clearTimeout(timer)
+        signal?.removeEventListener('abort', onAbort)
         resolve(r)
       }
+      const onAbort = (): void => finish({ kind: 'disposed' })
       const timer = setTimeout(() => finish({ kind: 'timeout' }), 250)
+      signal?.addEventListener('abort', onAbort, { once: true })
+      if (signal?.aborted) onAbort()
       void wakeup.then(
         (v) => {
           if (v) finish({ kind: 'value', value: v })
@@ -655,6 +685,11 @@ export class BridgeManager {
   }
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms))
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const finish = (): void => { clearTimeout(timer); signal?.removeEventListener('abort', finish); resolve() }
+    const timer = setTimeout(finish, ms)
+    signal?.addEventListener('abort', finish, { once: true })
+    if (signal?.aborted) finish()
+  })
 }

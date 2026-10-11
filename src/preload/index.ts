@@ -36,6 +36,19 @@ function on(event: string, cb: (...args: unknown[]) => void): () => void {
 }
 
 const api: AApi = {
+  covers: {
+    status: (assetId, projectId) => invoke('covers:status', assetId, projectId),
+    targets: (projectId, query) => invoke('covers:targets', projectId, query),
+    preview: (request) => invoke('covers:preview', request),
+    save: (assetId, id) => invoke('covers:save', assetId, id),
+    discard: (id) => invoke('covers:discard', id),
+    upload: (assetId, file) => invoke('covers:upload', assetId, file),
+    restore: (assetId) => invoke('covers:restore', assetId),
+    startBatch: (ids) => invoke('covers:start-batch', ids),
+    batchStatus: (id) => invoke('covers:batch-status', id),
+    cancelBatch: (id) => invoke('covers:cancel-batch', id),
+    upgradeBridge: (projectId) => invoke('covers:upgrade-bridge', projectId)
+  },
   system: {
     nudgeFront: (on) => invoke('system:nudge-front', on),
     info: () => invoke('system:info'),

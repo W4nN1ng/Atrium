@@ -7,6 +7,8 @@ import { humanBytes } from '../lib/format'
 import { msg } from '../lib/msg'
 import { useUi } from '../stores/ui'
 import { Badge, Button, Select } from './ui'
+import { CoverEditor } from './CoverEditor'
+import { CoverBatch } from './CoverBatch'
 
 /** 分类下拉的选项（和收件箱、详情面板一个口径） */
 function catOptions(config: CategoryConfig | null, locale: LocaleKey): Array<{ value: string; label: string }> {
@@ -218,6 +220,7 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
   /** Esc 返回上一级、Ctrl+A 全选、Enter 导入 —— 都挂在这一层，焦点在搜索框里也照样生效 */
   useEffect(() => {
     function onKey(e: KeyboardEvent): void {
+      if ((e.target as Element | null)?.closest('[role="dialog"]')) return
       if (e.key === 'Escape') {
         e.preventDefault()
         setNav('bundles')
@@ -293,6 +296,8 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
           {labelOf(config, b.category, b.subcategory, locale)}
         </span>
         <div className="ml-auto flex items-center gap-2">
+          <CoverEditor assetId={b.id} name={b.name} />
+          {picked.length ? <CoverBatch assetIds={picked} /> : null}
           {/*
             第 10 轮 Q3 甲：这颗以前是 `disabled` + 一句"Unity 导入在 M5 交付"。
             现在它**开面板并把包全预勾上** —— 不静默替他导 22 个包，也不再是颗假按钮。

@@ -15,7 +15,7 @@ vi.mock('electron', () => ({
 let root: string
 let handler: (title?: string) => Promise<{ cancelled: boolean; path: string | null; bytes: number }>
 beforeEach(() => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), 'atrium-backup-ipc-'))
+  root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'atrium-backup-ipc-')))
   setAppPathsForTest(root)
   const db = openDatabase(P.db())
   db.exec("CREATE TABLE test_note(value TEXT); INSERT INTO test_note VALUES ('visible in backup')")

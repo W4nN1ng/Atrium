@@ -6,6 +6,7 @@ import { singleReviewAction } from '../../shared/reviewState'
 import { useUi } from '../stores/ui'
 import { humanBytes, humanDate, fileUrl } from '../lib/format'
 import { Badge, Button, EmptyState, Field, Modal, Select } from './ui'
+import { CoverEditor } from './CoverEditor'
 
 function Row({ label, children }: { label: string; children: React.ReactNode }): JSX.Element {
   return (
@@ -105,6 +106,7 @@ export function DetailPanel(): JSX.Element {
       <div className="border-b p-3" style={{ borderColor: 'var(--line)' }}>
         {asset.cover_image && asset.cover_image !== 'none' ? (
           <img
+            key={asset.cover_image}
             src={/^[a-z]+:/i.test(asset.cover_image) ? asset.cover_image : fileUrl(asset.cover_image)}
             alt=""
             className="mb-2 aspect-[4/3] w-full rounded object-cover"
@@ -115,6 +117,7 @@ export function DetailPanel(): JSX.Element {
           />
         ) : null}
         <div className="text-[14px] font-medium">{asset.name}</div>
+        <div className="mt-2"><CoverEditor assetId={asset.id} name={asset.name} /></div>
         <div className="mt-0.5 truncate text-[11px]" style={{ color: 'var(--faint)' }} title={asset.raw_name}>
           {asset.raw_name}
         </div>

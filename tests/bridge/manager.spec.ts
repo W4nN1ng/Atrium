@@ -48,6 +48,33 @@ afterEach(() => {
 })
 
 describe('正常路径', () => {
+  it('an already cancelled preview never enters the Unity mailbox', async () => {
+    const controller = new AbortController(); controller.abort()
+    const r = await manager.execute(project, 'ping', {}, { signal: controller.signal })
+    expect(r.status).toBe('cancelled')
+    expect(fs.readdirSync(bridgeInboxDir(project)).filter(f => f.endsWith('.json'))).toEqual([])
+  })
+  it('cancelling a pending preview returns cancelled and retracts its request', async () => {
+    fake.stop()
+    const controller = new AbortController()
+    const pending = manager.execute(project, 'ping', {}, { id: 'cancel-preview', signal: controller.signal, ackTimeoutMs: 2000 })
+    await sleep(50); controller.abort()
+    const r = await pending
+    expect(r.status).toBe('cancelled')
+    expect(fs.existsSync(path.join(bridgeInboxDir(project), 'cancel-preview.json'))).toBe(false)
+  })
+  it('cancels a queued preview promptly without cancelling the earlier command', async () => {
+    fake.stop()
+    const earlierController = new AbortController(), previewController = new AbortController()
+    const earlier = manager.execute(project, 'ping', {}, { id: 'earlier', signal: earlierController.signal, ackTimeoutMs: 4000 })
+    const preview = manager.execute(project, 'render_preview', {}, { id: 'queued-preview', signal: previewController.signal })
+    await sleep(50); previewController.abort()
+    const result = await Promise.race([preview, sleep(500).then(() => null)])
+    expect(result?.status).toBe('cancelled')
+    expect(fs.existsSync(path.join(bridgeInboxDir(project), 'earlier.json'))).toBe(true)
+    expect(fs.existsSync(path.join(bridgeInboxDir(project), 'queued-preview.json'))).toBe(false)
+    earlierController.abort(); await earlier
+  })
   it('ok：命令送达、结果回传、inbox 与 outbox 都被清干净', async () => {
     fake.onCommand(() => ({ status: 'ok', data: { pong: true } }))
     const r = await manager.execute(project, 'ping', {}, { label: 'ping' })

@@ -991,6 +991,7 @@ export interface BridgeHeartbeat {
   projectName: string
   unityVersion: string
   bridgeVersion: string
+  capabilities?: string[]
   isPlaying: boolean
   isCompiling: boolean
   isUpdating: boolean
@@ -1002,6 +1003,8 @@ export interface BridgeHeartbeat {
 }
 
 export type BridgeCommandType =
+  | 'get_preview_targets'
+  | 'render_preview'
   | 'ping'
   | 'get_status'
   | 'resolve_guids'

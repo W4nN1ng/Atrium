@@ -1,6 +1,12 @@
 /** IPC 通道名。渲染进程只能调用这里列出的通道，preload 用白名单过滤。 */
 
 export const IpcInvoke = {
+  Covers: {
+    Status: 'covers:status', Targets: 'covers:targets', Preview: 'covers:preview',
+    Save: 'covers:save', Discard: 'covers:discard', Upload: 'covers:upload', Restore: 'covers:restore',
+    StartBatch: 'covers:start-batch', BatchStatus: 'covers:batch-status', CancelBatch: 'covers:cancel-batch',
+    UpgradeBridge: 'covers:upgrade-bridge'
+  },
   System: {
     /** 截图时把窗口顶到最前；只在带着 --remote-debugging-port 起来时才注册 */
     NudgeFront: 'system:nudge-front',

@@ -50,6 +50,8 @@ function csWrittenKeys(): Set<string> {
 const TS_COMMAND_TYPES: BridgeCommandType[] = [
   'ping',
   'get_status',
+  'get_preview_targets',
+  'render_preview',
   'resolve_guids',
   'import_unitypackage',
   'import_files',
@@ -68,7 +70,7 @@ const TS_RESULT_STATUS = ['ok', 'progress', 'busy', 'error', 'cancelled']
  * （`src/main/project/fingerprint.ts` 拿它读工程指纹），所以加进来 ——
  * 这张清单的意义就是"发出去的一定有人接"。
  */
-const A_ACTUALLY_SENDS = ['resolve_guids', 'import_unitypackage', 'delete_guids', 'refresh', 'list_project_assets']
+const A_ACTUALLY_SENDS = ['resolve_guids', 'import_unitypackage', 'delete_guids', 'refresh', 'list_project_assets', 'get_preview_targets', 'render_preview']
 
 /** 剥掉 `//` 行注释与 `/* *\/` 块注释，只留代码 —— 判断"代码顺序"必须这么做 */
 function stripComments(src: string): string {
@@ -82,12 +84,12 @@ function stripComments(src: string): string {
 const CS_CODE = stripComments(csSrc)
 
 describe('命令名对账（A 发出 ↔ C# 处理）', () => {
-  it('C# 抠到了全部 9 条命令（抠取规则失效会让这条先红）', () => {
+  it('C# 抠到了全部 11 条命令（抠取规则失效会让这条先红）', () => {
     const cs = csCommandTypes()
-    expect(cs.size, `抠到的是：${[...cs].join(', ')}`).toBe(9)
+    expect(cs.size, `抠到的是：${[...cs].join(', ')}`).toBe(TS_COMMAND_TYPES.length)
   })
 
-  it('**两边命令名完全一致**，一个不多一个不少（§3 要求 9 条全实现，不做子集）', () => {
+  it('两边命令名完全一致，包括原有命令和物品预览命令', () => {
     const cs = csCommandTypes()
     const ts = new Set<string>(TS_COMMAND_TYPES)
     /** A 声明了但 C# 不处理 → 发出去没人接 */

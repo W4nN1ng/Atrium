@@ -11,6 +11,8 @@ import { registerStubs } from './ipc/stubs'
 import { registerIntegration } from './ipc/integration'
 import { startIngest, type IngestApi } from './ingest/api'
 import { BridgeManager } from './bridge/manager'
+import { registerCoverIpc } from './covers/ipc'
+import type { CoverService } from './covers/service'
 import { registerBridgeIpc, type BridgeIpcApi } from './bridge/ipc'
 import { parseIngestArgs } from './ingest/args'
 import { startFolderWatcher, type FolderWatcher } from './services/watcher'
@@ -77,6 +79,7 @@ function bootstrap(): void {
    */
   let bridge: BridgeManager | null = null
   let bridgeIpc: BridgeIpcApi | null = null
+  let covers: CoverService | null = null
 
   const isPrimary = (): boolean => true
 
@@ -124,6 +127,7 @@ function bootstrap(): void {
      */
     bridge = new BridgeManager()
     bridgeIpc = registerBridgeIpc({ db: getDb(), manager: bridge, registrar })
+    covers = registerCoverIpc(getDb(), bridge, registrar)
     /** 结果到达就推给界面（进度、终态都要看得见） */
     bridge.onResult((projectPath, result) => {
       registrar.broadcast('unity:import-progress', {
@@ -286,6 +290,8 @@ function bootstrap(): void {
      * 顺序错了的症状是退出时偶发 "The database connection was not open"。
      */
     projectApi?.dispose()
+    covers?.dispose()
+    bridge?.dispose()
     destroyTray()
     closeDatabase()
     log.info('已退出')

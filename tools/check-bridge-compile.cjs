@@ -52,6 +52,7 @@ const REFS = [
   ['Managed', 'UnityEngine', 'UnityEngine.TextRenderingModule.dll'],
   ['Managed', 'UnityEngine', 'UnityEngine.IMGUIModule.dll'],
   ['Managed', 'UnityEngine', 'UnityEngine.JSONSerializeModule.dll'],
+  ['Managed', 'UnityEngine', 'UnityEngine.ImageConversionModule.dll'],
   ['Managed', 'UnityEngine', 'UnityEditor.CoreModule.dll']
 ]
 
@@ -99,7 +100,7 @@ const args = [
   '/define:UNITY_2022_3_OR_NEWER;UNITY_EDITOR',
   '/out:' + outDll,
   ...refArgs,
-  BRIDGE_SRC
+  ...fs.readdirSync(path.dirname(BRIDGE_SRC)).filter(f => f.endsWith('.cs')).map(f => path.join(path.dirname(BRIDGE_SRC), f))
 ]
 
 console.log(`桥接源码：${path.relative(REPO, BRIDGE_SRC)}`)

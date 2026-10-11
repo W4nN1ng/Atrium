@@ -198,11 +198,11 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
           continue
         }
       }
+      forgetThumb(db, id)
       deleteAssetRow(db, id)
       // 行没了还要留着的只有回收站里的文件；索引和缩略图缓存都得跟着走，
       // 否则搜一个已删素材还能搜到（点进去就是空白），缓存也会一直涨
       assetIndex.remove(id)
-      forgetThumb(db, id)
       trashed.push(id)
     }
     broadcast('data:changed', { reason: 'trash', ids: trashed })
