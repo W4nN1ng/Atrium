@@ -992,7 +992,7 @@
     "restore": "恢复原始封面",
     "offline": "请打开所选 Unity 工程，并确保 Atrium 桥接已安装。",
     "unityBusy": "Unity 正在运行、编译或导入。请退出运行模式，等待编辑器空闲后重试。",
-    "bridgeUpgrade": "当前桥接尚不支持物品封面，请先更新桥接。",
+    "bridgeUpgrade": "请更新 Unity 桥接，以使用当前版本的物品封面功能。",
     "upgrade": "更新桥接",
     "upgraded": "桥接文件已更新。请切换到 Unity，等待编译完成后再生成预览。",
     "bridgeUpgradeFailed": "桥接更新失败，请检查工程是否可写或模板是否完整。",

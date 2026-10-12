@@ -11,6 +11,8 @@ import { ulid } from '../../shared/ulid'
 import type { CoverBatch, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewOptions, PreviewTarget } from '../../shared/covers'
 import { thumbPathFor, writeThumbFromBuffer, type ThumbResult } from '../library/thumbs'
 import { COVER_NONE, THUMB_MAX_SOURCE_BYTES, thumbKeyFromCover } from '../library/thumbRules'
+import { compareVersion } from '../../shared/version'
+import type { BridgeHeartbeat } from '../../shared/types'
 
 const TTL = 10 * 60_000
 const MAX_BYTES = 8 * 1024 * 1024
@@ -39,7 +41,7 @@ export class CoverService {
     const hb = probe?.heartbeat
     return {
       record: getCover(this.deps.db, assetId),
-      bridge: !alive ? 'offline' : !hb?.capabilities?.includes('object_preview') ? 'upgrade' :
+      bridge: !alive ? 'offline' : !supportsPreview(hb) ? 'upgrade' :
         hb.isPlaying || hb.isCompiling || hb.isUpdating ? 'busy' : 'ready'
     }
   }
@@ -49,7 +51,7 @@ export class CoverService {
     if (!project) throw new Error('covers.projectMissing')
     const probe = readHeartbeat(project.path)
     if (!probe.heartbeat || probe.invalid || Date.now() - probe.seenAt > BRIDGE_STALE_MS) throw new Error('covers.offline')
-    if (!probe.heartbeat.capabilities?.includes('object_preview')) throw new Error('covers.bridgeUpgrade')
+    if (!supportsPreview(probe.heartbeat)) throw new Error('covers.bridgeUpgrade')
     if (probe.heartbeat.isPlaying || probe.heartbeat.isCompiling || probe.heartbeat.isUpdating) throw new Error('covers.unityBusy')
     return project.path
   }
@@ -221,6 +223,10 @@ export class CoverService {
 }
 
 function errorKey(error: string | null): string { return error?.match(/covers\.[A-Za-z]+/)?.[0] ?? 'covers.renderFailed' }
+function supportsPreview(heartbeat: BridgeHeartbeat | null | undefined): heartbeat is BridgeHeartbeat {
+  // 1.1.0 advertises previews, but cannot frame blendshape-only props reliably.
+  return !!heartbeat?.capabilities?.includes('object_preview') && compareVersion(heartbeat.bridgeVersion, '1.1.1') >= 0
+}
 function bridgeError(result: BridgeExecResult): Error {
   return new Error([errorKey(result.error), result.error, result.stackTrace].filter(Boolean).join('\n').slice(0, 4000))
 }

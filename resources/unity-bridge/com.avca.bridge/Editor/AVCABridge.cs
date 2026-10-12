@@ -40,7 +40,7 @@ namespace AVCA.Bridge
     public static class AVCABridge
     {
         public const int ProtocolVersion = 1;
-        public const string BridgeVersion = "1.1.0";
+        public const string BridgeVersion = "1.1.1";
 
         private const string BridgeDirName = "AVCABridge";
         private const double TickThrottleSeconds = 0.5;   // §6.2：500ms 节流

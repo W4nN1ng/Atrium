@@ -76,6 +76,53 @@ public static class AtriumPreviewVerification
             Check(Resources.FindObjectsOfTypeAll<Mesh>().Length == skinMeshesBefore, "Baked skin mesh leaked");
             Check(EditorJsonUtility.ToJson(material) == originalMaterial, "Skin capture changed source material");
             UnityEngine.Object.DestroyImmediate(skinObject); UnityEngine.Object.DestroyImmediate(skinMesh);
+            // Blendshape-only props have no bones (the real Pocky asset uses this layout).
+            var shapeObject = new GameObject("Blendshape-only fixture");
+            var shapeRenderer = shapeObject.AddComponent<SkinnedMeshRenderer>();
+            var shapeMesh = UnityEngine.Object.Instantiate(root.GetComponent<MeshFilter>().sharedMesh);
+            var deltas = Enumerable.Repeat(Vector3.right * 0.1f, shapeMesh.vertexCount).ToArray();
+            shapeMesh.AddBlendShapeFrame("Bite", 100, deltas, null, null);
+            shapeRenderer.sharedMesh = shapeMesh; shapeRenderer.sharedMaterial = material;
+            var shapeBounds = shapeMesh.bounds;
+            int shapeMeshesBefore = Resources.FindObjectsOfTypeAll<Mesh>().Length;
+            int shapeScenesBefore = SceneManager.sceneCount;
+            var shapeFile = Path.Combine(directory, "blendshape-only.png");
+            var diagnosticBake = new Mesh(); shapeRenderer.BakeMesh(diagnosticBake, false);
+            Debug.Log("[BLENDSHAPE_ONLY] source=" + shapeMesh.bounds + " baked=" + diagnosticBake.bounds + " vertices=" + diagnosticBake.vertexCount);
+            UnityEngine.Object.DestroyImmediate(diagnosticBake);
+            render.Invoke(null, new object[] { shapeObject, shapeFile, "front", "dark" });
+            var shapeImage = new Texture2D(2, 2); shapeImage.LoadImage(File.ReadAllBytes(shapeFile));
+            Check(shapeImage.GetPixels().Count(c => c.r > c.g * 1.8f && c.r > c.b * 1.8f) > 1000, "Blendshape-only object did not render");
+            UnityEngine.Object.DestroyImmediate(shapeImage);
+            Check(shapeMesh.bounds == shapeBounds, "Source mesh bounds changed");
+            Check(Resources.FindObjectsOfTypeAll<Mesh>().Length == shapeMeshesBefore, "Blendshape snapshot mesh leaked");
+            Check(SceneManager.sceneCount == shapeScenesBefore, "Blendshape preview scene leaked");
+            Check(EditorJsonUtility.ToJson(material) == originalMaterial, "Blendshape source material changed");
+            UnityEngine.Object.DestroyImmediate(shapeObject); UnityEngine.Object.DestroyImmediate(shapeMesh);
+            // Imported, bone-free, blendshape-only mesh from the actual failing prop.
+            var stickMesh = AssetDatabase.LoadAllAssetsAtPath("Assets/Stick/fbx/stick_choco.fbx").OfType<Mesh>().FirstOrDefault();
+            if (stickMesh != null)
+            {
+            var stickBoundsBefore = stickMesh.bounds;
+            var stickObject = new GameObject("Pocky fixture");
+            stickObject.transform.localScale = Vector3.one * 100;
+            var stickSkin = stickObject.AddComponent<SkinnedMeshRenderer>(); stickSkin.sharedMesh = stickMesh;
+            stickSkin.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Stick/material/stick_choco.mat");
+            var stickBake = new Mesh(); stickSkin.BakeMesh(stickBake, false);
+            Debug.Log("[POCKY_BAKE] source=" + stickMesh.bounds + " baked=" + stickBake.bounds + " vertex0=" + stickBake.vertices[0] + " vertices=" + stickBake.vertexCount + " shapes=" + stickMesh.blendShapeCount);
+            UnityEngine.Object.DestroyImmediate(stickBake);
+            int stickMeshesBefore = Resources.FindObjectsOfTypeAll<Mesh>().Length;
+            int stickScenesBefore = SceneManager.sceneCount;
+            render.Invoke(null, new object[] { stickObject, Path.Combine(directory, "pocky.png"), "right", "dark" });
+            var stickImage = new Texture2D(2, 2); stickImage.LoadImage(File.ReadAllBytes(Path.Combine(directory, "pocky.png")));
+            Check(stickImage.GetPixels().Count(c => c.r > c.g * 1.5f && c.r > c.b * 1.5f) > 2000, "Pocky output was empty");
+            UnityEngine.Object.DestroyImmediate(stickImage);
+            Check(stickMesh.bounds == stickBoundsBefore, "Source imported mesh bounds were modified");
+            Check(Resources.FindObjectsOfTypeAll<Mesh>().Length == stickMeshesBefore, "Pocky snapshot mesh leaked");
+            Check(SceneManager.sceneCount == stickScenesBefore, "Pocky preview scene leaked");
+            UnityEngine.Object.DestroyImmediate(stickObject);
+            }
+            else Debug.Log("[POCKY_FIXTURE] SKIP: optional licensed mesh not installed");
             var empty = new GameObject("No renderable geometry");
             try { render.Invoke(null, new object[] { empty, Path.Combine(directory, "empty.png"), "front", "dark" }); throw new Exception("Empty target returned success"); }
             catch (TargetInvocationException e) { Check(e.InnerException.Message.Contains("covers.noMesh"), "Wrong error for empty target"); }
