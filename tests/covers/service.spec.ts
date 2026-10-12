@@ -17,10 +17,10 @@ const options = { direction: 'auto' as const, background: 'dark' as const }
 let root: string, project: string, db: Db, service: CoverService
 let execute: (projectPath: string, command: string, payload: unknown, opts: { id: string; signal?: AbortSignal }) => Promise<unknown>
 const PNG = Buffer.from('89504e470d0a1a0a0000000d4948445200000280000001e0', 'hex')
-function heartbeat(capabilities = ['object_preview']): void {
+function heartbeat(capabilities = ['object_preview'], bridgeVersion = '1.1.1'): void {
   fs.writeFileSync(path.join(project, 'Temp', 'AVCABridge', 'bridge.json'), JSON.stringify({
     protocolVersion: 1, pid: process.pid, projectPath: project, projectName: 'Test', unityVersion: '2022.3.22f1',
-    bridgeVersion: '1.1.0', capabilities, isPlaying: false, isCompiling: false, isUpdating: false,
+    bridgeVersion, capabilities, isPlaying: false, isCompiling: false, isUpdating: false,
     isPlayingOrWillChangePlaymode: false, activeScene: null, queueLength: 0, heartbeatUtc: Date.now()
   }))
 }
@@ -51,6 +51,12 @@ async function finished(id: string): Promise<void> {
 }
 
 describe('cover capture and confirmation', () => {
+  it('requests the bounds-fix bridge update even when an older bridge advertises previews', async () => {
+    heartbeat(['object_preview'], '1.1.0')
+    expect(service.status('one', 'project').bridge).toBe('upgrade')
+    await expect(service.preview(input())).rejects.toThrow('covers.bridgeUpgrade')
+    expect(current()).toBe('athumb://original.jpg')
+  })
   it('restores the original image after its source directory is moved', () => {
     const original = path.join(root, 'original.png'), upload = path.join(root, 'manual.png')
     fs.writeFileSync(original, PNG); fs.writeFileSync(upload, PNG)

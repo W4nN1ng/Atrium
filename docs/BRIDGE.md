@@ -5,7 +5,7 @@
 >
 > 实现位置：A 侧 `src/main/bridge/`，Unity 侧 `resources/unity-bridge/com.avca.bridge/`。
 
-> **2026-10-11 更新：** 当前模板为 1.1.0，新增 `object_preview` 能力及物品封面命令，详见第 16 节。下方测试历史中的 1.0.0、旧命令数量和未验证事项描述对应当时版本。
+> **2026-10-12 更新：** 当前模板为 1.1.1，修复无骨骼 BlendShape 网格的烘焙包围盒。物品封面命令与 `object_preview` 能力在 1.1.0 引入，详见第 16 节。下方测试历史中的旧版本、命令数量和未验证事项描述对应当时版本。
 
 ---
 
@@ -1013,9 +1013,9 @@ busyReason:"Unity 正在运行 Play 模式" / bridgeVersion:1.0.0`，A 那边界
 
 两条都指向同一处：改 C# 两处 + 重装桥接，TS 一行不用动。要不要在这一版做，等第 6 轮一起裁。
 
-## 16. Unity 物品封面（桥接 1.1.0）
+## 16. Unity 物品封面（桥接 1.1.1）
 
-沿用 protocolVersion=1 的本地文件信箱，旧命令保持兼容。心跳新增可选字段 `capabilities: ["object_preview"]`。Atrium 根据此能力识别支持情况，不凭版本号推断；旧桥接可以在封面窗口更新。1.1.0 的本次变更只增加封面能力，尚未实现 `list_project_assets` 的 `topFolders` / `avatarDescriptors`；工程指纹继续使用磁盘目录及缺失 descriptor 的降级。
+沿用 protocolVersion=1 的本地文件信箱，旧命令保持兼容。心跳包含可选字段 `capabilities: ["object_preview"]`。Atrium 同时检查此能力和最低版本 1.1.1；1.1.0 虽然声明了能力，但无骨骼、只带 BlendShape 的网格会误报尺寸异常，因此提示更新。旧桥接可以在封面窗口更新。尚未实现 `list_project_assets` 的 `topFolders` / `avatarDescriptors`；工程指纹继续使用磁盘目录及缺失 descriptor 的降级。
 
 | 命令 | payload | 结果 data |
 | --- | --- | --- |
@@ -1027,6 +1027,8 @@ busyReason:"Unity 正在运行 Play 模式" / bridgeVersion:1.0.0`，A 那边界
 Unity 只在 `Temp/AVCABridge/previews/` 写本次请求的 PNG；命令 ID 校验后才能拼接路径，先写临时文件再替换。Atrium 严格校验返回路径、真实目录边界、普通文件、PNG 标记、640×480 和最多 8 MB，再使用 Electron 解码器写入独立缓存。图片确认前不修改卡片，预览有效期为 10 分钟。
 
 预览在编辑模式、Built-in 下运行。渲染器在独立 PreviewRenderUtility 场景直接绘制网格；SkinnedMeshRenderer 先 BakeMesh 冻结当前姿态。材质克隆及 MaterialPropertyBlock 保留显示属性，不实例化源脚本。finally 清理预览场景、临时网格、材质、图片，并还原 RenderTexture.active。源场景、选择、材质和对象不会保存或改变。
+
+1.1.1 在 BakeMesh 后对本次临时网格执行 RecalculateBounds。Unity 2022.3 对无骨骼 BlendShape 网格可能返回有效顶点及零包围盒；补算后使用实际几何取景，不修改源 mesh、导入器或 renderer 的 localBounds。
 
 BridgeManager 新增请求级 AbortSignal。在排队或等待时取消，撤回该请求自己的 inbox 文件；不会取消先前的导入命令。Unity 已开始的同步 GPU 渲染无法中途抢占，Atrium 会拒绝晚到结果，不替换卡片。临时输出属于 Unity Temp，不进入素材库或 Avatar 上传资源。
 

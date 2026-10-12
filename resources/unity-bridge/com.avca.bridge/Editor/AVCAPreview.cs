@@ -175,6 +175,10 @@ namespace AVCA.Bridge
                         // Register ownership before BakeMesh so a thrown bake is cleaned too.
                         parts.Add(new Part { source = renderer, mesh = mesh, owned = true, matrix = renderer.localToWorldMatrix });
                         skin.BakeMesh(mesh, false);
+                        // Unity can leave BakeMesh bounds at zero for a bone-free,
+                        // blendshape-only renderer even though its vertices are valid.
+                        // Recalculate on this owned snapshot, never the source asset.
+                        mesh.RecalculateBounds();
                     }
                     else if (renderer is MeshRenderer)
                     {

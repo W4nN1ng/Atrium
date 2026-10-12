@@ -5,7 +5,7 @@
 ## 使用
 
 1. 打开包含该物品的 Unity 工程，等待编译和资源导入完成，退出播放模式。
-2. 在 Atrium 打开素材详情，点击「编辑封面」，选择该 Unity 工程。旧桥接会显示「更新桥接」；更新后切换到 Unity，等待编译完成。
+2. 在 Atrium 打开素材详情，点击「编辑封面」，选择该 Unity 工程。封面功能要求桥接 1.1.1 或以后，旧桥接会显示「更新桥接」；更新后切换到 Unity，等待编译完成。
 3. 在 Unity 的层级或 Project 面板选中具体物品，点击「读取 Unity 当前选中物品」。也可搜索已经导入的预制体或模型；找到多个结果时，选择要拍摄的对象。
 4. 选择角度及深色或浅色背景，点击「生成预览」。对象会自动居中，画面中没有编辑器工具栏、坐标轴或其他场景物体。
 5. 确认预览内容后点击「保存封面」。仅生成预览不会更改卡片；取消、失败及过期预览保留原封面。
@@ -43,5 +43,7 @@
 自动测试覆盖保存/恢复、同哈希卡片独立封面、原图缓存、异步缩略图竞争、原图引用清理、旧桥接、路径和目录链接拒绝、取消及晚到响应、预览过期、批量保护和错误详情。
 
 `tools/verify-unity-preview.cs` 在隔离 Unity 工程验证真实 GPU 渲染、颜色、尺寸、SkinnedMesh 和材质属性块，以及源材质/选择/场景状态与资源清理。需要自备合法的巧克力资源副本及 shader；第三方素材不随仓库提交。
+
+测试还覆盖没有骨骼、只带 BlendShape 的网格，验证烘焙后重新计算临时网格包围盒。可将合法的百奇资源副本放在测试工程 `Assets/Stick/`，额外验证该模型；没有这份可选资源时，合成回归仍会执行，百奇样例明确跳过。
 
 `tools/verify-cover-ui.cjs` 在隔离应用目录运行实际 Electron 界面、IPC 和数据库，验证预览、保存、取消、本地图片、恢复、批量保护及重启。默认测试工程为 `tmp/cover-verification/unity-sandbox`；可通过 `AVCA_COVER_TEST_PROJECT` 指定带验证夹具的其他测试工程。运行前执行 `npm run native:electron`、`npx electron-vite build`，并让测试 Unity 执行 `AtriumPreviewVerification.Serve`。设置 `ATRIUM_COVER_DEV_URL` 可连接 Vite 开发页面，验证 React StrictMode；使用开发页面时仍需已构建的主进程和 preload。

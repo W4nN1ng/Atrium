@@ -992,7 +992,7 @@
     "restore": "Restore original cover",
     "offline": "Open the selected Unity project and ensure the Atrium bridge is installed.",
     "unityBusy": "Unity is playing, compiling or importing. Exit Play mode and wait for the editor to become idle.",
-    "bridgeUpgrade": "Update this project’s bridge to enable object covers.",
+    "bridgeUpgrade": "Update this project’s bridge to use the current object cover feature.",
     "upgrade": "Update bridge",
     "upgraded": "Bridge files updated. Switch to Unity and wait for compilation before generating a preview.",
     "bridgeUpgradeFailed": "Could not update the bridge. Check project write access and bridge template files.",

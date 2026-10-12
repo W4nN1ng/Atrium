@@ -37,3 +37,13 @@
 ## 范围边界
 
 此次验证覆盖已导入资源的静态 Built-in 封面功能。未验证或实现未导入 ZIP 的自动依赖安装、URP/HDRP、交互动画、自动穿衣、任意自定义 shader、VRChat 上传与游戏内效果。v0.4.1 的既有发布资产未更新；新功能由 main 源码提供。
+
+## 2026-10-12：无骨骼 BlendShape 网格误报尺寸异常
+
+实际目标为 `Milfy/stick_choco_game_MA/stick_choco_root`。MCP 只读检查确认其子渲染器没有骨骼、带一个 BlendShape，Unity 世界包围盒约 0.16 m；源场景已有未保存改动，未保存或修改头像来诊断问题。
+
+隔离 Unity 2022.3 的合成回归先复现 RED：BakeMesh 得到 24 个有效顶点，但包围盒为零，原渲染器抛出 `covers.invalidBounds`。修复在本次拥有的临时 mesh 上重新计算包围盒，保留源 mesh/importer/localBounds。GREEN 覆盖合成 BlendShape-only 网格、正常带骨骼网格及属性块、立方体、无网格错误、巧克力，以及实际百奇 FBX 副本（161 顶点、一个 BlendShape）。检查像素、源 bounds 精确相等和临时 Mesh/预览场景释放；百奇 PNG 已人工查看。
+
+桥接升为 1.1.1。封面能力检查同时要求 `object_preview` 和最低版本；原先 1.1.0 工程会出现更新按钮。此项也先观察到 RED（错误地返回 ready），随后 16 个封面服务测试全部通过。
+
+本次完整检查：`AVCA_UNITY_ROOT` 指向实际 Unity 安装路径后，1656 项通过、29 项条件跳过，无失败；Node/renderer 类型检查、Electron Vite 构建、两个 worker 检查和桥接 Roslyn 编译通过。实际隔离 Electron 与桥接 1.1.1 的操作及重启验证通过。独立复核无未解决问题。真实头像的 SDK 构建、上传和游戏运行仍未执行，也不属于此次修复。
