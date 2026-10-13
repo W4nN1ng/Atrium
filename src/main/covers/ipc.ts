@@ -14,6 +14,7 @@ export function registerCoverIpc(db: Db, manager: BridgeManager, registrar: IpcR
   const ipc = registrar.ipc
   ipc.handle('covers:status', (assetId: string, projectId: string) => service.status(assetId, projectId))
   ipc.handle('covers:targets', (projectId: string, query: string) => service.targets(projectId, query))
+  ipc.handle('covers:discover', (assetId: string, projectId: string, requestId: string) => service.discover(assetId, projectId, requestId))
   ipc.handle('covers:preview', (request: CoverRequest) => service.preview(request))
   ipc.handle('covers:save', (assetId: string, id: string) => service.save(assetId, id))
   ipc.handle('covers:discard', (id: string) => service.discard(id))

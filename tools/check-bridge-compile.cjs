@@ -63,10 +63,21 @@ function fail(msg) {
 
 if (!fs.existsSync(BRIDGE_SRC)) fail('找不到桥接源码：' + BRIDGE_SRC)
 
-const csc = path.join(DATA, 'DotNetSdkRoslyn', 'csc.dll')
+const sdkCompiler = path.join(DATA, 'DotNetSdkRoslyn', 'csc.dll')
 const dotnet = path.join(DATA, 'NetCoreRuntime', 'dotnet.exe')
-if (!fs.existsSync(csc)) fail(`找不到 Unity 的 Roslyn 编译器：${csc}\n（换机器请传 Unity 根目录：node tools/check-bridge-compile.cjs <Unity根>）`)
-if (!fs.existsSync(dotnet)) fail(`找不到 Unity 的 dotnet 宿主：${dotnet}`)
+const monoCompiler = path.join(DATA, 'MonoBleedingEdge', 'lib', 'mono', '4.5', 'csc.exe')
+const mono = path.join(DATA, 'MonoBleedingEdge', 'bin', 'mono.exe')
+let csc, host, language
+if (fs.existsSync(sdkCompiler) && fs.existsSync(dotnet)) {
+  csc = sdkCompiler; host = dotnet; language = '9.0'
+} else if (fs.existsSync(monoCompiler) && fs.existsSync(mono)) {
+  // Unity also ships Roslyn for Mono. Use that installed compiler when its
+  // SDK compiler is unavailable; never modify or download editor files.
+  csc = monoCompiler; host = mono; language = 'latest'
+} else {
+  console.error('找不到可运行的 Unity Roslyn 编译器（SDK / Mono）')
+  process.exit(2)
+}
 
 const refArgs = []
 const missing = []
@@ -93,7 +104,7 @@ const args = [
   csc,
   '/nologo',
   '/target:library',
-  '/langversion:9.0',
+  '/langversion:' + language,
   '/nullable:disable',
   '/unsafe-',
   '/warn:4',
@@ -108,7 +119,7 @@ console.log(`编译器：Unity 自带 Roslyn（${path.relative(UNITY_ROOT, csc)}
 console.log(`引用程序集：${refArgs.length} 个`)
 console.log('---')
 
-const r = spawnSync(dotnet, args, { encoding: 'utf8', windowsHide: true })
+const r = spawnSync(host, args, { encoding: 'utf8', windowsHide: true })
 
 const out = (r.stdout || '').trim()
 const err = (r.stderr || '').trim()

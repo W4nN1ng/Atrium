@@ -9,6 +9,8 @@ export interface PreviewTarget {
   isScene: boolean
   sourceGuid: string | null
 }
+export interface CoverCandidate extends PreviewTarget { memberPaths: string[] }
+export interface CoverDiscovery { targets: CoverCandidate[]; warnings: string[]; truncated: boolean }
 export interface CoverRecord {
   assetId: string
   coverImage: string
@@ -44,4 +46,5 @@ export interface CoverRequest {
 export interface CoverStatus {
   record: CoverRecord | null
   bridge: 'offline' | 'upgrade' | 'busy' | 'ready'
+  candidates: boolean
 }

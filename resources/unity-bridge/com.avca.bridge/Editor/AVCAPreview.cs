@@ -49,6 +49,59 @@ namespace AVCA.Bridge
             return sb.Append("]}").ToString();
         }
 
+        /// <summary>Resolve only already imported assets identified by the card's exact GUIDs.</summary>
+        public static string Candidates(string payload)
+        {
+            string array = JsonRead.Array(payload, "guids");
+            // StringArray alone tolerates other JSON values; this command accepts GUID strings only.
+            if (array == null || !Regex.IsMatch(array,
+                "^\\[\\s*(?:\"[0-9a-fA-F]{32}\"\\s*(?:,\\s*\"[0-9a-fA-F]{32}\"\\s*)*)?\\]$"))
+                throw new InvalidOperationException("covers.invalidRequest");
+            var guids = JsonRead.StringArray(payload, "guids");
+            if (guids.Count > 500) throw new InvalidOperationException("covers.invalidRequest");
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var targets = new List<GameObject>();
+            bool truncated = false;
+            foreach (string guid in guids)
+            {
+                if (!seen.Add(guid)) continue;
+                string path = AssetDatabase.GUIDToAssetPath(guid.ToLowerInvariant());
+                if (!path.StartsWith("Assets/", StringComparison.Ordinal)
+                    || (!path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase)
+                        && !path.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase))) continue;
+                var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (go == null || !HasDrawableMesh(go)) continue;
+                if (targets.Count == 50) { truncated = true; break; }
+                targets.Add(go);
+            }
+            var sb = new StringBuilder("{\"targets\":[");
+            for (int i = 0; i < targets.Count; i++)
+            {
+                if (i != 0) sb.Append(',');
+                sb.Append(Describe(targets[i]));
+            }
+            return sb.Append("],\"truncated\":").Append(truncated ? "true" : "false").Append('}').ToString();
+        }
+
+        private static bool HasDrawableMesh(GameObject target)
+        {
+            var lowLods = LowerLods(target);
+            foreach (var renderer in target.GetComponentsInChildren<Renderer>(true))
+            {
+                if (lowLods.Contains(renderer) || !VisibleBelow(renderer, target.transform)) continue;
+                Mesh mesh = null;
+                var skin = renderer as SkinnedMeshRenderer;
+                if (skin != null) mesh = skin.sharedMesh;
+                else if (renderer is MeshRenderer)
+                {
+                    var filter = renderer.GetComponent<MeshFilter>();
+                    if (filter != null) mesh = filter.sharedMesh;
+                }
+                if (mesh != null && mesh.vertexCount > 0 && mesh.subMeshCount > 0) return true;
+            }
+            return false;
+        }
+
         public static string Describe(GameObject go)
         {
             bool isScene = !EditorUtility.IsPersistent(go);

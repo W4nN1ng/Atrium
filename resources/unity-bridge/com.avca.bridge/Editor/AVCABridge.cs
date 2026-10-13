@@ -40,7 +40,7 @@ namespace AVCA.Bridge
     public static class AVCABridge
     {
         public const int ProtocolVersion = 1;
-        public const string BridgeVersion = "1.1.1";
+        public const string BridgeVersion = "1.2.0";
 
         private const string BridgeDirName = "AVCABridge";
         private const double TickThrottleSeconds = 0.5;   // §6.2：500ms 节流
@@ -279,6 +279,10 @@ namespace AVCA.Bridge
 
                     case "get_preview_targets":
                         CompleteCurrent(id, true, AVCAPreview.Targets(payload), null);
+                        return;
+
+                    case "get_preview_candidates":
+                        CompleteCurrent(id, true, AVCAPreview.Candidates(payload), null);
                         return;
 
                     case "render_preview":
@@ -645,7 +649,7 @@ namespace AVCA.Bridge
             sb.Append(",\"projectName\":").Append(JsonWrite.Quote(Path.GetFileName(ProjectPath)));
             sb.Append(",\"unityVersion\":").Append(JsonWrite.Quote(Application.unityVersion));
             sb.Append(",\"bridgeVersion\":").Append(JsonWrite.Quote(BridgeVersion));
-            sb.Append(",\"capabilities\":[\"object_preview\"]");
+            sb.Append(",\"capabilities\":[\"object_preview\",\"preview_candidates\"]");
             sb.Append(",\"isPlaying\":").Append(Bool(EditorApplication.isPlaying));
             sb.Append(",\"isCompiling\":").Append(Bool(EditorApplication.isCompiling));
             sb.Append(",\"isUpdating\":").Append(Bool(EditorApplication.isUpdating));

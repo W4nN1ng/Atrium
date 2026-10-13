@@ -13,6 +13,8 @@ import { thumbPathFor, writeThumbFromBuffer, type ThumbResult } from '../library
 import { COVER_NONE, THUMB_MAX_SOURCE_BYTES, thumbKeyFromCover } from '../library/thumbRules'
 import { compareVersion } from '../../shared/version'
 import type { BridgeHeartbeat } from '../../shared/types'
+import type { CoverCandidate, CoverDiscovery } from '../../shared/covers'
+import { collectCoverSources } from './inventory'
 
 const TTL = 10 * 60_000
 const MAX_BYTES = 8 * 1024 * 1024
@@ -41,17 +43,18 @@ export class CoverService {
     const hb = probe?.heartbeat
     return {
       record: getCover(this.deps.db, assetId),
+      candidates: alive && supportsCandidates(hb),
       bridge: !alive ? 'offline' : !supportsPreview(hb) ? 'upgrade' :
         hb.isPlaying || hb.isCompiling || hb.isUpdating ? 'busy' : 'ready'
     }
   }
 
-  private project(projectId: string): string {
+  private project(projectId: string, candidates = false): string {
     const project = getProject(this.deps.db, projectId)
     if (!project) throw new Error('covers.projectMissing')
     const probe = readHeartbeat(project.path)
     if (!probe.heartbeat || probe.invalid || Date.now() - probe.seenAt > BRIDGE_STALE_MS) throw new Error('covers.offline')
-    if (!supportsPreview(probe.heartbeat)) throw new Error('covers.bridgeUpgrade')
+    if (!supportsPreview(probe.heartbeat) || (candidates && !supportsCandidates(probe.heartbeat))) throw new Error('covers.bridgeUpgrade')
     if (probe.heartbeat.isPlaying || probe.heartbeat.isCompiling || probe.heartbeat.isUpdating) throw new Error('covers.unityBusy')
     return project.path
   }
@@ -63,6 +66,61 @@ export class CoverService {
     const targets = (result.data as { targets?: unknown })?.targets
     if (!Array.isArray(targets) || targets.length > 50) throw new Error('covers.invalidRequest')
     return targets.map(validateTarget)
+  }
+
+  async discover(assetId: string, projectId: string, requestId: string): Promise<CoverDiscovery> {
+    this.expire()
+    if (this.disposed) throw new Error('covers.cancelled')
+    if (typeof assetId !== 'string' || typeof projectId !== 'string' || typeof requestId !== 'string' ||
+      !/^[A-Za-z0-9_-]{1,80}$/.test(requestId) || this.pending.has(requestId) || this.staged.has(requestId)) throw new Error('covers.invalidRequest')
+    if (!getAsset(this.deps.db, assetId)) throw new Error('covers.assetMissing')
+    const projectPath = this.project(projectId, true)
+    const controller = new AbortController()
+    this.pending.set(requestId, controller)
+    const checkCancelled = (): void => { if (controller.signal.aborted || this.disposed) throw new Error('covers.cancelled') }
+    try {
+      const inventory = await collectCoverSources(this.deps.db, assetId, projectId, controller.signal)
+      checkCancelled()
+      const provenance = new Map<string, Set<string>>()
+      for (const source of inventory.sources) {
+        const guid = source.guid.toLowerCase()
+        if (!/^[a-f0-9]{32}$/.test(guid)) continue
+        if (!provenance.has(guid)) provenance.set(guid, new Set())
+        if (source.memberPath) provenance.get(guid)!.add(source.memberPath)
+      }
+      const guids = [...provenance.keys()]
+      const targets: CoverCandidate[] = []
+      const seen = new Set<string>()
+      let truncated = inventory.truncated
+      for (let offset = 0; offset < guids.length; offset += 500) {
+        checkCancelled()
+        const batch = guids.slice(offset, offset + 500)
+        const result = await this.deps.manager.execute(projectPath, 'get_preview_candidates', { guids: batch }, {
+          id: 'cover-find-' + requestId + '-' + (offset / 500), signal: controller.signal,
+          ackTimeoutMs: 30_000, label: 'Find cover items'
+        })
+        checkCancelled()
+        if (!result.ok) throw bridgeError(result)
+        const data = result.data as { targets?: unknown; truncated?: unknown }
+        if (!Array.isArray(data?.targets) || data.targets.length > 50 || typeof data.truncated !== 'boolean') throw new Error('covers.invalidRequest')
+        const requested = new Set(batch)
+        for (const value of data.targets) {
+          const candidate = validateTarget(value)
+          const guid = candidate.sourceGuid?.toLowerCase()
+          if (!guid || !requested.has(guid) || candidate.isScene || !candidate.persistent) throw new Error('covers.invalidRequest')
+          if (seen.has(candidate.id)) continue
+          seen.add(candidate.id)
+          if (targets.length >= 50) { truncated = true; continue }
+          targets.push({ ...candidate, sourceGuid: guid, memberPaths: [...provenance.get(guid)!].sort() })
+        }
+        truncated ||= data.truncated
+        if (targets.length >= 50) {
+          truncated ||= offset + batch.length < guids.length
+          break
+        }
+      }
+      return { targets, warnings: [...new Set(inventory.warnings)], truncated }
+    } finally { this.pending.delete(requestId) }
   }
 
   async preview(request: CoverRequest): Promise<CoverPreview> {
@@ -226,6 +284,9 @@ function errorKey(error: string | null): string { return error?.match(/covers\.[
 function supportsPreview(heartbeat: BridgeHeartbeat | null | undefined): heartbeat is BridgeHeartbeat {
   // 1.1.0 advertises previews, but cannot frame blendshape-only props reliably.
   return !!heartbeat?.capabilities?.includes('object_preview') && compareVersion(heartbeat.bridgeVersion, '1.1.1') >= 0
+}
+function supportsCandidates(heartbeat: BridgeHeartbeat | null | undefined): boolean {
+  return !!heartbeat?.capabilities?.includes('preview_candidates') && compareVersion(heartbeat.bridgeVersion, '1.2.0') >= 0
 }
 function bridgeError(result: BridgeExecResult): Error {
   return new Error([errorKey(result.error), result.error, result.stackTrace].filter(Boolean).join('\n').slice(0, 4000))
