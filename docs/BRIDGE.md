@@ -5,7 +5,7 @@
 >
 > 实现位置：A 侧 `src/main/bridge/`，Unity 侧 `resources/unity-bridge/com.avca.bridge/`。
 
-> **2026-10-12 更新：** 当前模板为 1.1.1，修复无骨骼 BlendShape 网格的烘焙包围盒。物品封面命令与 `object_preview` 能力在 1.1.0 引入，详见第 16 节。下方测试历史中的旧版本、命令数量和未验证事项描述对应当时版本。
+> **2026-10-13 更新：** 当前模板为 1.2.0，新增按资源 GUID 查找封面候选的 `preview_candidates` 能力。1.1.1 修复无骨骼 BlendShape 网格的烘焙包围盒；物品封面命令与 `object_preview` 能力在 1.1.0 引入，详见第 16 节。下方测试历史中的旧版本、命令数量和未验证事项描述对应当时版本。
 
 ---
 
@@ -1013,13 +1013,18 @@ busyReason:"Unity 正在运行 Play 模式" / bridgeVersion:1.0.0`，A 那边界
 
 两条都指向同一处：改 C# 两处 + 重装桥接，TS 一行不用动。要不要在这一版做，等第 6 轮一起裁。
 
-## 16. Unity 物品封面（桥接 1.1.1）
+## 16. Unity 物品封面（桥接 1.2.0）
 
-沿用 protocolVersion=1 的本地文件信箱，旧命令保持兼容。心跳包含可选字段 `capabilities: ["object_preview"]`。Atrium 同时检查此能力和最低版本 1.1.1；1.1.0 虽然声明了能力，但无骨骼、只带 BlendShape 的网格会误报尺寸异常，因此提示更新。旧桥接可以在封面窗口更新。尚未实现 `list_project_assets` 的 `topFolders` / `avatarDescriptors`；工程指纹继续使用磁盘目录及缺失 descriptor 的降级。
+沿用 protocolVersion=1 的本地文件信箱，旧命令保持兼容。心跳包含可选字段 `capabilities: ["object_preview", "preview_candidates"]`。手动封面要求 `object_preview` 和最低版本 1.1.1，自动候选要求 `preview_candidates` 和最低版本 1.2.0。1.1.0 虽然声明了预览能力，但无骨骼、只带 BlendShape 的网格会误报尺寸异常，因此提示更新。旧桥接可以在封面窗口更新。尚未实现 `list_project_assets` 的 `topFolders` / `avatarDescriptors`；工程指纹继续使用磁盘目录及缺失 descriptor 的降级。
+
+`get_preview_candidates` 接收 `{ guids: string[] }`，每次最多 500 个严格的 32 位十六进制 GUID。通过 AssetDatabase 解析已导入、位于 Assets 下的 Prefab / FBX，过滤没有可绘制网格的对象，返回 `{ targets: PreviewTarget[], truncated: boolean }`。重复 GUID 归并，但不同预制体及模型保留；最多 50 个候选，超出时明确标记。查询只读资源，不导入、实例化或运行物品脚本。
+
+Atrium 从当前卡片的成功导入 GUID、已缓存清单和原始 ZIP / unitypackage 清单读取候选标识；所选工程固定在请求中。ZIP 流式读取包成员，不全量解压；保留成员来源，并限制扫描时间、字节数和条目数。临时查询和图片请求均可取消，图片仍使用既有 `render_preview` 与确认保存链路。
 
 | 命令 | payload | 结果 data |
 | --- | --- | --- |
 | `get_preview_targets` | `{query: ""}` 读取当前选择；非空 query 搜索 Assets 中的 GameObject 资产，最多 50 个 | `{targets: [{id, name, path, persistent, isScene, sourceGuid}]}` |
+| `get_preview_candidates` | `{guids: string[]}` 精确匹配已导入的 Prefab / FBX，每批最多 500 个 GUID | `{targets: PreviewTarget[], truncated: boolean}`，最多 50 个 |
 | `render_preview` | `{targetId, direction, background}` | `{relativePath: "previews/<commandId>.png", width: 640, height: 480, rendererCount}` |
 
 方向为 `auto / scene / front / back / left / right / top / bottom`，背景为 `dark / light`。对象优先用 GlobalObjectId；未保存对象退回 `instance:<id>`，标记 persistent=false。Scene 模式复用当前 SceneView 的旋转，中心和距离由对象边界重新计算。其他方向采用世界方向。

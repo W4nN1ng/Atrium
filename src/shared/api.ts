@@ -37,7 +37,7 @@ import type { HealthReport,
   VariantRow
 } from './types'
 import type { DirectoryProbe } from './wizardState'
-import type { CoverBatch, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget } from './covers'
+import type { CoverBatch, CoverDiscovery, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget } from './covers'
 
 export interface AppInfo {
   name: string
@@ -193,6 +193,7 @@ export interface AApi {
   covers: {
     status(assetId: string, projectId: string): Promise<CoverStatus>
     targets(projectId: string, query: string): Promise<PreviewTarget[]>
+    discover(assetId: string, projectId: string, requestId: string): Promise<CoverDiscovery>
     preview(request: CoverRequest): Promise<CoverPreview>
     save(assetId: string, previewId: string): Promise<CoverRecord>
     discard(previewId: string): Promise<void>

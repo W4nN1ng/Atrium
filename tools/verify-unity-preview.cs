@@ -19,6 +19,132 @@ public static class AtriumPreviewVerification
         Debug.Log("[ATRIUM_PREVIEW_SERVER] READY");
     }
     static void Check(bool value, string message) { if (!value) throw new Exception(message); }
+
+    [Serializable] private sealed class CandidateTarget
+    {
+        public string id;
+        public string name;
+        public string path;
+        public bool persistent;
+        public bool isScene;
+        public string sourceGuid;
+    }
+    [Serializable] private sealed class CandidateResult
+    {
+        public CandidateTarget[] targets;
+        public bool truncated;
+    }
+    private static CandidateResult CandidateCall(MethodInfo method, params string[] guids)
+    {
+        string payload = "{\"guids\":[" + string.Join(",", guids.Select(g => "\"" + g + "\"")) + "]}";
+        return JsonUtility.FromJson<CandidateResult>((string)method.Invoke(null, new object[] { payload }));
+    }
+    private static void CandidateRejects(MethodInfo method, string payload)
+    {
+        try { method.Invoke(null, new object[] { payload }); throw new Exception("Invalid candidate request returned success: " + payload); }
+        catch (TargetInvocationException e) { Check(e.InnerException.Message == "covers.invalidRequest", "Wrong candidate request error"); }
+    }
+
+    // Independent entry point: the baseline bridge must fail on the missing API before any setup.
+    public static void RunCandidates()
+    {
+        const string folder = "Assets/__AtriumCandidateVerification";
+        var selected = Selection.objects;
+        bool createdFolder = false;
+        try
+        {
+            var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AVCA.Bridge.AVCAPreview")).FirstOrDefault(t => t != null);
+            Check(type != null, "Object preview renderer is not implemented");
+            var candidates = type.GetMethod("Candidates", BindingFlags.Public | BindingFlags.Static);
+            Check(candidates != null, "Automatic cover candidate API is missing");
+            Check(!AssetDatabase.IsValidFolder(folder), "Candidate fixture folder must be absent before verification");
+            AssetDatabase.CreateFolder("Assets", "__AtriumCandidateVerification");
+            createdFolder = true;
+            AssetDatabase.CreateFolder(folder, "OtherResource");
+            var requested = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            requested.name = "Exact GUID fixture";
+            PrefabUtility.SaveAsPrefabAsset(requested, folder + "/Requested.prefab");
+            PrefabUtility.SaveAsPrefabAsset(requested, folder + "/OtherResource/Requested.prefab");
+            UnityEngine.Object.DestroyImmediate(requested);
+            var empty = new GameObject("No geometry");
+            PrefabUtility.SaveAsPrefabAsset(empty, folder + "/Empty.prefab");
+            UnityEngine.Object.DestroyImmediate(empty);
+            var hidden = new GameObject("Inactive descendant only");
+            var hiddenCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            hiddenCube.transform.SetParent(hidden.transform);
+            hiddenCube.SetActive(false);
+            PrefabUtility.SaveAsPrefabAsset(hidden, folder + "/Hidden.prefab");
+            UnityEngine.Object.DestroyImmediate(hidden);
+            var disabled = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            disabled.GetComponent<MeshRenderer>().enabled = false;
+            PrefabUtility.SaveAsPrefabAsset(disabled, folder + "/Disabled.prefab");
+            UnityEngine.Object.DestroyImmediate(disabled);
+            var noMesh = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            noMesh.GetComponent<MeshFilter>().sharedMesh = null;
+            PrefabUtility.SaveAsPrefabAsset(noMesh, folder + "/NoMesh.prefab");
+            UnityEngine.Object.DestroyImmediate(noMesh);
+            var material = new Material(Shader.Find("Standard"));
+            AssetDatabase.CreateAsset(material, folder + "/Excluded.mat");
+            string requestedGuid = AssetDatabase.AssetPathToGUID(folder + "/Requested.prefab");
+            string emptyGuid = AssetDatabase.AssetPathToGUID(folder + "/Empty.prefab");
+            string materialGuid = AssetDatabase.AssetPathToGUID(folder + "/Excluded.mat");
+            string hiddenGuid = AssetDatabase.AssetPathToGUID(folder + "/Hidden.prefab");
+            string disabledGuid = AssetDatabase.AssetPathToGUID(folder + "/Disabled.prefab");
+            string noMeshGuid = AssetDatabase.AssetPathToGUID(folder + "/NoMesh.prefab");
+            var script = AssetDatabase.FindAssets("t:MonoScript", new[] { "Assets" }).FirstOrDefault();
+            Check(script != null, "Verification script fixture missing");
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(folder + "/Requested.prefab");
+            string sourceBefore = EditorJsonUtility.ToJson(source);
+            string prefabBefore = File.ReadAllText(folder + "/Requested.prefab");
+            var scene = SceneManager.GetActiveScene();
+            bool dirtyBefore = scene.isDirty;
+            int rootsBefore = scene.rootCount;
+            Selection.activeObject = source;
+            var result = CandidateCall(candidates, requestedGuid, requestedGuid.ToUpperInvariant(),
+                "ffffffffffffffffffffffffffffffff", materialGuid, script, emptyGuid, hiddenGuid, disabledGuid, noMeshGuid);
+            Check(result.targets != null && result.targets.Length == 1 && !result.truncated, "Exact GUID filtering/duplicate exclusion failed");
+            var target = result.targets[0];
+            Check(target.sourceGuid == requestedGuid && target.path == folder + "/Requested.prefab", "Candidate resolved a same-name asset instead of the requested GUID");
+            Check(!string.IsNullOrEmpty(target.name) && target.persistent && !target.isScene, "Candidate target metadata is wrong");
+            var resolve = type.GetMethod("Resolve", BindingFlags.Public | BindingFlags.Static);
+            Check(resolve != null && (GameObject)resolve.Invoke(null, new object[] { target.id }) == source, "Candidate ID cannot resolve the imported source");
+            Check(scene.isDirty == dirtyBefore && scene.rootCount == rootsBefore, "Candidate discovery changed the source scene");
+            Check(Selection.activeObject == source, "Candidate discovery changed selection");
+            Check(EditorJsonUtility.ToJson(source) == sourceBefore && File.ReadAllText(folder + "/Requested.prefab") == prefabBefore, "Candidate discovery modified its source prefab");
+            Check(CandidateCall(candidates).targets.Length == 0, "Empty GUID list found unrelated assets");
+            CandidateRejects(candidates, "{}");
+            CandidateRejects(candidates, "{\"guids\":\"wrong type\"}");
+            CandidateRejects(candidates, "{\"guids\":[\"not-a-guid\"]}");
+            CandidateRejects(candidates, "{\"guids\":[\"" + requestedGuid + "\",2]}");
+            CandidateRejects(candidates, "{\"guids\":[" + string.Join(",", Enumerable.Repeat("\"" + requestedGuid + "\"", 501)) + "]}");
+            var limitGuids = new string[51];
+            for (int i = 0; i < limitGuids.Length; i++)
+            {
+                string path = folder + "/Limit" + i + ".prefab";
+                AssetDatabase.CopyAsset(folder + "/Requested.prefab", path);
+                limitGuids[i] = AssetDatabase.AssetPathToGUID(path);
+            }
+            var exactLimit = CandidateCall(candidates, limitGuids.Take(50).ToArray());
+            Check(exactLimit.targets.Length == 50 && !exactLimit.truncated, "Exactly 50 candidates were incorrectly truncated");
+            var overLimit = CandidateCall(candidates, limitGuids);
+            Check(overLimit.targets.Length == 50 && overLimit.truncated, "Candidate limit failed to report truncation");
+            Check(overLimit.targets.Select(t => t.sourceGuid).SequenceEqual(limitGuids.Take(50)), "Candidate discovery changed the supplied GUID order or hid a variant");
+            // Optional existing FBX fixture exercises imported model roots without source edits.
+            string modelGuid = AssetDatabase.AssetPathToGUID("Assets/Stick/fbx/stick_choco.fbx");
+            if (!string.IsNullOrEmpty(modelGuid))
+                Check(CandidateCall(candidates, modelGuid).targets.Single().sourceGuid == modelGuid, "Imported FBX candidate was dropped");
+            else Debug.Log("[CANDIDATE_FBX] SKIP: optional licensed fixture not installed");
+            Debug.Log("[ATRIUM_CANDIDATE_VERIFICATION] PASS");
+        }
+        catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); return; }
+        finally
+        {
+            Selection.objects = selected;
+            if (createdFolder) AssetDatabase.DeleteAsset(folder);
+        }
+        EditorApplication.Exit(0);
+    }
+
     public static void Run()
     {
         try

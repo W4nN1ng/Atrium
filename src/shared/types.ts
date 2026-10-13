@@ -1004,6 +1004,7 @@ export interface BridgeHeartbeat {
 
 export type BridgeCommandType =
   | 'get_preview_targets'
+  | 'get_preview_candidates'
   | 'render_preview'
   | 'ping'
   | 'get_status'

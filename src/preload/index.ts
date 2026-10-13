@@ -39,6 +39,7 @@ const api: AApi = {
   covers: {
     status: (assetId, projectId) => invoke('covers:status', assetId, projectId),
     targets: (projectId, query) => invoke('covers:targets', projectId, query),
+    discover: (assetId, projectId, requestId) => invoke('covers:discover', assetId, projectId, requestId),
     preview: (request) => invoke('covers:preview', request),
     save: (assetId, id) => invoke('covers:save', assetId, id),
     discard: (id) => invoke('covers:discard', id),
