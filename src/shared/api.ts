@@ -37,7 +37,7 @@ import type { HealthReport,
   VariantRow
 } from './types'
 import type { DirectoryProbe } from './wizardState'
-import type { CoverBatch, CoverDiscovery, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget, PackageCoverStatus, PackageCoverProgress } from './covers'
+import type { CoverBatch, CoverDiscovery, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget, PackageCoverStatus, PackageCoverProgress, PackageCoverSetup } from './covers'
 
 export interface AppInfo {
   name: string
@@ -192,6 +192,7 @@ export interface ListResult {
 export interface AApi {
   covers: {
     packageStatus(): Promise<PackageCoverStatus>
+    packageSetup(assetId: string): Promise<PackageCoverSetup>
     discoverPackage(assetId: string, requestId: string, dependencyProjectId?: string): Promise<CoverDiscovery>
     packageProgress(requestId: string): Promise<PackageCoverProgress | null>
     status(assetId: string, projectId: string): Promise<CoverStatus>

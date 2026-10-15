@@ -2,6 +2,7 @@
 
 export const IpcInvoke = {
   Covers: {
+    PackageSetup: 'covers:package-setup',
     PackageStatus: 'covers:package-status', DiscoverPackage: 'covers:discover-package', PackageProgress: 'covers:package-progress',
     Status: 'covers:status', Targets: 'covers:targets', Discover: 'covers:discover', Preview: 'covers:preview',
     Save: 'covers:save', Discard: 'covers:discard', Upload: 'covers:upload', Restore: 'covers:restore',

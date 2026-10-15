@@ -46,6 +46,17 @@ export interface CoverRequest {
   dependencyProjectId?: string
 }
 export interface PackageCoverStatus { available: boolean; editorPath: string | null; version: string | null }
+export interface CoverDependencyOption {
+  projectId: string
+  name: string
+  version: string | null
+  status: 'ready' | 'missing' | 'unreadable'
+}
+export interface PackageCoverSetup {
+  dependencies: CoverDependencyOption[]
+  recommendedProjectId: string | null
+  reason: 'saved' | 'remembered' | 'single' | 'none'
+}
 export interface PackageCoverProgress { stage: string; done?: number; total?: number }
 export interface CoverStatus {
   record: CoverRecord | null

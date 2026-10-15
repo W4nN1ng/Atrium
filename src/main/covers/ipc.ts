@@ -8,13 +8,17 @@ import { bridgeTemplateRoot } from '../services/paths'
 import { installBridge } from '../bridge/installer'
 import { CoverService } from './service'
 import { PackageCoverProvider } from './packageProvider'
-import { getSettings } from '../services/settings'
+import { getSettings, setSettings } from '../services/settings'
+import { buildPackageCoverSetup } from './dependencySetup'
 import type { CoverRequest } from '../../shared/covers'
 
 export function registerCoverIpc(db: Db, manager: BridgeManager, registrar: IpcRegistrar): CoverService {
   const packageProvider = new PackageCoverProvider({ db, manager, editorPath: () => getSettings().unityExePath })
-  const service = new CoverService({ db, manager, packageProvider, changed: assetId => registrar.broadcast('data:changed', { reason: 'cover', assetId }) })
+  const service = new CoverService({ db, manager, packageProvider,
+    packageSaved: projectId => { setSettings({ coverDependencyProjectId: projectId ?? '' }) },
+    changed: assetId => registrar.broadcast('data:changed', { reason: 'cover', assetId }) })
   const ipc = registrar.ipc
+  ipc.handle('covers:package-setup', (assetId: string) => buildPackageCoverSetup(db, assetId, getSettings().coverDependencyProjectId))
   ipc.handle('covers:package-status', () => service.packageStatus())
   ipc.handle('covers:discover-package', (assetId: string, requestId: string, dependencyProjectId?: string) => service.discoverPackage(assetId, requestId, dependencyProjectId))
   ipc.handle('covers:package-progress', (id: string) => service.packageProgress(id))

@@ -24,7 +24,7 @@ if (!process.versions.electron) {
       const { contextBridge, ipcRenderer } = require('electron');
       const call = (name, ...args) => ipcRenderer.invoke('fixture:'+name, ...args);
       contextBridge.exposeInMainWorld('a', {
-        covers:Object.fromEntries(['status','packageStatus','discover','discoverPackage','packageProgress','targets','preview','save','discard','upload','restore','upgradeBridge'].map(name=>[name,(...args)=>call(name,...args)])),
+        covers:Object.fromEntries(['status','packageStatus','packageSetup','discover','discoverPackage','packageProgress','targets','preview','save','discard','upload','restore','upgradeBridge'].map(name=>[name,(...args)=>call(name,...args)])),
         system:{pickFiles:(...args)=>call('pickFiles',...args)},settings:{setMany:(...args)=>call('setMany',...args)}
       });
       contextBridge.exposeInMainWorld('fixture', {control:(...args)=>call('control',...args)});
@@ -57,6 +57,8 @@ if (!process.versions.electron) {
   const handler = (name, fn) => ipcMain.handle('fixture:' + name, (_event, ...args) => fn(...args));
   handler('status', () => ({ record, bridge: 'ready', candidates: true }));
   handler('packageStatus', () => ({ available, editorPath: available ? 'fixture/Unity.exe' : null, version: available ? '2022.3.22f1' : null }));
+  handler('packageSetup', () => ({ dependencies: ['registered','registered-two'].map(projectId => ({projectId,name:projectId,version:'2.3.4',status:'ready'})),
+    recommendedProjectId: record?.source === 'package' ? record.projectId : null, reason: record?.source === 'package' ? 'saved' : 'none' }));
   handler('packageProgress', () => ({ stage: 'reading', done: 2, total: 4 }));
   handler('pickFiles', options => options.filters[0].extensions.includes('exe') ? ['fixture/Unity.exe'] : ['fixture/manual.png']);
   handler('setMany', values => { calls.settings.push(values); available = Boolean(values.unityExePath); });

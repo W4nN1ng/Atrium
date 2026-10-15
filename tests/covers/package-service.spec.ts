@@ -16,9 +16,11 @@ const options = { direction: 'auto' as const, background: 'dark' as const }
 const PNG = Buffer.from('89504e470d0a1a0a0000000d4948445200000280000001e0', 'hex')
 let root: string, db: Db, service: CoverService
 let provider: any
+let packageSaved: ReturnType<typeof vi.fn>
 const input = (id = 'capture') => ({ provider: 'package' as const, assetId: 'one', projectId: '', target, options, requestId: id })
 const current = () => db.prepare('SELECT cover_image FROM asset WHERE id=?').get('one') as { cover_image: string }
 beforeEach(() => {
+  packageSaved = vi.fn()
   root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'atrium-package-service-')))
   setAppPathsForTest(path.join(root, 'app')); fs.mkdirSync(P.thumbs(), { recursive: true })
   db = new Database(':memory:'); migrate(db)
@@ -31,7 +33,7 @@ beforeEach(() => {
     preview: async () => ({ bytes: PNG, width: 640, height: 480, rendererCount: 1, fingerprint: 'source-one', dependencyProjectId: null }),
     assertCurrent: () => undefined, dispose: vi.fn()
   }
-  service = new CoverService({ db, manager: { execute: vi.fn(() => { throw new Error('Project bridge must not be used') }) }, packageProvider: provider,
+  service = new CoverService({ db, manager: { execute: vi.fn(() => { throw new Error('Project bridge must not be used') }) }, packageProvider: provider, packageSaved,
     writeImage(bytes: Buffer, key: string) { fs.writeFileSync(path.join(P.thumbs(), key + '.jpg'), bytes); return { ok: true, url: 'athumb://' + key + '.jpg' } }
   } as any)
 })
@@ -42,6 +44,28 @@ async function finished(id: string): Promise<void> {
 }
 
 describe('unimported source cover service', () => {
+  it('remembers the dependency only after a successful package save', async () => {
+    provider.preview = async () => ({ bytes: PNG, width: 640, height: 480, rendererCount: 1, fingerprint: 'source-one', dependencyProjectId: 'dependency' })
+    await service.discoverPackage('one', 'find')
+    await service.preview(input('discarded')); service.discard('discarded')
+    expect(packageSaved).not.toHaveBeenCalled()
+    await service.preview(input('saved')); service.save('one', 'saved')
+    expect(packageSaved).toHaveBeenCalledOnce(); expect(packageSaved).toHaveBeenCalledWith('dependency')
+  })
+  it('records a successful no-dependency choice, but never remembers failed saves', async () => {
+    await service.preview(input('changed'))
+    db.prepare('UPDATE asset SET cover_image=? WHERE id=?').run('athumb://manual.jpg', 'one')
+    expect(() => service.save('one', 'changed')).toThrow('covers.changed')
+    expect(packageSaved).not.toHaveBeenCalled()
+    await service.preview(input('valid')); service.save('one', 'valid')
+    expect(packageSaved).toHaveBeenCalledOnce(); expect(packageSaved).toHaveBeenCalledWith(null)
+  })
+  it('preserves a successfully saved cover if preference storage fails', async () => {
+    packageSaved.mockImplementation(() => { throw new Error('Preference write failed') })
+    await service.preview(input())
+    expect(service.save('one', 'capture').source).toBe('package')
+    expect(packageSaved).toHaveBeenCalledOnce()
+  })
   it('exposes editor status without requiring a registered/open project', () => {
     expect((service as any).packageStatus()).toMatchObject({ available: true, version: '2022.3.22f1' })
   })
