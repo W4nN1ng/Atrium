@@ -1076,6 +1076,8 @@
     "saved": "封面已更新",
     "upload": "选择本地图片",
     "imageFiles": "图片",
+    "uploadConfirm": "使用这张图片",
+    "editorConfirm": "使用这个编辑器",
     "restore": "恢复原始封面",
     "offline": "请打开所选 Unity 工程，并确保 Atrium 桥接已安装。",
     "unityBusy": "Unity 正在运行、编译或导入。请退出运行模式，等待编辑器空闲后重试。",

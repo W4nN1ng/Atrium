@@ -1076,6 +1076,8 @@
     "saved": "Cover updated",
     "upload": "Choose local image",
     "imageFiles": "Images",
+    "uploadConfirm": "Use this image",
+    "editorConfirm": "Use this editor",
     "restore": "Restore original cover",
     "offline": "Open the selected Unity project and ensure the Atrium bridge is installed.",
     "unityBusy": "Unity is playing, compiling or importing. Exit Play mode and wait for the editor to become idle.",

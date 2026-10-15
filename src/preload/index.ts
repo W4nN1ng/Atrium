@@ -38,6 +38,7 @@ function on(event: string, cb: (...args: unknown[]) => void): () => void {
 const api: AApi = {
   covers: {
     packageSetup: (assetId) => invoke('covers:package-setup', assetId),
+    assetRoot: (assetId) => invoke('covers:asset-root', assetId),
     packageStatus: () => invoke('covers:package-status'),
     discoverPackage: (assetId, requestId, dependencyProjectId) => invoke('covers:discover-package', assetId, requestId, dependencyProjectId),
     packageProgress: (requestId) => invoke('covers:package-progress', requestId),

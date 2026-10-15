@@ -3,6 +3,11 @@
 export const IpcInvoke = {
   Covers: {
     PackageSetup: 'covers:package-setup',
+    /**
+     * 这个素材在磁盘上的根目录 —— 给「选择本地图片」的对话框当 `defaultPath`。
+     * 没有它对话框会沿用上一次用过的目录，用户每次都得自己翻回去。
+     */
+    AssetRoot: 'covers:asset-root',
     PackageStatus: 'covers:package-status', DiscoverPackage: 'covers:discover-package', PackageProgress: 'covers:package-progress',
     Status: 'covers:status', Targets: 'covers:targets', Discover: 'covers:discover', Preview: 'covers:preview',
     Save: 'covers:save', Discard: 'covers:discard', Upload: 'covers:upload', Restore: 'covers:restore',

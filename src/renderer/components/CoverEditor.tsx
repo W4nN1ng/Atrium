@@ -342,7 +342,23 @@ function CoverSession({ assetId, name, close }: { assetId: string; name: string;
   }
   async function upload(): Promise<void> {
     await action(async () => {
-      const files = await window.a.system.pickFiles({ title: t('covers.upload'), filters: [{ name: t('covers.imageFiles'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp'] }] })
+      /**
+       * ⚠ `defaultPath` 必须是**当前素材**的根目录。
+       *
+       * 不传的话 Windows 会沿用**上一次用过的目录** —— 2026-10-15 用户报的 bug：
+       * 给 `RealKissSystem` 设封面，对话框却打开在上一个素材（`…史莱姆化`）的目录里，
+       * 每次都得自己一层层翻回去。主进程按 `library_path → source_path` 解析，
+       * 是文件就取父目录（同一个合集里目录与单文件两种形态都有）。
+       *
+       * 拿不到时回 `undefined`（退回系统默认），**不要编一个不存在的路径**给对话框。
+       */
+      const root = await window.a.covers.assetRoot(assetId).catch(() => null)
+      const files = await window.a.system.pickFiles({
+        title: t('covers.upload'),
+        filters: [{ name: t('covers.imageFiles'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp'] }],
+        defaultPath: root ?? undefined,
+        buttonLabel: t('covers.uploadConfirm')
+      })
       if (!files.length || !mounted.current) return
       await window.a.covers.upload(assetId, files[0])
       if (mounted.current) { useUi.getState().toast('ok', t('covers.saved')); close() }
@@ -351,7 +367,10 @@ function CoverSession({ assetId, name, close }: { assetId: string; name: string;
   async function chooseEditor(): Promise<void> {
     await action(async () => {
       const files = await window.a.system.pickFiles({ title: t('covers.packageChooseEditor'),
-        filters: [{ name: t('covers.packageEditorFile'), extensions: ['exe'] }] })
+        filters: [{ name: t('covers.packageEditorFile'), extensions: ['exe'] }],
+        /** 已配好编辑器时直接定位到它（`defaultPath` 允许给文件路径），省得用户再翻一遍 */
+        defaultPath: packageStatus?.editorPath ?? undefined,
+        buttonLabel: t('covers.editorConfirm') })
       if (!files.length || !mounted.current) return
       await window.a.settings.setMany({ unityExePath: files[0] })
       const next = await window.a.covers.packageStatus()

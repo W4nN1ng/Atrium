@@ -193,6 +193,11 @@ export interface AApi {
   covers: {
     packageStatus(): Promise<PackageCoverStatus>
     packageSetup(assetId: string): Promise<PackageCoverSetup>
+    /**
+     * 这个素材在磁盘上的根目录（目录本身；素材是单个文件时给它的父目录）。
+     * 路径不在盘上或没有路径时回 `null`。
+     */
+    assetRoot(assetId: string): Promise<string | null>
     discoverPackage(assetId: string, requestId: string, dependencyProjectId?: string): Promise<CoverDiscovery>
     packageProgress(requestId: string): Promise<PackageCoverProgress | null>
     status(assetId: string, projectId: string): Promise<CoverStatus>
@@ -224,7 +229,20 @@ export interface AApi {
      */
     probeDirectory(path: string): Promise<DirectoryProbe>
     pickDirectory(opts?: { title?: string; defaultPath?: string }): Promise<string | null>
-    pickFiles(opts?: { title?: string; filters?: { name: string; extensions: string[] }[]; multiple?: boolean }): Promise<string[]>
+    /**
+     * 选文件。
+     *
+     * `defaultPath` 是**目录**，决定对话框打开时停在哪 —— 不传就沿用系统上一次用过的目录
+     * （那种"打开到上一个素材的文件夹"就是这么来的）。
+     * `buttonLabel` 默认仍是摄取流程的措辞，非摄取调用方应自己传合适的词。
+     */
+    pickFiles(opts?: {
+      title?: string
+      filters?: { name: string; extensions: string[] }[]
+      multiple?: boolean
+      defaultPath?: string
+      buttonLabel?: string
+    }): Promise<string[]>
     reveal(path: string): Promise<void>
     trash(paths: string[]): Promise<{ ok: string[]; failed: { path: string; error: string }[] }>
     openExternal(url: string): Promise<void>
