@@ -4,7 +4,7 @@ import { thumbKeyFromCover } from '../../library/thumbRules'
 
 interface Row {
   asset_id: string; cover_image: string; previous_image: string | null
-  source: 'unity' | 'image'; project_id: string | null; target_json: string | null; options_json: string | null
+  source: 'unity' | 'image' | 'package'; project_id: string | null; target_json: string | null; options_json: string | null
 }
 function json<T>(value: string | null): T | null {
   if (!value) return null

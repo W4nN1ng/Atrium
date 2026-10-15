@@ -22,6 +22,15 @@ import type { WmiProbeResult } from './wmi'
 const SKIP_DIR_NAMES = /^(library|temp|obj|logs|usersettings\.dat|\.git|\.vs|\.idea)$/i
 const SKIP_PREFIX = /^(_backup|backup|~\$)/i
 
+/** Owned preview workers never become user projects, even when a VCC entry or scan root includes them. */
+export function isInternalPreviewProject(dir: string): boolean {
+  try {
+    const file = path.join(dir, '.atrium-cover-preview.json')
+    if (fs.statSync(file).size > 4096) return false
+    return JSON.parse(fs.readFileSync(file, 'utf8')).kind === 'atrium-package-preview'
+  } catch { return false }
+}
+
 export function vccSettingsPath(): string {
   const local = process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local')
   return path.join(local, 'VRChatCreatorCompanion', 'settings.json')
@@ -44,6 +53,7 @@ export function readVccManifest(file = vccSettingsPath()): VccManifest {
     const projects = list
       .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
       .map((p) => path.win32.normalize(p))
+      .filter((p) => !isInternalPreviewProject(p))
     const def = typeof raw.defaultProjectPath === 'string' ? path.win32.normalize(raw.defaultProjectPath) : null
     return { projects, defaultRoot: def, error: null }
   } catch (e) {
@@ -53,7 +63,7 @@ export function readVccManifest(file = vccSettingsPath()): VccManifest {
 
 export function isUnityProject(dir: string): boolean {
   try {
-    return fs.statSync(dir).isDirectory() && fs.existsSync(path.join(dir, 'ProjectSettings', 'ProjectVersion.txt'))
+    return !isInternalPreviewProject(dir) && fs.statSync(dir).isDirectory() && fs.existsSync(path.join(dir, 'ProjectSettings', 'ProjectVersion.txt'))
   } catch {
     return false
   }
@@ -84,12 +94,14 @@ export function scanProjectRoots(roots: string[], maxDepth = 3): string[] {
       if (!e.isDirectory() && !e.isSymbolicLink()) continue
       if (SKIP_DIR_NAMES.test(e.name) || SKIP_PREFIX.test(e.name)) continue
       const full = path.join(dir, e.name)
+      if (isInternalPreviewProject(full)) continue
       if (isUnityProject(full)) found.add(path.win32.normalize(full))
       else walk(full, depth + 1)
     }
   }
   for (const r of roots) {
     try {
+      if (isInternalPreviewProject(r)) continue
       if (!fs.statSync(r).isDirectory()) continue
       if (isUnityProject(r)) found.add(path.win32.normalize(r))
       else walk(r, 1)
@@ -189,7 +201,8 @@ export function startProjectWatcher(
         .filter((x) => !!x.rule)
         .map((x) => ({ id: x.row.id, name: x.row.name, rule: x.rule as MatchableCollection['rule'], priority: x.row.priority })),
     knownProjects: (): ProjectFingerprint[] =>
-      listProjects(db).map((row) => storedFingerprint(db, row.path) ?? { dirName: row.name, topFolders: [], installedPackages: [], avatarDescriptors: [] }),
+      listProjects(db).filter(row => !isInternalPreviewProject(row.path))
+        .map((row) => storedFingerprint(db, row.path) ?? { dirName: row.name, topFolders: [], installedPackages: [], avatarDescriptors: [] }),
     notify: (event) => {
       registrar.broadcast('unity:auto-switch', event)
       /**
@@ -258,6 +271,7 @@ export function startProjectWatcher(
 
   function register(pathList: string[], detected: 'vcc' | 'scan'): void {
     for (const p of pathList) {
+      if (isInternalPreviewProject(p)) continue
       const name = path.basename(p)
       const unityVersion = readUnityVersion(p)
       const existing = getProjectByPath(db, p)
@@ -312,6 +326,7 @@ export function startProjectWatcher(
        */
       for (const c of changed) {
         if (!c.running) continue
+        if (isInternalPreviewProject(c.path)) continue
         const row = getProjectByPath(db, c.path)
         if (row) {
           void autoSwitch
@@ -326,7 +341,7 @@ export function startProjectWatcher(
         }
       }
     }
-    return list
+    return list.filter(project => !isInternalPreviewProject(project.path))
   }
 
   async function refresh(): Promise<ProjectInfo[]> {

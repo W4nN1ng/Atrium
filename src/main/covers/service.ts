@@ -15,17 +15,22 @@ import { compareVersion } from '../../shared/version'
 import type { BridgeHeartbeat } from '../../shared/types'
 import type { CoverCandidate, CoverDiscovery } from '../../shared/covers'
 import { collectCoverSources } from './inventory'
+import type { PackageCoverBackend } from './packageProvider'
+import type { PackageCoverStatus, PackageCoverProgress } from '../../shared/covers'
 
 const TTL = 10 * 60_000
 const MAX_BYTES = 8 * 1024 * 1024
 const directions = new Set(['auto', 'scene', 'front', 'back', 'left', 'right', 'top', 'bottom'])
 interface Staged {
   request: CoverRequest; key: string; expires: number; original: string | null
+  packageFingerprint?: string
+  dependencyProjectId?: string | null
 }
 interface Dependencies {
   db: Db; manager: Pick<BridgeManager, 'execute'>
   writeImage?: (bytes: Buffer, key: string) => ThumbResult
   changed?: (assetId: string) => void
+  packageProvider?: PackageCoverBackend
 }
 
 export class CoverService {
@@ -34,7 +39,48 @@ export class CoverService {
   private readonly batches = new Map<string, CoverBatch>()
   private readonly batchControllers = new Map<string, AbortController>()
   private disposed = false
+  private readonly packageProgresses = new Map<string, PackageCoverProgress>()
   constructor(private readonly deps: Dependencies) {}
+
+  packageStatus(): PackageCoverStatus {
+    return this.deps.packageProvider?.status() ?? { available: false, editorPath: null, version: null }
+  }
+  packageProgress(requestId: string): PackageCoverProgress | null {
+    const progress = this.packageProgresses.get(requestId)
+    return progress ? { ...progress } : null
+  }
+  private progress(requestId: string, value: PackageCoverProgress): void {
+    if (this.packageProgresses.size >= 50 && !this.packageProgresses.has(requestId)) {
+      for (const id of this.packageProgresses.keys()) if (!this.pending.has(id)) { this.packageProgresses.delete(id); break }
+    }
+    this.packageProgresses.set(requestId, { ...value })
+  }
+  async discoverPackage(assetId: string, requestId: string, dependencyProjectId?: string): Promise<CoverDiscovery> {
+    if (this.disposed) throw new Error('covers.cancelled')
+    if (typeof assetId !== 'string' || typeof requestId !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(requestId) ||
+      this.pending.has(requestId) || this.staged.has(requestId) ||
+      (dependencyProjectId !== undefined && typeof dependencyProjectId !== 'string')) throw new Error('covers.invalidRequest')
+    if (!getAsset(this.deps.db, assetId)) throw new Error('covers.assetMissing')
+    const provider = this.deps.packageProvider
+    if (!provider) throw new Error('covers.packageEditorMissing')
+    const controller = new AbortController()
+    this.pending.set(requestId, controller); this.progress(requestId, { stage: 'reading' })
+    try {
+      const result = await provider.discover(assetId, requestId, dependencyProjectId, controller.signal, value => {
+        if (!controller.signal.aborted) this.progress(requestId, value)
+      })
+      if (controller.signal.aborted || this.disposed) throw new Error('covers.cancelled')
+      if (!Array.isArray(result.targets) || result.targets.length > 50 || !Array.isArray(result.warnings)) throw new Error('covers.invalidRequest')
+      const targets = result.targets.map(value => {
+        validatePackageTarget(value)
+        if (!Array.isArray(value.memberPaths) || value.memberPaths.some(member => typeof member !== 'string' || member.length > 4000)) throw new Error('covers.invalidRequest')
+        return { ...validateTarget(value), memberPaths: [...value.memberPaths] }
+      })
+      this.progress(requestId, { stage: 'ready' }); return { ...result, targets }
+    } catch (error) {
+      this.progress(requestId, { stage: controller.signal.aborted ? 'cancelled' : 'failed' }); throw error
+    } finally { this.pending.delete(requestId) }
+  }
 
   status(assetId: string, projectId: string): CoverStatus {
     const project = getProject(this.deps.db, projectId)
@@ -128,9 +174,11 @@ export class CoverService {
     if (this.disposed) throw new Error('covers.cancelled')
     const { requestId, assetId, projectId } = request
     if (typeof requestId !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(requestId) || this.pending.has(requestId) || this.staged.has(requestId)) throw new Error('covers.invalidRequest')
+    if (request.provider !== undefined && !['project', 'package'].includes(request.provider)) throw new Error('covers.invalidRequest')
     validateTarget(request.target); validateOptions(request.options)
     const asset = getAsset(this.deps.db, assetId)
     if (!asset) throw new Error('covers.assetMissing')
+    if (request.provider === 'package') return this.previewPackage(request)
     const projectPath = this.project(projectId)
     const controller = new AbortController()
     this.pending.set(requestId, controller)
@@ -160,6 +208,33 @@ export class CoverService {
     }
   }
 
+  private async previewPackage(request: CoverRequest): Promise<CoverPreview> {
+    validatePackageTarget(request.target)
+    if (request.options.direction === 'scene') throw new Error('covers.invalidRequest')
+    const provider = this.deps.packageProvider
+    if (!provider) throw new Error('covers.packageEditorMissing')
+    const asset = getAsset(this.deps.db, request.assetId)!
+    const controller = new AbortController()
+    this.pending.set(request.requestId, controller); this.progress(request.requestId, { stage: 'rendering' })
+    try {
+      const result = await provider.preview(request, controller.signal, value => {
+        if (!controller.signal.aborted) this.progress(request.requestId, value)
+      })
+      if (controller.signal.aborted || this.disposed) throw new Error('covers.cancelled')
+      if (result.width !== 640 || result.height !== 480 || !Number.isInteger(result.rendererCount) || result.rendererCount < 1 || result.rendererCount > 500 ||
+        !validPng(result.bytes) || typeof result.fingerprint !== 'string' || !result.fingerprint) throw new Error('covers.invalidImage')
+      const key = 'preview-' + ulid().toLowerCase()
+      const written = (this.deps.writeImage ?? writeThumbFromBuffer)(result.bytes, key)
+      if (!written.ok || !written.url) throw new Error('covers.invalidImage\n' + (written.why ?? ''))
+      this.staged.set(request.requestId, { request: structuredClone(request), key, expires: Date.now() + TTL, original: asset.cover_image,
+        packageFingerprint: result.fingerprint, dependencyProjectId: result.dependencyProjectId ?? null })
+      this.progress(request.requestId, { stage: 'ready' })
+      return { id: request.requestId, url: written.url, width: result.width, height: result.height, rendererCount: result.rendererCount }
+    } catch (error) {
+      this.progress(request.requestId, { stage: controller.signal.aborted ? 'cancelled' : 'failed' }); throw error
+    } finally { this.pending.delete(request.requestId) }
+  }
+
   save(assetId: string, previewId: string): CoverRecord {
     this.expire()
     const stage = this.staged.get(previewId)
@@ -167,11 +242,13 @@ export class CoverService {
     const asset = getAsset(this.deps.db, assetId)
     if (!asset) throw new Error('covers.assetMissing')
     if (asset.cover_image !== stage.original) throw new Error('covers.changed')
+    if (stage.packageFingerprint) this.deps.packageProvider!.assertCurrent(assetId, stage.packageFingerprint)
     const key = 'cover-' + ulid().toLowerCase()
     fs.copyFileSync(thumbPathFor(stage.key), thumbPathFor(key), fs.constants.COPYFILE_EXCL)
     try {
-      saveCover(this.deps.db, { assetId, coverImage: 'athumb://' + key + '.jpg', source: 'unity',
-        projectId: stage.request.projectId, target: stage.request.target, options: stage.request.options }, this.originalImage(assetId))
+      saveCover(this.deps.db, { assetId, coverImage: 'athumb://' + key + '.jpg', source: stage.packageFingerprint ? 'package' : 'unity',
+        projectId: stage.packageFingerprint ? stage.dependencyProjectId ?? null : stage.request.projectId,
+        target: stage.request.target, options: stage.request.options }, this.originalImage(assetId))
     } catch (e) { fs.rmSync(thumbPathFor(key), { force: true }); throw e }
     this.discard(previewId)
     this.deps.changed?.(assetId)
@@ -217,6 +294,7 @@ export class CoverService {
 
   discard(previewId: string): void {
     this.pending.get(previewId)?.abort()
+    this.packageProgresses.delete(previewId)
     const stage = this.staged.get(previewId)
     if (stage) { try { fs.rmSync(thumbPathFor(stage.key), { force: true }) } catch { /* prune later */ }; this.staged.delete(previewId) }
   }
@@ -239,7 +317,8 @@ export class CoverService {
     for (let i = 0; i < records.length; i++) {
       const item = batch.items[i]; const { record, assetId } = records[i]
       if (controller.signal.aborted || this.disposed) { item.state = 'cancelled'; item.reason = 'covers.cancelled'; continue }
-      if (!record || record.source !== 'unity' || !record.projectId || !record.target?.persistent || !record.options) {
+      if (!record || (record.source !== 'unity' && record.source !== 'package') ||
+        (record.source === 'unity' && !record.projectId) || !record.target?.persistent || !record.options) {
         item.state = 'skipped'; item.reason = record?.source === 'image' ? 'covers.manualSkipped' : 'covers.unlinkedSkipped'; continue
       }
       item.state = 'running'
@@ -248,7 +327,9 @@ export class CoverService {
       controller.signal.addEventListener('abort', abort, { once: true })
       try {
         if (getAsset(this.deps.db, assetId)?.cover_image !== record.coverImage) throw new Error('covers.changed')
-        await this.preview({ assetId, projectId: record.projectId, target: record.target, options: record.options, requestId })
+        await this.preview({ assetId, projectId: record.source === 'package' ? '' : record.projectId!,
+          provider: record.source === 'package' ? 'package' : 'project', dependencyProjectId: record.source === 'package' ? record.projectId ?? undefined : undefined,
+          target: record.target, options: record.options, requestId })
         if (controller.signal.aborted) throw new Error('covers.cancelled')
         if (getCover(this.deps.db, assetId)?.coverImage !== record.coverImage) throw new Error('covers.changed')
         this.save(assetId, requestId); item.state = 'done'
@@ -277,6 +358,8 @@ export class CoverService {
     for (const controller of this.pending.values()) controller.abort()
     for (const controller of this.batchControllers.values()) controller.abort()
     for (const id of this.staged.keys()) this.discard(id)
+    this.deps.packageProvider?.dispose()
+    this.packageProgresses.clear()
   }
 }
 
@@ -301,6 +384,11 @@ function validateTarget(value: unknown): PreviewTarget {
       (t.sourceGuid !== null && (typeof t.sourceGuid !== 'string' || !/^[a-f0-9]{32}$/i.test(t.sourceGuid)))) throw new Error('covers.invalidRequest')
   return { id: t.id, name: t.name, path: t.path, persistent: t.persistent, isScene: t.isScene, sourceGuid: t.sourceGuid }
 }
+function validatePackageTarget(value: unknown): PreviewTarget {
+  const target = validateTarget(value)
+  if (!target.sourceGuid || target.id !== 'package:' + target.sourceGuid.toLowerCase() || target.isScene || !target.persistent) throw new Error('covers.invalidRequest')
+  return target
+}
 function safePreviewFile(file: string, root: string): boolean {
   const stat = fs.lstatSync(file)
   if (!stat.isFile() || stat.isSymbolicLink()) return false
@@ -310,14 +398,18 @@ function safePreviewFile(file: string, root: string): boolean {
   const realProject = fs.realpathSync(path.dirname(path.dirname(root)))
   return real === path.join(realRoot, 'previews', path.basename(file)) && realRoot === path.join(realProject, 'Temp', 'AVCABridge')
 }
-function readPreview(file: string, root: string): Buffer {
+export function readPreview(file: string, root: string): Buffer {
   try {
     if (!safePreviewFile(file, root)) throw new Error()
     const stat = fs.statSync(file)
     if (stat.size < 24 || stat.size > MAX_BYTES) throw new Error()
     const bytes = fs.readFileSync(file)
-    if (!bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ||
-        bytes.toString('ascii', 12, 16) !== 'IHDR' || bytes.readUInt32BE(16) !== 640 || bytes.readUInt32BE(20) !== 480) throw new Error()
+    if (!validPng(bytes)) throw new Error()
     return bytes
   } catch { throw new Error('covers.invalidImage') }
+}
+function validPng(bytes: Buffer): boolean {
+  return Buffer.isBuffer(bytes) && bytes.length >= 24 && bytes.length <= MAX_BYTES &&
+    bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) &&
+    bytes.toString('ascii', 12, 16) === 'IHDR' && bytes.readUInt32BE(16) === 640 && bytes.readUInt32BE(20) === 480
 }
