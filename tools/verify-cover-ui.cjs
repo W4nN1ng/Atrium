@@ -234,7 +234,10 @@ if (!process.versions.electron) {
             if((await window.a.assets.get('cover-one')).cover_image!=='none')throw Error('Save response has not resolved, but cover changed');
             return {saveControlsLocked:true};
           })()`);
-          assert.ok(saveContinue,'Save should still be pending');assert.equal(pending.size,1,'Second thumbnail should be rendering during Save');
+          assert.ok(saveContinue,'Save should still be pending');
+          assert.ok(calls.preview.length>=2,'A second thumbnail must have started before Save');
+          assert.equal(pending.size,0,'Explicit Save must stop pending background thumbnail work');
+          assert.ok(calls.discard.includes(calls.preview[1].requestId),'The queued thumbnail must be discarded while Save is pending');
           saveContinue();
           await win.webContents.executeJavaScript(`(async()=>{for(let i=0;i<140&&document.querySelector('[role="dialog"]');i++)await new Promise(resolve=>setTimeout(resolve,50));if(document.querySelector('[role="dialog"]'))throw Error('Saved cover editor did not close');await new Promise(resolve=>setTimeout(resolve,100));})()`);
           assert.equal(calls.save.length,1);assert.equal(pending.size,0,'Close after Save must discard the blocked thumbnail');
@@ -341,6 +344,7 @@ if (!process.versions.electron) {
         phase('first preview');click('编辑封面');await wait(()=>dialog()?.querySelector('[data-cover-provider]'));
         const provider=dialog().querySelector('[data-cover-provider]');provider.value='project';provider.dispatchEvent(new Event('change',{bubbles:true}));
         await wait(()=>dialog()?.textContent.includes('读取 Unity 当前选中物品'));
+        await wait(()=>[...dialog().querySelectorAll('select')].some(select=>[...select.options].some(option=>option.value===${JSON.stringify(setup.id)})));
         const projectSelect=[...dialog().querySelectorAll('select')].find(select=>[...select.options].some(option=>option.value===${JSON.stringify(setup.id)}));projectSelect.value=${JSON.stringify(setup.id)};projectSelect.dispatchEvent(new Event('change',{bubbles:true}));
         await wait(()=>![...dialog().querySelectorAll('button')].find(b=>b.textContent==='读取 Unity 当前选中物品')?.disabled);
         click('读取 Unity 当前选中物品');await wait(()=>[...dialog().querySelectorAll('select')].some(select=>[...select.options].some(option=>option.textContent.includes('Valentines'))));

@@ -31,6 +31,7 @@ interface Dependencies {
   writeImage?: (bytes: Buffer, key: string) => ThumbResult
   changed?: (assetId: string) => void
   packageProvider?: PackageCoverBackend
+  packageSaved?: (dependencyProjectId: string | null) => void
 }
 
 export class CoverService {
@@ -252,6 +253,10 @@ export class CoverService {
     } catch (e) { fs.rmSync(thumbPathFor(key), { force: true }); throw e }
     this.discard(previewId)
     this.deps.changed?.(assetId)
+    if (stage.packageFingerprint) {
+      try { this.deps.packageSaved?.(stage.dependencyProjectId ?? null) }
+      catch { /* A preference failure must not turn a committed cover into a reported failed save. */ }
+    }
     return getCover(this.deps.db, assetId)!
   }
 

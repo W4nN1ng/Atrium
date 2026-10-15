@@ -39,6 +39,7 @@ export const DEFAULTS: AppSettings = {
   llmApiKeyRef: '',
 
   unityExePath: '',
+  coverDependencyProjectId: null,
   projectRoots: [],
   bridgeAutoInstall: false,
   confirmBeforeImport: true,

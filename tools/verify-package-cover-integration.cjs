@@ -221,10 +221,12 @@ if (!process.versions.electron) {
           const before = (await cover(sample)).cover_image;
           await open(sample);
           if (dialog().querySelector('[data-cover-provider]').value !== 'package') throw Error('Original ZIP did not open package mode');
-          const dependency = dialog().querySelector('[data-cover-dependency]');
-          if (dependency.value !== dependencyId) { change(dependency, dependencyId); await delay(); }
+          await wait(() => dialog()?.querySelector('[data-cover-dependency]')?.value === dependencyId, 'The eligible or remembered shader dependency was not recommended before discovery', 30000);
           const target = () => dialog()?.querySelector('[data-cover-candidate="' + sample.targetId + '"]');
           await wait(() => dialog()?.querySelector('[data-cover-candidate]'), 'Original package produced no candidates');
+          const kinds = [...dialog().querySelectorAll('[data-cover-candidate]')].map(item => item.dataset.coverKind);
+          if (kinds[0] !== 'prefab' || kinds.some((kind, index) => kind === 'prefab' && kinds.slice(0, index).includes('model'))) throw Error('Configured prefabs must precede raw models');
+          if (!dialog().querySelector('[data-cover-candidate-search]') || !dialog().querySelector('[data-cover-candidate-kind]')) throw Error('Candidate search and type filter are missing');
           while (!target()) {
             await wait(() => button('显示更多物品') && !button('显示更多物品').disabled, 'Expected source GUID is absent from the bounded candidate list');
             click('显示更多物品'); await delay();
@@ -235,7 +237,7 @@ if (!process.versions.electron) {
           const images = [...dialog().querySelectorAll('[data-cover-candidate]')].filter(item => item.querySelector('img')?.naturalWidth > 0)
             .map(item => ({targetId:item.dataset.coverCandidate,url:item.querySelector('img').getAttribute('src'),text:item.textContent}));
           if (!images.some(image => image.targetId === sample.targetId)) throw Error('Expected GUID thumbnail is missing');
-          return {before,images,visibleCandidates:dialog().querySelectorAll('[data-cover-candidate]').length};
+          return {before,images,visibleCandidates:dialog().querySelectorAll('[data-cover-candidate]').length,prefabFirst:true,dependencyRecommended:true};
         };
         const save = async (sample, direction = 'back') => {
           const before = (await cover(sample)).cover_image;
@@ -251,6 +253,7 @@ if (!process.versions.electron) {
             throw Error('Save retained a transient project or wrong source association: ' + JSON.stringify(result));
           if (!result.record.target.path.startsWith('Assets/') || result.record.target.isScene || !result.record.target.persistent) throw Error('Saved package target is not the original persistent Assets object');
           if (result.record.options.direction !== direction) throw Error('Saved direction does not match the GUI choice');
+          if ((await window.a.settings.getAll()).coverDependencyProjectId !== dependencyId) throw Error('Successful package Save did not remember the dependency preference');
           await wait(() => card(sample)?.querySelector('img')?.getAttribute('src') === current.cover_image && card(sample).querySelector('img')?.naturalWidth > 0, 'Saved cover did not load in its card', 30000);
           console.log('[PACKAGE_GUI] explicitly saved stable source ' + result.record.target.id);
           return {cover:current.cover_image,record:result.record};
@@ -321,6 +324,7 @@ if (!process.versions.electron) {
           const gui = window.__atriumPackageGui, first = gui.samples[0], second = gui.samples[1];
           console.log('[PACKAGE_GUI] verify saved package and manual covers after production-app restart');
           const persisted = await gui.status(first), manual = await gui.status(second);
+          if ((await window.a.settings.getAll()).coverDependencyProjectId !== gui.dependencyId) throw Error('Remembered dependency preference did not survive restart');
           if (persisted.record?.source !== 'package' || persisted.record.target?.id !== first.targetId || persisted.record.target?.sourceGuid !== first.expectedGuid || persisted.record.projectId !== gui.dependencyId) throw Error('Package association did not survive restart');
           if (manual.record?.source !== 'image' || manual.record.coverImage !== ${JSON.stringify(previous.lifecycle.manual)}) throw Error('Manual cover did not survive restart');
           await gui.chooseCard(first); const cover = (await gui.cover(first)).cover_image;
@@ -332,7 +336,7 @@ if (!process.versions.electron) {
           const manualCover = (await gui.cover(second)).cover_image;
           await gui.wait(() => gui.card(second)?.querySelector('img')?.getAttribute('src') === manualCover && gui.card(second).querySelector('img')?.naturalWidth > 0, 'Restarted manual image did not decode in its card', 30000);
           if ((await window.a.unity.status()).targetProjectId !== null) throw Error('Restart changed the import target');
-          return {packageModeRestored:true,dependencyRestored:true,stableGuidRestored:true,angleRestored:true,noAutomaticRediscovery:true,packageRecord:persisted.record,manualRecord:manual.record,cover,manualCover};
+          return {packageModeRestored:true,dependencyRestored:true,dependencyPreferenceRestored:true,stableGuidRestored:true,angleRestored:true,noAutomaticRediscovery:true,packageRecord:persisted.record,manualRecord:manual.record,cover,manualCover};
         })()`);
         decoded(paths, restart.cover);
         writeResult({ok:true,stage,dependencyId:setup.dependencyId,restart,finalDb:snapshotDb(paths),noInternalProjectRegistration:true,importTargetNull:true});

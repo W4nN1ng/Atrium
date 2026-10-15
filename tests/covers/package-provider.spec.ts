@@ -22,6 +22,10 @@ beforeEach(() => {
   db = new Database(':memory:'); migrate(db)
   for (const id of ['one', 'two']) upsertAsset(db, makeAssetRow({ id, name: id, raw_name: id, category: 'props', source_path: source }))
   db.prepare('INSERT INTO project(id,path,name) VALUES(?,?,?)').run('shader', path.join(root, 'dependency'), 'Dependency')
+  const shader = path.join(root, 'dependency', 'Packages', 'jp.lilxyzw.liltoon')
+  fs.mkdirSync(path.join(shader, 'Shader'), { recursive: true })
+  fs.writeFileSync(path.join(shader, 'package.json'), JSON.stringify({ name: 'jp.lilxyzw.liltoon', version: '2.3.4' }))
+  fs.writeFileSync(path.join(shader, 'Shader', 'Preview.shader'), 'Shader "lilToon" {}')
   command = 0
   prepare = vi.fn(async (_db: Db, _id: string, destination: string) => {
     expect(fs.readdirSync(destination)).toEqual([])
@@ -99,6 +103,11 @@ describe('package preview provider ownership and association', () => {
     const found = await provider.discover('one', 'find', 'shader', signal(), progress)
     const rendered = await provider.preview({ ...capture(found.targets[0]), dependencyProjectId: 'shader' }, signal(), progress)
     expect(rendered.dependencyProjectId).toBe('shader')
+  })
+  it('rejects a registered dependency that disappeared before preparing or starting Unity', async () => {
+    fs.renameSync(path.join(root, 'dependency', 'Packages', 'jp.lilxyzw.liltoon'), path.join(root, 'dependency', 'Packages', 'moved'))
+    await expect(provider.discover('one', 'find', 'shader', signal(), progress)).rejects.toThrow('covers.dependencyMissing')
+    expect(prepare).not.toHaveBeenCalled(); expect(worker.start).not.toHaveBeenCalled()
   })
   it('does not keep successful late preparation after cancellation', async () => {
     const controller = new AbortController()

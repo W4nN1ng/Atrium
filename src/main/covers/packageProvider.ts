@@ -11,6 +11,7 @@ import type { CoverCandidate, CoverDiscovery, CoverRequest, PackageCoverProgress
 import { preparePackageSources } from './packageSource'
 import { PackagePreviewWorker, ensurePackagePreviewProject, findUnityEditor, PACKAGE_PREVIEW_MARKER } from './packageWorker'
 import { readPreview } from './service'
+import { assertCoverDependency } from './dependencySetup'
 
 export interface PackageRendered {
   bytes: Buffer; width: number; height: number; rendererCount: number
@@ -111,6 +112,7 @@ export class PackageCoverProvider implements PackageCoverBackend {
     const sourcePaths = this.sourcePaths(assetId)
     const dependency = dependencyId ? getProject(this.deps.db, dependencyId) : null
     if (dependencyId && !dependency) throw new Error('covers.projectMissing')
+    if (dependencyId) assertCoverDependency(this.deps.db, dependencyId)
     this.dependencyPath = dependency?.path ?? null
     const existing = this.prepared.get(assetId)
     if (existing && existing.dependencyId === (dependencyId || null) && this.current(assetId, existing)) {
