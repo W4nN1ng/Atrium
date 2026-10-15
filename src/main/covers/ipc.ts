@@ -10,6 +10,7 @@ import { CoverService } from './service'
 import { PackageCoverProvider } from './packageProvider'
 import { getSettings, setSettings } from '../services/settings'
 import { buildPackageCoverSetup } from './dependencySetup'
+import { assetRootDirectory } from './assetRoot'
 import type { CoverRequest } from '../../shared/covers'
 
 export function registerCoverIpc(db: Db, manager: BridgeManager, registrar: IpcRegistrar): CoverService {
@@ -19,6 +20,14 @@ export function registerCoverIpc(db: Db, manager: BridgeManager, registrar: IpcR
     changed: assetId => registrar.broadcast('data:changed', { reason: 'cover', assetId }) })
   const ipc = registrar.ipc
   ipc.handle('covers:package-setup', (assetId: string) => buildPackageCoverSetup(db, assetId, getSettings().coverDependencyProjectId))
+  /**
+   * 这个素材在磁盘上的根目录 —— 给「选择本地图片」的文件对话框当 `defaultPath` 用。
+   *
+   * 没有它的话对话框会沿用上一次的目录（Windows 的行为），
+   * 用户在一个合集里连续给多个素材设封面时，每次都要自己翻回去（2026-10-15 报的 bug）。
+   * 路径不存在时回 `null`，由界面决定回退（不传 `defaultPath` 就是系统默认行为）。
+   */
+  ipc.handle('covers:asset-root', (assetId: string) => assetRootDirectory(db, assetId))
   ipc.handle('covers:package-status', () => service.packageStatus())
   ipc.handle('covers:discover-package', (assetId: string, requestId: string, dependencyProjectId?: string) => service.discoverPackage(assetId, requestId, dependencyProjectId))
   ipc.handle('covers:package-progress', (id: string) => service.packageProgress(id))

@@ -199,11 +199,29 @@ export function registerSystem(ipc: IpcRegistrar['ipc'], getWindow: () => Browse
     return r?.[0] ?? null
   })
 
-  ipc.handle('system:pick-files', (opts?: { title?: string; filters?: Electron.FileFilter[]; multiple?: boolean }) => {
+  ipc.handle('system:pick-files', (opts?: { title?: string; filters?: Electron.FileFilter[]; multiple?: boolean; defaultPath?: string; buttonLabel?: string }) => {
     const win = getWindow()
     const options = {
       title: opts?.title ?? '选择文件',
-      buttonLabel: '加入摄取队列',
+      /**
+       * 按钮文案要能覆盖。
+       *
+       * 原来写死 `'加入摄取队列'` —— 那是**摄取流程**的措辞，而这个对话框是通用的：
+       * 封面编辑器用它选图片、设置页用它选 `Unity.exe`，按钮却都写着"加入摄取队列"
+       * （2026-10-15 用户截图里就是这个错的文案）。默认值保持不变，
+       * 免得动到摄取那两处；其它调用方自己传合适的词。
+       */
+      buttonLabel: opts?.buttonLabel ?? '加入摄取队列',
+      /**
+       * ⚠ **必须有 `defaultPath`**（2026-10-15 报的 bug）。
+       *
+       * 以前这里没接这个参数，于是 Windows 沿用了**上一次用过的目录**：
+       * 用户在封面编辑器点「选择本地图片」，对话框打开的是上一个素材（`…史莱姆化`）
+       * 的目录，而不是当前素材的目录 —— 每次都得自己翻回去。
+       * `system:pick-directory` 一直都有这个参数，只有这里漏了。
+       * 传 `undefined` 时行为与从前完全一致（系统默认）。
+       */
+      defaultPath: opts?.defaultPath,
       properties: (opts?.multiple === false ? ['openFile'] : ['openFile', 'multiSelections']) as Electron.OpenDialogOptions['properties'],
       filters: opts?.filters
     }

@@ -1076,6 +1076,8 @@
     "saved": "カバーを更新しました",
     "upload": "画像を選択",
     "imageFiles": "画像",
+    "uploadConfirm": "この画像を使う",
+    "editorConfirm": "このエディターを使う",
     "restore": "元のカバーに戻す",
     "offline": "選択した Unity プロジェクトを開き、Atrium ブリッジがインストールされていることを確認してください。",
     "unityBusy": "Unity が実行・コンパイル・インポート中です。Play モードを終了し、処理が終わってから再試行してください。",
