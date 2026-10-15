@@ -130,6 +130,8 @@ if (!process.versions.electron) {
             await wait(()=>card());card().click();
             await wait(()=>[...document.querySelectorAll('aside')].some(aside=>aside.textContent.includes(sample.name)));
             await wait(()=>button('编辑封面'));click('编辑封面');
+            await wait(()=>dialog()?.querySelector('[data-cover-provider]'));
+            const provider=dialog().querySelector('[data-cover-provider]');provider.value='project';provider.dispatchEvent(new Event('change',{bubbles:true}));
             await wait(()=>dialog()?.querySelectorAll('[data-cover-candidate]').length===Math.min(8,discovered.targets.length));
             let expected=discovered.targets.find(target=>target.path===sample.expectedPath&&target.sourceGuid===sample.expectedGuid);
             while(![...dialog().querySelectorAll('[data-cover-candidate]')].some(item=>item.dataset.coverCandidate===expected.id)){
@@ -222,6 +224,8 @@ if (!process.versions.electron) {
             await wait(()=>[...document.querySelectorAll('.card')].some(card=>card.textContent.includes('Chocolate Cover')));
             [...document.querySelectorAll('.card')].find(card=>card.textContent.includes('Chocolate Cover')).click();
             await wait(()=>button('编辑封面'));button('编辑封面').click();
+            await wait(()=>document.querySelector('[data-cover-provider]'));
+            const provider=document.querySelector('[data-cover-provider]');provider.value='project';provider.dispatchEvent(new Event('change',{bubbles:true}));
             await wait(()=>document.querySelector('[data-cover-candidate] img')?.naturalWidth>0&&button('取消查找'));
             document.querySelector('[data-cover-candidate]').click();await wait(()=>!button('保存封面').disabled);
             button('保存封面').click();await delay();
@@ -249,6 +253,8 @@ if (!process.versions.electron) {
           await wait(()=>[...document.querySelectorAll('.card')].some(card=>card.textContent.includes('Chocolate Cover')));
           [...document.querySelectorAll('.card')].find(card=>card.textContent.includes('Chocolate Cover')).click();
           await wait(()=>button('编辑封面'));click('编辑封面');
+          await wait(()=>dialog()?.querySelector('[data-cover-provider]'));
+          const provider=dialog().querySelector('[data-cover-provider]');provider.value='project';provider.dispatchEvent(new Event('change',{bubbles:true}));
           await wait(()=>dialog()?.querySelectorAll('[data-cover-candidate]').length===8);
           await wait(()=>cards().every(card=>card.querySelector('img')?.naturalWidth>0));
           if(!button('保存封面').disabled||cards().some(card=>card.getAttribute('aria-pressed')==='true'))throw Error('Discovery automatically selected a candidate');
@@ -280,6 +286,8 @@ if (!process.versions.electron) {
           const delay=()=>new Promise(resolve=>setTimeout(resolve,50));
           const wait=async fn=>{for(let i=0;i<140;i++){if(await fn())return;await delay();}throw Error('Cancellation UI timed out');};
           [...document.querySelectorAll('button')].find(button=>button.textContent==='编辑封面').click();
+          await wait(()=>document.querySelector('[data-cover-provider]'));
+          const provider=document.querySelector('[data-cover-provider]');provider.value='project';provider.dispatchEvent(new Event('change',{bubbles:true}));
           await wait(()=>document.querySelector('[data-cover-candidate]'));
           await wait(()=>[...document.querySelectorAll('[role="dialog"] button')].some(button=>button.textContent==='取消查找'));
           [...document.querySelectorAll('[role="dialog"] button')].find(button=>button.textContent==='取消查找').click();
@@ -299,6 +307,8 @@ if (!process.versions.electron) {
           [...document.querySelectorAll('.card')].find(card=>card.textContent.includes('Manual Cover')).click();
           await wait(()=>[...document.querySelectorAll('aside')].some(aside=>aside.textContent.includes('Manual Cover')));
           [...document.querySelectorAll('button')].find(button=>button.textContent==='编辑封面').click();
+          await wait(()=>document.querySelector('[data-cover-provider]'));
+          const provider=document.querySelector('[data-cover-provider]');provider.value='project';provider.dispatchEvent(new Event('change',{bubbles:true}));
           await wait(()=>document.querySelector('[role="dialog"] [data-cover-candidate] img')?.naturalWidth>0);
           if((await window.a.assets.get('cover-two')).cover_image!==original)throw Error('Auto candidates overwrote manual cover');
           [...document.querySelectorAll('[role="dialog"] button')].find(button=>button.textContent==='取消').click();
@@ -328,21 +338,23 @@ if (!process.versions.electron) {
           await wait(()=>card().querySelector('img')?.naturalWidth>0);
           return {restart:true,record:status.record,cover:(await cover()).cover_image};
         }
-        phase('first preview');click('编辑封面');await wait(()=>dialog()?.textContent.includes('读取 Unity 当前选中物品'));
-        const projectSelect=dialog().querySelector('select');projectSelect.value=${JSON.stringify(setup.id)};projectSelect.dispatchEvent(new Event('change',{bubbles:true}));
+        phase('first preview');click('编辑封面');await wait(()=>dialog()?.querySelector('[data-cover-provider]'));
+        const provider=dialog().querySelector('[data-cover-provider]');provider.value='project';provider.dispatchEvent(new Event('change',{bubbles:true}));
+        await wait(()=>dialog()?.textContent.includes('读取 Unity 当前选中物品'));
+        const projectSelect=[...dialog().querySelectorAll('select')].find(select=>[...select.options].some(option=>option.value===${JSON.stringify(setup.id)}));projectSelect.value=${JSON.stringify(setup.id)};projectSelect.dispatchEvent(new Event('change',{bubbles:true}));
         await wait(()=>![...dialog().querySelectorAll('button')].find(b=>b.textContent==='读取 Unity 当前选中物品')?.disabled);
-        click('读取 Unity 当前选中物品');await wait(()=>dialog().querySelectorAll('select').length===4);
+        click('读取 Unity 当前选中物品');await wait(()=>[...dialog().querySelectorAll('select')].some(select=>[...select.options].some(option=>option.textContent.includes('Valentines'))));
         const searchInput=dialog().querySelector('input');
         Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(searchInput,'Valentines');
         searchInput.dispatchEvent(new Event('input',{bubbles:true}));
         await wait(()=>![...dialog().querySelectorAll('button')].find(b=>b.textContent==='搜索')?.disabled);
-        click('搜索');await wait(()=>dialog().querySelectorAll('select').length===4&&dialog().querySelectorAll('select')[1].options.length>2);
-        const objectSelect=dialog().querySelectorAll('select')[1];
+        click('搜索');await wait(()=>[...dialog().querySelectorAll('select')].some(select=>select.options.length>2&&[...select.options].some(option=>option.textContent.includes('Valentines.prefab'))));
+        const objectSelect=[...dialog().querySelectorAll('select')].find(select=>[...select.options].some(option=>option.textContent.includes('Valentines.prefab')));
         if(objectSelect.value!==''||![...dialog().querySelectorAll('button')].find(b=>b.textContent==='生成预览').disabled)throw Error('Multiple targets were guessed automatically');
         const prefabOption=[...objectSelect.options].find(o=>o.textContent.includes('Valentines.prefab'));
         if(!prefabOption)throw Error('Chocolate prefab search result missing');
         objectSelect.value=prefabOption.value;objectSelect.dispatchEvent(new Event('change',{bubbles:true}));
-        const angles=[...dialog().querySelectorAll('select')][2];angles.value='bottom';angles.dispatchEvent(new Event('change',{bubbles:true}));
+        const angles=dialog().querySelector('[data-cover-angle]');angles.value='bottom';angles.dispatchEvent(new Event('change',{bubbles:true}));
         click('生成预览');await wait(()=>dialog()?.querySelector('img')?.naturalWidth>0);
         if((await cover()).cover_image!=='none')throw Error('Preview changed card before confirmation');
         click('保存封面');await wait(()=>!dialog());
@@ -354,9 +366,11 @@ if (!process.versions.electron) {
         click('恢复原始封面');await wait(()=>!dialog());
         if((await cover()).cover_image!=='none')throw Error('Restore did not restore original');
         phase('cancel');
-        click('编辑封面');await wait(()=>dialog()?.textContent.includes('读取 Unity 当前选中物品'));
+        click('编辑封面');await wait(()=>dialog()?.querySelector('[data-cover-provider]'));
+        const cancelProvider=dialog().querySelector('[data-cover-provider]');cancelProvider.value='project';cancelProvider.dispatchEvent(new Event('change',{bubbles:true}));
+        await wait(()=>dialog()?.textContent.includes('读取 Unity 当前选中物品'));
         await wait(()=>![...dialog().querySelectorAll('button')].find(b=>b.textContent==='读取 Unity 当前选中物品')?.disabled);
-        click('读取 Unity 当前选中物品');await wait(()=>dialog().querySelectorAll('select').length===4);
+        click('读取 Unity 当前选中物品');await wait(()=>[...dialog().querySelectorAll('select')].some(select=>[...select.options].some(option=>option.textContent.includes('Valentines'))));
         click('生成预览');await wait(()=>dialog()?.querySelector('img')?.naturalWidth>0);
         click('取消');await wait(()=>!dialog());
         if((await cover()).cover_image!=='none')throw Error('Cancelled preview changed card');

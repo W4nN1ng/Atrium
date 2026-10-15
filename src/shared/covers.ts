@@ -15,7 +15,7 @@ export interface CoverRecord {
   assetId: string
   coverImage: string
   previousImage: string | null
-  source: 'unity' | 'image'
+  source: 'unity' | 'image' | 'package'
   projectId: string | null
   target: PreviewTarget | null
   options: PreviewOptions | null
@@ -42,7 +42,11 @@ export interface CoverBatch {
 }
 export interface CoverRequest {
   assetId: string; projectId: string; target: PreviewTarget; options: PreviewOptions; requestId: string
+  provider?: 'project' | 'package'
+  dependencyProjectId?: string
 }
+export interface PackageCoverStatus { available: boolean; editorPath: string | null; version: string | null }
+export interface PackageCoverProgress { stage: string; done?: number; total?: number }
 export interface CoverStatus {
   record: CoverRecord | null
   bridge: 'offline' | 'upgrade' | 'busy' | 'ready'
