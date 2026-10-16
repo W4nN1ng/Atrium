@@ -27,7 +27,7 @@ export function toastText(p: ToastPayload): string {
 /** Electron prefixes thrown IPC errors; translate the embedded key, preserving unknown errors. */
 export function errorText(error: unknown): string {
   const text = error instanceof Error ? error.message : String(error)
-  const key = text.match(/i18n:([A-Za-z0-9_.]+)/)?.[1]
+  const key = text.match(/i18n:([A-Za-z0-9_.]+)/)?.[1] ?? text.match(/\b(project\.connection[A-Za-z]+)\b/)?.[1]
   return key && i18next.exists(key) ? String(i18next.t(key)) : text
 }
 

@@ -37,6 +37,7 @@ import type { HealthReport,
   VariantRow
 } from './types'
 import type { DirectoryProbe } from './wizardState'
+import type { ProjectConnection, UnityConnectionSnapshot, UnityTargetResolution } from './unityConnection'
 import type { CoverBatch, CoverDiscovery, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget, PackageCoverStatus, PackageCoverProgress, PackageCoverSetup } from './covers'
 
 export interface AppInfo {
@@ -403,6 +404,11 @@ export interface AApi {
     refreshProjects(): Promise<import('./types').ProjectInfo[]>
     /** 顶栏工程切换器：选中的工程就是导入目标 */
     setTarget(projectId: string | null): Promise<string | null>
+    connection(): Promise<UnityConnectionSnapshot>
+    resolveTarget(): Promise<UnityTargetResolution>
+    prepareTarget(projectId: string, requestId: string): Promise<ProjectConnection>
+    cancelTargetPreparation(requestId: string): Promise<void>
+    retryConnection(projectId: string): Promise<void>
     /** 某个素材在哪些工程装过（只读 import_log；GUID 反查是 M5-B 的活） */
     importHistory(query?: ImportHistoryQuery): Promise<ImportHistoryPage>
     importLogs(assetId: string): Promise<

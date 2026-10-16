@@ -237,7 +237,10 @@
     "dropNothing": "このドラッグにはファイルが含まれていません（文字やショートカットの可能性）。エクスプローラーからフォルダをドラッグするか、「受信箱 → ファイルを選択…」を使ってください。",
     "importConfirmTitle": "Unity へのインポートを確認",
     "importConfirmAction": "インポートを確認",
-    "importConfirmIntro": "{{total}} 個のファイルをインポートします。上書きが必要な既存ファイルはありません。"
+    "importConfirmIntro": "{{total}} 個のファイルをインポートします。上書きが必要な既存ファイルはありません。",
+    "importToProject": "{{name}} にインポート",
+    "batchImportToProject": "{{count}} 件を {{name}} にインポート",
+    "memberStartToProject": "選択した {{count}} 件を {{name}} にインポート"
   },
   "inbox": {
     "title": "整理待ちの素材",
@@ -364,7 +367,28 @@
     "connectLater": "後で接続",
     "connectSelected": "選択したプロジェクトを接続（{{n}}）",
     "connectAutomatic": "今後、選択したプロジェクトに接続プラグインを自動インストール",
-    "connectFilesNote": "接続すると Packages フォルダーに Atrium プラグインが入ります。未選択のプロジェクトは今回はスキップされ、「現在のプロジェクト」から後で接続できます。"
+    "connectFilesNote": "接続すると Packages フォルダーに Atrium プラグインが入ります。未選択のプロジェクトは今回はスキップされ、「現在のプロジェクト」から後で接続できます。",
+    "connectionClosed": "Unity は閉じています",
+    "connectionDisabled": "自動接続は無効です",
+    "connectionUnsupported": "この Unity バージョンは未対応です",
+    "connectionInstalling": "接続を準備中",
+    "connectionWaiting": "接続中",
+    "connectionReady": "接続済み",
+    "connectionFailed": "接続に失敗しました",
+    "connectionTimeout": "接続がタイムアウトしました。再試行してください。",
+    "connectionCancelled": "接続待機をキャンセルしました。",
+    "connectionProjectMissing": "対象のプロジェクトが閉じられたか、利用できません。Unity を開いて再試行してください。",
+    "connectionUnsafe": "プロジェクトのパスに安全に書き込めません。パスとディレクトリリンクを確認してください。",
+    "chooseImportTarget": "インポート先を選択",
+    "chooseImportTargetHint": "複数の Unity プロジェクトが起動中です。今回のインポート先を選んでください。後続のバッチも同じプロジェクトを使用します。",
+    "openUnityHint": "Unity 2022.3 のプロジェクトを開くと自動接続します。",
+    "preparingImport": "{{name}} に接続中です。準備ができ次第インポートを続行します…",
+    "cancelWaiting": "待機をキャンセル",
+    "retryConnection": "接続を再試行",
+    "connectionAdvanced": "接続の詳細設定",
+    "connectionDetails": "詳細を表示",
+    "uninstallAutoConnectHint": "コネクターを削除すると、このプロジェクトの自動接続を無効にします。「接続を再試行」で再び有効にできます。",
+    "connectionOpenUnity": "Unity 2022.3 のプロジェクトを開いてから、インポートをクリックしてください。"
   },
   "settings": {
     "title": "設定",
@@ -571,7 +595,9 @@
     "backupProtectLiveDatabase": "現在のデータベースやログファイルには保存できません。別のファイル名を選んでください。",
     "backupInvalidTarget": "この場所には保存できません。有効なファイルパスを選んでください。",
     "backupFailed": "バックアップに失敗しました。既存の保存先ファイルは保持されました。空き容量、権限、ファイルの使用状況を確認してください。",
-    "backupTargetJournal": "保存先にデータベースのログがあります。上書きせず、新しいファイル名を選んでください。"
+    "backupTargetJournal": "保存先にデータベースのログがあります。上書きせず、新しいファイル名を選んでください。",
+    "unityAutoConnect": "Unity に自動接続する",
+    "unityAutoConnectHint": "対応する Unity プロジェクトを開くと接続を準備します。コネクターがなければ一度だけインストールし、Unity の準備ができてから依頼したインポートを実行します。"
   },
   "toast": {
     "trashDone": "ごみ箱に入れました",
@@ -879,15 +905,16 @@
       "remove": "削除"
     },
     "step3": {
-      "title": "③ Unity プロジェクトを接続（省略可）",
-      "body": "Unity へのインポートには Atrium 接続プラグインが必要です。接続するプロジェクトを選ぶか、後で「現在のプロジェクト」からインストールしてください。",
-      "none": "Unity プロジェクトが見つかりません。プロジェクトルートを追加してからもう一度戻るか、今はスキップしてください。",
+      "title": "③ Unity 自動接続（任意）",
+      "body": "Unity 2022.3 のプロジェクトを開くと、自動で接続を準備します。コネクターがなければ自動でインストールします。",
+      "none": "起動中の Unity プロジェクトは見つかりません。プロジェクトを開くと自動接続します。このまま次へ進むこともできます。",
       "installed": "導入済み",
       "run": "選択したプロジェクトを接続",
       "onlyPackages": "Packages/com.avca.bridge のみ書き込み、Assets/ は触りません",
       "resultOk": "{{copied}} 個のファイルを導入 → {{target}}",
       "resultBad": "導入失敗：{{error}}",
-      "unknownError": "理由が返されませんでした"
+      "unknownError": "理由が返されませんでした",
+      "automatic": "自動接続するため、インストール先の選択は不要です。プロジェクトを開くだけでは素材をインポートしません。"
     },
     "step4": {
       "title": "④ 仕上げ",
@@ -901,7 +928,7 @@
       "libraryRoot": "素材保存フォルダー",
       "mode": "扱い",
       "watched": "監視フォルダ",
-      "bridges": "導入したブリッジ",
+      "bridges": "接続済みの Unity プロジェクト",
       "autoLaunch": "自動起動",
       "hotkey": "グローバルホットキー"
     }

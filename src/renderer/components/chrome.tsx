@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { LocaleKey, ProjectInfo } from '../../shared/types'
+import type { LocaleKey } from '../../shared/types'
+import type { ProjectConnection } from '../../shared/unityConnection'
 import { needsLibrarySetup } from '../../shared/wizardState'
 import { useUi } from '../stores/ui'
 import { humanNumber } from '../lib/format'
 import { Badge, Button, Modal, Tip } from './ui'
+import { ConnectionBadge, connectionText } from './ImportTargetPicker'
 
 const QUICK: Array<{ key: string; labelKey: string }> = [
   { key: 'inbox', labelKey: 'nav.inbox' },
@@ -20,15 +22,14 @@ export function TopBar(): JSX.Element {
   const search = useUi((s) => s.search)
   const setSearch = useUi((s) => s.setSearch)
   const unity = useUi((s) => s.unity)
+  const connection = useUi((s) => s.connection)
   const projects = useUi((s) => s.projects)
   const refreshProjects = useUi((s) => s.refreshProjects)
   const setUnityTarget = useUi((s) => s.setUnityTarget)
-  const toast = useUi((s) => s.toast)
   const setNav = useUi((s) => s.setNav)
   const info = useUi((s) => s.info)
   const inputRef = useRef<HTMLInputElement>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [, force] = useState(0)
 
   /** 首次挂载就把工程列表拉好，否则切换器一开始是空的 */
   useEffect(() => {
@@ -48,10 +49,6 @@ export function TopBar(): JSX.Element {
   }, [pickerOpen])
 
   useEffect(() => {
-    void force
-  }, [])
-
-  useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -63,18 +60,13 @@ export function TopBar(): JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const dot = unity.running ? (unity.bridgeReady ? 'var(--ok)' : 'var(--warn)') : 'var(--faint)'
-  const target = projects.find((p) => p.id === unity.targetProjectId) ?? null
+  const target = connection.projects.find((p) => p.projectId === connection.targetProjectId) ?? null
+  const running = connection.projects.filter((p) => projects.some((project) => project.id === p.projectId && project.running))
+  const dot = target?.phase === 'ready' ? 'var(--ok)' : target?.phase === 'failed' ? 'var(--bad)' : target?.phase === 'installing' || target?.phase === 'connecting' ? 'var(--warn)' : 'var(--faint)'
 
-  /**
-   * 导入目标：**未运行的工程不能导入**（§4.3 步骤 4）。选中时如实提示，不假装可用。
-   * 但允许选中 —— 用户可能想先定好目标再去开 Unity。
-   */
-  function pick(p: ProjectInfo): void {
+  function pick(p: ProjectConnection): void {
     setPickerOpen(false)
-    void setUnityTarget(p.id)
-    if (!p.running) toast('warn', t('project.notRunningHint', { name: p.name }))
-    else if (!p.bridgeInstalled) toast('warn', t('project.bridgeMissingHint', { name: p.name }))
+    void setUnityTarget(p.projectId)
   }
 
   return (
@@ -108,9 +100,8 @@ export function TopBar(): JSX.Element {
           <Tip
             label={
               target
-                ? `${target.path}\n${target.running ? t('project.running') : t('project.notRunning')}` +
-                  `${target.bridgeInstalled ? '' : '\n' + t('project.bridgeMissing')}`
-                : t('project.pickTargetHint')
+                ? `${target.projectPath}\n${connectionText(t, target.phase)}`
+                : connection.ambiguous ? t('project.chooseImportTarget') : t('project.openUnityHint')
             }
           >
             <button
@@ -125,6 +116,7 @@ export function TopBar(): JSX.Element {
               <span className="muted max-w-[190px] truncate">
                 {t('project.target')}：{target?.name ?? t('project.noTarget')}
               </span>
+              {target ? <ConnectionBadge phase={target.phase} /> : null}
               {unity.isPlaying ? <Badge tone="warn">Play</Badge> : null}
               {unity.isCompiling ? <Badge tone="warn">{t('project.compiling')}</Badge> : null}
               {unity.queueLength > 0 ? <Badge tone="accent">{t('project.queued', { count: unity.queueLength })}</Badge> : null}
@@ -136,37 +128,35 @@ export function TopBar(): JSX.Element {
               className="absolute right-0 top-[30px] z-30 max-h-[320px] w-[330px] overflow-y-auto rounded border shadow-lg"
               style={{ borderColor: 'var(--line-2)', background: 'var(--panel)' }}
             >
-              {projects.length === 0 ? (
+              {running.length === 0 ? (
                 <div className="px-3 py-2 text-[11px]" style={{ color: 'var(--muted)' }}>
-                  {t('project.none')}
+                  {t('project.openUnityHint')}
                 </div>
               ) : (
-                projects.map((p) => (
+                running.map((p) => (
                   <button
-                    key={p.id}
+                    key={p.projectId}
                     type="button"
+                    data-project-target={p.projectId}
+                    disabled={p.phase === 'unsupported' || p.phase === 'disabled' || p.reasonKey === 'project.connectionUnsafe'}
                     className="flex w-full items-center gap-2 border-b px-3 py-2 text-left"
                     style={{
                       borderColor: 'var(--line)',
-                      background: p.id === unity.targetProjectId ? 'var(--accent-soft)' : 'transparent'
+                      background: p.projectId === connection.targetProjectId ? 'var(--accent-soft)' : 'transparent'
                     }}
                     onClick={() => pick(p)}
                   >
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: p.running ? 'var(--ok)' : 'var(--faint)' }}
+                      style={{ background: p.phase === 'ready' ? 'var(--ok)' : p.phase === 'failed' ? 'var(--bad)' : 'var(--warn)' }}
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12px]">{p.name}</span>
                       <span className="block truncate text-[10px]" style={{ color: 'var(--faint)' }}>
-                        {p.path}
+                        {p.projectPath}
                       </span>
                     </span>
-                    {p.bridgeInstalled ? (
-                      <Badge tone="ok">{t('project.bridgeReady')}</Badge>
-                    ) : (
-                      <Badge tone="warn">{t('project.bridgeMissing')}</Badge>
-                    )}
+                    <ConnectionBadge phase={p.phase} />
                   </button>
                 ))
               )}

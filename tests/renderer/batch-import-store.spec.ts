@@ -131,6 +131,10 @@ beforeEach(async () => {
     ingest: { queue: async () => [], restoreQueue: async () => [] },
     unity: {
       ...api,
+      resolveTarget: vi.fn(async () => ({ kind: 'selected', projectId: 'P1', projectName: 'Fixture Project' })),
+      prepareTarget: vi.fn(async (projectId: string) => ({ projectId, projectPath: 'D:/p', name: 'Fixture Project', phase: 'ready', reasonKey: null, detail: null })),
+      cancelTargetPreparation: vi.fn(async () => undefined),
+      connection: vi.fn(async () => ({ projects: [{ projectId: 'P1', projectPath: 'D:/p', name: 'Fixture Project', phase: 'ready', reasonKey: null, detail: null }], targetProjectId: 'P1', targetMode: 'auto', ambiguous: false })),
       status: async () => ({}),
       instances: async () => [],
       listProjects: async () => [],
@@ -154,7 +158,9 @@ async function store() {
 
 async function readyWith(selection: string[], target: string | null = 'P1') {
   const useUi = await store()
-  useUi.setState({ unity: { ...useUi.getState().unity, targetProjectId: target }, selection })
+  window.a.unity.resolveTarget = vi.fn(async () => target ? { kind: 'selected', projectId: target, projectName: 'Fixture Project' } : { kind: 'none' }) as any
+  useUi.setState({ unity: { ...useUi.getState().unity, targetProjectId: target }, selection,
+    projects: target ? [{ id: target, name: 'Fixture Project', path: 'D:/p', unityVersion: '2022.3.22f1', running: true, detectedBy: ['bridge'], bridgeInstalled: true, bridgeVersion: 'fixture' }] : [] })
   return useUi
 }
 
@@ -203,10 +209,12 @@ describe('不替用户做决定', () => {
     expect(useUi.getState().toasts.some((x: any) => x.tone === 'warn')).toBe(true)
   })
 
-  it('没选导入目标 → 不开面板（以前会一路走到主进程才报"没有工程"）', async () => {
+  it('没有运行中的导入工程 → 不开面板、不解析素材', async () => {
     const useUi = await readyWith(['LOOSE1'], null)
     await useUi.getState().importSelected()
     expect(calls.importPlan).toHaveLength(0)
+    expect(calls.packagesOfAsset).toHaveLength(0)
+    expect(window.a.unity.prepareTarget).not.toHaveBeenCalled()
     expect(useUi.getState().batchImport.open).toBe(false)
   })
 })

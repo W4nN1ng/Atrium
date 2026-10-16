@@ -39,6 +39,8 @@ export const DEFAULTS: AppSettings = {
   llmApiKeyRef: '',
 
   unityExePath: '',
+  unityAutoConnect: true,
+  unityAutoConnectExcludedProjectIds: [],
   coverDependencyProjectId: null,
   projectRoots: [],
   bridgeAutoInstall: false,

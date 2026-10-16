@@ -2,6 +2,7 @@ import { app, BrowserWindow, globalShortcut } from 'electron'
 import log from 'electron-log'
 import path from 'node:path'
 import { DEFAULT_HOTKEY, APP_DISPLAY_NAME } from '../shared/constants'
+import type { ProjectInfo } from '../shared/types'
 import { createRegistrar } from './ipc/util'
 import { registerSystem } from './ipc/system'
 import { registerSettings } from './ipc/settings'
@@ -19,8 +20,10 @@ import { startFolderWatcher, type FolderWatcher } from './services/watcher'
 import { assetIndex, rebuildIndexChunked, setCategoryConfig } from './search'
 import { loadCategories } from './services/categories'
 import { startProjectWatcher, type ProjectApi } from './project/api'
+import { UnityConnections } from './project/connections'
+import { installBridge } from './bridge/installer'
 import { closeDatabase, getDb, openDatabase } from './db'
-import { ensureRuntimeDirs, initAppPaths, P } from './services/paths'
+import { bridgeTemplateRoot, ensureRuntimeDirs, initAppPaths, P } from './services/paths'
 import { installThumbProtocol, registerThumbSchemePrivileges } from './services/thumb-protocol'
 import { backfillThumbs } from './library/thumbs'
 import { getSettings, onSettingsChanged } from './services/settings'
@@ -79,6 +82,8 @@ function bootstrap(): void {
    */
   let bridge: BridgeManager | null = null
   let bridgeIpc: BridgeIpcApi | null = null
+  let connections: UnityConnections | null = null
+  let detectedProjects: ProjectInfo[] = []
   let covers: CoverService | null = null
 
   const isPrimary = (): boolean => true
@@ -126,7 +131,16 @@ function bootstrap(): void {
      * 必须在 `startProjectWatcher` 之前起来 —— 工程发现之后要立刻给每个工程挂上 outbox 监视。
      */
     bridge = new BridgeManager()
-    bridgeIpc = registerBridgeIpc({ db: getDb(), manager: bridge, registrar })
+    const manager = bridge
+    connections = new UnityConnections({
+      config: () => ({ enabled: getSettings().unityAutoConnect,
+        excludedProjectIds: getSettings().unityAutoConnectExcludedProjectIds }),
+      install: project => installBridge(getDb(), project.path, bridgeTemplateRoot()),
+      statusOf: projectPath => manager.statusOf(projectPath),
+      watch: projectPath => manager.watch(projectPath),
+      changed: snapshot => registrar.broadcast('unity:connection-changed', snapshot)
+    })
+    bridgeIpc = registerBridgeIpc({ db: getDb(), manager, registrar, connections })
     covers = registerCoverIpc(getDb(), bridge, registrar)
     /** 结果到达就推给界面（进度、终态都要看得见） */
     bridge.onResult((projectPath, result) => {
@@ -191,7 +205,12 @@ function bootstrap(): void {
      */
     projectApi = startProjectWatcher(registrar, {
       bridgeForFingerprint: () => bridge,
-      wake: wakeForProject
+      wake: wakeForProject,
+      automaticConnections: true,
+      onDetected: projects => {
+        detectedProjects = projects
+        connections?.update(projects)
+      }
     })
 
     createMainWindow()
@@ -242,7 +261,10 @@ function bootstrap(): void {
     }
     if (!ok) log.warn('全局热键 ' + hotkey + ' 注册失败（可能被别的程序占用）')
 
-    onSettingsChanged((next) => {
+    onSettingsChanged((next, changed) => {
+      if (changed.includes('unityAutoConnect') || changed.includes('unityAutoConnectExcludedProjectIds')) {
+        connections?.update(detectedProjects)
+      }
       refreshTray()
       folderWatcher?.sync()
       const nextHotkey = next.globalHotkey?.trim() || DEFAULT_HOTKEY
@@ -290,6 +312,8 @@ function bootstrap(): void {
      * 顺序错了的症状是退出时偶发 "The database connection was not open"。
      */
     projectApi?.dispose()
+    bridgeIpc?.dispose()
+    connections?.dispose()
     covers?.dispose()
     bridge?.dispose()
     destroyTray()

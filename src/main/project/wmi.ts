@@ -56,6 +56,9 @@ export interface WmiProbeResult {
  * 本来也不需要它。
  */
 const PS_SCRIPT = [
+  // PowerShell 5 otherwise writes the local OEM code page to redirected stdout.
+  // Node decodes UTF-8, so Chinese project paths would become replacement chars.
+  '[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)',
   'try {',
   "  Get-CimInstance Win32_Process -Filter \"Name='Unity.exe'\" -ErrorAction SilentlyContinue 2>$null |",
   "    ForEach-Object { @($_.ProcessId, $_.CommandLine) -join '|' }",
