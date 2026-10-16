@@ -12,13 +12,13 @@ import {
   type LibraryChoice,
   type WizardStep
 } from '../../shared/wizardState'
-import type { ProjectInfo } from '../../shared/types'
 import { humanBytes, humanNumber } from '../lib/format'
 import { useUi } from '../stores/ui'
 import { Badge, Button } from './ui'
+import { ConnectionBadge } from './ImportTargetPicker'
 
 /**
- * M7 · 首次启动向导（规格 01§8：① 选库位置 ② 选素材来源目录 ③ 装 Unity 桥接，可跳过）。
+ * 首次启动向导：选库位置、素材目录、自动连接状态及启动偏好。
  *
  * ## 这个组件故意很薄
  *
@@ -35,7 +35,7 @@ import { Badge, Button } from './ui'
  *     `capped` 为真时写"500+"而不是"500"。
  */
 export function FirstRunWizard(): JSX.Element | null {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const settings = useUi((s) => s.settings)
   const step = useUi((s) => s.wizardStep)
   const probe = useUi((s) => s.wizardProbe)
@@ -48,14 +48,12 @@ export function FirstRunWizard(): JSX.Element | null {
   const skip = useUi((s) => s.wizardSkip)
   const patchSettings = useUi((s) => s.patchSettings)
   const answerAutoLaunch = useUi((s) => s.answerAutoLaunch)
-  const settleBridgeAsk = useUi((s) => s.settleBridgeAsk)
-  const toast = useUi((s) => s.toast)
-
-  const [projects, setProjects] = useState<ProjectInfo[]>([])
+  const connection = useUi((s) => s.connection)
+  const projects = useUi((s) => s.projects)
+  const refreshProjects = useUi((s) => s.refreshProjects)
+  const retryConnection = useUi((s) => s.retryUnityConnection)
   const [typed, setTyped] = useState('')
-  const [picked, setPicked] = useState<Set<string>>(new Set())
-  const [installing, setInstalling] = useState(false)
-  const [results, setResults] = useState<Array<{ name: string; text: string; ok: boolean }>>([])
+  const running = connection.projects.filter((p) => projects.some((project) => project.id === p.projectId && project.running))
 
   const locale = settings.language
   const facts = useMemo(
@@ -65,59 +63,19 @@ export function FirstRunWizard(): JSX.Element | null {
       /** 库根已经落定但没记方式（老库、或手改过 settings.json）→ 当成建空库，不再拦 */
       libraryChoice: settings.libraryMode,
       watchedFolders: settings.watchedFolders,
-      bridgesInstalled: results.filter((r) => r.ok).length,
+      bridgesInstalled: connection.projects.filter((p) => p.phase === 'ready').length,
       autoLaunchAsked: settings.autoLaunchAsked
     }),
-    [settings, results, probe]
+    [settings, connection, probe]
   )
   const done = stepDone(facts)
   const askAdopt = probe ? adoptOrFresh(probe) === 'ask' : false
 
-  /** 第 ③ 步进来时拉一次工程清单，默认全勾（Q9 乙：全勾、可逐个取消） */
+  /** Refresh discovery; setup and readiness belong to the connection controller. */
   useEffect(() => {
     if (step !== 3) return
-    let alive = true
-    void window.a.unity.listProjects().then((list) => {
-      if (!alive) return
-      setProjects(list)
-      setPicked(new Set(list.filter((p) => !p.bridgeInstalled).map((p) => p.id)))
-    })
-    return () => {
-      alive = false
-    }
-  }, [step])
-
-  async function installSelected(): Promise<void> {
-    const targets = projects.filter((p) => picked.has(p.id) && !p.bridgeInstalled)
-    if (!targets.length) return
-    setInstalling(true)
-    setResults([])
-    /**
-     * 串行装，一个装完再装下一个：`installBridge` 是同步复制，但真正的风险是
-     * "同时往 8 个工程写"的时候说不清是谁失败了，所以逐条报，一条一条落。
-     */
-    for (const p of targets) {
-      try {
-        const r = await window.a.unity.installBridge(p.id)
-        if (r.ok) settleBridgeAsk(p.id)
-        setResults((prev) => [
-          ...prev,
-          r.ok
-            ? { name: p.name, text: t('wizard.step3.resultOk', { copied: r.copied, target: r.target }), ok: true }
-            : { name: p.name, text: t('wizard.step3.resultBad', { error: r.error ?? t('wizard.step3.unknownError') }), ok: false }
-        ])
-        if (!r.ok) toast('bad', p.name + '：' + (r.error ?? ''))
-      } catch (e) {
-        setResults((prev) => [
-          ...prev,
-          { name: p.name, text: t('wizard.step3.resultBad', { error: e instanceof Error ? e.message : String(e) }), ok: false }
-        ])
-      }
-    }
-    /** 装完刷新一次清单，让"已装"的标记是真的（不能只信我们自己的循环） */
-    setProjects(await window.a.unity.listProjects())
-    setInstalling(false)
-  }
+    void refreshProjects()
+  }, [step, refreshProjects])
 
   const stepTitle: Record<WizardStep, string> = {
     1: t('wizard.step1.title'),
@@ -304,55 +262,27 @@ export function FirstRunWizard(): JSX.Element | null {
               <p className="text-[12px] leading-5" style={{ color: 'var(--muted)' }}>
                 {t('wizard.step3.body')}
               </p>
-              {projects.length === 0 ? (
+              <div className="rounded border p-3 text-[12px]" style={{ borderColor: 'var(--line)', background: 'var(--accent-soft)' }}>
+                {t('wizard.step3.automatic')}
+              </div>
+              {running.length === 0 ? (
                 <div className="text-[12px]" style={{ color: 'var(--muted)' }}>
                   {t('wizard.step3.none')}
                 </div>
               ) : (
                 <ul className="flex flex-col gap-1 text-[12px]">
-                  {projects.map((p) => (
-                    <li key={p.id} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={p.bridgeInstalled || picked.has(p.id)}
-                        disabled={p.bridgeInstalled || installing}
-                        onChange={(e) => {
-                          setPicked((prev) => {
-                            const next = new Set(prev)
-                            if (e.target.checked) next.add(p.id)
-                            else next.delete(p.id)
-                            return next
-                          })
-                        }}
-                      />
-                      <span>{p.name}</span>
-                      <span style={{ color: 'var(--muted)' }}>{p.unityVersion ?? ''}</span>
-                      {p.bridgeInstalled ? <Badge tone="ok">{t('wizard.step3.installed')}</Badge> : null}
+                  {running.map((p) => (
+                    <li key={p.projectId} className="flex flex-wrap items-center gap-2 rounded border p-3" style={{ borderColor: 'var(--line)' }}>
+                      <span className="min-w-0 flex-1"><span className="block">{p.name}</span>
+                        <span className="block break-all text-[11px]" style={{ color: 'var(--muted)' }}>{p.projectPath}</span>
+                        {p.reasonKey && p.phase === 'failed' ? <span className="mt-1 block" style={{ color: 'var(--bad)' }}>{t(p.reasonKey)}</span> : null}
+                      </span>
+                      <ConnectionBadge phase={p.phase} />
+                      {p.phase === 'failed' ? <Button onClick={() => void retryConnection(p.projectId)}>{t('project.retryConnection')}</Button> : null}
                     </li>
                   ))}
                 </ul>
               )}
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="accent"
-                  disabled={installing || ![...picked].some((id) => !projects.find((p) => p.id === id)?.bridgeInstalled)}
-                  onClick={() => void installSelected()}
-                >
-                  {t('wizard.step3.run')}
-                </Button>
-                <span className="text-[11px]" style={{ color: 'var(--muted)' }}>
-                  {t('wizard.step3.onlyPackages')}
-                </span>
-              </div>
-              {results.length ? (
-                <ul className="flex flex-col gap-1 text-[11px]">
-                  {results.map((r, i) => (
-                    <li key={i} style={{ color: r.ok ? 'var(--ok)' : 'var(--bad)' }}>
-                      {r.name} · {r.text}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
             </>
           ) : null}
 
@@ -379,7 +309,7 @@ export function FirstRunWizard(): JSX.Element | null {
                     <div key={l.key} className="flex items-start justify-between gap-4">
                       <span style={{ color: 'var(--muted)' }}>
                         {summaryLabel(t, l.key)}
-                        {l.touchesDisk ? <span style={{ color: 'var(--warn)' }}> · {t('wizard.touchesDisk')}</span> : null}
+                        {l.touchesDisk && l.key !== 'bridges' ? <span style={{ color: 'var(--warn)' }}> · {t('wizard.touchesDisk')}</span> : null}
                       </span>
                       <span className="break-all text-right">
                         {l.key === 'mode'

@@ -6,7 +6,9 @@ import type { Db } from '../db'
 import { getProject, listProjects, setProjectRunning } from '../db/repos/unity'
 import { listImportLogs } from '../db/repos/journal'
 import { listImportHistory } from '../db/repos/importHistory'
-import { getSettings } from '../services/settings'
+import { getSettings, setSettings } from '../services/settings'
+import type { UnityConnections } from '../project/connections'
+import type { ProjectConnection, UnityConnectionSnapshot, UnityTargetResolution } from '../../shared/unityConnection'
 import { bridgeTemplateRoot, bundledBinDir } from '../services/paths'
 import { setBridgeAsk } from '../db/repos/bridgeAsk'
 import { bridgeAskAnswerFor } from '../../shared/bridgeAsk'
@@ -76,6 +78,8 @@ export interface BridgeIpcDeps {
   db: Db
   manager: BridgeManager
   registrar: IpcRegistrar
+  /** Main owns connection discovery; omitted by legacy integrations. */
+  connections?: UnityConnections
   /**
    * "送回收站"的实现。**必须可注入**，理由和 `installer` / `coordinator` 那边一样：
    *
@@ -192,6 +196,42 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
 
   /** 当前选中的导入目标工程（顶栏切换器写的）。M5-A 只保存，不做自动切换 */
   let targetProjectId: string | null = null
+  const computedTarget = (): string | null => deps.connections ? deps.connections.snapshot().targetProjectId : targetProjectId
+  const preparations = new Map<string, AbortController>()
+  let disposed = false
+
+  function requestId(value: unknown): string {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(value)) throw new Error('project.connectionFailed')
+    return value
+  }
+
+  function connectionProjectId(value: unknown): string {
+    const id = requestId(value)
+    if (!getProject(db, id)) throw new Error('project.connectionProjectMissing')
+    return id
+  }
+
+  function excludeConnections(ids: string[], exclude: boolean): void {
+    const current = getSettings().unityAutoConnectExcludedProjectIds
+    const selected = new Set(ids)
+    const next = exclude ? [...new Set([...current, ...ids])] : current.filter(id => !selected.has(id))
+    if (next.length !== current.length || next.some((id, index) => id !== current[index])) {
+      setSettings({ unityAutoConnectExcludedProjectIds: next })
+    }
+  }
+
+  function connectionSnapshot(): UnityConnectionSnapshot {
+    if (deps.connections) return deps.connections.snapshot()
+    return {
+      projects: listProjects(db).map<ProjectConnection>(project => {
+        const st = manager.statusOf(project.path)
+        return { projectId: project.id, projectPath: project.path, name: project.name,
+          phase: st.bridgeReady ? 'ready' : project.is_running || st.running ? 'connecting' : 'closed',
+          reasonKey: null, detail: null }
+      }),
+      targetProjectId: computedTarget(), targetMode: 'manual', ambiguous: false
+    }
+  }
 
   /**
    * 已经"抽好并预扫描过、等用户点确认"的批次。
@@ -247,9 +287,45 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
 
   registrar.ipc.handle('unity:instances', () => manager.instances(allProjectPaths()))
 
+  registrar.ipc.handle('unity:connection', connectionSnapshot)
+  registrar.ipc.handle('unity:resolve-target', (): UnityTargetResolution => {
+    const snapshot = connectionSnapshot()
+    if (snapshot.targetProjectId) {
+      const project = snapshot.projects.find(item => item.projectId === snapshot.targetProjectId)
+      if (project) return { kind: 'selected', projectId: project.projectId, projectName: project.name }
+    }
+    if (snapshot.ambiguous) return { kind: 'choose', projectIds: snapshot.projects
+      .filter(project => !['closed', 'disabled', 'unsupported'].includes(project.phase) && project.reasonKey !== 'project.connectionUnsafe')
+      .map(project => project.projectId) }
+    return { kind: 'none' }
+  })
+  registrar.ipc.handle('unity:prepare-target', async (projectId: unknown, preparationId: unknown): Promise<ProjectConnection> => {
+    if (disposed) throw new Error('project.connectionCancelled')
+    const id = requestId(preparationId)
+    if (preparations.has(id)) throw new Error('project.connectionFailed')
+    const fixedProjectId = connectionProjectId(projectId)
+    const controller = new AbortController()
+    preparations.set(id, controller)
+    try {
+      const connection = deps.connections ? await deps.connections.prepare(fixedProjectId, { signal: controller.signal })
+        : connectionSnapshot().projects.find(project => project.projectId === fixedProjectId)
+      if (disposed || controller.signal.aborted) throw new Error('project.connectionCancelled')
+      if (!connection || connection.phase !== 'ready') throw new Error(connection?.reasonKey ?? 'project.connectionFailed')
+      return connection
+    } finally { preparations.delete(id) }
+  })
+  registrar.ipc.handle('unity:cancel-target-preparation', (preparationId: unknown): void => {
+    preparations.get(requestId(preparationId))?.abort()
+  })
+  registrar.ipc.handle('unity:retry-connection', (projectId: unknown): void => {
+    if (disposed) throw new Error('project.connectionCancelled')
+    const id = connectionProjectId(projectId)
+    excludeConnections([id], false)
+    deps.connections?.retry(id)
+  })
+
   registrar.ipc.handle('unity:status', () => {
-    const s = getSettings()
-    void s
+    const targetProjectId = computedTarget()
     /** 没选目标时报告"没有目标"而不是假装一切正常 */
     if (!targetProjectId) {
       return {
@@ -283,6 +359,7 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
     const st = manager.statusOf(project.path)
     return {
       ...st,
+      running: Boolean(project.is_running || st.running),
       targetProjectId,
       targetProjectPath: project.path
     }
@@ -291,13 +368,14 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
   registrar.ipc.handle('unity:set-target', (projectId: unknown) => {
     const next = typeof projectId === 'string' && projectId.trim() ? projectId : null
     if (next && !getProject(db, next)) throw new Error('库里没有这个工程的记录')
+    deps.connections?.select(next)
     targetProjectId = next
     if (next) {
       const p = getProject(db, next)
       if (p) manager.watch(p.path)
     }
     log.info(`[bridge] 导入目标切到 ${next ?? '（无）'}`)
-    return targetProjectId
+    return computedTarget()
   })
 
   /**
@@ -322,10 +400,13 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
   registrar.ipc.handle('unity:bridge-template-check', () => checkBridgeTemplate(templateRoot()))
 
   registrar.ipc.handle('unity:install-bridge', (projectId: unknown) => {
-    const id = String(projectId ?? targetProjectId ?? '')
+    const id = String(projectId ?? computedTarget() ?? '')
     if (!id) throw new Error('先选一个导入目标工程')
     const projectPath = projectPathOf(id)
+    excludeConnections([id], false)
     const r = installBridge(db, projectPath, templateRoot())
+    // Explicit installation can also target a closed project. Its result is separate from connection readiness.
+    try { deps.connections?.retry(id) } catch (error) { log.info(`[bridge] 安装后的连接尚不能重试：${String(error)}`) }
     if (r.ok) {
       /** 装上了就得开始盯它的 outbox，不然第一次导入等不到结果 */
       manager.watch(projectPath)
@@ -400,9 +481,11 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
     return { ok: true }
   })
   registrar.ipc.handle('unity:uninstall-bridge', async (projectId: unknown) => {
-    const id = String(projectId ?? targetProjectId ?? '')
+    const id = String(projectId ?? computedTarget() ?? '')
     if (!id) throw new Error('先选一个导入目标工程')
     const projectPath = projectPathOf(id)
+    // Persist before the first asynchronous trash operation so polling cannot race a reinstall.
+    excludeConnections([id], true)
     /**
      * **卸载走回收站**（00§五-5：删除一律走回收站，不能永久删除）。
      * `shell.trashItem` 只能在主进程用，所以由这里注入。
@@ -413,6 +496,7 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
   })
 
   registrar.ipc.handle('unity:uninstall-bridge-all', async () => {
+    excludeConnections(listProjects(db).map(project => project.id), true)
     const r = await uninstallBridgeFromAll(db, allProjectPaths(), trash)
     for (const p of r.uninstalled) manager.unwatch(p)
     return r
@@ -458,7 +542,7 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
         password?: string
         items?: Array<{ assetId?: string; members?: string[] }>
       }
-      const id = String(i.projectId ?? targetProjectId ?? '')
+      const id = String(i.projectId ?? computedTarget() ?? '')
       if (!id) return { ok: false, reasonKey: 'unity.errNoProject' }
       const reqs =
         Array.isArray(i.items) && i.items.length
@@ -588,7 +672,7 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
   /** 单包预扫描（只读）。界面拿到冲突列表后再决定怎么导 */
   registrar.ipc.handle('unity:preflight', async (input: unknown) => {
     const i = (input ?? {}) as { packagePath?: string; projectId?: string }
-    const id = String(i.projectId ?? targetProjectId ?? '')
+    const id = String(i.projectId ?? computedTarget() ?? '')
     if (!id) return { ok: false, reasonKey: 'unity.errNoProject', reason: '先选一个导入目标工程' }
     const projectPath = projectPathOf(id)
     const packagePath = String(i.packagePath ?? '')
@@ -604,7 +688,7 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
       assetId?: string | null
       choice?: ConflictChoice
     }
-    const id = String(i.projectId ?? targetProjectId ?? '')
+    const id = String(i.projectId ?? computedTarget() ?? '')
     if (!id) return { ok: false, error: '先选一个导入目标工程' }
     const projectPath = projectPathOf(id)
     const packagePath = String(i.packagePath ?? '')
@@ -689,8 +773,11 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
   watchAll()
 
   return {
-    targetProjectId: () => targetProjectId,
+    targetProjectId: computedTarget,
     dispose: () => {
+      disposed = true
+      for (const controller of preparations.values()) controller.abort()
+      preparations.clear()
       for (const p of allProjectPaths()) manager.unwatch(p)
       /**
        * 退出前把待确认的批次收干净。

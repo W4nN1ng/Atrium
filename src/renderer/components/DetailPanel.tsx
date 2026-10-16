@@ -34,6 +34,8 @@ export function DetailPanel(): JSX.Element {
   const setReview = useUi((s) => s.setReview)
   /** 顶栏当前选的导入目标：反查列表要把"就是现在这个工程"标出来 */
   const targetProjectId = useUi((s) => s.unity.targetProjectId)
+  const importTargetName = useUi((s) => s.connection.projects.find((p) => p.projectId === s.connection.targetProjectId)?.name)
+  const importBusy = useUi((s) => s.importFlow.busy || s.targetPicker.open)
   const locale = i18n.language as LocaleKey
 
   const [cat, setCat] = useState('')
@@ -365,10 +367,11 @@ export function DetailPanel(): JSX.Element {
       <div className="mt-auto flex flex-col gap-2 border-t p-3" style={{ borderColor: 'var(--line)' }}>
         <Button
           variant="accent"
+          disabled={importBusy}
           onClick={() => void useUi.getState().importAsset(asset.id)}
           title={t('library.importToUnityHint')}
         >
-          {t('library.importToUnity')}
+          {importTargetName ? t('library.importToProject', { name: importTargetName }) : t('library.importToUnity')}
         </Button>
         <div className="flex flex-wrap gap-2">
           <Button

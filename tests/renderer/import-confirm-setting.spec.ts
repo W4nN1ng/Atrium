@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 let api: any
 beforeEach(() => {
   api = {
+    resolveTarget: vi.fn(async () => ({ kind: 'selected', projectId: 'P1', projectName: 'Test' })),
+    prepareTarget: vi.fn(async (projectId: string) => ({ projectId, projectPath: 'C:/test/project', name: 'Test', phase: 'ready', reasonKey: null, detail: null })),
+    cancelTargetPreparation: vi.fn(async () => undefined),
+    connection: vi.fn(async () => ({ projects: [{ projectId: 'P1', projectPath: 'C:/test/project', name: 'Test', phase: 'ready', reasonKey: null, detail: null }], targetProjectId: 'P1', targetMode: 'auto', ambiguous: false })),
     preflight: vi.fn(async () => ({ ok: true, entryCount: 2, fresh: 2, conflicts: [] })),
     importPackage: vi.fn(async () => ({ ok: false, error: 'mock stopped' })),
     packagesOfAsset: vi.fn(async () => ({ kind: 'archive', packages: [{ path: null, relPath: 'Dress.unitypackage' }] })),

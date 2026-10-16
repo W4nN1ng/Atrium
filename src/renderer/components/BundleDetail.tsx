@@ -109,6 +109,8 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
   const openMemberPicker = useUi((s) => s.openMemberPicker)
   /** 第 10 轮 B：容器里每一行也是素材卡，那颗「导入」必须走和外面网格同一条路 */
   const importAsset = useUi((s) => s.importAsset)
+  const importTargetName = useUi((s) => s.connection.projects.find((p) => p.projectId === s.connection.targetProjectId)?.name)
+  const importBusy = useUi((s) => s.importFlow.busy || s.targetPicker.open)
   const openDetail = useUi((s) => s.openDetail)
   const pickAllMembers = useUi((s) => s.pickAllMembers)
   const settings = useUi((s) => s.settings)
@@ -414,8 +416,8 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
                   {humanBytes(r.sizeBytes, locale)}
                 </span>
                 {/* 第 10 轮 B：这颗以前是 disabled 的占位，现在和双击同一条路（多个包会弹面板） */}
-                <Button className="shrink-0" onClick={() => void importAsset(r.id)} title={t('library.importToUnityHint')}>
-                  {t('common.import')}
+                <Button className="shrink-0" disabled={importBusy} onClick={() => void importAsset(r.id)} title={t('library.importToUnityHint')}>
+                  {importTargetName ? t('library.importToProject', { name: importTargetName }) : t('common.import')}
                 </Button>
               </div>
             ))}

@@ -237,7 +237,10 @@
     "dropNothing": "That drop carried no files — maybe text or a shortcut. Try dragging a folder from Explorer, or use Inbox → Pick files…",
     "importConfirmTitle": "Confirm import into Unity",
     "importConfirmAction": "Confirm import",
-    "importConfirmIntro": "{{total}} files will be imported. No existing files need to be overwritten."
+    "importConfirmIntro": "{{total}} files will be imported. No existing files need to be overwritten.",
+    "importToProject": "Import to {{name}}",
+    "batchImportToProject": "Import {{count}} items to {{name}}",
+    "memberStartToProject": "Import {{count}} selected to {{name}}"
   },
   "inbox": {
     "title": "Assets to organize",
@@ -364,7 +367,28 @@
     "connectLater": "Connect later",
     "connectSelected": "Connect selected ({{n}})",
     "connectAutomatic": "Automatically install the connector for selected projects in future",
-    "connectFilesNote": "Connecting installs the Atrium plugin in the project’s Packages folder. Unselected projects are skipped this time; connect them later from Current project."
+    "connectFilesNote": "Connecting installs the Atrium plugin in the project’s Packages folder. Unselected projects are skipped this time; connect them later from Current project.",
+    "connectionClosed": "Unity is closed",
+    "connectionDisabled": "Auto connection disabled",
+    "connectionUnsupported": "Unity version not supported",
+    "connectionInstalling": "Setting up connection",
+    "connectionWaiting": "Connecting",
+    "connectionReady": "Connected",
+    "connectionFailed": "Connection failed",
+    "connectionTimeout": "Connection timed out. Try again.",
+    "connectionCancelled": "Connection waiting cancelled.",
+    "connectionProjectMissing": "The target project closed or is unavailable. Open Unity and try again.",
+    "connectionUnsafe": "The project path cannot be written safely. Check its path and directory links.",
+    "chooseImportTarget": "Choose import project",
+    "chooseImportTargetHint": "Multiple Unity projects are running. Choose the project for this import; later batches will keep using it.",
+    "openUnityHint": "Open a Unity 2022.3 project to connect automatically.",
+    "preparingImport": "Connecting to {{name}}. Import will continue when ready…",
+    "cancelWaiting": "Cancel waiting",
+    "retryConnection": "Retry connection",
+    "connectionAdvanced": "Advanced connection options",
+    "connectionDetails": "View details",
+    "uninstallAutoConnectHint": "Removing the connector disables auto connection for this project. Use Retry connection to enable it again.",
+    "connectionOpenUnity": "Open a Unity 2022.3 project, then click import."
   },
   "settings": {
     "title": "Settings",
@@ -571,7 +595,9 @@
     "backupProtectLiveDatabase": "Do not overwrite the current database or its journal files. Choose another filename.",
     "backupInvalidTarget": "Cannot save the backup here. Choose a valid file path.",
     "backupFailed": "Database backup failed. The previous destination file was preserved. Check free space, permissions and file locks.",
-    "backupTargetJournal": "The destination has database journal files. Choose a new backup filename instead of overwriting it."
+    "backupTargetJournal": "The destination has database journal files. Choose a new backup filename instead of overwriting it.",
+    "unityAutoConnect": "Connect to Unity automatically",
+    "unityAutoConnectHint": "Prepare the connection when a supported Unity project opens. Install a missing connector once, then wait for Unity before running an import you requested."
   },
   "toast": {
     "trashDone": "Moved to Recycle Bin",
@@ -879,15 +905,16 @@
       "remove": "Remove"
     },
     "step3": {
-      "title": "③ Connect Unity projects (optional)",
-      "body": "Install the Atrium connector to import into Unity. Select projects to connect, or install later from Current project.",
-      "none": "No Unity projects found. Add a project root and come back, or skip for now.",
+      "title": "③ Automatic Unity connection (optional)",
+      "body": "Open a Unity 2022.3 project and Atrium will prepare the connection automatically, installing the connector if it is missing.",
+      "none": "No running Unity projects found. Open a project to connect automatically, or continue for now.",
       "installed": "installed",
       "run": "Connect selected projects",
       "onlyPackages": "Writes only Packages/com.avca.bridge, never Assets/",
       "resultOk": "installed {{copied}} files → {{target}}",
       "resultBad": "failed: {{error}}",
-      "unknownError": "the main process gave no reason"
+      "unknownError": "the main process gave no reason",
+      "automatic": "Connects automatically. No project installation selection is needed. Opening a project does not import assets."
     },
     "step4": {
       "title": "4. Last bits",
@@ -901,7 +928,7 @@
       "libraryRoot": "Asset library folder",
       "mode": "Handling",
       "watched": "Watched folders",
-      "bridges": "Bridges installed",
+      "bridges": "Connected Unity projects",
       "autoLaunch": "Start with Windows",
       "hotkey": "Global hotkey"
     }

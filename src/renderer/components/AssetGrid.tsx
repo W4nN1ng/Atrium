@@ -270,8 +270,9 @@ export function AssetGrid(): JSX.Element {
   const undoLast = useUi((s) => s.undoLast)
   /** R4 ② · 框选几张卡一起导（规格 §8-4） */
   const importSelected = useUi((s) => s.importSelected)
+  const importTargetName = useUi((s) => s.connection.projects.find((p) => p.projectId === s.connection.targetProjectId)?.name)
   /** 面板开着 / 正在导的时候不许再开一批（一次只跑一件事，两批并行会把撤销顺序搅乱） */
-  const batchBusy = useUi((s) => s.batchImport.open || s.memberPicker.open || s.importFlow.busy)
+  const batchBusy = useUi((s) => s.batchImport.open || s.memberPicker.open || s.importFlow.busy || s.targetPicker.open)
   const collections = useUi((s) => s.collections)
   const addToCollection = useUi((s) => s.addToCollection)
   const [busyCollection, setBusyCollection] = useState(false)
@@ -352,7 +353,7 @@ export function AssetGrid(): JSX.Element {
               onClick={() => void importSelected()}
               title={t('library.batchImportHint')}
             >
-              {t('library.batchImport', { count: selection.length })}
+              {importTargetName ? t('library.batchImportToProject', { count: selection.length, name: importTargetName }) : t('library.batchImport', { count: selection.length })}
             </button>
           ) : null}
           {/*

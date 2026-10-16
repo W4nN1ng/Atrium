@@ -26,6 +26,7 @@ export function ImportFlow(): JSX.Element | null {
   const rollback = useUi((s) => s.rollbackLastImport)
   const dismiss = useUi((s) => s.dismissImportResult)
   const backupOverwritten = useUi((s) => s.settings.backupOverwritten)
+  const cancelPreparation = useUi((s) => s.cancelImportPreparation)
 
   const pending = flow.pending
   /**
@@ -95,7 +96,12 @@ export function ImportFlow(): JSX.Element | null {
             实际是 Unity 在 Play 模式不接命令、只回 busy，A 正在退避重投
             （§8-5 的验收口径点名要求显示「Unity 正在运行，已排队」）。
           */}
-          {flow.busyReason ? (
+          {flow.busyReason === 'connecting' ? (
+            <div className="flex items-center gap-3" role="status">
+              <span className="min-w-0 flex-1 truncate">{t('project.preparingImport', { name: flow.projectName ?? '' })}</span>
+              <Button onClick={cancelPreparation}>{t('project.cancelWaiting')}</Button>
+            </div>
+          ) : flow.busyReason ? (
             <>
               {t('library.queuedTitle', { reason: flow.busyReason })}
               {flow.busyRetry > 0 ? ` · ${t('library.queuedRetry', { n: flow.busyRetry })}` : ''}

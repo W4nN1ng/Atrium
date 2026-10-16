@@ -4,17 +4,13 @@ import type { ProjectInfo } from '../../shared/types'
 import { useUi } from '../stores/ui'
 import { Badge, Button, EmptyState } from '../components/ui'
 import { ImportHistoryDialog } from '../components/ImportHistoryDialog'
+import { ConnectionBadge } from '../components/ImportTargetPicker'
 
 /**
  * Unity 工程页。
  *
- * M5-A 之后这里不再是"只做发现"：
- *  - 运行状态由**三路取并集**判定（`project/running.ts`），`detectedBy` 会显示依据
- *  - 可以装/卸桥接（`bridge/installer.ts`，卸载走回收站）
- *  - 可以选导入目标（和顶栏切换器是同一个状态）
- *
- * ⚠ 自动切换集合（打开 shinano-Main2 → 切到「Shinano」集合 + 横幅）是 M5-A 剩下的活，
- * 这里**不写**"已支持"。
+ * Connection status comes from the main-process controller. A copied plugin is
+ * not a ready connection; retry and advanced removal remain explicit actions.
  */
 export function Project(): JSX.Element {
   const { t } = useTranslation()
@@ -24,9 +20,9 @@ export function Project(): JSX.Element {
   const rows = useUi((s) => s.projects)
   const refreshProjects = useUi((s) => s.refreshProjects)
   const setUnityTarget = useUi((s) => s.setUnityTarget)
-  const unity = useUi((s) => s.unity)
+  const connection = useUi((s) => s.connection)
+  const retryConnection = useUi((s) => s.retryUnityConnection)
   const toast = useUi((s) => s.toast)
-  const settleBridgeAsk = useUi((s) => s.settleBridgeAsk)
 
   async function load(): Promise<void> {
     setBusy(true)
@@ -40,30 +36,6 @@ export function Project(): JSX.Element {
   useEffect(() => {
     void load()
   }, [])
-
-  async function install(p: ProjectInfo): Promise<void> {
-    setInstalling(p.id)
-    try {
-      const r = await window.a.unity.installBridge(p.id)
-      if (r.ok) {
-        /** 装成了这条待答就有着落了（不然弹窗还会拿旧事件问"这个工程没装桥接"） */
-        settleBridgeAsk(p.id)
-        toast(
-          'ok',
-          r.alreadyInstalled
-            ? t('project.installAlready', { name: p.name })
-            : t('project.installDone', { name: p.name, count: r.copied })
-        )
-      } else {
-        toast('bad', r.error ?? t('project.installFailed'))
-      }
-      await load()
-    } catch (e) {
-      toast('bad', e instanceof Error ? e.message : String(e))
-    } finally {
-      setInstalling(null)
-    }
-  }
 
   async function uninstall(p: ProjectInfo): Promise<void> {
     setInstalling(p.id)
@@ -103,18 +75,22 @@ export function Project(): JSX.Element {
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">
           {rows.map((p) => {
-            const isTarget = p.id === unity.targetProjectId
+            const isTarget = p.id === connection.targetProjectId
+            const state = connection.projects.find((item) => item.projectId === p.id)
+            const phase = state?.phase ?? (p.running ? 'connecting' : 'closed')
+            const canRetry = p.running && (phase === 'failed' || phase === 'connecting' || phase === 'disabled')
             return (
               <div
                 key={p.id}
-                className="flex items-center gap-3 border-b px-3 py-2"
+                data-project-connection={p.id}
+                className="flex flex-wrap items-center gap-3 border-b px-3 py-3"
                 style={{ borderColor: 'var(--line)', background: isTarget ? 'var(--accent-soft)' : 'transparent' }}
               >
                 <span
                   className="h-2 w-2 shrink-0 rounded-full"
                   style={{ background: p.running ? 'var(--ok)' : 'var(--faint)' }}
                 />
-                <div className="min-w-0 flex-1">
+                <div className="min-w-[180px] flex-1">
                   <div className="flex items-center gap-2">
                     <span className="truncate text-[13px]">{p.name}</span>
                     {isTarget ? <Badge tone="accent">{t('project.isTarget')}</Badge> : null}
@@ -122,6 +98,13 @@ export function Project(): JSX.Element {
                   <div className="truncate text-[11px]" style={{ color: 'var(--faint)' }}>
                     {p.path}
                   </div>
+                  {state?.reasonKey && phase !== 'ready' ? <div className="mt-1 text-[11px]" style={{ color: phase === 'failed' ? 'var(--bad)' : 'var(--muted)' }}>
+                    {t(state.reasonKey)}
+                  </div> : null}
+                  {state?.detail ? <details className="mt-1 text-[11px]" style={{ color: 'var(--muted)' }}>
+                    <summary className="cursor-pointer">{t('project.connectionDetails')}</summary>
+                    <pre className="mt-1 whitespace-pre-wrap break-all">{state.detail}</pre>
+                  </details> : null}
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1">
@@ -135,14 +118,7 @@ export function Project(): JSX.Element {
                     {p.running ? t('project.running') : t('project.notRunning')}
                     {p.running && p.detectedBy?.length ? ` · ${p.detectedBy.join('+')}` : ''}
                   </Badge>
-                  {p.bridgeInstalled ? (
-                    <Badge tone="ok">
-                      {t('project.bridgeReady')}
-                      {p.bridgeVersion ? ` ${p.bridgeVersion}` : ''}
-                    </Badge>
-                  ) : (
-                    <Badge tone="warn">{t('project.bridgeMissing')}</Badge>
-                  )}
+                  <ConnectionBadge phase={phase} />
                   {p.lockfilePresent && !p.running ? (
                     <Badge tone="default">{t('project.staleLockfile')}</Badge>
                   ) : null}
@@ -150,18 +126,18 @@ export function Project(): JSX.Element {
 
                 <div className="flex shrink-0 items-center gap-1">
                   <Button onClick={() => setHistoryProject(p.id)}>{t('importHistory.title')}</Button>
-                  <Button onClick={() => void setUnityTarget(p.id)} disabled={isTarget}>
+                  <Button onClick={() => void setUnityTarget(p.id)} disabled={isTarget || !p.running || phase === 'closed' || phase === 'unsupported' || phase === 'disabled' || state?.reasonKey === 'project.connectionUnsafe'}>
                     {t('project.setTarget')}
                   </Button>
-                  {p.bridgeInstalled ? (
-                    <Button onClick={() => void uninstall(p)} disabled={installing === p.id}>
-                      {t('project.uninstallBridge')}
-                    </Button>
-                  ) : (
-                    <Button variant="accent" onClick={() => void install(p)} disabled={installing === p.id}>
-                      {t('project.installBridge')}
-                    </Button>
-                  )}
+                  {canRetry ? <button type="button" className="btn" data-connection-retry disabled={installing === p.id}
+                    onClick={() => void retryConnection(p.id)}>{t('project.retryConnection')}</button> : null}
+                  {p.bridgeInstalled ? <details className="relative text-[11px]">
+                    <summary className="cursor-pointer px-2 py-1" style={{ color: 'var(--muted)' }}>{t('project.connectionAdvanced')}</summary>
+                    <div className="absolute right-0 z-10 mt-1 w-[240px] rounded border p-3 shadow-lg" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
+                      <p className="mb-2" style={{ color: 'var(--muted)' }}>{t('project.uninstallAutoConnectHint')}</p>
+                      <Button onClick={() => void uninstall(p)} disabled={installing === p.id}>{t('project.uninstallBridge')}</Button>
+                    </div>
+                  </details> : null}
                 </div>
               </div>
             )
@@ -172,10 +148,9 @@ export function Project(): JSX.Element {
       {historyProject !== undefined ? <ImportHistoryDialog projectId={historyProject} onClose={() => setHistoryProject(undefined)} /> : null}
       <div className="shrink-0 border-t px-3 py-2 text-[11px]" style={{ borderColor: 'var(--line)', color: 'var(--muted)' }}>
         {t('project.target')}:{' '}
-        {unity.targetProjectId
-          ? (rows.find((p) => p.id === unity.targetProjectId)?.name ?? unity.targetProjectId)
+        {connection.targetProjectId
+          ? (rows.find((p) => p.id === connection.targetProjectId)?.name ?? connection.targetProjectId)
           : t('project.noTarget')}
-        {unity.targetProjectId ? (unity.running ? ` · ${t('project.running')}` : ` · ${t('project.notRunning')}`) : ''}
       </div>
     </div>
   )

@@ -60,7 +60,7 @@ describe('B · 容器里那四颗"Unity 导入在 M5 交付"的假按钮', () =>
     expect(bd).not.toContain('bundleImportSoon')
   })
 
-  it('⭐ 行内那颗「导入」不再是 disabled，打的是 store 的 importAsset', () => {
+  it('⭐ 行内导入调用 importAsset，只在已有任务或目标选择时禁用', () => {
     /**
      * ⚠ 别按注释定位 —— `stripComments` 会把 JSX 的 `{/* … *\/}` 一起剥掉，
      * 第一版拿注释当锚点，slice 出来是空串，断言"包含 onClick"当场红（红得毫无信息量）。
@@ -68,8 +68,11 @@ describe('B · 容器里那四颗"Unity 导入在 M5 交付"的假按钮', () =>
     const at = bd.indexOf('onClick={() => void importAsset(r.id)}')
     expect(at, '行内那颗没接 importAsset').toBeGreaterThan(-1)
     const tag = bd.slice(bd.lastIndexOf('<Button', at), at)
-    expect(tag, '这颗还是 disabled 的假按钮').not.toMatch(/\bdisabled\b/)
-    expect(bd.slice(at, at + 160)).toContain("t('common.import')")
+    expect(tag).toContain('disabled={importBusy}')
+    const busy = bd.match(/const importBusy = useUi\(\(s\) => ([^\n]+)/)?.[1]
+    expect(busy, '没有目标时必须仍可点击，让主进程解析或选择工程').toBe('s.importFlow.busy || s.targetPicker.open)')
+    expect(bd.slice(at, at + 320)).toContain("t('common.import')")
+    expect(bd.slice(at, at + 320)).toContain("t('library.importToProject', { name: importTargetName })")
   })
 
   it('⭐ 行双击吃设置里的「双击行为」，和外面网格同一套（Q1 甲）', () => {

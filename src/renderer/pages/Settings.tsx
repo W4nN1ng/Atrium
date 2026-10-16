@@ -358,9 +358,12 @@ export function Settings(): JSX.Element {
               <Field label={t('settings.backupOverwritten')} inline>
                 <Switch checked={draft.backupOverwritten} onChange={(v) => void patch({ backupOverwritten: v })} />
               </Field>
-              <Field label={t('settings.bridgeAutoInstall')} hint={t('settings.bridgeAutoInstallHint')} inline>
-                <Switch checked={draft.bridgeAutoInstall} onChange={(v) => void patch({ bridgeAutoInstall: v })} />
-              </Field>
+              <details className="mt-3 rounded border p-3" style={{ borderColor: 'var(--line)' }}>
+                <summary className="cursor-pointer text-[12px]">{t('project.connectionAdvanced')}</summary>
+                <Field label={t('settings.unityAutoConnect')} hint={t('settings.unityAutoConnectHint')} inline>
+                  <Switch checked={draft.unityAutoConnect} onChange={(v) => void patch({ unityAutoConnect: v })} />
+                </Field>
+              </details>
               {/*
                 M6 ⑥：这三条是 §4.3 的"自动切换 + 防打扰"在设置页的落点。
                 `autoSwitchBehavior` 这个设置从 M1 起就有默认值和类型，**但界面上从来没有控件、

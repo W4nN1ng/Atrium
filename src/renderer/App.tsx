@@ -11,7 +11,7 @@ import { ModelBackfillDialog } from './components/ModelBackfillDialog'
 import { ProjectBanner } from './components/ProjectBanner'
 import { RemergeNotice } from './components/RemergeNotice'
 import { AutoLaunchAsk } from './components/AutoLaunchAsk'
-import { BridgeAskDialog } from './components/BridgeAskDialog'
+import { ImportTargetPicker } from './components/ImportTargetPicker'
 import { FirstRunWizard } from './components/FirstRunWizard'
 import { wizardGate } from '../shared/wizardState'
 import { dropEmptyKey, type DropEmptyInfo } from '../shared/dropDiagnostics'
@@ -195,6 +195,7 @@ export function App(): JSX.Element {
         宿主一卸载（切页/切筛选）对话框就没了，而导入还挂在后台。
       */}
       <ImportFlow />
+      <ImportTargetPicker />
       {/*
         容器成员选择面板（M5-B ⑥）。挂在 App 而不是容器视图里，理由和上面那条一样：
         "已经抽好、等用户点确认"的那一批副本活在主进程内存里，宿主组件卸载不能把它丢下。
@@ -211,7 +212,6 @@ export function App(): JSX.Element {
       */}
       <RearchiveDialog />
       <AutoLaunchAsk />
-      <BridgeAskDialog />
       <div className="flex min-h-0 flex-1">
         <Sidebar />
         <main className="flex min-w-0 flex-1 flex-col">
