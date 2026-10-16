@@ -314,6 +314,13 @@ function buildWhere(filter: AssetFilter): { sql: string; params: Array<string | 
   return { sql: where.length ? 'WHERE ' + where.join(' AND ') : '', params }
 }
 
+/** Return all matching material rows, with list filters but without UI paging or group collapse. */
+export function queryAssetIds(db: Db, filter: AssetFilter): string[] {
+  const { sql, params } = buildWhere(filter)
+  return (db.prepare(`SELECT a.id FROM asset a ${sql} ORDER BY a.updated_at DESC, a.id`).all(...params) as Array<{ id: string }>)
+    .map(row => row.id)
+}
+
 const CARD_SELECT = `
   SELECT a.id, a.name, a.raw_name, a.category, a.subcategory, a.confidence, a.status, a.kind,
          a.cover_image, a.group_id, a.size_bytes, a.updated_at,

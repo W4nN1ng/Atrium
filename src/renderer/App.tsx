@@ -8,6 +8,7 @@ import { BatchImportDialog } from './components/BatchImportDialog'
 import { RearchiveDialog } from './components/RearchiveDialog'
 import { MemberPicker } from './components/MemberPicker'
 import { ModelBackfillDialog } from './components/ModelBackfillDialog'
+import { CoverTasks } from './components/CoverTasks'
 import { ProjectBanner } from './components/ProjectBanner'
 import { RemergeNotice } from './components/RemergeNotice'
 import { AutoLaunchAsk } from './components/AutoLaunchAsk'
@@ -205,6 +206,7 @@ export function App(): JSX.Element {
           发起方是网格或快捷键，它们一卸载面板就该还在，否则导入挂在没人看的窗后面 */}
       <BatchImportDialog />
       <ModelBackfillDialog />
+      <CoverTasks />
       {/*
         R4 ③ · 改分类搬文件的确认卡。发起方是详情面板那两个下拉，而详情面板会随切页卸载 ——
         "已经算好预览、等用户点搬"的那份计划必须活在 App 这一层，否则用户切个页回来，

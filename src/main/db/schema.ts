@@ -29,7 +29,7 @@ import { dirKeyOf } from '../../shared/pathkey'
  *   意思是"历史遗留的跨目录归并"，新条目不会再吸附进去（要拆交给健康检查）。
  */
 
-export const SCHEMA_VERSION = 8
+export const SCHEMA_VERSION = 9
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS asset (
@@ -392,6 +392,21 @@ CREATE TABLE asset_cover_package_upgrade (
 INSERT INTO asset_cover_package_upgrade SELECT * FROM asset_cover;
 DROP TABLE asset_cover;
 ALTER TABLE asset_cover_package_upgrade RENAME TO asset_cover;
+`
+  },
+  {
+    version: 9,
+    sql: `
+CREATE TABLE IF NOT EXISTS cover_task_backup (
+  task_id TEXT NOT NULL,
+  asset_id TEXT NOT NULL REFERENCES asset(id) ON DELETE CASCADE,
+  before_json TEXT NOT NULL,
+  applied_json TEXT,
+  undone INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY(task_id, asset_id)
+);
+CREATE INDEX IF NOT EXISTS idx_cover_task_backup_created ON cover_task_backup(created_at DESC);
 `
   }
 ]

@@ -39,6 +39,7 @@ import type { HealthReport,
 import type { DirectoryProbe } from './wizardState'
 import type { ProjectConnection, UnityConnectionSnapshot, UnityTargetResolution } from './unityConnection'
 import type { CoverBatch, CoverDiscovery, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget, PackageCoverStatus, PackageCoverProgress, PackageCoverSetup } from './covers'
+import type { CoverTask, CoverTaskRequest, CoverTaskChoices, CoverTaskUndoResult } from './coverTasks'
 
 export interface AppInfo {
   name: string
@@ -212,6 +213,13 @@ export interface AApi {
     startBatch(assetIds: string[]): Promise<CoverBatch>
     batchStatus(batchId: string): Promise<CoverBatch>
     cancelBatch(batchId: string): Promise<void>
+    startTask(request: CoverTaskRequest): Promise<CoverTask>
+    taskStatus(taskId?: string): Promise<CoverTask | null>
+    taskChoices(taskId: string, assetId: string, offset?: number): Promise<CoverTaskChoices>
+    applyTaskChoice(taskId: string, assetId: string, targetId: string): Promise<CoverTask>
+    retryTask(taskId: string): Promise<CoverTask>
+    cancelTask(taskId: string): Promise<void>
+    undoTask(taskId: string): Promise<CoverTaskUndoResult>
     upgradeBridge(projectId: string): Promise<{ ok: boolean }>
   }
   system: {

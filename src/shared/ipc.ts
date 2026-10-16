@@ -12,6 +12,8 @@ export const IpcInvoke = {
     Status: 'covers:status', Targets: 'covers:targets', Discover: 'covers:discover', Preview: 'covers:preview',
     Save: 'covers:save', Discard: 'covers:discard', Upload: 'covers:upload', Restore: 'covers:restore',
     StartBatch: 'covers:start-batch', BatchStatus: 'covers:batch-status', CancelBatch: 'covers:cancel-batch',
+    StartTask: 'covers:start-task', TaskStatus: 'covers:task-status', TaskChoices: 'covers:task-choices',
+    ApplyTaskChoice: 'covers:apply-task-choice', RetryTask: 'covers:retry-task', CancelTask: 'covers:cancel-task', UndoTask: 'covers:undo-task',
     UpgradeBridge: 'covers:upgrade-bridge'
   },
   System: {
