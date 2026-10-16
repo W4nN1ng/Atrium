@@ -7,7 +7,8 @@ import { useUi } from '../stores/ui'
 import { MergeSuggestBar } from './MergeSuggestBar'
 import { Modal } from './ui'
 import { fileUrl } from '../lib/format'
-import { CoverBatch } from './CoverBatch'
+import { CoverTaskButton } from './CoverTasks'
+import { currentCoverTaskFilter } from '../stores/coverTasks'
 
 /** 分类 key → 当前语言的显示名（提示条要把 'clothing/outfit' 写成「服装 / 套装」） */
 function labelOfCat(
@@ -277,6 +278,7 @@ export function AssetGrid(): JSX.Element {
   const addToCollection = useUi((s) => s.addToCollection)
   const [busyCollection, setBusyCollection] = useState(false)
   const nav = useUi((s) => s.nav)
+  const search = useUi((s) => s.search)
   const categories = useUi((s) => s.categories)
   const locale = i18n.language as 'zh-CN' | 'en' | 'ja'
   const [hint, setHint] = useState<{ rules: number; token: string; category: string; subcategory: string | null } | null>(null)
@@ -317,7 +319,7 @@ export function AssetGrid(): JSX.Element {
           <span className="chip chip-accent">{t('library.selected', { count: selection.length })}</span>
         ) : null}
         <div className="ml-auto flex items-center gap-2">
-          {selection.length ? <CoverBatch assetIds={selection} /> : null}
+          <CoverTaskButton assetIds={selection} filter={currentCoverTaskFilter({ nav, search, view })} />
           {/* 选中的东西能一键收进集合：集合页只管集合本身，成员得在这儿加 */}
           {selection.length && collections.length ? (
             <select

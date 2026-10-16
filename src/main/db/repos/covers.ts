@@ -55,5 +55,14 @@ export function referencedCoverKeys(db: Db, exceptAssetId?: string): Set<string>
       if (key) keys.add(key)
     }
   }
+  // Excluding a current asset must never exclude its task undo material.
+  const backups = db.prepare('SELECT before_json, applied_json FROM cover_task_backup WHERE undone=0').all() as Array<{ before_json: string; applied_json: string | null }>
+  for (const backup of backups) for (const raw of [backup.before_json, backup.applied_json]) {
+    const snapshot = json<{ image: string | null; record: CoverRecord | null }>(raw)
+    for (const url of [snapshot?.image, snapshot?.record?.coverImage, snapshot?.record?.previousImage]) {
+      const key = thumbKeyFromCover(url ?? null)
+      if (key) keys.add(key)
+    }
+  }
   return keys
 }

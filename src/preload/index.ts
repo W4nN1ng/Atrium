@@ -53,6 +53,13 @@ const api: AApi = {
     startBatch: (ids) => invoke('covers:start-batch', ids),
     batchStatus: (id) => invoke('covers:batch-status', id),
     cancelBatch: (id) => invoke('covers:cancel-batch', id),
+    startTask: (request) => invoke('covers:start-task', request),
+    taskStatus: (id) => invoke('covers:task-status', id),
+    taskChoices: (id, assetId, offset) => invoke('covers:task-choices', id, assetId, offset),
+    applyTaskChoice: (id, assetId, targetId) => invoke('covers:apply-task-choice', id, assetId, targetId),
+    retryTask: (id) => invoke('covers:retry-task', id),
+    cancelTask: (id) => invoke('covers:cancel-task', id),
+    undoTask: (id) => invoke('covers:undo-task', id),
     upgradeBridge: (projectId) => invoke('covers:upgrade-bridge', projectId)
   },
   system: {

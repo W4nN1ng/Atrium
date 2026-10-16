@@ -32,6 +32,7 @@ interface Dependencies {
   changed?: (assetId: string) => void
   packageProvider?: PackageCoverBackend
   packageSaved?: (dependencyProjectId: string | null) => void
+  onDispose?: () => void
 }
 
 export class CoverService {
@@ -359,7 +360,9 @@ export class CoverService {
   }
   private expire(): void { for (const [id, stage] of this.staged) if (stage.expires < Date.now()) this.discard(id) }
   dispose(): void {
+    if (this.disposed) return
     this.disposed = true
+    this.deps.onDispose?.()
     for (const controller of this.pending.values()) controller.abort()
     for (const controller of this.batchControllers.values()) controller.abort()
     for (const id of this.staged.keys()) this.discard(id)

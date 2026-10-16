@@ -28,6 +28,7 @@ import { undoLast } from '../library/undo'
 import { emit, EV_UNDONE } from '../lib/events'
 import { loadCategories } from '../services/categories'
 import { assetIndex, reindexAsset, rebuildIndex, setCategoryConfig } from '../search'
+import { resolveIndexedAssetFilter } from '../search/filter'
 import { getSettings, libraryRootOrThrow } from '../services/settings'
 import { P } from '../services/paths'
 import type { IpcRegistrar } from './types'
@@ -136,14 +137,8 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
      * LIKE 做不到"输 shinano 命中 しなの"，那需要归一化后的倒排索引（F5）。
      * 索引没建完时退回 LIKE：至少搜得出原文，比给一个空列表诚实。
      */
-    const q = (f.search ?? '').trim()
-    let withIds = f
-    if (q && assetIndex.ready) {
-      const hits = assetIndex.search(q, 2000)
-      withIds = { ...f, ids: hits.map((h) => h.id) }
-      // 索引一个都没命中就别再查库了，直接空
-      if (!hits.length) return { cards: [], total: 0 }
-    }
+    const withIds = resolveIndexedAssetFilter(f)
+    if (!withIds) return { cards: [], total: 0 }
     return queryCards(db, withIds, cfg, getSettings().language)
   })
 
