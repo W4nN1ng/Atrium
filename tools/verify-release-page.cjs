@@ -33,7 +33,24 @@ https.get(
 
       const dig = {}
       for (const a of j.assets) dig[a.name.replace(/\.exe$/, '')] = (a.digest || '').replace('sha256:', '')
-      const claimed = [...j.body.matchAll(new RegExp('`(Atrium-\\w+-' + VERSION.replace(/\./g, '\\.') + '\\.exe)` — `([a-f0-9]{64})`', 'g'))]
+      const claimed = [
+        ...j.body.matchAll(
+          new RegExp(
+            /**
+             * 文件名与指纹之间的分隔符要**同时认** `：` 和 ` — `。
+             *
+             * 2026-10-17 之前这里只认破折号（`\`file\` — \`hash\``），
+             * 而 **v0.4.1 起正文改用了中文冒号**（`\`file\`：\`hash\``）。
+             * 结果是从 0.4.1 开始的每一次发版，这个工具都报
+             * "正文里列了 0 串指纹 / ⚠ 远端有 X 但正文没写指纹"——
+             * 不是正文有问题，是正则过期了，而且它**不报错、只是静悄悄地什么也没验**。
+             * 我因为它在 0.5.0 和 0.7.0 各误判过一次，所以这次把两种写法都认。
+             */
+            '`(Atrium-\\w+-' + VERSION.replace(/\./g, '\\.') + '\\.exe)`\\s*(?:：|—|–|:)\\s*`([a-f0-9]{64})`',
+            'g'
+          )
+        )
+      ]
       console.log('正文里列了 ' + claimed.length + ' 串指纹：')
       for (const m of claimed) {
         const name = m[1].replace(/\.exe$/, '')
