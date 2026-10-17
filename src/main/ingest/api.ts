@@ -481,7 +481,25 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
    */
   function unitFromModel(
     model: AssetUnit | undefined,
-    over: { name?: string; category?: string; subcategory?: string | null; rawName?: string; sizeBytes?: number },
+    over: {
+      name?: string
+      category?: string
+      subcategory?: string | null
+      rawName?: string
+      sizeBytes?: number
+      /**
+       * 内容指纹。**不给就沿用整个任务的哈希**（散装单包时这是对的：它就是这个包）。
+       *
+       * ⚠ 一个筐里的子项**必须显式传 `null`**，不许继承 ——
+       * 子项的内容是它自己那个目录，不是整个筐。继承的后果是真实发生过的：
+       * 2026-10-15 用户报「间隔一段时间后封面全变成同一张」，
+       * 真库里 23 条素材的 `hash_xxh64` 全是同一个值，而它们体积从 319 KB 到 808 MB。
+       * 因为缩略图缓存键是 `hash_xxh64 || id`（`thumbRules.thumbKeyOf`），
+       * 哈希一撞，23 张卡就共用同一张缩略图；顺带 `findAssetByHash` 的查重也会误判。
+       * 子项逐件算哈希太贵（一个筐动辄 1 GB），所以这里**宁可空着也不猜**。
+       */
+      hash?: string | null
+    },
     job: Job,
     res: WorkerResult,
     s: ReturnType<typeof getSettings>,
@@ -542,7 +560,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
        * 而里程碑编号对他没有任何信息量 —— 只会变成一句过期的话（报障 1 同族）。
        */
       reason: model?.reason || '手工分类（没走自动判断）',
-      hash: res.hash,
+      hash: over.hash !== undefined ? over.hash : res.hash,
       sizeBytes: over.sizeBytes ?? res.sizeBytes,
       variantRaw: model?.variantRaw ?? null,
       attachments: container?.attachments ?? []
@@ -651,7 +669,16 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
            */
           unit: unitFromModel(
             it.unit,
-            { name: it.unit.name, sizeBytes: it.versions.reduce((a, v) => a + (v.sizeBytes ?? 0), 0) || undefined },
+            {
+              name: it.unit.name,
+              sizeBytes: it.versions.reduce((a, v) => a + (v.sizeBytes ?? 0), 0) || undefined,
+              /**
+               * ⚠ `hash: null` 不能省。不传就会继承 `res.hash`（整个筐的指纹），
+               * 于是同一个筐里所有子项共用一个哈希 —— 缩略图缓存键跟着撞在一起，
+               * 表现为"所有封面都是同一张图"（2026-10-15 用户报的真故障）。
+               */
+              hash: null
+            },
             job,
             res,
             s,
@@ -702,7 +729,13 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
             category: pickedCategory,
             subcategory: pickedCategory ? input.subcategory : null,
             rawName: unitRawName(u) ?? undefined,
-            sizeBytes: ownBytes > 0 ? ownBytes : undefined
+            sizeBytes: ownBytes > 0 ? ownBytes : undefined,
+            /**
+             * ⚠ 同上：一件东西的指纹不能是**整个筐**的指纹。
+             * 这一条就是 2026-10-15「封面全变成同一张」的直接来源 ——
+             * 用户那 23 件正是从这条路径进来的，`hash_xxh64` 被写成了同一个值。
+             */
+            hash: null
           },
           job,
           res,

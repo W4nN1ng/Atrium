@@ -32,7 +32,7 @@ import { dirKeyOf } from '../../shared/pathkey'
  *   意思是"历史遗留的跨目录归并"，新条目不会再吸附进去（要拆交给健康检查）。
  */
 
-export const SCHEMA_VERSION = 10
+export const SCHEMA_VERSION = 11
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS asset (
@@ -455,5 +455,63 @@ DROP INDEX IF EXISTS idx_asset_review;
       const cols = db.prepare('PRAGMA table_info(asset)').all() as Array<{ name: string }>
       if (cols.some((c) => c.name === 'needs_review')) db.exec('ALTER TABLE asset DROP COLUMN needs_review')
     }
+  },
+  {
+    /**
+     * **数据修复**：把「子项继承了整个筐的哈希」那批脏数据清掉。
+     *
+     * ## 为什么必须有这一版
+     *
+     * 2026-10-15 用户报「间隔一段时间后封面全变成同一张」。
+     * 真库实测：23 条素材的 `hash_xxh64` 全是 `f708d775f3745ff3`，而体积从 319 KB 到 808 MB。
+     * 根因是入库时**每个子项都继承了整个筐的指纹**（`unitFromModel` 的 `hash: res.hash`）。
+     * 缩略图缓存键是 `hash_xxh64 || id`，哈希一撞，23 张卡就共用同一张缩略图。
+     *
+     * 光改代码只能防住**以后**，已经写进库里的错哈希和错封面不清掉，
+     * 用户升级完看到的还是同一张图 —— 那这个修复对他等于没做。
+     *
+     * ## 只清 bug 产物，不碰用户自己的东西
+     *
+     * - 哈希：只清**被两行以上共用**的。正常入库时 `findAssetByHash` 会先问一句，
+     *   不会静默留下两行同哈希 —— 所以"被共用"本身就是这个 bug 的指纹。
+     * - 封面：只清 `athumb://<那把被共用的哈希>.jpg` 这一种。
+     *   **用户自己设的封面一律不动**：`saveCover` / `upload` 用的键是 `cover-<ulid>`，
+     *   每次保存都是全新的随机键，不可能等于某个哈希值（`covers/service.ts:248`、`:268`）。
+     *   也正因为这样，这里不能用"多行共用同一张封面"去判断 ——
+     *   用户完全可能故意把同一张图设给两张卡。
+     *
+     * 清完之后 `cover_image` 为 NULL，下次启动的缩略图补齐会按 `asset.id` 重新生成，
+     * 于是每张卡各自出一张图。
+     */
+    version: 11,
+    sql: '',
+    post: repairInheritedHashes
   }
 ]
+
+/**
+ * V11 的数据修复主体（见上面 V11 的注释）。
+ * 提成具名函数是为了让 `tests/db` 能用例单独钉住它的两个边界：
+ * "被共用的哈希要清" 和 "用户自己设的封面不许动"。
+ */
+function repairInheritedHashes(db: Db): void {
+  const shared = db
+    .prepare(
+      `SELECT hash_xxh64 AS h FROM asset
+        WHERE hash_xxh64 IS NOT NULL
+        GROUP BY hash_xxh64 HAVING COUNT(*) > 1`
+    )
+    .all() as Array<{ h: string }>
+  if (!shared.length) return
+  const now = Date.now()
+  const rowsOf = db.prepare('SELECT id, cover_image FROM asset WHERE hash_xxh64 = ?')
+  const clearHash = db.prepare('UPDATE asset SET hash_xxh64 = NULL, updated_at = ? WHERE id = ?')
+  const clearCover = db.prepare('UPDATE asset SET cover_image = NULL, updated_at = ? WHERE id = ? AND cover_image = ?')
+  for (const s of shared) {
+    for (const r of rowsOf.all(s.h) as Array<{ id: string; cover_image: string | null }>) {
+      /** 先清封面再清哈希：清封面时要拿"当初那把错哈希"去比对，清完哈希就比不了了 */
+      if (r.cover_image) clearCover.run(now, r.id, `athumb://${s.h}.jpg`)
+      clearHash.run(now, r.id)
+    }
+  }
+}
