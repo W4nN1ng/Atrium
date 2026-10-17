@@ -80,8 +80,7 @@ export function CommitAllButton({
       setResult(r)
       toast(
         r.failed.length ? 'warn' : 'ok',
-        t('inbox.commitAllDone', { count: r.committed }) +
-          (r.review ? t('inbox.commitAllReview', { count: r.review }) : '')
+        t('inbox.commitAllDone', { count: r.committed })
       )
       await Promise.all([refresh(), refreshMeta()])
       onDone()
@@ -132,18 +131,12 @@ export function CommitAllButton({
         >
           <span>
             {t('inbox.commitAllDone', { count: result.committed })}
-            {result.review ? t('inbox.commitAllReview', { count: result.review }) : ''}
             {result.bundles ? t('inbox.commitAllBundles', { count: result.bundles }) : ''}
             {result.failed.length ? t('inbox.commitAllFailed', { count: result.failed.length }) : ''}
           </span>
           <Badge tone={result.moved ? 'warn' : 'default'}>
             {result.moved ? t('inbox.commitAllMoved') : t('inbox.commitAllKept')}
           </Badge>
-          {result.review ? (
-            <button type="button" className="btn btn-ghost px-1.5 py-0.5 text-[11px]" onClick={() => setNav('review')}>
-              {t('inbox.goReview')}
-            </button>
-          ) : null}
           <button
             type="button"
             className="btn btn-ghost px-1.5 py-0.5 text-[11px]"

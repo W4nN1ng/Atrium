@@ -45,7 +45,6 @@ interface Row {
   category: string
   subcategory: string | null
   sizeBytes: number
-  needsReview: boolean
   isVersion: boolean
 }
 
@@ -81,7 +80,6 @@ function rowsOf(view: BundleView): Row[] {
         category: r.category,
         subcategory: r.subcategory,
         sizeBytes: r.size_bytes ?? 0,
-        needsReview: Number(r.needs_review) === 1,
         isVersion: useVersions
       })
     }
@@ -114,8 +112,6 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
   const settings = useUi((s) => s.settings)
   const setNav = useUi((s) => s.setNav)
   const refreshMeta = useUi((s) => s.refreshMeta)
-  /** 第 9 轮 ① · 复核标记走 store 那条（它会连着刷侧栏那个数），不再直接摸 IPC */
-  const setReview = useUi((s) => s.setReview)
   const [view, setView] = useState<BundleView | null>(null)
   const [missing, setMissing] = useState(false)
   const [picked, setPicked] = useState<string[]>([])
@@ -406,7 +402,6 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
                     {m}
                   </span>
                 ))}
-                {r.needsReview ? <Badge tone="warn">{t('library.bundleLowConf')}</Badge> : null}
                 <span className="w-[110px] shrink-0 truncate text-[11px]" style={{ color: 'var(--muted)' }}>
                   {labelOf(config, r.category, r.subcategory, locale)}
                 </span>
@@ -454,11 +449,6 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
             {view.items.map(({ item }) => (
               <div key={item.id} className="mb-1 flex items-center gap-2 text-[11px]">
                 <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                {item.needs_review ? (
-                  <Button className="shrink-0" onClick={() => void patch(item, { needs_review: 0 })}>
-                    {t('library.bundleMarkReviewed')}
-                  </Button>
-                ) : null}
                 <Select
                   className="shrink-0"
                   value={item.category}
@@ -486,21 +476,6 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
         <div className="ml-auto flex gap-2">
           <Button disabled={!picked.length || busy} onClick={() => void reparent(picked, null)}>
             {t('library.bundleExtract')}
-          </Button>
-          {/*
-            第 9 轮 ① · 这颗改走 store 那条（原来直接调 IPC），有两个原因是它原来会留死账：
-            1) 不调 `refreshMeta()` → 侧栏那个数不动，用户点完了还以为没点；
-            2) 只清**成员行**的标记，不清这张**合集卡自己**那行。而卡的 `needs_review`
-               入库时是 `items.some(...)`（`commit.ts:540`）—— 成员全清完它仍然是 1，
-               于是它留在「待复核」里，而 `singleReviewAction` 对 `isBundle` 一律不出按钮
-               （不留两个入口）。两头一夹就是**进得去出不来**，正是本轮要治的那个毛病。
-            这里把 `bundleId` 一起带上：勾了成员就是"这一堆我看过了"，容器那行同属一个意图。
-          */}
-          <Button
-            disabled={!picked.length}
-            onClick={() => void setReview([...picked, bundleId], false).then(() => void reload())}
-          >
-            {t('library.bundleMarkReviewed')}
           </Button>
           {/*
             M5-B ⑥：这里以前是个 disabled 的占位按钮（"批量选择在 M5-B 交付"）。

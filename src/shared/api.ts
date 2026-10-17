@@ -150,9 +150,10 @@ export interface Stats {
   bundles: number
   /** 合集里的子项总数 */
   bundleItems: number
-  /** 待复核（一键入库时置信度不够被标上的，只数顶层） */
-  review: number
-  /** @deprecated 老状态位；低置信度现在用 review 表示，不再阻塞入库 */
+  /**
+   * @deprecated 老状态位；低置信度现在也直接算已分类，不再阻塞入库。
+   * （"待复核"那一列已于 2026-10-15 随功能一起删除）
+   */
   pendingConfirm: number
   inbox: number
   collections: number
@@ -288,8 +289,6 @@ export interface AApi {
     trash(ids: string[]): Promise<{ trashed: string[]; failed: { id: string; error: string }[] }>
     stats(): Promise<Stats>
     groups(): Promise<GroupSummary[]>
-    /** 待确认顶部的「已学习 N 条」提示；还没学到东西时是 null */
-    learnedHint(): Promise<{ rules: number; token: string; category: string; subcategory: string | null } | null>
     /** 用户修正分类 → 喂给 learning 表（第 2 份 §5.4）。**只改记录、不碰磁盘** */
     reclassify(id: string, category: string, subcategory: string | null): Promise<LearnedCorrection>
     resolvePending(id: string, accept: boolean): Promise<AssetRow | null>
@@ -309,8 +308,6 @@ export interface AApi {
       subcategory: string | null
       expectToDir: string | null
     }): Promise<RearchiveResult | RearchiveFailure>
-    /** 待复核：改完点「标记已复核」→ needs_review=0 */
-    setReview(ids: string[], needReview: boolean): Promise<{ updated: number }>
     /** 合集详情：合集 + 子项 + 每个子项的版本 */
     bundle(id: string): Promise<BundleView | null>
     /** 改挂父级：「从合集中拆出」传 null */
@@ -694,8 +691,6 @@ export interface BundleView {
 export interface CommitAllSummary {
   total: number
   committed: number
-  /** 置信度不够、被标上待复核的件数 */
-  review: number
   /** 登记成合集（三级）的那几项 */
   bundles: number
   /** 这批是否动了磁盘 */

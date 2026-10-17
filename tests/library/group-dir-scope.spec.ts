@@ -173,8 +173,8 @@ describe('#40 dir_key 归一化与 V4 回填', () => {
     const h = ensureGroup(db, { groupKey: 'backfill-cross', name: 'C', category: 'texture', dirKey: null })
     const mk = (id: string, gid: string, p: string): void => {
       db.prepare(
-        `insert into asset (id,name,raw_name,category,confidence,status,storage_mode,library_path,source_path,created_at,updated_at,group_id,is_bundle,needs_review)
-         values (?,?,?,?,?,'classified','indexed',?,NULL,?,?,?,0,0)`
+        `insert into asset (id,name,raw_name,category,confidence,status,storage_mode,library_path,source_path,created_at,updated_at,group_id,is_bundle)
+         values (?,?,?,?,?,'classified','indexed',?,NULL,?,?,?,0)`
       ).run(id, id, `${id}.zip`, 'texture', 0.8, p, Date.now(), Date.now(), gid)
     }
     mk('bf-1', g.id, 'E:\\vrc\\A\\贴图\\皮肤\\a.zip')

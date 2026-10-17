@@ -161,7 +161,6 @@ export function applyMergeSuggestion(
       parent_asset_id: null,
       is_bundle: 1,
       container_kind: 'merged',
-      needs_review: members.some((m) => Number(m.needs_review) === 1) ? 1 : 0,
       notes: 'merge-suggestion',
       created_at: now,
       updated_at: now

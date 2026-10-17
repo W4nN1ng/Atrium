@@ -47,8 +47,6 @@ export interface CommitUnit {
   sizeBytes: number | null
   coverRelative?: string | null
   notes?: string | null
-  /** 低置信度被"一键入库"直接放过去了 → 标上，待复核页要能捞回来 */
-  needsReview?: boolean
   /** §B2：方括号变体槽位原文，界面上回答"为什么这几个被并成一张卡" */
   variantRaw?: string | null
   /**
@@ -148,7 +146,6 @@ function buildRow(assetId: string, u: CommitUnit, now: number, extra: Partial<As
     version: u.version,
     locale_tag: u.localeTag,
     notes: u.notes ?? null,
-    needs_review: u.needsReview ? 1 : 0,
     variant_raw: u.variantRaw ?? null,
     created_at: now,
     updated_at: now,
@@ -195,7 +192,6 @@ function persistAttachments(
         source_path: null,
         parent_asset_id: parentId,
         is_bundle: 0,
-        needs_review: 0,
         attachment_kind: a.kind,
         created_at: opts.now,
         updated_at: opts.now
@@ -514,20 +510,16 @@ export function commitBundleAsset(
     rootPath: string
     assetId?: string
     batchId?: string
-    /** 低于这个置信度就标 needs_review（设置里的自动归档线） */
-    reviewThreshold?: number
     /** §B7：容器来源。合集型 'collection'（默认）／归并型 'merged' */
     containerKind?: ContainerKind
   }
 ): BundleCommitResult {
   const db = deps.db
   const now = Date.now()
-  const th = input.reviewThreshold ?? 0.75
   const bundleId = input.assetId ?? ulid()
   const batchId = input.batchId ?? bundleId
   const created: string[] = []
 
-  const reviewOf = (u: CommitUnit): number => (u.confidence < th ? 1 : 0)
   /**
    * 合集可能是一个**目录**，也可能是一个**压缩包**（DMCustom_PCS_v1.10.0.zip 里装两个 unitypackage 就是后者）。
    * 是目录时子项有真实路径；是压缩包时子项的 library_path 只能是那个包本身 ——
@@ -550,9 +542,7 @@ export function commitBundleAsset(
      * 进入式浏览、导入、解散、撤销全走同一套代码。
      */
     container_kind: input.containerKind ?? 'collection',
-    size_bytes: itemsBytes || input.bundle.sizeBytes,
-    // 一坨里只要有 1 件没把握，整包都要人回来看一眼
-    needs_review: input.items.some((i) => reviewOf(i.unit) === 1) ? 1 : 0
+    size_bytes: itemsBytes || input.bundle.sizeBytes
   })
   upsertAsset(db, bundleRow)
   created.push(bundleId)
@@ -575,7 +565,6 @@ export function commitBundleAsset(
       source_path: null,
       parent_asset_id: bundleId,
       is_bundle: 0,
-      needs_review: reviewOf(iu),
       size_bytes: iu.sizeBytes ?? it.versions.reduce((a, v) => a + v.sizeBytes, 0)
     })
     upsertAsset(db, row)
@@ -627,7 +616,6 @@ export function commitBundleAsset(
             source_path: null,
             parent_asset_id: itemId,
             is_bundle: 0,
-            needs_review: reviewOf(iu),
             size_bytes: v.sizeBytes,
             group_id: group?.id ?? null
           }

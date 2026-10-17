@@ -8,7 +8,7 @@
 
 Atrium 将素材收集、分类检索和 Unity 导入集中在一个 Windows 桌面应用中。支持整理从 Booth 等平台下载的压缩包、模型、服装、贴图与插件，帮助你在多个模型和工程之间找到需要的资源。
 
-素材分析与分类在本地完成，无需联网或配置在线模型服务。判断不明确的素材会提示你确认，或加入「待复核」列表。
+素材分析与分类在本地完成，无需联网或配置在线模型服务。判断不明确的素材照常入库，你可以随时在库里改掉分类。
 
 [下载应用](https://github.com/W4nN1ng/Atrium/releases/latest) · [查看版本更新](https://github.com/W4nN1ng/Atrium/releases/tag/v0.5.0) · [反馈问题](https://github.com/W4nN1ng/Atrium/issues)
 

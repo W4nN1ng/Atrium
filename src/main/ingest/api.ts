@@ -514,8 +514,8 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
         null,
       confidence,
       /**
-       * 低置信度**不再阻塞入库**（改动单 §1.3）：一律算已分类，
-       * 用 needs_review 记下来，事后在「待复核」里捞。
+       * 低置信度**不阻塞入库**（改动单 §1.3）：一律算已分类。
+       * 2026-10-15 起不再记"待复核"标记 —— 那个功能已整体移除。
        */
       status: 'classified',
       kind: kindOf(res.probe, isDir),
@@ -544,7 +544,6 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       reason: model?.reason || '手工分类（没走自动判断）',
       hash: res.hash,
       sizeBytes: over.sizeBytes ?? res.sizeBytes,
-      needsReview: batch && confidence < s.confidenceAuto,
       variantRaw: model?.variantRaw ?? null,
       attachments: container?.attachments ?? []
     }
@@ -642,7 +641,6 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
         rootPath: job.item.sourcePath,
         assetId,
         batchId,
-        reviewThreshold: s.confidenceAuto,
         containerKind: tree.containerKind ?? 'collection',
         items: tree.items.map((it) => ({
           /**
@@ -898,7 +896,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
    * 「全部入库」—— 一键把收件箱里所有待确认项按引擎给的第一选择登记入库。
    *
    * 三条硬约束（改动单 §1.5 / §7.3）：
-   *  - 低置信度不阻塞，但标 needs_review，事后在「待复核」里能整批捞出来；
+   *  - 低置信度不阻塞，照常入库（"待复核"功能已于 2026-10-15 移除）；
    *  - 整批共用一个 journal batchId，Ctrl+Z 一次撤掉全部，卡片退回收件箱；
    *  - 会动磁盘时必须由调用方显式说 move=true（界面那侧先弹三选二次确认）。
    */
@@ -918,7 +916,6 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       const summary = {
         total,
         committed: 0,
-        review: 0,
         bundles: 0,
         moved: !!i.move,
         failed: [] as Array<{ jobId: string; name: string; messageKey: string; message: string }>
@@ -929,13 +926,11 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       let lastEmit = 0
       try {
         for (const job of targets) {
-          const conf = job.result?.classification?.units[0]?.confidence ?? 0
           const isBundle = !!job.result?.classification?.tree
           try {
             await commit(job, { category: '', subcategory: null }, { move: i.move, batchId, batch: true })
             summary.committed++
             if (isBundle) summary.bundles++
-            if (conf < s.confidenceAuto) summary.review++
           } catch (e) {
             const message = e instanceof Error ? e.message : String(e)
             summary.failed.push({ jobId: job.item.jobId, name: job.item.name, messageKey: 'ingest.commitOneFailed', message })
@@ -958,7 +953,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       }
       batchIds.add(batchId)
       log.info(
-        `一键入库：${summary.committed}/${total} 成功（其中 ${summary.review} 项标待复核、${summary.bundles} 个合集），失败 ${summary.failed.length}，${i.move ? '已移动文件' : '未移动文件'}`
+        `一键入库：${summary.committed}/${total} 成功（其中 ${summary.bundles} 个合集），失败 ${summary.failed.length}，${i.move ? '已移动文件' : '未移动文件'}`
       )
       // 批量补封面：一次扫，比 228 次各开一次解码便宜得多
       void backfillThumbs(getDb(), 400, { packages: false })

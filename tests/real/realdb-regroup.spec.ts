@@ -141,7 +141,7 @@ describe.skipIf(!GO)('#40 拆开跨目录归并组', () => {
       console.log(
         `[前后对比] 素材 ${s0.assets}→${s1.assets}、附属 ${s0.attachments}→${s1.attachments}、` +
           `容器 ${s0.bundles}→${s1.bundles}、子项 ${s0.bundleItems}→${s1.bundleItems}、` +
-          `待复核 ${s0.review}→${s1.review}`
+          ``
       )
       console.log(`[撤销凭据] journal id=${jr!.id} op=${jr!.op} 改挂条目=${(payload.changes ?? []).length}`)
       console.log(`[撤销方法] 程序里 Ctrl+Z，或设置 → 维护 → 「拆开跨目录的归并组」旁那个撤销按钮`)

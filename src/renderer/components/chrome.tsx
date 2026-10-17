@@ -11,8 +11,7 @@ const QUICK: Array<{ key: string; labelKey: string }> = [
   { key: 'recent', labelKey: 'nav.recent' },
   { key: 'all', labelKey: 'nav.allAssets' },
   /** 合集单独一个入口（改动单 §3）；库里它是一张卡，这里给个直达列表 */
-  { key: 'bundles', labelKey: 'nav.bundles' },
-  { key: 'review', labelKey: 'nav.review' }
+  { key: 'bundles', labelKey: 'nav.bundles' }
 ]
 
 export function TopBar(): JSX.Element {
@@ -229,9 +228,6 @@ export function Sidebar(): JSX.Element {
   const count = (key: string): number | null => {
     if (!stats) return null
     if (key === 'inbox') return stats.inbox
-    // 「待复核」数的是 needs_review，不再是 status=pending_confirm ——
-    // 一键入库之后低置信度项也是已入库状态，靠这个标记才捞得回来
-    if (key === 'review') return stats.review ?? 0
     if (key === 'bundles') return stats.bundles ?? 0
     if (key === 'pending') return stats.pendingConfirm
     return null
@@ -253,7 +249,7 @@ export function Sidebar(): JSX.Element {
               onClick={() => setNav(q.key)}
             >
               <span className="flex-1 truncate">{t(q.labelKey)}</span>
-              {c !== null && c > 0 ? <Badge tone={q.key === 'review' ? 'warn' : 'default'}>{c}</Badge> : null}
+              {c !== null && c > 0 ? <Badge tone="default">{c}</Badge> : null}
             </button>
           )
         })}

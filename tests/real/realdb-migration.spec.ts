@@ -53,9 +53,11 @@ describe.skipIf(!GO)('真库副本 · schema 迁移 + 重新分析预览', () =>
       expect(ver.user_version, '迁移没跑到最新版').toBe(SCHEMA_VERSION)
 
       const cols = new Set((db.prepare(`PRAGMA table_info(asset)`).all() as Array<{ name: string }>).map((c) => c.name))
-      for (const c of ['parent_asset_id', 'is_bundle', 'needs_review', 'attachment_kind', 'container_kind', 'variant_raw']) {
+      for (const c of ['parent_asset_id', 'is_bundle', 'attachment_kind', 'container_kind', 'variant_raw']) {
         expect(cols.has(c), `asset 缺列 ${c}`).toBe(true)
       }
+      /** V9 删掉了 needs_review：真库升上来之后这一列必须真的不在 */
+      expect(cols.has('needs_review'), 'needs_review 应当已被 V9 删除').toBe(false)
       const gcols = new Set((db.prepare(`PRAGMA table_info(asset_group)`).all() as Array<{ name: string }>).map((c) => c.name))
       expect(gcols.has('cover_image'), 'asset_group.cover_image 没加上').toBe(true)
 
@@ -65,7 +67,7 @@ describe.skipIf(!GO)('真库副本 · schema 迁移 + 重新分析预览', () =>
 
       const stats = collectStats(db)
       console.log(
-        `真库副本：asset ${after} 行 / 素材 ${stats.assets} / 容器 ${stats.bundles} / 子项 ${stats.bundleItems} / 附属 ${stats.attachments} / 待复核 ${stats.review} / ${Math.round(stats.totalBytes / 1048576)} MB`
+        `真库副本：asset ${after} 行 / 素材 ${stats.assets} / 容器 ${stats.bundles} / 子项 ${stats.bundleItems} / 附属 ${stats.attachments} / ${Math.round(stats.totalBytes / 1048576)} MB`
       )
 
       const t0 = Date.now()
@@ -83,12 +85,12 @@ describe.skipIf(!GO)('真库副本 · schema 迁移 + 重新分析预览', () =>
       const statAfter = collectStats(db)
       console.log(
         `副本上试跑一次（真库未动）：写入 ${r.updated} 行 → 素材 ${statBefore.assets}→${statAfter.assets}、` +
-          `附属 ${statBefore.attachments}→${statAfter.attachments}、待复核 ${statBefore.review}→${statAfter.review}`
+          `附属 ${statBefore.attachments}→${statAfter.attachments}、`
       )
       const u = await undoLast({ db, holdDir: path.join(tmp, 'hold') })
       const undone = collectStats(db)
       console.log(
-        `撤销试跑：ok=${u.ok} → 素材回到 ${undone.assets}、附属 ${undone.attachments}、待复核 ${undone.review}`
+        `撤销试跑：ok=${u.ok} → 素材回到 ${undone.assets}、附属 ${undone.attachments}、`
       )
       console.log(`耗时：只读预览 ${tPlan}ms / 写库 ${tApply}ms`)
       for (const c of plan.changes.slice(0, 40)) {
@@ -195,7 +197,7 @@ describe.skipIf(!GO)('真库副本 · schema 迁移 + 重新分析预览', () =>
         console.log(`  吸附测试：往历史组「${legacy.group_key}」的目录里再入库一件 → 另立新组，没有吸附 ✅`)
       }
       const stats = collectStats(db)
-      console.log(`  迁移后口径：素材 ${stats.assets} / 容器 ${stats.bundles} / 子项 ${stats.bundleItems} / 附属 ${stats.attachments} / 待复核 ${stats.review}`)
+      console.log(`  迁移后口径：素材 ${stats.assets} / 容器 ${stats.bundles} / 子项 ${stats.bundleItems} / 附属 ${stats.attachments}`)
     } finally {
       closeDatabase()
       fs.rmSync(tmp, { recursive: true, force: true })

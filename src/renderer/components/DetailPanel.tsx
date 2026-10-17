@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LocaleKey } from '../../shared/types'
 import { installedWhereState } from '../../shared/installedWhere'
-import { singleReviewAction } from '../../shared/reviewState'
 import { useUi } from '../stores/ui'
 import { humanBytes, humanDate, fileUrl } from '../lib/format'
 import { Badge, Button, EmptyState, Field, Modal, Select } from './ui'
@@ -30,8 +29,6 @@ export function DetailPanel(): JSX.Element {
   const resolvePending = useUi((s) => s.resolvePending)
   const selection = useUi((s) => s.selection)
   const trashSelected = useUi((s) => s.trashSelected)
-  /** 第 9 轮 ① · 单卡的复核出口 */
-  const setReview = useUi((s) => s.setReview)
   /** 顶栏当前选的导入目标：反查列表要把"就是现在这个工程"标出来 */
   const targetProjectId = useUi((s) => s.unity.targetProjectId)
   const locale = i18n.language as LocaleKey
@@ -180,53 +177,6 @@ export function DetailPanel(): JSX.Element {
             ) : null}
           </div>
         </Field>
-
-        {/*
-          第 9 轮 ① · 单卡的复核出口（A1）。
-          这条通道后端早就通了（`assets:set-review`），但渲染层只有合集详情里那颗按钮在用 ——
-          于是 59 条待复核里的单卡**进得去、出不来**。判据在 `shared/reviewState.ts`：
-          合集卡与附属一律不出（它们各自的复核走各自那条路，不留两个入口）。
-        */}
-        {(() => {
-          const rv = singleReviewAction(
-            {
-              id: asset.id,
-              needsReview: Number(asset.needs_review) === 1,
-              isBundle: Number(asset.is_bundle) === 1,
-              /** 附属跟着主体走：让它单独复核，用户就得把一件衣服数两遍 */
-              attachment: Boolean(asset.attachment_kind)
-            },
-            cat !== asset.category || (sub || '') !== (asset.subcategory ?? '')
-          )
-          if (!rv.show) return null
-          return (
-            <div className="mt-2 flex flex-col items-start gap-1">
-              {rv.prominent ? (
-                <Button
-                  variant={rv.hint === 'hint' ? 'accent' : 'default'}
-                  onClick={() => void setReview([asset.id], false)}
-                >
-                  {t('library.markReviewed')}
-                </Button>
-              ) : (
-                /* Q3 乙：不进撤销账，反悔的方式就是这里再点一次 */
-                <button
-                  type="button"
-                  className="text-[11px] underline"
-                  style={{ color: 'var(--faint)' }}
-                  onClick={() => void setReview([asset.id], true)}
-                >
-                  {t('library.markUnreviewed')}
-                </button>
-              )}
-              {rv.hint === 'hint' ? (
-                <span className="text-[11px]" style={{ color: 'var(--muted)' }}>
-                  {t('library.reviewAfterEditHint')}
-                </span>
-              ) : null}
-            </div>
-          )
-        })()}
 
         {asset.source_url || asset.source_item_id ? (
           <Row label={t('library.source')}>

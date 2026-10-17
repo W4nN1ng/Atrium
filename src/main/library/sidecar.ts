@@ -22,8 +22,8 @@ export interface SidecarData {
   appVersion: string
   generatedAt: number
   /**
-   * 三级模型那三列在侧车里是**可选**的：已经写在库里的 `.avca.json` 里没有它们，
-   * 读老侧车必须照常成功（needs_review 能从 confidence 推，parent/is_bundle 从目录结构推）。
+   * 三级模型那几列在侧车里是**可选**的：已经写在库里的 `.avca.json` 里没有它们，
+   * 读老侧车必须照常成功（parent/is_bundle 从目录结构推）。
    */
   asset: Omit<
     AssetRow,
@@ -33,9 +33,8 @@ export interface SidecarData {
     | 'updated_at'
     | 'parent_asset_id'
     | 'is_bundle'
-    | 'needs_review'
   > &
-    Partial<Pick<AssetRow, 'parent_asset_id' | 'is_bundle' | 'needs_review'>> & {
+    Partial<Pick<AssetRow, 'parent_asset_id' | 'is_bundle'>> & {
       created_at?: number
       updated_at?: number
     }
@@ -87,7 +86,7 @@ export function assetFromSidecar(data: SidecarData, assetDir: string, libraryRoo
   const cover = data.coverRelative ? path.join(assetDir, data.coverRelative) : null
   const rest = data.asset as unknown as Omit<
     AssetRow,
-    'library_path' | 'source_path' | 'cover_image' | 'parent_asset_id' | 'is_bundle' | 'needs_review'
+    'library_path' | 'source_path' | 'cover_image' | 'parent_asset_id' | 'is_bundle'
   >
   return {
     ...rest,
@@ -96,13 +95,12 @@ export function assetFromSidecar(data: SidecarData, assetDir: string, libraryRoo
     source_path: null,
     cover_image: cover ?? null,
     /**
-     * 三级模型那三列必须给默认值：老侧车里根本没有它们，
-     * 直接展开会撞上 is_bundle / needs_review 的 NOT NULL，整条重建被 catch 吞掉
+     * 这两列必须给默认值：老侧车里根本没有它们，
+     * 直接展开会撞上 is_bundle 的 NOT NULL，整条重建被 catch 吞掉
      * （实测：rebuildFromSidecars 报 inserted=0，界面上一张卡都没回来）。
      */
     parent_asset_id: data.asset.parent_asset_id ?? null,
     is_bundle: data.asset.is_bundle ?? 0,
-    needs_review: data.asset.needs_review ?? (Number(data.asset.confidence ?? 0) < 0.75 ? 1 : 0),
     created_at: data.asset.created_at ?? data.generatedAt,
     updated_at: data.asset.updated_at ?? data.generatedAt,
     notes: data.asset.notes ? `${data.asset.notes}\n[重建自侧车 ${rel}]` : `[重建自侧车 ${rel}]`

@@ -52,7 +52,7 @@ export interface ReanalyzePlan {
   junk: Array<{ id: string; name: string; path: string | null }>
   /** 名字里还挂着 UUID 的行（§A3 的残留，重算能修） */
   uuidNamed: number
-  /** 改了名字的行数 —— 验收 12「待复核数量明显下降」之外的另一个直观指标 */
+  /** 改了名字的行数 —— 重算到底动没动东西，最直观的一个数 */
   renamed: number
 }
 
@@ -89,7 +89,7 @@ function dirCandidate(row: AssetRow): string | null {
   return parent && !/^[A-Za-z]:$/.test(parent) ? parent : null
 }
 
-/** 只重算这几列。刻意不含 category / subcategory / needs_review（见文件头） */
+/** 只重算这几列。刻意不含 category / subcategory（见文件头） */
 function recompute(row: AssetRow, lex: Lexicon): Record<string, unknown> {
   const raw = row.raw_name || row.name
   const guess = cleanDisplayName(raw)

@@ -9,9 +9,12 @@ import { dirKeyOf } from '../../shared/pathkey'
  *      import_log.kind、journal.status/error/batch_id、package_entry.size/has_preview、
  *      project.fingerprint_json
  * 所有加列都是"只增不改不删"，老库可以直接增量迁移。
+ * ⚠ 这条在 V9 破了一次例（见文件末尾 V9）：删掉了 `asset.needs_review`。
+ *   那是一次**经用户明确要求的整功能移除**，不是随手的破坏性迁移；
+ *   除此之外仍然只增不删。
  *
  * V2（2026-10-05 增量改动单 §2.4）：合集改成 asset 自引用三级模型
- *   asset.parent_asset_id / is_bundle / needs_review
+ *   asset.parent_asset_id / is_bundle / needs_review（needs_review 已在 V9 删除）
  *   —— 从此 **bundle 表和 asset.bundle_id 都废弃了**（改动单 §7.2：不许有平行表）。
  *   表留着不删：删表不可逆，而且里面可能有人数据；只是再没有任何代码往里写。
  *
@@ -29,7 +32,7 @@ import { dirKeyOf } from '../../shared/pathkey'
  *   意思是"历史遗留的跨目录归并"，新条目不会再吸附进去（要拆交给健康检查）。
  */
 
-export const SCHEMA_VERSION = 8
+export const SCHEMA_VERSION = 9
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS asset (
@@ -393,5 +396,43 @@ INSERT INTO asset_cover_package_upgrade SELECT * FROM asset_cover;
 DROP TABLE asset_cover;
 ALTER TABLE asset_cover_package_upgrade RENAME TO asset_cover;
 `
+  },
+  {
+    version: 9,
+    sql: `
+-- 2026-10-15：**「待复核」整个功能移除**（用户要求，理由是它臃肿、拖慢工作流）。
+-- V2 引入的这一列 + 部分索引在这里一起删干净，不留"没人读但还在写"的死列。
+--
+-- 为什么是"删"而不是"留着不用"：这一列本身无害，但它会一直诱使后来的人以为
+-- "还有个待复核状态可以接"；而界面上的三个出口（侧栏计数、单卡按钮、合集批量）
+-- 已经全部拆掉了，留着列等于给一个不存在的功能留后门。
+--
+-- 为什么删列是安全的（查过，不是想当然）：
+--  1. 没有任何外键或视图引用它；
+--  2. 撤销（journal）里老记录的 restore.row 虽然带着 needs_review 键，
+--     但 upsertAsset 是**按固定列清单取值**的（ASSET_COLUMNS 逐列取 row[c]），
+--     对象上多余的键被忽略 —— 老撤销记录照常能塞回去，不会报"没有这一列"；
+--  3. 老侧车 .avca.json 里同样可能带这个字段，assetFromSidecar 也是显式构造行，
+--     多出来的字段被自然丢掉。
+--
+-- 顺序要紧：部分索引 idx_asset_review 建在 needs_review 上，
+-- 不先删索引，DROP COLUMN 会被 SQLite 拒掉。
+DROP INDEX IF EXISTS idx_asset_review;
+`,
+    /**
+     * 删列必须走 `post`，不能写成纯 SQL。
+     *
+     * SQLite 没有 `DROP COLUMN IF EXISTS`，而迁移是**能被重放的** ——
+     * `tests/covers/package-service.spec.ts` 就有一条用例把 `user_version` 手工退回 7
+     * 再跑一遍迁移，那时列已经被上一次 V9 删掉了。纯 SQL 会抛
+     * `no such column: needs_review`，把整个迁移事务炸掉；
+     * 而迁移一炸用户就打不开软件。所以先查列在不在。
+     *
+     * （这条不是凭想象加的：上面那用例在我第一版纯 SQL 的写法下就是红的。）
+     */
+    post: (db) => {
+      const cols = db.prepare('PRAGMA table_info(asset)').all() as Array<{ name: string }>
+      if (cols.some((c) => c.name === 'needs_review')) db.exec('ALTER TABLE asset DROP COLUMN needs_review')
+    }
   }
 ]
