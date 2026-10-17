@@ -365,6 +365,64 @@ describe('合集三级模型（改动单 §2.4）', () => {
     }
   })
 
+  /**
+   * V11 的数据修复：把「子项继承了整个筐的哈希」那批脏数据清掉。
+   *
+   * 这是 2026-10-15「封面全变成同一张」的善后 ——
+   * 光改代码只能防以后，已经写进库里的错哈希不清，用户升级完看到的还是同一张图。
+   */
+  it('V11 修数据：被多行共用的哈希清掉、由它推出的封面也清掉，但用户自己设的封面一律不动', () => {
+    const tmp = path.join(os.tmpdir(), `avca-v11-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    fs.mkdirSync(tmp, { recursive: true })
+    const file = path.join(tmp, 'library.db')
+    const BAD = 'f708d775f3745ff3'
+    try {
+      const legacy = new Database(file)
+      migrate(legacy)
+      const mk = (id: string, hash: string | null, cover: string | null): void => {
+        legacy
+          .prepare(
+            `INSERT INTO asset (id, name, raw_name, category, confidence, status, storage_mode, hash_xxh64, cover_image, created_at, updated_at)
+             VALUES (?, ?, ?, 'prop', 0.9, 'classified', 'indexed', ?, ?, ?, ?)`
+          )
+          .run(id, id, `${id}.zip`, hash, cover, Date.now(), Date.now())
+      }
+      /** 三行共用一把哈希 —— 正是 bug 的指纹；封面也都是从这把哈希推出来的 */
+      mk('bad-1', BAD, `athumb://${BAD}.jpg`)
+      mk('bad-2', BAD, `athumb://${BAD}.jpg`)
+      mk('bad-3', BAD, `athumb://${BAD}.jpg`)
+      /** 自己的哈希 + 用户手设的封面（`cover-<ulid>` 那种键）—— 一行都不许动 */
+      mk('good-1', 'cafebabe00000001', 'athumb://cover-01j8xk3m2p4q6r8s0t2v4w6y8z.jpg')
+      /** 没有哈希、但封面是按 id 生成的 —— 也不该被牵连 */
+      mk('good-2', null, 'athumb://01GOOD2ID0000000000000000.jpg')
+      legacy.pragma('user_version = 10')
+      legacy.close()
+
+      const up = new Database(file)
+      migrate(up)
+      const row = (id: string) =>
+        up.prepare('SELECT hash_xxh64, cover_image FROM asset WHERE id = ?').get(id) as {
+          hash_xxh64: string | null
+          cover_image: string | null
+        }
+
+      for (const id of ['bad-1', 'bad-2', 'bad-3']) {
+        expect(row(id).hash_xxh64, `${id} 的共用哈希应当被清掉`).toBeNull()
+        expect(row(id).cover_image, `${id} 的错封面应当被清掉（否则升级完还是同一张）`).toBeNull()
+      }
+      expect(row('good-1').hash_xxh64, '自己那条哈希不许动').toBe('cafebabe00000001')
+      expect(row('good-1').cover_image, '用户手设的封面不许动').toBe('athumb://cover-01j8xk3m2p4q6r8s0t2v4w6y8z.jpg')
+      expect(row('good-2').cover_image, '按 id 生成的封面不许被牵连').toBe('athumb://01GOOD2ID0000000000000000.jpg')
+      up.close()
+    } finally {
+      try {
+        fs.rmSync(tmp, { recursive: true, force: true })
+      } catch {
+        /* Windows 偶尔还占着句柄 */
+      }
+    }
+  })
+
   it('删合集连带删子项（开了 foreign_keys，反过来会抛约束错误）', () => {
     const b = makeAssetRow({ name: 'CascadeBundle', raw_name: 'cb', category: 'plugin', is_bundle: 1 })
     upsertAsset(db, b)
