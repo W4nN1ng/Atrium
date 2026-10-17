@@ -12,6 +12,8 @@ export const IpcInvoke = {
     Status: 'covers:status', Targets: 'covers:targets', Discover: 'covers:discover', Preview: 'covers:preview',
     Save: 'covers:save', Discard: 'covers:discard', Upload: 'covers:upload', Restore: 'covers:restore',
     StartBatch: 'covers:start-batch', BatchStatus: 'covers:batch-status', CancelBatch: 'covers:cancel-batch',
+    StartTask: 'covers:start-task', TaskStatus: 'covers:task-status', TaskChoices: 'covers:task-choices',
+    ApplyTaskChoice: 'covers:apply-task-choice', RetryTask: 'covers:retry-task', CancelTask: 'covers:cancel-task', UndoTask: 'covers:undo-task',
     UpgradeBridge: 'covers:upgrade-bridge'
   },
   System: {
@@ -116,6 +118,11 @@ export const IpcInvoke = {
     ListProjects: 'unity:list-projects',
     RefreshProjects: 'unity:refresh-projects',
     SetTarget: 'unity:set-target',
+    Connection: 'unity:connection',
+    ResolveTarget: 'unity:resolve-target',
+    PrepareTarget: 'unity:prepare-target',
+    CancelTargetPreparation: 'unity:cancel-target-preparation',
+    RetryConnection: 'unity:retry-connection',
     /** 某个素材在哪些工程装过（只读 import_log） */
     ImportLogs: 'unity:import-logs',
     ImportHistory: 'unity:import-history',
@@ -213,6 +220,7 @@ export const IpcEvent = {
   DataChanged: 'data:changed',
   /** M5-A：工程的运行状态变了（开/关 Unity）。顶栏与工程页据此刷新 */
   ProjectRunningChanged: 'project:running-changed',
+  UnityConnectionChanged: 'unity:connection-changed',
   /** M5-A：一条桥接命令的进度/终态（导入大包时界面靠它显示进度） */
   UnityImportProgress: 'unity:import-progress',
   /**

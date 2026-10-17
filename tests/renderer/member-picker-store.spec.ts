@@ -120,6 +120,10 @@ beforeEach(async () => {
     ingest: { queue: async () => [], restoreQueue: async () => [] },
     unity: {
       ...bridge.api,
+      resolveTarget: vi.fn(async () => ({ kind: 'selected', projectId: 'P1', projectName: 'Fixture Project' })),
+      prepareTarget: vi.fn(async (projectId: string) => ({ projectId, projectPath: 'D:/p', name: 'Fixture Project', phase: 'ready', reasonKey: null, detail: null })),
+      cancelTargetPreparation: vi.fn(async () => undefined),
+      connection: vi.fn(async () => ({ projects: [{ projectId: 'P1', projectPath: 'D:/p', name: 'Fixture Project', phase: 'ready', reasonKey: null, detail: null }], targetProjectId: 'P1', targetMode: 'auto', ambiguous: false })),
       status: async () => ({}),
       instances: async () => [],
       listProjects: async () => [],
@@ -139,6 +143,7 @@ beforeEach(async () => {
 
 async function store() {
   const mod = await import('../../src/renderer/stores/ui')
+  mod.useUi.setState({ projects: [{ id: 'P1', name: 'Fixture Project', path: 'D:/p', unityVersion: '2022.3.22f1', running: true, detectedBy: ['bridge'], bridgeInstalled: true, bridgeVersion: 'fixture' }] })
   return mod.useUi
 }
 
@@ -208,7 +213,7 @@ describe('分批走链路', () => {
     useUi.getState().setMemberPicks(['shinano_a.unitypackage', 'other_b.unitypackage'])
     await useUi.getState().runMemberBatches()
     expect(calls.importPlan).toHaveLength(1)
-    expect(calls.importPlan[0][0]).toEqual({ assetId: 'C1', members: ['shinano_a.unitypackage', 'other_b.unitypackage'] })
+    expect(calls.importPlan[0][0]).toEqual({ assetId: 'C1', members: ['shinano_a.unitypackage', 'other_b.unitypackage'], projectId: 'P1' })
     const p = useUi.getState().memberPicker
     expect(p.plan?.batchId).toBe('BATCH-1')
     expect(p.running).toBe(false)

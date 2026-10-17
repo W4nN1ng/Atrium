@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { UnityConnectionSnapshot } from '../../shared/unityConnection'
 import type { AppInfo, IngestItemState, PathInfo, Stats } from '../../shared/api'
 import type {
   AppSettings,
@@ -143,6 +144,7 @@ export interface Toast {
  */
 export interface MemberPickerState {
   open: boolean
+  projectId: string | null
   assetId: string | null
   /** 卡片标题，只给顶栏那行字用 */
   containerName: string | null
@@ -188,6 +190,7 @@ export interface BatchItem {
 
 export interface BatchImportState {
   open: boolean
+  projectId: string | null
   /** 还没开始的后续批次 */
   queue: BatchItem[][]
   /** 当前这一批的预扫描结果（null = 还在抽取/规划，或者已经提交完） */
@@ -205,6 +208,7 @@ export interface BatchImportState {
 
 const IDLE_BATCH: BatchImportState = {
   open: false,
+  projectId: null,
   queue: [],
   plan: null,
   running: false,
@@ -216,6 +220,7 @@ const IDLE_BATCH: BatchImportState = {
 
 const IDLE_PICKER: MemberPickerState = {
   open: false,
+  projectId: null,
   assetId: null,
   containerName: null,
   loading: false,
@@ -335,6 +340,11 @@ interface UiState {
   view: 'grouped' | 'flat'
   ingestItems: IngestItemState[]
   unity: UnityStatus & { targetProjectId: string | null }
+  connection: UnityConnectionSnapshot
+  targetPicker: { open: boolean; projectIds: string[] }
+  chooseImportTarget(projectId: string | null): Promise<void>
+  retryUnityConnection(projectId: string): Promise<void>
+  cancelImportPreparation(): void
   /** 已知工程列表（顶栏切换器用） */
   projects: ProjectInfo[]
   /**
@@ -439,7 +449,7 @@ interface UiState {
   // ------------------------------------------------------------ 容器成员选择（M5-B ⑥）
 
   /** 打开这张卡的成员选择面板（多成员容器的唯一入口；双击也走这里） */
-  openMemberPicker(assetId: string): Promise<void>
+  openMemberPicker(assetId: string, preparedProjectId?: string): Promise<void>
   closeMemberPicker(): void
   /** 重新拉一次清单（用户在外部改动过、或者闸门换了盘） */
   reloadMemberPicker(): Promise<void>
@@ -547,6 +557,52 @@ let toastSeq = 1
 let listenersBound = false
 
 export const useUi = create<UiState>((set, get) => {
+  type Preparation = { id: string | null; cancelled: boolean; choose?: (id: string | null) => void }
+  let preparation: Preparation | null = null
+  let connectionRevision = 0
+  let memberRevision = 0
+  let batchRevision = 0
+
+  async function ensureImportTarget(): Promise<{ id: string; name: string } | null> {
+    if (preparation || get().importFlow.busy || get().importFlow.pending ||
+      get().memberPicker.open || get().batchImport.open || get().backfill.open) {
+      get().toast('info', i18next.t('library.batchBusy')); return null
+    }
+    const current: Preparation = { id: null, cancelled: false }
+    preparation = current
+    try {
+      const resolution = await window.a.unity.resolveTarget()
+      if (current.cancelled) return null
+      if (resolution.kind === 'none') { get().toast('warn', i18next.t('project.connectionOpenUnity')); return null }
+      let id: string | null = resolution.kind === 'selected' ? resolution.projectId : null
+      if (resolution.kind === 'choose') {
+        set({ targetPicker: { open: true, projectIds: resolution.projectIds } })
+        id = await new Promise<string | null>(resolve => { current.choose = resolve })
+      }
+      if (!id || current.cancelled) return null
+      const projectId = id
+      const name = get().projects.find(project => project.id === projectId)?.name ??
+        (resolution.kind === 'selected' ? resolution.projectName : projectId)
+      current.id = crypto.randomUUID()
+      set(state => ({ importFlow: { ...state.importFlow, busy: true, busyReason: 'connecting', projectId, projectName: name } }))
+      const connected = await window.a.unity.prepareTarget(projectId, current.id)
+      if (current.cancelled || preparation !== current) return null
+      if (connected.projectId !== projectId || connected.phase !== 'ready') throw Error('project.connectionProjectMissing')
+      return { id: projectId, name: connected.name }
+    } catch (error) {
+      if (!current.cancelled) {
+        get().toast('bad', errorText(error))
+      }
+      return null
+    } finally {
+      if (preparation === current) {
+        preparation = null
+        set(state => ({ targetPicker: { open: false, projectIds: [] },
+          importFlow: { ...state.importFlow, busy: false, busyReason: null } }))
+      }
+    }
+  }
+
   async function refreshList(): Promise<void> {
     const s = get()
     const filter: AssetFilter = {
@@ -588,9 +644,14 @@ export const useUi = create<UiState>((set, get) => {
    */
   async function planBatch(members: string[]): Promise<void> {
     const p = get().memberPicker
+    const revision = memberRevision
     if (!p.assetId) return
     try {
-      const r = await window.a.unity.importPlan({ assetId: p.assetId, members })
+      const r = await window.a.unity.importPlan({ assetId: p.assetId, members, projectId: p.projectId ?? undefined })
+      if (revision !== memberRevision) {
+        if ('items' in r) await window.a.unity.importAbandon(r.batchId).catch(() => undefined)
+        return
+      }
       if ('items' in r) {
         set({ memberPicker: { ...get().memberPicker, plan: r, reasonKey: null } })
         if (r.blocked.length) {
@@ -601,6 +662,7 @@ export const useUi = create<UiState>((set, get) => {
       /** 闸门拒绝 / 工程侧不在线 / 全被挡住：说清是哪一个，别只说"失败了" */
       set({ memberPicker: { ...get().memberPicker, plan: null, reasonKey: r.reasonKey, reasonParams: r.reasonParams ?? {} } })
     } catch (e) {
+      if (revision !== memberRevision) return
       set({ memberPicker: { ...get().memberPicker, plan: null, reasonKey: 'err.importChainFailed' } })
       get().toast('bad', e instanceof Error ? e.message : String(e))
     }
@@ -615,13 +677,18 @@ export const useUi = create<UiState>((set, get) => {
    * 所以失败分支的写法是照抄的，改一处要改两处是这份文件的已知债，注释在这里标出来。
    */
   async function planBatchItems(items: BatchItem[]): Promise<void> {
+    const revision = batchRevision
     try {
       const r = await window.a.unity.importPlan({
         items: items.map((x) => ({ assetId: x.assetId, members: [x.relPath] })),
-        projectId: get().unity.targetProjectId ?? undefined
+        projectId: get().batchImport.projectId ?? undefined
       })
+      if (revision !== batchRevision) {
+        if ('items' in r) await window.a.unity.importAbandon(r.batchId).catch(() => undefined)
+        return
+      }
       if ('items' in r) {
-        const proj = get().projects.find((p) => p.id === get().unity.targetProjectId) ?? null
+        const proj = get().projects.find((p) => p.id === get().batchImport.projectId) ?? null
         set({
           batchImport: { ...get().batchImport, plan: r, reasonKey: null },
           /**
@@ -640,6 +707,7 @@ export const useUi = create<UiState>((set, get) => {
         batchImport: { ...get().batchImport, plan: null, running: false, reasonKey: r.reasonKey, reasonParams: r.reasonParams ?? {} }
       })
     } catch (e) {
+      if (revision !== batchRevision) return
       set({ batchImport: { ...get().batchImport, plan: null, running: false, reasonKey: 'err.importChainFailed' } })
       get().toast('bad', e instanceof Error ? e.message : String(e))
     }
@@ -662,6 +730,15 @@ export const useUi = create<UiState>((set, get) => {
         }).catch(() => undefined)
       }
     })
+    window.a.on('unity:connection-changed', payload => {
+      const connection = payload as UnityConnectionSnapshot
+      const revision = ++connectionRevision
+      set(state => ({ connection, unity: { ...state.unity, targetProjectId: connection.targetProjectId } }))
+      void Promise.all([window.a.unity.status(), window.a.unity.listProjects()]).then(([unity, projects]) => {
+        if (revision !== connectionRevision || get().connection !== connection) return
+        set(state => ({ projects, unity: unity.targetProjectId === connection.targetProjectId ? unity : state.unity }))
+      }).catch(() => undefined)
+    })
     /**
      * M6 ⑤：主进程检测到"某个工程刚打开"并做完了决策。
      * 决策（切不切、为什么没切）已经在 `unity:auto-switch` 里算好，
@@ -670,10 +747,6 @@ export const useUi = create<UiState>((set, get) => {
     window.a.on('unity:auto-switch', (payload) => {
       const e = payload as AutoSwitchEvent
       if (e && typeof e.projectId === 'string') get().handleAutoSwitch(e)
-    })
-    window.a.on('project:first-seen', (payload) => {
-      const e = payload as BridgeFirstSeenEvent | null
-      if (e && typeof e.projectId === 'string') get().handleProjectFirstSeen(e)
     })
     window.a.on('settings:changed', (payload) => {
       const next = payload as AppSettings
@@ -774,6 +847,8 @@ export const useUi = create<UiState>((set, get) => {
     rearchive: IDLE_REARCHIVE,
     banner: { event: null, pinned: false, ignoredProjects: [], sawUnityStart: false },
     bridgeAsk: [],
+    connection: { projects: [], targetProjectId: null, targetMode: 'auto', ambiguous: false },
+    targetPicker: { open: false, projectIds: [] },
     unity: {
       running: false,
       bridgeReady: false,
@@ -808,11 +883,12 @@ export const useUi = create<UiState>((set, get) => {
     async boot() {
       try {
         bindEvents()
-        const [info, paths, settings, unity] = await Promise.all([
+        const [info, paths, settings, unity, connection] = await Promise.all([
           window.a.system.info(),
           window.a.system.paths(),
           window.a.settings.getAll(),
-          window.a.unity.status()
+          window.a.unity.status(),
+          window.a.unity.connection()
         ])
         await changeLocale(settings.language)
         document.documentElement.classList.toggle('dark', settings.theme === 'dark')
@@ -823,6 +899,7 @@ export const useUi = create<UiState>((set, get) => {
           paths,
           settings,
           unity,
+          connection,
           booted: true,
           /** M7 · 断点续填：上次走到哪一步（脏值/老版本没这个键都由 `clampStep` 收成 1） */
           wizardStep: clampStep(settings.onboardingStep),
@@ -839,15 +916,6 @@ export const useUi = create<UiState>((set, get) => {
         if (wantNav) set({ nav: wantNav })
         await Promise.all([refreshList(), refreshMeta()])
         await get().refreshIngestQueue()
-        /**
-         * R4 ⑦ · 把主进程**攒着没送到**的桥接决定取回来。
-         *
-         * 顺序上必须放在 `bindEvents()` 之后：先能收广播，再 drain，两边才不会两头漏。
-         * 少了这一步，"第一次发现新工程要弹三按钮"恰恰在**全新安装**那一次不生效 ——
-         * 主进程第一轮工程发现是同步跑完的，那时这个监听器还不存在。
-         */
-        const pending = await window.a.unity.pendingBridgeAsk()
-        for (const ev of pending) get().handleProjectFirstSeen(ev)
         /**
          * 第 9 轮 ⑥ · 自动收拾一次历史遗留。
          *
@@ -1291,6 +1359,9 @@ export const useUi = create<UiState>((set, get) => {
       try {
         const list = await window.a.unity.refreshProjects()
         set({ projects: list })
+        const connection = await window.a.unity.connection()
+        const unity = await window.a.unity.status()
+        set({ connection, unity })
         return list
       } catch {
         /** 扫盘失败不该让界面空着 —— 退回库里的已知工程 */
@@ -1314,25 +1385,49 @@ export const useUi = create<UiState>((set, get) => {
         set((s) => ({ unity: { ...s.unity, targetProjectId: id } }))
         const fresh = await window.a.unity.status()
         set((s) => ({ unity: { ...s.unity, ...fresh, targetProjectId: id } }))
+        const connection = await window.a.unity.connection()
+        set({ connection })
       } catch (e) {
-        get().toast('bad', e instanceof Error ? e.message : String(e))
+        get().toast('bad', errorText(e))
       }
+    },
+
+    async chooseImportTarget(id) {
+      const current = preparation
+      if (!current?.choose) return
+      if (id !== null && !get().targetPicker.projectIds.includes(id)) return
+      try {
+        if (id !== null) {
+          const selected = await window.a.unity.setTarget(id)
+          if (selected !== id || current.cancelled || preparation !== current) return
+        }
+        set({ targetPicker: { open: false, projectIds: [] } })
+        current.choose(id); current.choose = undefined
+      } catch (error) { get().toast('bad', errorText(error)) }
+    },
+    async retryUnityConnection(id) {
+      try {
+        await window.a.unity.retryConnection(id)
+        const connection = await window.a.unity.connection()
+        set({ connection })
+      } catch (error) { get().toast('bad', errorText(error)) }
+    },
+    cancelImportPreparation() {
+      const current = preparation
+      if (!current) return
+      current.cancelled = true
+      current.choose?.(null)
+      if (current.id) void window.a.unity.cancelTargetPreparation(current.id).catch(() => undefined)
+      preparation = null
+      set(state => ({ targetPicker: { open: false, projectIds: [] }, importFlow: { ...state.importFlow, busy: false, busyReason: null } }))
     },
 
     async importAsset(assetId, opts) {
       const t = i18next.t.bind(i18next)
+      const target = await ensureImportTarget()
+      if (!target) return
       const s = get()
-      /** 1. 必须先有导入目标 —— 没选就直说，不要静默什么都不做 */
-      if (!s.unity.targetProjectId) {
-        s.toast('warn', t('unity.errNoProject'))
-        return
-      }
-      const project = s.projects.find((p) => p.id === s.unity.targetProjectId) ?? null
-      /** 2. 未运行的工程不能导入（§4.3 步骤 4） */
-      if (!s.unity.running) {
-        s.toast('warn', t('project.notRunningHint', { name: project?.name ?? t('project.target') }))
-        return
-      }
+      const project = s.projects.find((p) => p.id === target.id) ?? null
 
       const reset = (patch: Partial<ImportFlowState> = {}): void => {
         set((st) => ({
@@ -1367,8 +1462,8 @@ export const useUi = create<UiState>((set, get) => {
           packageName: null,
           packagePath: null,
           assetId,
-          projectId: s.unity.targetProjectId,
-          projectName: project?.name ?? null,
+          projectId: target.id,
+          projectName: project?.name ?? target.name,
           pending: null,
           /** 上一批没点确认就关了窗：这次的批次号必须从空开始，不然会撤错批 */
           batch: null,
@@ -1412,7 +1507,7 @@ export const useUi = create<UiState>((set, get) => {
              * 多个成员的容器**不替用户挑**：打开选择面板，让他勾。
              * 以前这里是"取第一个 + 一句实话"，等于 A 悄悄替他选了一个包往工程里灌。
              */
-            await get().openMemberPicker(assetId)
+            await get().openMemberPicker(assetId, target.id)
             get().toast('info', t('library.memberOpenHint', { count: found.packages.length }))
             reset()
             return
@@ -1420,7 +1515,7 @@ export const useUi = create<UiState>((set, get) => {
           const candidate = found.packages[choice.indexes[0]]
           if (candidate.path === null) {
             /** 单个成员：没有"选哪个"这回事，直接抽 + 预扫描，冲突照旧走三选一 */
-            const plan = await window.a.unity.importPlan({ assetId, members: [candidate.relPath] })
+            const plan = await window.a.unity.importPlan({ assetId, members: [candidate.relPath], projectId: target.id })
             if (!('items' in plan)) {
               get().toast('bad', t(plan.reasonKey, plan.reasonParams ?? {}))
               reset()
@@ -1482,7 +1577,7 @@ export const useUi = create<UiState>((set, get) => {
         set((st) => ({ importFlow: { ...st.importFlow, packageName: name, packagePath } }))
 
         /** 4. 预扫描（只读）。不满足条件时它有明确 reason */
-        const pre = await window.a.unity.preflight({ packagePath })
+        const pre = await window.a.unity.preflight({ packagePath, projectId: target.id })
         if (!pre.ok) {
           get().toast('bad', pre.bridgeMissing ? t('unity.errBridgeMissing') : (pre.reason ?? pre.reasonKey ?? t('unity.errParse')))
           reset()
@@ -1695,14 +1790,18 @@ export const useUi = create<UiState>((set, get) => {
 
     // ------------------------------------------------------------ 容器成员选择（M5-B ⑥）
 
-    async openMemberPicker(assetId) {
+    async openMemberPicker(assetId, preparedProjectId) {
+      const target = preparedProjectId ? { id: preparedProjectId } : await ensureImportTarget()
+      if (!target) return
+      memberRevision++
       const card = get().cards.find((c) => c.id === assetId) ?? null
       /** 先开面板再拉清单：87 个成员的容器列一次要起后端进程，不能让人对着空气等 */
-      set({ memberPicker: { ...IDLE_PICKER, open: true, assetId, containerName: card?.name ?? null, loading: true } })
+      set({ memberPicker: { ...IDLE_PICKER, open: true, projectId: target.id, assetId, containerName: card?.name ?? null, loading: true } })
       await get().reloadMemberPicker()
     },
 
     closeMemberPicker() {
+      memberRevision++
       const p = get().memberPicker
       /**
        * 面板关掉时**必须把已经抽好的那批副本退回去**。
@@ -1715,12 +1814,14 @@ export const useUi = create<UiState>((set, get) => {
     async reloadMemberPicker() {
       const t = i18next.t.bind(i18next)
       const p = get().memberPicker
-      if (!p.assetId) return
+      const revision = memberRevision
+      if (!p.assetId || p.running) return
       set({ memberPicker: { ...p, loading: true, reasonKey: null } })
       try {
         const res = await window.a.unity.packagesOfAsset(p.assetId)
+        if (revision !== memberRevision) return
         /** 预勾的依据只有两种，都是"用户正在忙什么"，不是"A 觉得什么好" */
-        const targetName = get().projects.find((x) => x.id === get().unity.targetProjectId)?.name ?? null
+        const targetName = get().projects.find((x) => x.id === p.projectId)?.name ?? null
         const colId = get().nav.startsWith('col:') ? get().nav.slice(4) : null
         const col = get().collections.find((c) => c.id === colId) ?? null
         const colKeywords = (() => {
@@ -1752,6 +1853,7 @@ export const useUi = create<UiState>((set, get) => {
         })
         if (res.kind === 'empty') get().toast('warn', t('library.noImportablePackage'))
       } catch (e) {
+        if (revision !== memberRevision) return
         set({ memberPicker: { ...get().memberPicker, loading: false, reasonKey: 'err.memberListFailed' } })
         get().toast('bad', e instanceof Error ? e.message : String(e))
       }
@@ -1787,7 +1889,8 @@ export const useUi = create<UiState>((set, get) => {
 
     async runMemberBatches() {
       const p = get().memberPicker
-      if (!p.assetId || !p.picked.length || p.running) return
+      if (!p.assetId || !p.picked.length || p.running || p.loading) return
+      const revision = ++memberRevision
       /**
        * 一次**只规划一批**：后面的批次还没抽，所以磁盘上最多只躺着当前这一批的副本。
        * 先把 87 个全抽出来再问用户，就是把"抽取根只剩 12 GB"那种事故自己造出来。
@@ -1795,16 +1898,19 @@ export const useUi = create<UiState>((set, get) => {
       const queue = batchesOf(p.picked, IMPORT_BATCH_MAX)
       set({ memberPicker: { ...p, queue, outcome: null, reasonKey: null, plan: null, running: true } })
       await planBatch(queue[0])
+      if (revision !== memberRevision) return
       set((s) => ({ memberPicker: { ...s.memberPicker, running: false, queue: queue.slice(1) } }))
     },
 
     async decideMemberPlan(choice) {
       const p = get().memberPicker
+      const revision = memberRevision
       const plan = p.plan
       if (!plan) return
       if (choice === 'cancel') {
         /** 反悔：这批抽出来的副本立刻还回去，回到勾选那一步 */
         await window.a.unity.importAbandon(plan.batchId).catch(() => undefined)
+        if (revision !== memberRevision) return
         set((s) => ({ memberPicker: { ...s.memberPicker, plan: null, outcome: null } }))
         get().toast('info', i18next.t('library.importCancelled'))
         return
@@ -1820,6 +1926,7 @@ export const useUi = create<UiState>((set, get) => {
       }))
       try {
         const r = await window.a.unity.importCommit({ batchId: plan.batchId, choice })
+        if (revision !== memberRevision) return
         if (!('results' in r)) {
           set((s) => ({
             memberPicker: { ...s.memberPicker, running: false, plan: null, reasonKey: r.reasonKey, reasonParams: r.reasonParams ?? {} },
@@ -1855,6 +1962,7 @@ export const useUi = create<UiState>((set, get) => {
          */
         if (r.imported) await refreshMeta()
       } catch (e) {
+        if (revision !== memberRevision) return
         set((s) => ({
           memberPicker: { ...s.memberPicker, running: false, plan: null, reasonKey: 'err.importChainFailed' },
           importFlow: { ...s.importFlow, queue: endQueue(s.importFlow.queue) }
@@ -1867,12 +1975,15 @@ export const useUi = create<UiState>((set, get) => {
       const p = get().memberPicker
       const next = p.queue[0]
       if (!next) return
+      const revision = ++memberRevision
       set({ memberPicker: { ...p, outcome: null, reasonKey: null, plan: null, running: true } })
       await planBatch(next)
+      if (revision !== memberRevision) return
       set((s) => ({ memberPicker: { ...s.memberPicker, running: false, queue: s.memberPicker.queue.slice(1) } }))
     },
 
     stopMemberBatches() {
+      memberRevision++
       const p = get().memberPicker
       if (p.plan) void window.a.unity.importAbandon(p.plan.batchId).catch(() => undefined)
       set({ memberPicker: { ...p, plan: null, queue: [], outcome: null, running: false } })
@@ -2238,14 +2349,13 @@ export const useUi = create<UiState>((set, get) => {
       const s = get()
       const ids = Array.from(new Set(s.selection))
       if (!ids.length) return
-      if (!s.unity.targetProjectId) {
-        get().toast('warn', t('library.noTargetProject'))
-        return
-      }
       if (s.memberPicker.open || s.batchImport.open || s.backfill.open || s.importFlow.busy) {
         get().toast('info', t('library.batchBusy'))
         return
       }
+      const target = await ensureImportTarget()
+      if (!target) return
+      set(state => ({ importFlow: { ...state.importFlow, busy: true, projectId: target.id, projectName: target.name } }))
       const items: BatchItem[] = []
       let skipped = 0
       for (const assetId of ids) {
@@ -2265,12 +2375,16 @@ export const useUi = create<UiState>((set, get) => {
         items.push({ assetId, relPath: p.relPath, label: p.relPath })
       }
       if (!items.length) {
+        set(state => ({ importFlow: { ...state.importFlow, busy: false } }))
         get().toast('warn', t('library.batchNothing', { picked: ids.length, skipped }))
         return
       }
       const batches = batchesOf(items, IMPORT_BATCH_MAX)
-      set({ batchImport: { ...IDLE_BATCH, open: true, skipped, queue: batches.slice(1), running: true } })
+      const revision = ++batchRevision
+      set(state => ({ batchImport: { ...IDLE_BATCH, projectId: target.id, open: true, skipped, queue: batches.slice(1), running: true },
+        importFlow: { ...state.importFlow, busy: false } }))
       await planBatchItems(batches[0])
+      if (revision !== batchRevision) return
       set((st) => ({ batchImport: { ...st.batchImport, running: false } }))
       if (skipped) get().toast('warn', t('library.batchSkipped', { count: skipped }))
     },
@@ -2278,10 +2392,12 @@ export const useUi = create<UiState>((set, get) => {
     async decideBatchPlan(choice) {
       const t = i18next.t.bind(i18next)
       const b = get().batchImport
+      const revision = batchRevision
       const plan = b.plan
       if (!plan) return
       if (choice === 'cancel') {
         await window.a.unity.importAbandon(plan.batchId).catch(() => undefined)
+        if (revision !== batchRevision) return
         set({ batchImport: { ...get().batchImport, plan: null, outcome: null } })
         get().toast('info', t('library.importCancelled'))
         return
@@ -2293,6 +2409,7 @@ export const useUi = create<UiState>((set, get) => {
       }))
       try {
         const r = await window.a.unity.importCommit({ batchId: plan.batchId, choice })
+        if (revision !== batchRevision) return
         if (!('results' in r)) {
           set((st) => ({
             batchImport: { ...st.batchImport, running: false, plan: null, reasonKey: r.reasonKey, reasonParams: r.reasonParams ?? {} },
@@ -2321,6 +2438,7 @@ export const useUi = create<UiState>((set, get) => {
         }))
         if (r.imported) await refreshMeta()
       } catch (e) {
+        if (revision !== batchRevision) return
         set((st) => ({
           batchImport: { ...st.batchImport, running: false, plan: null, reasonKey: 'err.importChainFailed' },
           importFlow: { ...st.importFlow, queue: endQueue(st.importFlow.queue) }
@@ -2333,18 +2451,22 @@ export const useUi = create<UiState>((set, get) => {
       const b = get().batchImport
       const next = b.queue[0]
       if (!next) return
+      const revision = ++batchRevision
       set({ batchImport: { ...b, plan: null, outcome: null, reasonKey: null, running: true } })
       await planBatchItems(next)
+      if (revision !== batchRevision) return
       set((st) => ({ batchImport: { ...st.batchImport, running: false, queue: st.batchImport.queue.slice(1) } }))
     },
 
     stopBatches() {
+      batchRevision++
       const b = get().batchImport
       if (b.plan) void window.a.unity.importAbandon(b.plan.batchId).catch(() => undefined)
       set({ batchImport: { ...b, plan: null, queue: [], outcome: null, running: false } })
     },
 
     closeBatchImport() {
+      batchRevision++
       const b = get().batchImport
       /** 关窗就等于"这批不要了"：已抽出来的副本必须当场退回去，不能留在盘上等下次开机 */
       if (b.plan) void window.a.unity.importAbandon(b.plan.batchId).catch(() => undefined)

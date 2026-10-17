@@ -223,7 +223,10 @@
     "dropNothing": "这次拖拽没带上文件 —— 可能拖的是文字或快捷方式。试试从资源管理器拖文件夹进来，或用「收件箱 → 选择文件…」。",
     "importConfirmTitle": "确认导入到 Unity",
     "importConfirmAction": "确认导入",
-    "importConfirmIntro": "将导入 {{total}} 个文件。没有发现需要覆盖的已有文件。"
+    "importConfirmIntro": "将导入 {{total}} 个文件。没有发现需要覆盖的已有文件。",
+    "importToProject": "导入到 {{name}}",
+    "batchImportToProject": "将 {{count}} 项导入到 {{name}}",
+    "memberStartToProject": "将选中的 {{count}} 项导入到 {{name}}"
   },
   "inbox": {
     "title": "待整理的素材",
@@ -348,7 +351,28 @@
     "connectLater": "稍后连接",
     "connectSelected": "连接所选工程（{{n}}）",
     "connectAutomatic": "以后为勾选的工程自动安装连接插件",
-    "connectFilesNote": "连接会在工程的 Packages 文件夹中安装 Atrium 插件。未勾选的工程本次跳过，以后可在「当前工程」中手动连接。"
+    "connectFilesNote": "连接会在工程的 Packages 文件夹中安装 Atrium 插件。未勾选的工程本次跳过，以后可在「当前工程」中手动连接。",
+    "connectionClosed": "Unity 未打开",
+    "connectionDisabled": "已停用自动连接",
+    "connectionUnsupported": "暂不支持此 Unity 版本",
+    "connectionInstalling": "正在准备连接",
+    "connectionWaiting": "正在连接",
+    "connectionReady": "已连接",
+    "connectionFailed": "连接失败",
+    "connectionTimeout": "连接等待超时，请重试。",
+    "connectionCancelled": "已取消等待连接。",
+    "connectionProjectMissing": "目标工程已关闭或不可用，请打开 Unity 后重试。",
+    "connectionUnsafe": "工程路径无法安全写入，请检查路径及目录链接。",
+    "chooseImportTarget": "选择导入工程",
+    "chooseImportTargetHint": "多个 Unity 工程正在运行。选择这次导入要使用的工程，后续批次会继续使用它。",
+    "openUnityHint": "打开 Unity 2022.3 工程后会自动连接。",
+    "preparingImport": "正在连接 {{name}}，就绪后继续导入…",
+    "cancelWaiting": "取消等待",
+    "retryConnection": "重试连接",
+    "connectionAdvanced": "高级连接选项",
+    "connectionDetails": "查看详细原因",
+    "uninstallAutoConnectHint": "卸载后会停用此工程的自动连接。需要时可点击“重试连接”恢复。",
+    "connectionOpenUnity": "请先打开 Unity 2022.3 工程，再点击导入。"
   },
   "settings": {
     "title": "设置",
@@ -555,7 +579,9 @@
     "backupProtectLiveDatabase": "不能把备份保存到当前数据库或它的日志文件，请选择其他文件名。",
     "backupInvalidTarget": "这个位置不能保存备份，请选择一个有效的文件路径。",
     "backupFailed": "数据库备份失败。已有的目标文件已保留，请检查空间、权限或文件是否正被占用。",
-    "backupTargetJournal": "目标文件旁边存在数据库日志，不能直接覆盖。请选择新的备份文件名。"
+    "backupTargetJournal": "目标文件旁边存在数据库日志，不能直接覆盖。请选择新的备份文件名。",
+    "unityAutoConnect": "自动连接 Unity",
+    "unityAutoConnectHint": "打开受支持的 Unity 工程时自动准备连接。首次缺少插件时自动安装，连接就绪后才执行你发起的导入。"
   },
   "toast": {
     "trashDone": "已移入回收站",
@@ -861,15 +887,16 @@
       "remove": "移除"
     },
     "step3": {
-      "title": "③ 连接 Unity 工程（可跳过）",
-      "body": "想把素材导入 Unity 时，需要先安装 Atrium 连接插件。勾选要连接的工程；也可以稍后在「当前工程」页面安装。",
-      "none": "没发现 Unity 工程。加了工程根目录之后再回来，或者先跳过。",
+      "title": "③ Unity 自动连接（可跳过）",
+      "body": "打开 Unity 2022.3 工程后，Atrium 会自动准备连接；首次缺少连接插件时会自动安装。",
+      "none": "尚未发现运行中的 Unity 工程。打开工程后会自动连接，也可以先继续。",
       "installed": "已装",
       "run": "连接勾选的工程",
       "onlyPackages": "只写 Packages/com.avca.bridge，不动 Assets/",
       "resultOk": "装了 {{copied}} 个文件 → {{target}}",
       "resultBad": "没装上：{{error}}",
-      "unknownError": "主进程没给原因"
+      "unknownError": "主进程没给原因",
+      "automatic": "自动连接，无需逐个选择安装。打开工程本身不会导入素材。"
     },
     "step4": {
       "title": "④ 收尾",
@@ -883,7 +910,7 @@
       "libraryRoot": "素材保存文件夹",
       "mode": "处理方式",
       "watched": "监视文件夹",
-      "bridges": "这次装了桥接",
+      "bridges": "已连接的 Unity 工程",
       "autoLaunch": "开机自启",
       "hotkey": "全局热键"
     }
@@ -1095,6 +1122,64 @@
     "assetMissing": "素材已不存在，请刷新列表。",
     "projectMissing": "找不到关联工程，请重新选择 Unity 工程。",
     "previewExpired": "预览已过期，请重新生成。",
-    "changed": "生成期间封面已被修改，请重新打开并确认。"
+    "changed": "生成期间封面已被修改，请重新打开并确认。",
+    "productSkipped": "已保留商品图片",
+    "reviewRequired": "找到多个或需要确认的物品，请选择候选图。"
+  },
+  "coverTasks": {
+    "moreResults": "显示更多处理结果",
+    "reviewListHint": "这里只显示前 20 件，选图后会自动进入下一件，直到全部处理完成。",
+    "updateAll": "更新全部封面",
+    "scopes": "选择更新范围",
+    "updateFiltered": "更新当前筛选",
+    "updateSelected": "更新所选素材（{{count}}）",
+    "title": "更新素材封面",
+    "running": "正在更新封面",
+    "results": "封面更新结果",
+    "reopen": "查看结果",
+    "hint": "全库依次更新，商品图和手动上传图会保留。已有自动封面重新拍摄；多个物品交给你选图。关闭面板后继续在后台运行。",
+    "starting": "正在建立更新任务…",
+    "done": "完成 {{count}}",
+    "review": "待选图 {{count}}",
+    "failed": "失败 {{count}}",
+    "skipped": "跳过 {{count}}",
+    "current": "当前：{{name}}",
+    "progress": "封面任务进度",
+    "queued": "等待处理下一件素材…",
+    "hide": "收起面板",
+    "stop": "停止更新",
+    "stopping": "正在停止…",
+    "stopped": "更新已停止，已完成的封面保留。",
+    "retry": "仅重试失败项",
+    "retrying": "正在重试…",
+    "undo": "撤销本次更新",
+    "undoing": "正在撤销…",
+    "undoResult": "已恢复 {{restored}} 项；保留 {{preserved}} 项后续修改。",
+    "reviewHeading": "待选图",
+    "chooseHint": "先选择素材，再点击候选图片直接设为封面并保存关联。保存后自动前往下一件。",
+    "loadingChoices": "正在生成本页候选图…",
+    "applying": "正在保存所选图片…",
+    "retryChoices": "重试本页图片",
+    "chooseCandidate": "将 {{name}} 设为封面",
+    "candidateAlt": "{{name}} 的候选封面",
+    "previewFailed": "图片生成失败，请重试本页图片。",
+    "noChoices": "没有可选择的候选图，请重试或检查素材包。",
+    "incomplete": "素材包的候选结果不完整，请确认图片中的物品后再选择。",
+    "page": "第 {{page}} / {{pages}} 页",
+    "previous": "上一页",
+    "next": "下一页",
+    "errorDetails": "显示错误详情",
+    "requestFailed": "操作未完成，请收起面板后重试。现有封面会保留。",
+    "refresh": "刷新任务状态",
+    "states": {
+      "queued": "排队中",
+      "running": "正在处理",
+      "done": "已更新",
+      "review": "待选图",
+      "failed": "失败，原图保留",
+      "skipped": "已跳过",
+      "cancelled": "已停止",
+      "restored": "已恢复"
+    }
   }
 }

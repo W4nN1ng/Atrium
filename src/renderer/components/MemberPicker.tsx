@@ -33,6 +33,7 @@ export function MemberPicker(): JSX.Element | null {
   const { t, i18n } = useTranslation()
   const locale = i18n.language as LocaleKey
   const p = useUi((s) => s.memberPicker)
+  const importTargetName = useUi((s) => s.connection.projects.find((item) => item.projectId === s.memberPicker.projectId)?.name ?? s.projects.find((item) => item.id === s.memberPicker.projectId)?.name)
   const close = useUi((s) => s.closeMemberPicker)
   const toggle = useUi((s) => s.toggleMemberPick)
   const pickAll = useUi((s) => s.pickAllMembers)
@@ -112,7 +113,7 @@ export function MemberPicker(): JSX.Element | null {
           <>
             <div className="flex flex-wrap items-center gap-2 text-[11px]">
               <Button variant="accent" disabled={p.loading || p.running || !p.picked.length} onClick={() => void start()}>
-                {t('library.memberStart', { count: p.picked.length })}
+                {importTargetName ? t('library.memberStartToProject', { count: p.picked.length, name: importTargetName }) : t('library.memberStart', { count: p.picked.length })}
               </Button>
               <Button disabled={p.loading || !p.packages.length} onClick={pickAll}>
                 {t('library.memberPickAll')}
@@ -125,7 +126,7 @@ export function MemberPicker(): JSX.Element | null {
                   {t('library.memberUnder')}
                 </Button>
               </Tip>
-              <Button className="ml-auto" disabled={p.loading} onClick={() => void reload()}>
+              <Button className="ml-auto" disabled={p.loading || p.running} onClick={() => void reload()}>
                 {t('library.memberReload')}
               </Button>
             </div>

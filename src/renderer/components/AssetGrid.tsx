@@ -6,7 +6,8 @@ import { useUi } from '../stores/ui'
 import { MergeSuggestBar } from './MergeSuggestBar'
 import { Modal } from './ui'
 import { fileUrl } from '../lib/format'
-import { CoverBatch } from './CoverBatch'
+import { CoverTaskButton } from './CoverTasks'
+import { currentCoverTaskFilter } from '../stores/coverTasks'
 
 /** 分类 key → 当前语言的显示名（提示条要把 'clothing/outfit' 写成「服装 / 套装」） */
 function labelOfCat(
@@ -261,12 +262,14 @@ export function AssetGrid(): JSX.Element {
   const undoLast = useUi((s) => s.undoLast)
   /** R4 ② · 框选几张卡一起导（规格 §8-4） */
   const importSelected = useUi((s) => s.importSelected)
+  const importTargetName = useUi((s) => s.connection.projects.find((p) => p.projectId === s.connection.targetProjectId)?.name)
   /** 面板开着 / 正在导的时候不许再开一批（一次只跑一件事，两批并行会把撤销顺序搅乱） */
-  const batchBusy = useUi((s) => s.batchImport.open || s.memberPicker.open || s.importFlow.busy)
+  const batchBusy = useUi((s) => s.batchImport.open || s.memberPicker.open || s.importFlow.busy || s.targetPicker.open)
   const collections = useUi((s) => s.collections)
   const addToCollection = useUi((s) => s.addToCollection)
   const [busyCollection, setBusyCollection] = useState(false)
   const nav = useUi((s) => s.nav)
+  const search = useUi((s) => s.search)
   const categories = useUi((s) => s.categories)
   const locale = i18n.language as 'zh-CN' | 'en' | 'ja'
 
@@ -286,7 +289,7 @@ export function AssetGrid(): JSX.Element {
           <span className="chip chip-accent">{t('library.selected', { count: selection.length })}</span>
         ) : null}
         <div className="ml-auto flex items-center gap-2">
-          {selection.length ? <CoverBatch assetIds={selection} /> : null}
+          <CoverTaskButton assetIds={selection} filter={currentCoverTaskFilter({ nav, search, view })} />
           {/* 选中的东西能一键收进集合：集合页只管集合本身，成员得在这儿加 */}
           {selection.length && collections.length ? (
             <select
@@ -322,7 +325,7 @@ export function AssetGrid(): JSX.Element {
               onClick={() => void importSelected()}
               title={t('library.batchImportHint')}
             >
-              {t('library.batchImport', { count: selection.length })}
+              {importTargetName ? t('library.batchImportToProject', { count: selection.length, name: importTargetName }) : t('library.batchImport', { count: selection.length })}
             </button>
           ) : null}
           <button type="button" className="btn px-2 py-0.5" onClick={() => void undoLast()} title="Ctrl+Z">

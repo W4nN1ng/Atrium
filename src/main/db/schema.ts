@@ -32,7 +32,7 @@ import { dirKeyOf } from '../../shared/pathkey'
  *   意思是"历史遗留的跨目录归并"，新条目不会再吸附进去（要拆交给健康检查）。
  */
 
-export const SCHEMA_VERSION = 9
+export const SCHEMA_VERSION = 10
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS asset (
@@ -400,6 +400,27 @@ ALTER TABLE asset_cover_package_upgrade RENAME TO asset_cover;
   {
     version: 9,
     sql: `
+CREATE TABLE IF NOT EXISTS cover_task_backup (
+  task_id TEXT NOT NULL,
+  asset_id TEXT NOT NULL REFERENCES asset(id) ON DELETE CASCADE,
+  before_json TEXT NOT NULL,
+  applied_json TEXT,
+  undone INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY(task_id, asset_id)
+);
+CREATE INDEX IF NOT EXISTS idx_cover_task_backup_created ON cover_task_backup(created_at DESC);
+`
+  },
+  {
+    /**
+     * ⚠ **编号是 10，不是 9**：合并 main 时撞过号 ——
+     * main 的 V9 是「封面批量更新」的 `cover_task_backup` 表（已发布），
+     * 我这一版删列原本也写成 9，两边都要 9。
+     * 已发布的迁移号**绝不能改**（老库按号判断跑没跑过），所以让路的只能是我这条。
+     */
+    version: 10,
+    sql: `
 -- 2026-10-15：**「待复核」整个功能移除**（用户要求，理由是它臃肿、拖慢工作流）。
 -- V2 引入的这一列 + 部分索引在这里一起删干净，不留"没人读但还在写"的死列。
 --
@@ -424,11 +445,11 @@ DROP INDEX IF EXISTS idx_asset_review;
      *
      * SQLite 没有 `DROP COLUMN IF EXISTS`，而迁移是**能被重放的** ——
      * `tests/covers/package-service.spec.ts` 就有一条用例把 `user_version` 手工退回 7
-     * 再跑一遍迁移，那时列已经被上一次 V9 删掉了。纯 SQL 会抛
+     * 再跑一遍迁移，那时列已经被上一次删掉了。纯 SQL 会抛
      * `no such column: needs_review`，把整个迁移事务炸掉；
      * 而迁移一炸用户就打不开软件。所以先查列在不在。
      *
-     * （这条不是凭想象加的：上面那用例在我第一版纯 SQL 的写法下就是红的。）
+     * （这条不是凭想象加的：那个用例在我第一版纯 SQL 的写法下就是红的。）
      */
     post: (db) => {
       const cols = db.prepare('PRAGMA table_info(asset)').all() as Array<{ name: string }>

@@ -922,6 +922,9 @@ export interface AppSettings {
   llmApiKeyRef: string
   /** Unity */
   unityExePath: string
+  /** Prepare connections only for running user projects. Independent of legacy install prompts. */
+  unityAutoConnect: boolean
+  unityAutoConnectExcludedProjectIds: string[]
   /** null: not yet remembered; empty string: explicitly saved without extra rendering dependencies. */
   coverDependencyProjectId: string | null
   projectRoots: string[]

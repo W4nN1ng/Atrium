@@ -25,9 +25,9 @@ const SKIP_PREFIX = /^(_backup|backup|~\$)/i
 /** Owned preview workers never become user projects, even when a VCC entry or scan root includes them. */
 export function isInternalPreviewProject(dir: string): boolean {
   try {
-    const file = path.join(dir, '.atrium-cover-preview.json')
-    if (fs.statSync(file).size > 4096) return false
-    return JSON.parse(fs.readFileSync(file, 'utf8')).kind === 'atrium-package-preview'
+    // A damaged or dangling ownership marker still reserves the worker directory.
+    fs.lstatSync(path.join(dir, '.atrium-cover-preview.json'))
+    return true
   } catch { return false }
 }
 
@@ -113,6 +113,12 @@ export function scanProjectRoots(roots: string[], maxDepth = 3): string[] {
 }
 
 export interface ProjectWatcherOptions {
+  /** Production auto-connect owns installation; suppress the legacy renderer install decisions. */
+  automaticConnections?: boolean
+  /** Receives actual running evidence after discovery and persistence, never cached DB-only guesses. */
+  onDetected?: (projects: ProjectInfo[]) => void
+  /** Isolates process discovery in tests while retaining the real lockfile and heartbeat paths. */
+  probe?: () => Promise<WmiProbeResult>
   /**
    * 轮询间隔。传 `0` **关掉定时器** —— 只给测试用。
    *
@@ -172,6 +178,10 @@ export function startProjectWatcher(
   let previous = new Map<string, boolean>()
   let lastWmi: { at: number; result: WmiProbeResult } | null = null
   let timer: NodeJS.Timeout | null = null
+  let disposed = false
+  let detectionGeneration = 0
+  let detectionInFlight: Promise<ProjectInfo[]> | null = null
+  let latestList = listProjects(db).filter((p) => !isInternalPreviewProject(p.path)).map(toProjectInfo)
 
   /**
    * M6 ③ · 自动切换集合。
@@ -183,12 +193,13 @@ export function startProjectWatcher(
   const autoSwitch = createAutoSwitcher({
     behavior: () => getSettings().autoSwitchBehavior,
     lastAutoSwitchAt: (id) => autoSwitchAtOf(db, id),
-    markSwitched: (id, at) => markAutoSwitched(db, id, at),
+    markSwitched: (id, at) => { if (!disposed) markAutoSwitched(db, id, at) },
     fingerprint: async (_id, projectPath) => {
       const bridge = opts.bridgeForFingerprint?.() ?? null
       /** 桥接没装着 / 心跳停了就别去问 —— 白等 5 秒，而且磁盘那半边已经够用 */
       const ask = bridge && bridgeWorthAsking(projectPath) ? bridge : null
       const r = await collectFingerprint(projectPath, ask)
+      if (disposed) throw new Error('project watcher disposed')
       saveFingerprint(db, projectPath, r.fp)
       if (r.notes.length) {
         log.info(`[fingerprint] ${path.basename(projectPath)}：取自 ${r.sources.join('/')} · ${r.notes.join('/')}`)
@@ -204,6 +215,7 @@ export function startProjectWatcher(
       listProjects(db).filter(row => !isInternalPreviewProject(row.path))
         .map((row) => storedFingerprint(db, row.path) ?? { dirName: row.name, topFolders: [], installedPackages: [], avatarDescriptors: [] }),
     notify: (event) => {
+      if (disposed) return
       registrar.broadcast('unity:auto-switch', event)
       /**
        * M6 ⑥：只有"要切/要弹"这两种才去碰窗口焦点。
@@ -239,6 +251,7 @@ export function startProjectWatcher(
     row: { id: string; path: string; name: string },
     edge: { firstSighting: boolean; running: boolean; detected?: 'vcc' | 'scan' }
   ): void {
+    if (disposed || opts.automaticConnections) return
     const decision = bridgeAskDecision({
       installed: isBridgeInstalled(row.path),
       answer: getBridgeAsk(db, row.id),
@@ -270,6 +283,7 @@ export function startProjectWatcher(
   }
 
   function register(pathList: string[], detected: 'vcc' | 'scan'): void {
+    if (disposed) return
     for (const p of pathList) {
       if (isInternalPreviewProject(p)) continue
       const name = path.basename(p)
@@ -309,11 +323,47 @@ export function startProjectWatcher(
    * 这里不做同步化的"聪明"改写 —— 第一版我为了同步把三步逻辑抄了一遍，
    * 那样等于把 `running.ts` 维护两份，迟早分叉。宁可让 handler 是 async。
    */
-  async function runDetection(): Promise<ProjectInfo[]> {
-    const { evidence, wmi } = await detectRunning({ lastWmi })
-    lastWmi = { at: Date.now(), result: wmi }
+  function runDetection(): Promise<ProjectInfo[]> {
+    if (disposed || !isDbOpen()) return Promise.resolve(latestList)
+    // Polling and UI refreshes share the same probe. Starting a new generation
+    // every three seconds would discard every result from a slower WMI query.
+    if (!detectionInFlight) {
+      detectionInFlight = detectOnce().finally(() => { detectionInFlight = null })
+    }
+    return detectionInFlight
+  }
+
+  async function detectOnce(): Promise<ProjectInfo[]> {
+    if (disposed || !isDbOpen()) return latestList
+    const generation = ++detectionGeneration
+    const cachedWmi = lastWmi
+    let detection = await detectRunning({ lastWmi: cachedWmi, probe: opts.probe })
+    if (disposed || generation !== detectionGeneration || !isDbOpen()) return latestList
+    const wmi = detection.wmi
+    // Preserve the time of the real query: refreshing a cached timestamp every three
+    // seconds would otherwise keep a five-second cache alive forever.
+    const wmiSnapshot = wmi === cachedWmi?.result ? cachedWmi : { at: Date.now(), result: wmi }
+    const knownPaths = new Set(listProjects(db).map((p) => path.win32.normalize(p.path).toLowerCase()))
+    const discovered = new Set<string>()
+    for (const instance of wmi.projects) {
+      const dir = path.win32.normalize(instance.projectPath)
+      const key = dir.toLowerCase()
+      if (!path.isAbsolute(dir) || knownPaths.has(key) || !isUnityProject(dir)) continue
+      knownPaths.add(key)
+      discovered.add(dir)
+    }
+    if (discovered.size) register([...discovered], 'scan')
+    if (discovered.size || detection.evidence.length !== listProjects(db).length) {
+      // A concurrent refresh may also have registered rows while WMI was pending.
+      // Evaluate those rows using this process snapshot, without another query.
+      detection = await detectRunning({ lastWmi: wmiSnapshot, probe: async () => wmi })
+      if (disposed || generation !== detectionGeneration || !isDbOpen()) return latestList
+    }
+    lastWmi = wmiSnapshot
+    const evidence = detection.evidence.filter((e) => !isInternalPreviewProject(e.projectPath))
     const { changed, list } = applyDetection(evidence, previous)
     previous = new Map(evidence.map((e) => [e.projectId, e.running]))
+    latestList = list.filter((project) => !isInternalPreviewProject(project.path))
     if (changed.length) {
       registrar.broadcast('project:running-changed', { changed })
       /**
@@ -341,10 +391,12 @@ export function startProjectWatcher(
         }
       }
     }
-    return list.filter(project => !isInternalPreviewProject(project.path))
+    opts.onDetected?.(latestList)
+    return latestList
   }
 
   async function refresh(): Promise<ProjectInfo[]> {
+    if (disposed || !isDbOpen()) return latestList
     const manifest = readVccManifest()
     if (manifest.error) log.warn('读 ALCOM/VCC 清单失败：' + manifest.error)
     register(manifest.projects, 'vcc')
@@ -394,6 +446,8 @@ export function startProjectWatcher(
     refresh,
     detect: runDetection,
     dispose: () => {
+      disposed = true
+      detectionGeneration++
       if (timer) clearInterval(timer)
       timer = null
     }

@@ -223,7 +223,10 @@
     "dropNothing": "このドラッグにはファイルが含まれていません（文字やショートカットの可能性）。エクスプローラーからフォルダをドラッグするか、「受信箱 → ファイルを選択…」を使ってください。",
     "importConfirmTitle": "Unity へのインポートを確認",
     "importConfirmAction": "インポートを確認",
-    "importConfirmIntro": "{{total}} 個のファイルをインポートします。上書きが必要な既存ファイルはありません。"
+    "importConfirmIntro": "{{total}} 個のファイルをインポートします。上書きが必要な既存ファイルはありません。",
+    "importToProject": "{{name}} にインポート",
+    "batchImportToProject": "{{count}} 件を {{name}} にインポート",
+    "memberStartToProject": "選択した {{count}} 件を {{name}} にインポート"
   },
   "inbox": {
     "title": "整理待ちの素材",
@@ -348,7 +351,28 @@
     "connectLater": "後で接続",
     "connectSelected": "選択したプロジェクトを接続（{{n}}）",
     "connectAutomatic": "今後、選択したプロジェクトに接続プラグインを自動インストール",
-    "connectFilesNote": "接続すると Packages フォルダーに Atrium プラグインが入ります。未選択のプロジェクトは今回はスキップされ、「現在のプロジェクト」から後で接続できます。"
+    "connectFilesNote": "接続すると Packages フォルダーに Atrium プラグインが入ります。未選択のプロジェクトは今回はスキップされ、「現在のプロジェクト」から後で接続できます。",
+    "connectionClosed": "Unity は閉じています",
+    "connectionDisabled": "自動接続は無効です",
+    "connectionUnsupported": "この Unity バージョンは未対応です",
+    "connectionInstalling": "接続を準備中",
+    "connectionWaiting": "接続中",
+    "connectionReady": "接続済み",
+    "connectionFailed": "接続に失敗しました",
+    "connectionTimeout": "接続がタイムアウトしました。再試行してください。",
+    "connectionCancelled": "接続待機をキャンセルしました。",
+    "connectionProjectMissing": "対象のプロジェクトが閉じられたか、利用できません。Unity を開いて再試行してください。",
+    "connectionUnsafe": "プロジェクトのパスに安全に書き込めません。パスとディレクトリリンクを確認してください。",
+    "chooseImportTarget": "インポート先を選択",
+    "chooseImportTargetHint": "複数の Unity プロジェクトが起動中です。今回のインポート先を選んでください。後続のバッチも同じプロジェクトを使用します。",
+    "openUnityHint": "Unity 2022.3 のプロジェクトを開くと自動接続します。",
+    "preparingImport": "{{name}} に接続中です。準備ができ次第インポートを続行します…",
+    "cancelWaiting": "待機をキャンセル",
+    "retryConnection": "接続を再試行",
+    "connectionAdvanced": "接続の詳細設定",
+    "connectionDetails": "詳細を表示",
+    "uninstallAutoConnectHint": "コネクターを削除すると、このプロジェクトの自動接続を無効にします。「接続を再試行」で再び有効にできます。",
+    "connectionOpenUnity": "Unity 2022.3 のプロジェクトを開いてから、インポートをクリックしてください。"
   },
   "settings": {
     "title": "設定",
@@ -555,7 +579,9 @@
     "backupProtectLiveDatabase": "現在のデータベースやログファイルには保存できません。別のファイル名を選んでください。",
     "backupInvalidTarget": "この場所には保存できません。有効なファイルパスを選んでください。",
     "backupFailed": "バックアップに失敗しました。既存の保存先ファイルは保持されました。空き容量、権限、ファイルの使用状況を確認してください。",
-    "backupTargetJournal": "保存先にデータベースのログがあります。上書きせず、新しいファイル名を選んでください。"
+    "backupTargetJournal": "保存先にデータベースのログがあります。上書きせず、新しいファイル名を選んでください。",
+    "unityAutoConnect": "Unity に自動接続する",
+    "unityAutoConnectHint": "対応する Unity プロジェクトを開くと接続を準備します。コネクターがなければ一度だけインストールし、Unity の準備ができてから依頼したインポートを実行します。"
   },
   "toast": {
     "trashDone": "ごみ箱に入れました",
@@ -861,15 +887,16 @@
       "remove": "削除"
     },
     "step3": {
-      "title": "③ Unity プロジェクトを接続（省略可）",
-      "body": "Unity へのインポートには Atrium 接続プラグインが必要です。接続するプロジェクトを選ぶか、後で「現在のプロジェクト」からインストールしてください。",
-      "none": "Unity プロジェクトが見つかりません。プロジェクトルートを追加してからもう一度戻るか、今はスキップしてください。",
+      "title": "③ Unity 自動接続（任意）",
+      "body": "Unity 2022.3 のプロジェクトを開くと、自動で接続を準備します。コネクターがなければ自動でインストールします。",
+      "none": "起動中の Unity プロジェクトは見つかりません。プロジェクトを開くと自動接続します。このまま次へ進むこともできます。",
       "installed": "導入済み",
       "run": "選択したプロジェクトを接続",
       "onlyPackages": "Packages/com.avca.bridge のみ書き込み、Assets/ は触りません",
       "resultOk": "{{copied}} 個のファイルを導入 → {{target}}",
       "resultBad": "導入失敗：{{error}}",
-      "unknownError": "理由が返されませんでした"
+      "unknownError": "理由が返されませんでした",
+      "automatic": "自動接続するため、インストール先の選択は不要です。プロジェクトを開くだけでは素材をインポートしません。"
     },
     "step4": {
       "title": "④ 仕上げ",
@@ -883,7 +910,7 @@
       "libraryRoot": "素材保存フォルダー",
       "mode": "扱い",
       "watched": "監視フォルダ",
-      "bridges": "導入したブリッジ",
+      "bridges": "接続済みの Unity プロジェクト",
       "autoLaunch": "自動起動",
       "hotkey": "グローバルホットキー"
     }
@@ -1095,6 +1122,64 @@
     "assetMissing": "素材がありません。一覧を更新してください。",
     "projectMissing": "設定したプロジェクトがありません。Unity プロジェクトを再選択してください。",
     "previewExpired": "プレビューの有効期限が切れました。再生成してください。",
-    "changed": "生成中にカバーが変更されました。編集画面を開き直して確認してください。"
+    "changed": "生成中にカバーが変更されました。編集画面を開き直して確認してください。",
+    "productSkipped": "商品画像を保持しました",
+    "reviewRequired": "複数の物品、または確認が必要な結果が見つかりました。候補画像を選択してください。"
+  },
+  "coverTasks": {
+    "moreResults": "処理結果をさらに表示",
+    "reviewListHint": "先頭の20件を表示しています。画像を選ぶと、すべて完了するまで次の素材へ進みます。",
+    "updateAll": "すべての表紙を更新",
+    "scopes": "更新範囲を選択",
+    "updateFiltered": "現在の絞り込みを更新",
+    "updateSelected": "選択した素材を更新（{{count}}件）",
+    "title": "素材の表紙を更新",
+    "running": "表紙を更新中",
+    "results": "表紙の更新結果",
+    "reopen": "結果を表示",
+    "hint": "素材を順番に更新します。商品画像とアップロード画像は保持します。自動表紙は再撮影し、複数の物品が見つかった場合は画像を選べます。パネルを閉じても処理は続きます。",
+    "starting": "更新タスクを作成中…",
+    "done": "完了 {{count}}",
+    "review": "画像選択待ち {{count}}",
+    "failed": "失敗 {{count}}",
+    "skipped": "スキップ {{count}}",
+    "current": "現在：{{name}}",
+    "progress": "表紙タスクの進捗",
+    "queued": "次の素材を待っています…",
+    "hide": "パネルを閉じる",
+    "stop": "更新を停止",
+    "stopping": "停止中…",
+    "stopped": "更新を停止しました。更新済みの表紙は保持します。",
+    "retry": "失敗した素材のみ再試行",
+    "retrying": "再試行中…",
+    "undo": "今回の更新を元に戻す",
+    "undoing": "復元中…",
+    "undoResult": "{{restored}}件を復元し、その後の変更{{preserved}}件を保持しました。",
+    "reviewHeading": "画像を選択",
+    "chooseHint": "素材を選んで候補画像をクリックすると、表紙と関連付けをすぐに保存します。保存後は次の素材に進みます。",
+    "loadingChoices": "このページの候補画像を生成中…",
+    "applying": "選択した画像を保存中…",
+    "retryChoices": "このページの画像を再試行",
+    "chooseCandidate": "{{name}}を表紙にする",
+    "candidateAlt": "{{name}}の表紙候補",
+    "previewFailed": "画像の生成に失敗しました。このページを再試行してください。",
+    "noChoices": "選択できる候補画像がありません。再試行するか素材パッケージを確認してください。",
+    "incomplete": "候補の検索結果は不完全です。画像の物品を確認してから選択してください。",
+    "page": "{{page}} / {{pages}}ページ",
+    "previous": "前のページ",
+    "next": "次のページ",
+    "errorDetails": "エラーの詳細を表示",
+    "requestFailed": "操作を完了できませんでした。パネルを閉じて再試行してください。現在の表紙は保持します。",
+    "refresh": "タスクの状態を更新",
+    "states": {
+      "queued": "待機中",
+      "running": "処理中",
+      "done": "更新済み",
+      "review": "画像選択待ち",
+      "failed": "失敗・元の画像を保持",
+      "skipped": "スキップ済み",
+      "cancelled": "停止済み",
+      "restored": "復元済み"
+    }
   }
 }

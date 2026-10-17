@@ -311,7 +311,7 @@ describe('合集三级模型（改动单 §2.4）', () => {
     expect(queryCards(db, { scope: 'all' }, cfg, 'zh-CN').cards.map((c) => c.name)).toContain('LowConf')
   })
 
-  it('迁移动真库：V8 升到 V9 后 needs_review 那列传的数据不丢', () => {
+  it('迁移动真库：停在 V8 的库升上来之后 needs_review 那列被删掉，但行和字段一个不丢', () => {
     /**
      * 直接在一个**停在 V8** 的库上跑迁移，模拟用户的老库。
      * 这是本次删列唯一真正的风险点：`ALTER TABLE ... DROP COLUMN` 会重写整张表，
@@ -343,10 +343,10 @@ describe('合集三级模型（改动单 §2.4）', () => {
       raw.pragma('user_version = 8')
       raw.close()
 
-      // 重新打开 → 迁移会自动把 V9 跑一遍
+      // 重新打开 → 迁移会把 8 之后的那几版（含删 needs_review 那一版）跑一遍
       const upgraded = new Database(file)
       const applied = migrate(upgraded)
-      expect(applied, 'V9 应该真的跑了一次').toBe(1)
+      expect(applied, '版本 8 之后应当有迁移要跑').toBe(SCHEMA_VERSION - 8)
       const cols = (upgraded.prepare('PRAGMA table_info(asset)').all() as Array<{ name: string }>).map((c) => c.name)
       expect(cols).not.toContain('needs_review')
       expect(Number(upgraded.pragma('user_version', { simple: true }))).toBe(SCHEMA_VERSION)

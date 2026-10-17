@@ -8,10 +8,11 @@ import { BatchImportDialog } from './components/BatchImportDialog'
 import { RearchiveDialog } from './components/RearchiveDialog'
 import { MemberPicker } from './components/MemberPicker'
 import { ModelBackfillDialog } from './components/ModelBackfillDialog'
+import { CoverTasks } from './components/CoverTasks'
 import { ProjectBanner } from './components/ProjectBanner'
 import { RemergeNotice } from './components/RemergeNotice'
 import { AutoLaunchAsk } from './components/AutoLaunchAsk'
-import { BridgeAskDialog } from './components/BridgeAskDialog'
+import { ImportTargetPicker } from './components/ImportTargetPicker'
 import { FirstRunWizard } from './components/FirstRunWizard'
 import { wizardGate } from '../shared/wizardState'
 import { dropEmptyKey, type DropEmptyInfo } from '../shared/dropDiagnostics'
@@ -195,6 +196,7 @@ export function App(): JSX.Element {
         宿主一卸载（切页/切筛选）对话框就没了，而导入还挂在后台。
       */}
       <ImportFlow />
+      <ImportTargetPicker />
       {/*
         容器成员选择面板（M5-B ⑥）。挂在 App 而不是容器视图里，理由和上面那条一样：
         "已经抽好、等用户点确认"的那一批副本活在主进程内存里，宿主组件卸载不能把它丢下。
@@ -204,6 +206,7 @@ export function App(): JSX.Element {
           发起方是网格或快捷键，它们一卸载面板就该还在，否则导入挂在没人看的窗后面 */}
       <BatchImportDialog />
       <ModelBackfillDialog />
+      <CoverTasks />
       {/*
         R4 ③ · 改分类搬文件的确认卡。发起方是详情面板那两个下拉，而详情面板会随切页卸载 ——
         "已经算好预览、等用户点搬"的那份计划必须活在 App 这一层，否则用户切个页回来，
@@ -211,7 +214,6 @@ export function App(): JSX.Element {
       */}
       <RearchiveDialog />
       <AutoLaunchAsk />
-      <BridgeAskDialog />
       <div className="flex min-h-0 flex-1">
         <Sidebar />
         <main className="flex min-w-0 flex-1 flex-col">

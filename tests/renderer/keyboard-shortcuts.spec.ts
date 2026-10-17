@@ -60,7 +60,7 @@ describe('global hotkey follows the current settings', () => {
         registered = key; return true
       } }
     })
-    expect(() => handler({ globalHotkey: 'bad' })).not.toThrow()
+    expect(() => handler({ globalHotkey: 'bad' }, ['globalHotkey'])).not.toThrow()
     expect(registered).toBe('Control+Alt+A')
   })
   it('A → B → A restores A, and unrelated settings do not register again', () => {
@@ -72,11 +72,11 @@ describe('global hotkey follows the current settings', () => {
       DEFAULT_HOTKEY: 'Control+Alt+A', getMainWindow: () => null, log: { warn: vi.fn() },
       globalShortcut: { register, unregisterAll: () => { registered = '' } }
     })
-    handler({ globalHotkey: 'Control+Alt+B' })
-    handler({ globalHotkey: 'Control+Alt+A' })
+    handler({ globalHotkey: 'Control+Alt+B' }, ['globalHotkey'])
+    handler({ globalHotkey: 'Control+Alt+A' }, ['globalHotkey'])
     expect(registered).toBe('Control+Alt+A')
     const count = register.mock.calls.length
-    handler({ globalHotkey: 'Control+Alt+A', language: 'en' })
+    handler({ globalHotkey: 'Control+Alt+A', language: 'en' }, ['language'])
     expect(register).toHaveBeenCalledTimes(count)
   })
 })

@@ -14,7 +14,7 @@ import type { IpcRegistrar } from '../../src/main/ipc/types'
 import type { ProjectInfo } from '../../src/shared/types'
 
 /**
- * R4 ⑦ · **"首次发现工程要弹三按钮"这条链到底接上没有。**
+ * 显式旧桥接询问接口的兼容行为，以及新自动连接的生产接线。
  *
  * ## 为什么光有 `tests/shared/bridge-ask.spec.ts` 不算数
  *
@@ -30,6 +30,7 @@ import type { ProjectInfo } from '../../src/shared/types'
  *  - 运行状态用**桥接心跳**（`Temp/AVCABridge/bridge.json`）造，比独占锁文件轻；
  *    心跳必须**新鲜**（`BRIDGE_STALE_MS` 10 秒），所以每次 detect 前重写一次文件。
  *  - `pollMs: 0` 关掉轮询，时序才由测试推进（`running-wiring.spec.ts` 同法）。
+ *  - 注入空的进程探测结果，避免真实 Unity 进程进入临时数据库；心跳探测保持真实。
  */
 
 let root = ''
@@ -38,6 +39,7 @@ let db: Db
 let handlers: Map<string, (...args: unknown[]) => unknown>
 let broadcasts: Array<{ event: string; payload: unknown }>
 const apis: Array<{ refresh(): Promise<ProjectInfo[]>; detect(): Promise<ProjectInfo[]>; dispose(): void }> = []
+const watcherOptions = { pollMs: 0, probe: async () => ({ projects: [], error: null, queried: true }) }
 
 function makeRegistrar(): IpcRegistrar {
   handlers = new Map()
@@ -149,11 +151,11 @@ afterEach(async () => {
   }
 })
 
-describe('R4 ⑦ 接线：第一次发现工程', () => {
+describe('显式旧桥接询问：第一次发现工程', () => {
   it('⭐ 新工程被发现 → 广播 project:first-seen，decision=ask，detected=vcc', async () => {
     const dir = makeProject('shinano-Main2')
     setManifest([dir])
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
 
@@ -169,7 +171,7 @@ describe('R4 ⑦ 接线：第一次发现工程', () => {
   it('⭐ 同一条还要**攒进队列**：广播是发后即忘的，主进程第一轮发现时窗口还没建', async () => {
     const dir = makeProject('shinano-Main2')
     setManifest([dir])
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
 
@@ -191,7 +193,7 @@ describe('R4 ⑦ 接线：第一次发现工程', () => {
     const dir = makeProject('shinano-Main2')
     setManifest([dir])
     setSettings({ bridgeAutoInstall: true })
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
 
@@ -204,7 +206,7 @@ describe('R4 ⑦ 接线：第一次发现工程', () => {
     const dir = makeProject('shinano-Main2')
     installBridgeFixture(dir)
     setManifest([dir])
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
 
@@ -215,7 +217,7 @@ describe('R4 ⑦ 接线：第一次发现工程', () => {
   it('⭐ 边沿不是状态：第二轮 refresh 不许再发（探测每 3 秒一轮，否则问到用户关软件）', async () => {
     const dir = makeProject('shinano-Main2')
     setManifest([dir])
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
     expect(firstSeen().length).toBe(1)
@@ -232,7 +234,7 @@ describe('R4 ⑦ 接线：第一次发现工程', () => {
     const dir = makeProject('ScannedOnly')
     setManifest([])
     setSettings({ projectRoots: [path.join(root, 'projects')] })
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
 
@@ -243,11 +245,11 @@ describe('R4 ⑦ 接线：第一次发现工程', () => {
   })
 })
 
-describe('R4 ⑦ 接线：答过之后的两个时机', () => {
+describe('显式旧桥接询问：答过之后的两个时机', () => {
   it('⭐ 答过「以后都自动安装」→ 它开始运行时真的执行（只挂第一次发现的话这答案永远不会被跑）', async () => {
     const dir = makeProject('shinano-Main2')
     setManifest([dir])
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
 
@@ -271,7 +273,7 @@ describe('R4 ⑦ 接线：答过之后的两个时机', () => {
   it('答过「暂不」→ 运行时也不出声（不弹、也不装）', async () => {
     const dir = makeProject('shinano-Main2')
     setManifest([dir])
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
     setBridgeAsk(db, rowIdOf(dir), 'never')
@@ -287,7 +289,7 @@ describe('R4 ⑦ 接线：答过之后的两个时机', () => {
   it('没答过 → 光是"它开起来了"不足以弹窗（Unity 每次启动都弹一次是骚扰）', async () => {
     const dir = makeProject('shinano-Main2')
     setManifest([dir])
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
     broadcasts.length = 0
@@ -301,7 +303,7 @@ describe('R4 ⑦ 接线：答过之后的两个时机', () => {
   it('答过 always 但桥接已经装着 → 静默（不重复装）', async () => {
     const dir = makeProject('shinano-Main2')
     setManifest([dir])
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
     setBridgeAsk(db, rowIdOf(dir), 'always')
@@ -317,7 +319,7 @@ describe('R4 ⑦ 接线：答过之后的两个时机', () => {
   it('答案真的落到 setting 表（裁定 Q7：不动 schema，键 bridgeAsk:<id>）', async () => {
     const dir = makeProject('shinano-Main2')
     setManifest([dir])
-    const api = startProjectWatcher(makeRegistrar(), { pollMs: 0 })
+    const api = startProjectWatcher(makeRegistrar(), watcherOptions)
     apis.push(api)
     await api.refresh()
     const id = rowIdOf(dir)
@@ -329,7 +331,7 @@ describe('R4 ⑦ 接线：答过之后的两个时机', () => {
   })
 })
 
-describe('R4 ⑦ 接线：源码里真的读了这些', () => {
+describe('自动连接的生产接线与旧接口兼容', () => {
   /**
    * 行为用例已经能证明判定生效；这一组是**第二道闸**：
    * 防止以后有人把 `getSettings().bridgeAutoInstall` 那一行删掉、
@@ -353,7 +355,7 @@ describe('R4 ⑦ 接线：源码里真的读了这些', () => {
     expect(api).toMatch(/running:\s*true/)
   })
 
-  it('⭐ `unity:bridge-ask-pending` 四段全接上：常量 / 主进程 handler / preload / 渲染层 boot', () => {
+  it('旧 pending/done IPC 仍可显式调用，正常启动改为读取连接快照', () => {
     /**
      * 这条是"半边接线"的专用闸。
      * 事件通道最容易出的事故是：主进程发了、界面没收；或 preload 加了、渲染层没调 ——
@@ -363,8 +365,11 @@ describe('R4 ⑦ 接线：源码里真的读了这些', () => {
     expect(read('src/shared/ipc.ts')).toContain("BridgeAskPending: 'unity:bridge-ask-pending'")
     expect(read('src/main/bridge/ipc.ts')).toContain(`registrar.ipc.handle('unity:bridge-ask-pending'`)
     expect(read('src/preload/index.ts')).toContain("invoke('unity:bridge-ask-pending')")
-    /** 渲染层要在 `bindEvents()` 之后取，否则广播和 drain 会两头漏 */
-    expect(read('src/renderer/stores/ui.ts')).toContain('window.a.unity.pendingBridgeAsk()')
+    const ui = read('src/renderer/stores/ui.ts')
+    const bootAt = ui.indexOf('async boot()')
+    expect(bootAt).toBeGreaterThan(-1)
+    expect(ui.slice(bootAt, bootAt + 1200)).toContain('window.a.unity.connection()')
+    expect(ui).not.toContain('window.a.unity.pendingBridgeAsk()')
     /** 装成了要能告诉主进程出队，否则每次刷新界面都重装一遍 */
     expect(read('src/shared/ipc.ts')).toContain("BridgeAskDone: 'unity:bridge-ask-done'")
     expect(read('src/main/bridge/ipc.ts')).toContain(`registrar.ipc.handle('unity:bridge-ask-done'`)
@@ -382,16 +387,26 @@ describe('R4 ⑦ 接线：源码里真的读了这些', () => {
     expect(read('src/renderer/stores/ui.ts')).toContain('window.a.unity.bridgeAskDone(')
   })
 
-  it('⭐ 渲染层真的订阅了 project:first-seen，并且弹窗挂在了 App 上', () => {
+  it('生产 watcher 交给自动连接控制器，正常 App 不挂安装询问', () => {
     const read = (rel: string): string => stripComments(fs.readFileSync(path.join(process.cwd(), rel), 'utf8'))
     expect(read('src/shared/ipc.ts')).toContain("ProjectFirstSeen: 'project:first-seen'")
-    expect(read('src/renderer/stores/ui.ts')).toContain(`window.a.on('project:first-seen'`)
-    expect(read('src/renderer/stores/ui.ts')).toContain('handleProjectFirstSeen(')
+    const main = read('src/main/index.ts')
+    const watcherAt = main.indexOf('projectApi = startProjectWatcher(')
+    expect(watcherAt).toBeGreaterThan(-1)
+    const watcher = main.slice(watcherAt, main.indexOf('})', watcherAt) + 2)
+    expect(watcher).toContain('automaticConnections: true')
+    expect(watcher).toMatch(/onDetected:\s*projects\s*=>\s*\{/)
+    expect(watcher).toContain('connections?.update(projects)')
+    expect(api).toMatch(/if\s*\(disposed\s*\|\|\s*opts\.automaticConnections\)\s*return/)
+    const ui = read('src/renderer/stores/ui.ts')
+    expect(ui).toContain(`window.a.on('unity:connection-changed'`)
+    expect(ui).not.toContain(`window.a.on('project:first-seen'`)
     const app = read('src/renderer/App.tsx')
-    expect(app).toContain('<BridgeAskDialog')
+    expect(app).not.toContain('BridgeAskDialog')
+    expect(app).toContain('<ImportTargetPicker />')
   })
 
-  it('⭐ M7 ④ · **手动**装成桥接也要让那条待答出队（活体撞到的）', () => {
+  it('显式安装成功仍会清旧队列，向导只显示自动连接阶段和重试', () => {
     /**
      * 队列的语义是"还没有着落的问题"，出队时机原本只有两个：用户答了、自动装成了。
      * 第 7 轮活体里第三条路露出来了：向导第 ③ 步给两个工程装完桥接、走完向导，
@@ -413,8 +428,15 @@ describe('R4 ⑦ 接线：源码里真的读了这些', () => {
 
     /** 本地那份也要摘：主进程出队管的是"刷新之后"，当前这一屏靠渲染层自己 */
     expect(read('src/renderer/stores/ui.ts')).toContain('settleBridgeAsk(projectId)')
-    expect(read('src/renderer/components/FirstRunWizard.tsx')).toContain('settleBridgeAsk(p.id)')
-    expect(read('src/renderer/pages/Project.tsx')).toContain('settleBridgeAsk(p.id)')
+    const wizard = read('src/renderer/components/FirstRunWizard.tsx')
+    expect(wizard).toContain('useUi((s) => s.connection)')
+    expect(wizard).toContain("t('wizard.step3.automatic')")
+    expect(wizard).toContain('<ConnectionBadge phase={p.phase}')
+    expect(wizard).toContain('retryConnection(p.projectId)')
+    expect(wizard).not.toContain('window.a.unity.installBridge(')
+    expect(wizard).not.toContain('installSelected(')
+    expect(wizard).not.toContain('type="checkbox"')
+    expect(read('src/renderer/pages/Project.tsx')).not.toContain('window.a.unity.installBridge(')
   })
 
   it('⭐ M7 Q10 · 「剩下都不再问」走的是 per-project never，不是全局静音', () => {
