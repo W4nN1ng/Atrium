@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import Database from 'better-sqlite3'
 import { openDatabase, closeDatabase, collectStats, migrate, type Db } from '../../src/main/db'
 import { SCHEMA_VERSION } from '../../src/main/db/schema'
 import {
@@ -282,16 +283,86 @@ describe('合集三级模型（改动单 §2.4）', () => {
     expect(queryCards(db, { bundlesOnly: true }, cfg, 'zh-CN').cards.length).toBe(1)
   })
 
-  it('needs_review：待复核页只捞被标上的，标记后消失', () => {
-    const low = makeAssetRow({ name: 'LowConf', raw_name: 'low.zip', category: 'prop', confidence: 0.3, needs_review: 1, status: 'classified' })
-    const high = makeAssetRow({ name: 'HighConf', raw_name: 'high.zip', category: 'prop', confidence: 0.9, needs_review: 0, status: 'classified' })
+  /**
+   * 「待复核」功能于 2026-10-15 整体移除。这条用例守的是**它真的没了**：
+   * 列、部分索引、统计字段、筛选参数四样一起消失，
+   * 而且迁移之后**老库（V2~V8）也能正常升上来**、原来标了 needs_review 的行照旧读得出来。
+   *
+   * 为什么值得留一条这样的用例：删功能的常见失败方式是"界面没了、底层还在写"，
+   * 或者反过来"列删了、还有代码在 SELECT 它"—— 后者会在用户真库上直接报错。
+   */
+  it('needs_review 已随「待复核」功能一起删除（列、索引、统计、筛选都不在了）', () => {
+    const cols = (db.prepare('PRAGMA table_info(asset)').all() as Array<{ name: string }>).map((c) => c.name)
+    expect(cols).not.toContain('needs_review')
+
+    const idx = (db.prepare("SELECT name FROM sqlite_master WHERE type='index'").all() as Array<{ name: string }>).map((i) => i.name)
+    expect(idx).not.toContain('idx_asset_review')
+
+    // 统计里没有 review 这个字段了（多留一个恒为 0 的数只会误导）
+    expect(Object.keys(collectStats(db))).not.toContain('review')
+
+    // 老行照常可读、可写：低置信度那件仍能入库，只是不再被标记
+    const low = makeAssetRow({ name: 'LowConf', raw_name: 'low.zip', category: 'prop', confidence: 0.3, status: 'classified' })
     upsertAsset(db, low)
-    upsertAsset(db, high)
-    expect(collectStats(db).review).toBe(1)
-    expect(queryCards(db, { reviewOnly: true }, cfg, 'zh-CN').cards.map((c) => c.name)).toEqual(['LowConf'])
-    const patched = patchAsset(db, low.id, { needs_review: 0 })
-    expect(patched?.needs_review).toBe(0)
-    expect(collectStats(db).review).toBe(0)
+    const back = getAsset(db, low.id)
+    expect(back?.name).toBe('LowConf')
+    expect(back?.confidence).toBe(0.3)
+    // 列表不再有"只看待复核"这个档位，正常查询照样取得到
+    expect(queryCards(db, { scope: 'all' }, cfg, 'zh-CN').cards.map((c) => c.name)).toContain('LowConf')
+  })
+
+  it('迁移动真库：停在 V8 的库升上来之后 needs_review 那列被删掉，但行和字段一个不丢', () => {
+    /**
+     * 直接在一个**停在 V8** 的库上跑迁移，模拟用户的老库。
+     * 这是本次删列唯一真正的风险点：`ALTER TABLE ... DROP COLUMN` 会重写整张表，
+     * 要是写坏了，用户 400 多条素材就没了。
+     *
+     * ⚠ 这里用裸 `new Database()` + `migrate()`，**刻意不用 `openDatabase()`**：
+     * 后者会把模块级单例 `current` 换成我这条临时库，于是本文件 `beforeEach` 建的那个
+     * `db` 就再也没人关，`afterAll` 的 `rmSync` 直接 EPERM（第一版就是这么红的）。
+     */
+    const tmp = path.join(os.tmpdir(), `avca-v9-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    fs.mkdirSync(tmp, { recursive: true })
+    const file = path.join(tmp, 'library.db')
+    try {
+      /**
+       * 造一个**停在 V8** 的老库：先正常迁移到最新，再把 needs_review 列加回去、
+       * 把 user_version 退回 8 —— 这样它和"用户从 0.5.0 升上来"的库形状一致。
+       * 顺序不能反：列要先加回来，才能往里插带 needs_review 的行。
+       */
+      const raw = new Database(file)
+      migrate(raw)
+      raw.exec('ALTER TABLE asset ADD COLUMN needs_review INTEGER NOT NULL DEFAULT 0')
+      const id = 'legacy-1'
+      raw
+        .prepare(
+          `INSERT INTO asset (id, name, raw_name, category, confidence, status, storage_mode, needs_review, created_at, updated_at)
+           VALUES (?, 'LegacyAsset', 'legacy.zip', 'prop', 0.4, 'classified', 'indexed', 1, ?, ?)`
+        )
+        .run(id, Date.now(), Date.now())
+      raw.pragma('user_version = 8')
+      raw.close()
+
+      // 重新打开 → 迁移会把 8 之后的那几版（含删 needs_review 那一版）跑一遍
+      const upgraded = new Database(file)
+      const applied = migrate(upgraded)
+      expect(applied, '版本 8 之后应当有迁移要跑').toBe(SCHEMA_VERSION - 8)
+      const cols = (upgraded.prepare('PRAGMA table_info(asset)').all() as Array<{ name: string }>).map((c) => c.name)
+      expect(cols).not.toContain('needs_review')
+      expect(Number(upgraded.pragma('user_version', { simple: true }))).toBe(SCHEMA_VERSION)
+      /** 关键：行还在、字段一个没丢 */
+      const row = upgraded.prepare('SELECT name, category, confidence FROM asset WHERE id = ?').get(id) as
+        | { name: string; category: string; confidence: number }
+        | undefined
+      expect(row).toEqual({ name: 'LegacyAsset', category: 'prop', confidence: 0.4 })
+      upgraded.close()
+    } finally {
+      try {
+        fs.rmSync(tmp, { recursive: true, force: true })
+      } catch {
+        /* Windows 偶尔还占着句柄 */
+      }
+    }
   })
 
   it('删合集连带删子项（开了 foreign_keys，反过来会抛约束错误）', () => {

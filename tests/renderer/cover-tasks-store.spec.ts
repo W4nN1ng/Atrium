@@ -60,7 +60,12 @@ describe('global cover task state', () => {
     const { currentCoverTaskFilter } = await import('../../src/renderer/stores/coverTasks')
     expect(currentCoverTaskFilter({ nav: 'col:wardrobe', search: 'silver', view: 'flat' })).toEqual({
       collectionId: 'wardrobe', search: 'silver', view: 'flat' })
-    expect(currentCoverTaskFilter({ nav: 'review', search: '', view: 'grouped' })).toEqual({ reviewOnly: true, view: 'grouped' })
+    /**
+     * 这里原本还有一条 `nav: 'review'` → `{ reviewOnly: true }`。
+     * 「待复核」功能 2026-10-15 移除、`reviewOnly` 也从 `AssetFilter` 删掉了，
+     * 所以那条断言连同 review 这个 nav 一起消失 —— 「批量改全库封面」的作用范围
+     * 只按当前视图（集合 / 分类 / 合集 / 收件箱 / 全部素材）算。
+     */
     expect(currentCoverTaskFilter({ nav: 'cat:clothing', search: '', view: 'grouped' })).toEqual({ category: 'clothing', view: 'grouped' })
   })
 

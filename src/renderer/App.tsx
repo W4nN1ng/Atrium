@@ -177,7 +177,7 @@ export function App(): JSX.Element {
     return <FirstRunWizard />
   }
 
-  const showDetail = nav === 'review' || nav === 'bundles' || nav.startsWith('bundle:') || nav === 'all' || nav === 'recent' || nav.startsWith('cat:') || nav.startsWith('col:')
+  const showDetail = nav === 'bundles' || nav.startsWith('bundle:') || nav === 'all' || nav === 'recent' || nav.startsWith('cat:') || nav.startsWith('col:')
   const useLibrary = showDetail || nav === 'favorites'
 
   return (

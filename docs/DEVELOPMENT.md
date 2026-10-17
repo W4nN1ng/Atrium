@@ -6,6 +6,14 @@
 
 > 逐轮验收凭据在 [VERIFY-UNVERIFIED.md](VERIFY-UNVERIFIED.md)，首启向导的设计与裁定在 [M7-DESIGN.md](M7-DESIGN.md)。
 
+> **⚠ 2026-10-15：`待复核` 功能已整体移除**（用户要求，理由是它臃肿、拖慢工作流）。
+> 下面第 9 轮 ①（「待复核的出口」）以及各处提到的 `needs_review` / 59 条那类测量数字，
+> 都是**当时的记录**，保留不改（改历史等于让账本说谎）；但**现在代码里已经没有这个功能了**：
+> `asset.needs_review` 列与 `idx_asset_review` 索引由 schema V9 删除，侧栏入口、单卡按钮、
+> 合集批量出口、`assets:set-review` 通道、`assets:learned-hint` 通道全部拆掉。
+> 低置信度的素材现在照常入库、不再打任何标记；分类随时可以在库里改。
+> 想找现在的口径，看 [README](../README.md) 和 `src/main/db/schema.ts` 末尾的 V9 迁移注释。
+
 ## 图标
 
 `python tools/make_icon.py`（默认出 **v4「斜顶」**）→ `build/icon.png` + `build/icon.ico`（16/24/32/48/64/128/256 七档）

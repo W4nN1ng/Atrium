@@ -212,7 +212,6 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
       groups: s.groups,
       bundles: s.bundles,
       bundleItems: s.bundleItems,
-      review: s.review,
       pendingConfirm: s.pendingConfirm,
       inbox: s.inbox,
       collections: listCollections(db).length,
@@ -221,9 +220,6 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
       dbBytes: sizeOfDb()
     }
   })
-
-  /** 待确认队列顶部那句「它已经学会 N 条」的提示数据（文案在渲染进程拼） */
-  ipc.handle('assets:learned-hint', () => learnedHint(getDb()))
 
   ipc.handle('assets:groups', () => summarizeGroups(getDb()))
 
@@ -329,11 +325,6 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
     return row
   })
 
-  /**
-   * 待复核：改完点「标记已复核」。
-   * 只动 needs_review 这一列 —— 分类改动本身走 assets:patch，两件事分开，
-   * 免得"我改了分类但没点复核"和"我看过了没错"两种意图搅在一起。
-   */
   /** 容器详情：一次拿全"容器 + 子项 + 每个子项的版本 + 附属资源"，省得界面来回四趟 */
   ipc.handle('assets:bundle', (id: unknown) => {
     if (typeof id !== 'string') throw new Error('参数无效')
@@ -476,22 +467,6 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
       broadcast('data:changed', { reason: 'lexicon' })
     }
     return r
-  })
-
-  ipc.handle('assets:set-review', (ids: unknown, needReview: unknown) => {
-    if (!Array.isArray(ids)) throw new Error('参数无效')
-    const db = getDb()
-    const flag = needReview === true ? 1 : 0
-    let updated = 0
-    db.transaction(() => {
-      for (const id of ids) {
-        if (typeof id !== 'string') continue
-        const r = db.prepare(`UPDATE asset SET needs_review = ?, updated_at = ? WHERE id = ?`).run(flag, Date.now(), id)
-        updated += Number(r.changes ?? 0)
-      }
-    })()
-    if (updated) broadcast('data:changed', { reason: 'review' })
-    return { updated }
   })
 
   ipc.handle('collections:list', () => listCollections(getDb()))

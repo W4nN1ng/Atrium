@@ -64,15 +64,12 @@ export const IpcInvoke = {
     Trash: 'assets:trash',
     Stats: 'assets:stats',
     Groups: 'assets:groups',
-    LearnedHint: 'assets:learned-hint',
     BackfillThumbs: 'assets:backfill-thumbs',
     Reclassify: 'assets:reclassify',
     /** R4 ③：改分类时"要不要把文件也搬过去"的只读预览 + 真搬 */
     RearchivePlan: 'assets:rearchive-plan',
     Rearchive: 'assets:rearchive',
     ResolvePending: 'assets:resolve-pending',
-    /** 待复核：批量标记已复核 / 未复核 */
-    SetReview: 'assets:set-review',
     Bundle: 'assets:bundle',
     Reparent: 'assets:reparent',
     DissolveBundle: 'assets:dissolve-bundle',

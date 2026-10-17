@@ -80,8 +80,6 @@ export interface DbStats {
   bundleItems: number
   /** 附属资源总数（介绍图/视频/文档…）：不计入 assets，只在维护页露个数 */
   attachments: number
-  /** 待复核：一键入库时置信度不够被标上的 */
-  review: number
   pendingConfirm: number
   inbox: number
   collections: number
@@ -129,16 +127,6 @@ export function collectStats(db: Db): DbStats {
         WHERE p.is_bundle = 1 AND c.attachment_kind IS NULL`
     ),
     attachments: sumOf(db, `SELECT COUNT(*) AS n FROM asset WHERE attachment_kind IS NOT NULL`),
-    /**
-     * 待复核只数**顶层那层**：合集自己会被标 needs_review（它下面只要有 1 件没把握），
-     * 再把每个子项各数一次的话，一个合集就能把"待复核 123 项"吹成几百，
-     * 用户在侧栏看到的数字也就对不上列表里的行数了。
-     */
-    review: sumOf(
-      db,
-      `SELECT COUNT(*) AS n FROM asset
-        WHERE needs_review = 1 AND parent_asset_id IS NULL AND attachment_kind IS NULL`
-    ),
     pendingConfirm: sumOf(db, `SELECT COUNT(*) AS n FROM asset WHERE status = 'pending_confirm'`),
     inbox: sumOf(db, `SELECT COUNT(*) AS n FROM asset WHERE status = 'inbox'`),
     collections: countOf(db, 'collection'),

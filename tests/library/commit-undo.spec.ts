@@ -453,13 +453,19 @@ describe('合集三级落库（改动单 §2 / §7.1 不动磁盘）', () => {
     expect(treeOf(dir)).toEqual(before)
   })
 
-  it('低置信度的子项标 needs_review，合集自己跟着标', async () => {
+  /**
+   * 老库里的行为：低置信度的子项曾被打上 needs_review，合集自己跟着标（`items.some(...)`）。
+   * 「待复核」功能 2026-10-15 移除后这条语义**整个消失了** ——
+   * 现在低置信度照常入库、不再留任何标记。
+   * 这条用例改成守"不再有任何复核标记"，而不是删掉：留着它才能防止有人
+   * 哪天把 needs_review 又加回来（那会让列和迁移重新对不上）。
+   */
+  it('低置信度不再产生任何复核标记（合集和子项都没有）', async () => {
     const dir = makeBundleDir('插件/低置信合集', { 'a/x.prefab': 10, 'b/x.prefab': 20, 'c/x.prefab': 30 })
     const r = commitBundleAsset(
       deps(),
       {
         rootPath: dir,
-        reviewThreshold: 0.75,
         bundle: mkUnit({ name: '低置信合集', groupKey: null, hash: null, confidence: 0.3 }),
         items: [
           { unit: mkUnit({ name: 'A', groupKey: 'a', hash: null, confidence: 0.9 }), relPath: 'a', versions: [] },
@@ -467,13 +473,17 @@ describe('合集三级落库（改动单 §2 / §7.1 不动磁盘）', () => {
         ]
       }
     )
-    expect(getAsset(db, r.bundleAssetId)?.needs_review).toBe(1)
+    const bundle = getAsset(db, r.bundleAssetId)
+    expect(bundle).toBeTruthy()
+    expect(Object.prototype.hasOwnProperty.call(bundle, 'needs_review')).toBe(false)
     const kids = listChildren(db, r.bundleAssetId)
-    expect(kids.find((k) => k.name === 'A')?.needs_review).toBe(0)
-    expect(kids.find((k) => k.name === 'B')?.needs_review).toBe(1)
-    expect(collectStats(db).review, '待复核只数顶层：一个合集不许被数成 2 次').toBe(1)
-    // 顶层列表里露面的就是合集那张卡，子项的标记在合集详情里看
-    expect(queryCards(db, { reviewOnly: true }, cfg, 'zh-CN').cards.map((c) => c.name)).toEqual(['低置信合集'])
+    for (const k of kids) expect(Object.prototype.hasOwnProperty.call(k, 'needs_review')).toBe(false)
+    /** 统计里也没有这一项了 */
+    expect(Object.keys(collectStats(db))).not.toContain('review')
+    /** 置信度本身照样记着 —— 详情页"为什么这么判"还要用 */
+    expect(kids.find((k) => k.name === 'B')?.confidence).toBeCloseTo(0.31, 5)
+    // 合牌照常出现在列表里
+    expect(queryCards(db, { scope: 'top' }, cfg, 'zh-CN').cards.map((c) => c.name)).toContain('低置信合集')
   })
 
   it('一键入库的登记批次可以整批撤销（journal op = register）', async () => {

@@ -15,7 +15,7 @@ export const ASSET_COLUMNS = [
   'library_path', 'source_path', 'storage_mode', 'kind', 'content_type', 'size_bytes',
   'hash_xxh64', 'cover_image', 'source_url', 'source_platform', 'source_item_id',
   'source_item_id_confidence', 'author', 'version', 'locale_tag', 'group_id',
-  'bundle_id', 'parent_asset_id', 'is_bundle', 'needs_review',
+  'bundle_id', 'parent_asset_id', 'is_bundle',
   'attachment_kind', 'container_kind', 'variant_raw',
   'notes', 'created_at', 'updated_at'
 ] as const
@@ -59,7 +59,6 @@ export function makeAssetRow(
     bundle_id: input.bundle_id ?? null,
     parent_asset_id: input.parent_asset_id ?? null,
     is_bundle: input.is_bundle ?? 0,
-    needs_review: input.needs_review ?? 0,
     attachment_kind: input.attachment_kind ?? null,
     container_kind: input.container_kind ?? null,
     variant_raw: input.variant_raw ?? null,
@@ -97,7 +96,7 @@ const PATCHABLE: readonly Col[] = [
   'source_path', 'storage_mode', 'kind', 'content_type', 'size_bytes', 'hash_xxh64',
   'cover_image', 'source_url', 'source_platform', 'source_item_id',
   'source_item_id_confidence', 'author', 'version', 'locale_tag', 'group_id', 'bundle_id',
-  'parent_asset_id', 'is_bundle', 'needs_review',
+  'parent_asset_id', 'is_bundle',
   'attachment_kind', 'container_kind', 'variant_raw', 'notes'
 ]
 
@@ -227,7 +226,6 @@ interface CardQueryRow {
   attachment_count: number
   parent_name: string | null
   is_bundle: number
-  needs_review: number
   container_kind: string | null
   attachment_kind: string | null
   variant_raw: string | null
@@ -289,9 +287,6 @@ function buildWhere(filter: AssetFilter): { sql: string; params: Array<string | 
   if (filter.bundlesOnly) {
     where.push('a.is_bundle = 1')
   }
-  if (filter.reviewOnly) {
-    where.push('a.needs_review = 1')
-  }
   if (filter.collectionId) {
     where.push(
       'EXISTS (SELECT 1 FROM collection_asset ca WHERE ca.asset_id = a.id AND ca.collection_id = ?)'
@@ -324,7 +319,7 @@ export function queryAssetIds(db: Db, filter: AssetFilter): string[] {
 const CARD_SELECT = `
   SELECT a.id, a.name, a.raw_name, a.category, a.subcategory, a.confidence, a.status, a.kind,
          a.cover_image, a.group_id, a.size_bytes, a.updated_at,
-         a.is_bundle, a.needs_review, a.parent_asset_id,
+         a.is_bundle, a.parent_asset_id,
          a.container_kind, a.attachment_kind, a.variant_raw,
          (SELECT COUNT(*) FROM asset m WHERE a.group_id IS NOT NULL AND m.group_id = a.group_id) AS variant_count,
          /* R4 ⑤ 变体分列：同组 (kind,value) 全集，一条相关子查询算完，见 variantDims.ts 头注 */
@@ -408,7 +403,6 @@ export function queryCards(
       childCount: Number(r.child_count || 0),
       unitCount: Number(r.unit_count || 0),
       attachmentCount: Number(r.attachment_count || 0),
-      needsReview: Number(r.needs_review || 0) === 1,
       containerKind: (r.container_kind as AssetCard['containerKind']) ?? null,
       variantRaw: r.variant_raw,
       parentName: r.parent_name,

@@ -36,7 +36,6 @@ export function currentCoverTaskFilter(s: { nav: string; search: string; view: '
   if (s.nav.startsWith('cat:')) filter.category = s.nav.slice(4)
   if (s.nav.startsWith('bundle:')) filter.parentId = s.nav.slice(7)
   if (s.nav === 'inbox') filter.status = 'inbox'
-  if (s.nav === 'review') filter.reviewOnly = true
   if (s.nav === 'bundles') filter.bundlesOnly = true
   return filter
 }

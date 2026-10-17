@@ -242,8 +242,6 @@ export interface AssetRow {
   parent_asset_id: string | null
   /** 1 = 这一行是合集容器本身，不是一件素材 */
   is_bundle: number
-  /** 1 = 置信度不够，一键入库时标上了，等在「待复核」里被人改 */
-  needs_review: number
   /**
    * 非空 = 这一行是**附属资源**（增量改动单 2 §A2）：介绍图 / 演示视频 / 说明文档 /
    * `.url` 链接 / psd 等源文件 / 音频。
@@ -789,8 +787,6 @@ export interface AssetCard {
   containerKind: ContainerKind | null
   /** §B2 方括号变体槽位原文，进容器视图时显示每个变体是从哪截名字来的 */
   variantRaw: string | null
-  /** 低置信度被一键入库标上的，卡片要有角标、待复核页要能捞出来 */
-  needsReview: boolean
   /** 父合集的名字（子项详情里要显示"来自哪个合集"） */
   parentName: string | null
   tags: string[]
@@ -855,8 +851,6 @@ export interface AssetFilter {
   scope?: 'top' | 'all'
   /** true = 只看合集卡 */
   bundlesOnly?: boolean
-  /** true = 只看 needs_review=1（「待复核」页） */
-  reviewOnly?: boolean
   /** 给了就只取这个合集下面的子项 */
   parentId?: string
   /**

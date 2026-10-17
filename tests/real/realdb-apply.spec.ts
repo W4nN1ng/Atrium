@@ -105,7 +105,7 @@ describe.skipIf(!GO)('真库 · 执行重新分析（已获批准）', () => {
       console.log(
         `[前后对比] 素材 ${s0.assets}→${s1.assets}、附属 ${s0.attachments}→${s1.attachments}、` +
           `容器 ${s0.bundles}→${s1.bundles}、子项 ${s0.bundleItems}→${s1.bundleItems}、` +
-          `待复核 ${s0.review}→${s1.review}、收件箱(status=inbox) ${s0.inbox}→${s1.inbox}`
+          `收件箱(status=inbox) ${s0.inbox}→${s1.inbox}`
       )
       console.log(`[撤销凭据] journal id=${jr!.id} op=${jr!.op} 条目数=${(payload.fieldChanges ?? []).length}`)
       console.log(`[撤销方法] 程序里 Ctrl+Z，或界面「重新分析」旁那个撤销按钮`)
@@ -116,7 +116,7 @@ describe.skipIf(!GO)('真库 · 执行重新分析（已获批准）', () => {
         console.log(`[垃圾] 已移除 ${dj.deleted} 条记录（磁盘文件未动），journal 里有整行原值可塞回`)
       }
       const s2 = collectStats(db)
-      console.log(`[最终] 素材 ${s2.assets}、附属 ${s2.attachments}、待复核 ${s2.review}`)
+      console.log(`[最终] 素材 ${s2.assets}、附属 ${s2.attachments}、`)
     } finally {
       closeDatabase()
     }

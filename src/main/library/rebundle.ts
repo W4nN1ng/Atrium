@@ -213,7 +213,6 @@ export function applyRebundle(
           bundle_id: null,
           parent_asset_id: null,
           is_bundle: 1,
-          needs_review: members.some((m) => Number(m.needs_review) === 1) ? 1 : 0,
           notes: '重新整理合集生成',
           created_at: now,
           updated_at: now

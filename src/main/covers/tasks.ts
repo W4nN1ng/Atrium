@@ -333,7 +333,11 @@ function validFilter(value: unknown): boolean {
   for (const key of ['search', 'category', 'subcategory', 'collectionId', 'status', 'groupId', 'parentId', 'attachmentKind']) {
     if (filter[key] !== undefined && filter[key] !== null && typeof filter[key] !== 'string') return false
   }
-  for (const key of ['attachmentsOnly', 'bundlesOnly', 'reviewOnly']) {
+  /**
+   * 布尔档位的白名单。`reviewOnly` 已随「待复核」功能（2026-10-15）一起移除，
+   * `AssetFilter` 里不再有这一项 —— 这里列着它等于放行一个没人认识的字段。
+   */
+  for (const key of ['attachmentsOnly', 'bundlesOnly']) {
     if (filter[key] !== undefined && typeof filter[key] !== 'boolean') return false
   }
   if (filter.ids !== undefined && (!Array.isArray(filter.ids) || filter.ids.some(id => typeof id !== 'string'))) return false
