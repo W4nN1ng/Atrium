@@ -6,6 +6,8 @@ import type {
   VpmCatalogVersionDto,
   VpmNetworkStatus,
   VpmOperationStart,
+  VpmProjectDetailDto,
+  VpmProjectSummaryDto,
   VpmRepoDoneEvent,
   VpmRepoDto,
   VpmRepoProgressEvent
@@ -61,6 +63,27 @@ export const vpmApi = {
   },
   packageVersions(name: string): Promise<VpmCatalogVersionDto[]> {
     return window.a.vpm.packageVersions(name)
+  },
+  projectsList(): Promise<VpmProjectSummaryDto[]> {
+    return window.a.vpm.projectsList()
+  },
+  projectDetail(projectKey: string): Promise<VpmProjectDetailDto> {
+    return window.a.vpm.projectDetail(projectKey)
+  },
+  projectAdd(input: { path: string }): Promise<VpmProjectDetailDto> {
+    return window.a.vpm.projectAdd(input)
+  },
+  projectRemove(projectKey: string): Promise<{ ok: boolean }> {
+    return window.a.vpm.projectRemove(projectKey)
+  },
+  projectRescan(projectKey: string): Promise<VpmProjectDetailDto> {
+    return window.a.vpm.projectRescan(projectKey)
+  },
+  projectOpenFolder(projectKey: string): Promise<{ ok: boolean }> {
+    return window.a.vpm.projectOpenFolder(projectKey)
+  },
+  pickProjectDirectory(title: string): Promise<string | null> {
+    return window.a.system.pickDirectory({ title })
   },
   onRepoProgress(callback: (event: VpmRepoProgressEvent) => void): () => void {
     return window.a.on('vpm:repo-progress', (payload) => callback(payload as VpmRepoProgressEvent))

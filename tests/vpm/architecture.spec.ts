@@ -201,9 +201,13 @@ describe('VPM architecture boundaries', () => {
     expect(failures, failures.join('\n')).toEqual([])
   })
 
-  it('keeps the settings panel lazy and statically VPM-free', () => {
+  it('keeps the settings and project VPM panels lazy and statically VPM-free', () => {
     const settings = read(path.join(ROOT, 'src/renderer/pages/Settings.tsx'))
     expect(settings).toContain("import('../vpm/VpmSettings')")
     expect(staticSpecifiers(settings).some((spec) => spec.includes('/vpm/'))).toBe(false)
+
+    const project = read(path.join(ROOT, 'src/renderer/pages/Project.tsx'))
+    expect(project).toContain("import('../vpm/components/projects/VpmProjectsSection')")
+    expect(staticSpecifiers(project).some((spec) => spec.includes('/vpm/'))).toBe(false)
   })
 })

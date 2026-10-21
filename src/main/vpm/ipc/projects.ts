@@ -1,0 +1,242 @@
+import { shell } from 'electron'
+import { PROTECTED_PROJECT_PACKAGE } from '../../../shared/vpm/domain/project'
+import { VpmError } from '../../../shared/vpm/errors'
+import { IpcInvoke } from '../../../shared/ipc'
+import type {
+  VpmProjectDetailDto,
+  VpmProjectLegacyDto,
+  VpmProjectPackageDto,
+  VpmProjectPackageState,
+  VpmProjectSummaryDto,
+  VpmProjectWarningDto
+} from '../../../shared/vpm/dto'
+import type { IpcApi } from '../../ipc/types'
+import type { VpmRuntime } from '../index'
+import type { ProjectListItem, ProjectPackageRow } from '../projects'
+import type { ProjectSnapshot } from '../../../shared/vpm/domain/project'
+
+function requireKey(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim() || value.length > 4096) {
+    throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
+  }
+  return value.trim()
+}
+
+function requirePath(input: unknown): string {
+  if (!input || typeof input !== 'object') {
+    throw new VpmError('vpmProjectInvalid', { field: 'path' })
+  }
+  const path = (input as { path?: unknown }).path
+  if (typeof path !== 'string' || !path.trim() || path.length > 4096) {
+    throw new VpmError('vpmProjectInvalid', { field: 'path' })
+  }
+  return path.trim()
+}
+
+function stateOf(value: string): VpmProjectPackageState {
+  if (value === 'installed' || value === 'missing' || value === 'unlisted' || value === 'mismatch' || value === 'protected') {
+    return value
+  }
+  return 'unlisted'
+}
+
+function ledgerPackage(row: ProjectPackageRow): VpmProjectPackageDto {
+  return {
+    name: row.name,
+    version: row.version,
+    source: row.source,
+    state: stateOf(row.state),
+    isLegacy: row.isLegacy,
+    protected: row.name === PROTECTED_PROJECT_PACKAGE || row.state === 'protected',
+    path: null,
+    unity: null
+  }
+}
+
+function snapshotPackage(pkg: ProjectSnapshot['packages'][number]): VpmProjectPackageDto {
+  return {
+    name: pkg.name,
+    version: pkg.version,
+    source: pkg.source,
+    state: stateOf(pkg.state),
+    isLegacy: false,
+    protected: pkg.name === PROTECTED_PROJECT_PACKAGE || pkg.state === 'protected',
+    path: pkg.path,
+    unity: pkg.unity
+  }
+}
+
+function storedLegacy(row: ProjectPackageRow): VpmProjectLegacyDto {
+  let parsed: Record<string, unknown> = {}
+  try {
+    const value = row.dependencyJson ? JSON.parse(row.dependencyJson) : null
+    if (value && typeof value === 'object' && !Array.isArray(value)) parsed = value as Record<string, unknown>
+  } catch {
+    /* 坏缓存不阻止详情 */
+  }
+  const match = row.source === 'legacyFolder' || row.source === 'legacyFile' || row.source === 'legacyPackage'
+    ? row.source
+    : row.source === 'packageJson'
+      ? 'packageJson'
+      : 'legacyPackage'
+  const confidence = parsed.confidence === 'high' || parsed.confidence === 'medium' || parsed.confidence === 'low'
+    ? parsed.confidence
+    : 'medium'
+  return {
+    name: row.name,
+    relativePath: typeof parsed.relativePath === 'string' ? parsed.relativePath : null,
+    match,
+    confidence
+  }
+}
+
+function packageWarnings(packages: VpmProjectPackageDto[]): VpmProjectWarningDto[] {
+  return packages
+    .filter((pkg) => pkg.state === 'missing' || pkg.state === 'mismatch')
+    .map((pkg) => ({
+      code: pkg.state === 'missing' ? 'vpmProjectMissingPackage' : 'vpmProjectVersionMismatch',
+      path: pkg.path ?? `Packages/${pkg.name}`,
+      detail: pkg.version
+    }))
+}
+
+function summaryDto(item: ProjectListItem): VpmProjectSummaryDto {
+  const ledger = item.ledger
+  const embedded = ledger?.packages.filter((pkg) => !pkg.isLegacy) ?? []
+  const legacy = ledger?.packages.filter((pkg) => pkg.isLegacy) ?? []
+  return {
+    projectKey: item.projectKey,
+    coreId: item.coreId,
+    path: item.path,
+    name: item.name,
+    unityVersion: item.unityVersion ?? ledger?.unityVersion ?? null,
+    unityRevision: ledger?.unityRevision ?? null,
+    running: item.running,
+    detectedBy: [...item.detectedBy],
+    bridgeVersion: item.bridgeVersion,
+    busyReason: item.busyReason,
+    linked: item.linked,
+    hasLedger: Boolean(ledger),
+    lastScanAt: ledger?.lastScanAt ?? null,
+    packageCount: embedded.length,
+    legacyCount: legacy.length,
+    hasVpmManifest: Boolean(ledger?.manifestHash)
+  }
+}
+
+function detailDto(item: ProjectListItem, snapshot: ProjectSnapshot | null): VpmProjectDetailDto {
+  const base = summaryDto(item)
+  const ledger = item.ledger
+  if (!ledger) return { ...base, manifestHash: null, manifestMtime: null, unityExePath: null, unityArgsJson: null, packages: [], warnings: [], legacy: { readOnly: true, truncated: false, candidates: [] } }
+
+  const packages = snapshot
+    ? snapshot.packages.map(snapshotPackage)
+    : ledger.packages.filter((pkg) => !pkg.isLegacy).map(ledgerPackage)
+  const legacy = snapshot
+    ? {
+        readOnly: true as const,
+        truncated: snapshot.legacy.truncated,
+        candidates: snapshot.legacy.candidates.map((candidate) => ({
+          name: candidate.name,
+          relativePath: candidate.relativePath,
+          match: candidate.match,
+          confidence: candidate.confidence
+        }))
+      }
+    : {
+        readOnly: true as const,
+        truncated: false,
+        candidates: ledger.packages.filter((pkg) => pkg.isLegacy).map(storedLegacy)
+      }
+  const warnings: VpmProjectWarningDto[] = []
+  const seen = new Set<string>()
+  for (const warning of snapshot?.warnings ?? []) {
+    const key = `${warning.code}\0${warning.path ?? ''}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    warnings.push({ code: warning.code, path: warning.path, detail: warning.detail })
+  }
+  for (const warning of packageWarnings(packages)) {
+    const key = `${warning.code}\0${warning.path ?? ''}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    warnings.push(warning)
+  }
+
+  return {
+    ...base,
+    packageCount: packages.length,
+    legacyCount: legacy.candidates.length,
+    manifestHash: ledger.manifestHash,
+    manifestMtime: ledger.manifestMtime,
+    unityExePath: ledger.unityExePath,
+    unityArgsJson: ledger.unityArgsJson,
+    packages,
+    warnings,
+    legacy
+  }
+}
+
+export interface ProjectIpcOptions {
+  ipc: IpcApi
+  getRuntime: () => VpmRuntime | null
+}
+
+/**
+ * P2-D 只读工程台账 IPC。
+ *
+ * 所有参数在主进程重新校验；路径不来自渲染层的“可打开任意目录”输入，
+ * 打开文件夹只接受台账里已有的 projectKey。
+ */
+export function registerProjectIpc(options: ProjectIpcOptions): void {
+  const { ipc } = options
+  const requireRuntime = (): VpmRuntime => {
+    const runtime = options.getRuntime()
+    if (!runtime) throw new VpmError('vpmRuntimeNotReady')
+    return runtime
+  }
+  const detailFor = (runtime: VpmRuntime, key: string, snapshot?: ProjectSnapshot | null): VpmProjectDetailDto => {
+    const item = runtime.projects.get(key)
+    if (!item) throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
+    return detailDto(item, snapshot ?? null)
+  }
+
+  ipc.handle(IpcInvoke.Vpm.ProjectsList, () => requireRuntime().projects.list().map(summaryDto))
+
+  ipc.handle(IpcInvoke.Vpm.ProjectDetail, (key: unknown) => {
+    const projectKey = requireKey(key)
+    const runtime = requireRuntime()
+    const result = runtime.projects.detail(projectKey)
+    if (!result) throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
+    return detailDto(result.item, result.snapshot)
+  })
+
+  ipc.handle(IpcInvoke.Vpm.ProjectAdd, (input: unknown) => {
+    const path = requirePath(input)
+    const runtime = requireRuntime()
+    const result = runtime.projects.addExisting(path)
+    return detailFor(runtime, result.ledger.projectKey, result.snapshot)
+  })
+
+  ipc.handle(IpcInvoke.Vpm.ProjectRemove, (key: unknown) => {
+    const projectKey = requireKey(key)
+    return { ok: requireRuntime().projects.remove(projectKey) }
+  })
+
+  ipc.handle(IpcInvoke.Vpm.ProjectRescan, (key: unknown) => {
+    const projectKey = requireKey(key)
+    const runtime = requireRuntime()
+    const result = runtime.projects.refresh(projectKey)
+    return detailFor(runtime, result.ledger.projectKey, result.snapshot)
+  })
+
+  ipc.handle(IpcInvoke.Vpm.ProjectOpenFolder, async (key: unknown) => {
+    const projectKey = requireKey(key)
+    const runtime = requireRuntime()
+    const item = runtime.projects.get(projectKey)
+    if (!item) throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
+    const error = await shell.openPath(item.path)
+    if (error) throw new VpmError('vpmProjectAccessDenied', { field: 'folder' }, new Error(error))
+    return { ok: true }
+  })
+}

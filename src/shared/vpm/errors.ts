@@ -58,7 +58,9 @@ export const VPM_WARNING_CODES = [
   'vpmProjectSymlinkSkipped',
   'vpmProjectDuplicatePackage',
   'vpmProjectScanTruncated',
-  'vpmProjectPackageInvalid'
+  'vpmProjectPackageInvalid',
+  'vpmProjectMissingPackage',
+  'vpmProjectVersionMismatch'
 ] as const
 
 export type VpmWarningCode = (typeof VPM_WARNING_CODES)[number]

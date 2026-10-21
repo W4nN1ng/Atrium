@@ -34,7 +34,7 @@
 
 ## 交付物
 
-- IPC：ProjectsList/ProjectDetail/ProjectAdd/ProjectRemove/ProjectOpenFolder。
+- IPC：ProjectsList/ProjectDetail/ProjectAdd/ProjectRemove/ProjectRescan/ProjectOpenFolder。
 - 工程列表/详情/legacy 警告/运行状态；打开文件夹；添加/移除确认。
 - 空状态与错误码；三语文案。
 - 沙盒截图（只读状态）。

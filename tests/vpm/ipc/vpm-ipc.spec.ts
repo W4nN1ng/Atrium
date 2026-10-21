@@ -9,6 +9,7 @@ import type { VpmRuntime } from '../../../src/main/vpm'
 import type { RepoDto, RepoRefreshResult } from '../../../src/main/vpm/reposService'
 import type { VpmNetworkStatus, VpmOperationStart } from '../../../src/shared/vpm/dto'
 import type { CatalogPage, CatalogPackageDetail } from '../../../src/main/vpm/catalog'
+import type { ProjectListItem, ProjectPackageRow } from '../../../src/main/vpm/projects'
 import { setAppPathsForTest } from '../../../src/main/services/paths'
 import type { IpcApi } from '../../../src/main/ipc/types'
 
@@ -81,6 +82,45 @@ const detail: CatalogPackageDetail = {
 
 const page: CatalogPage = { items: [summary], total: 1, limit: 100, offset: 0 }
 
+const projectPackage: ProjectPackageRow = {
+  name: 'com.example.foo',
+  version: '1.0.0',
+  source: 'embedded',
+  isLegacy: false,
+  state: 'installed',
+  dependencyJson: '{}',
+  updatedAt: 20
+}
+
+const projectItem: ProjectListItem = {
+  projectKey: 'c:\\projects\\demo',
+  coreId: 'core-1',
+  path: 'C:\\Projects\\Demo',
+  name: 'Demo',
+  unityVersion: '2022.3.22f1',
+  running: true,
+  detectedBy: ['bridge'],
+  bridgeVersion: '1.2.0',
+  busyReason: null,
+  linked: true,
+  ledger: {
+    projectKey: 'c:\\projects\\demo',
+    projectPath: 'C:\\Projects\\Demo',
+    name: 'Demo',
+    unityVersion: '2022.3.22f1',
+    unityRevision: 'abc123',
+    unityExePath: 'E:\\Unity\\2022.3.22f1\\Editor\\Unity.exe',
+    unityArgsJson: null,
+    manifestHash: 'a'.repeat(64),
+    manifestMtime: 10,
+    lastScanAt: 20,
+    lastOpId: null,
+    createdAt: 1,
+    updatedAt: 20,
+    packages: [projectPackage]
+  }
+}
+
 function fakeRuntime(): VpmRuntime {
   const seed = vi.fn(async () => {})
   const fake = {
@@ -102,6 +142,16 @@ function fakeRuntime(): VpmRuntime {
     catalog: {
       query: vi.fn(() => page),
       getPackage: vi.fn((name: string) => (name === summary.name ? detail : null))
+    },
+    projects: {
+      list: vi.fn(() => [projectItem]),
+      get: vi.fn((key: string) => (key === projectItem.projectKey ? projectItem : null)),
+      detail: vi.fn((key: string) =>
+        key === projectItem.projectKey ? { item: projectItem, snapshot: null } : null
+      ),
+      addExisting: vi.fn(() => ({ ledger: projectItem.ledger, snapshot: null })),
+      refresh: vi.fn(() => ({ ledger: projectItem.ledger, snapshot: null })),
+      remove: vi.fn(() => true)
     }
   }
   return fake as unknown as VpmRuntime
@@ -152,7 +202,13 @@ describe('VPM P1 IPC', () => {
         IpcInvoke.Vpm.NetworkConsent,
         IpcInvoke.Vpm.CatalogQuery,
         IpcInvoke.Vpm.PackageDetail,
-        IpcInvoke.Vpm.PackageVersions
+        IpcInvoke.Vpm.PackageVersions,
+        IpcInvoke.Vpm.ProjectsList,
+        IpcInvoke.Vpm.ProjectDetail,
+        IpcInvoke.Vpm.ProjectAdd,
+        IpcInvoke.Vpm.ProjectRemove,
+        IpcInvoke.Vpm.ProjectRescan,
+        IpcInvoke.Vpm.ProjectOpenFolder
       ].sort()
     )
   })
@@ -225,6 +281,34 @@ describe('VPM P1 IPC', () => {
     expect(await handler(IpcInvoke.Vpm.PackageDetail)('com.missing' as never)).toBeNull()
     await expect(call(IpcInvoke.Vpm.CatalogQuery, 'nope' as never)).rejects.toMatchObject({
       code: 'vpmInternal'
+    })
+  })
+
+  it('maps project ledger list/detail/add/remove/rescan and validates keys', async () => {
+    expect(await handler(IpcInvoke.Vpm.ProjectsList)()).toEqual([
+      expect.objectContaining({ projectKey: projectItem.projectKey, packageCount: 1, linked: true })
+    ])
+    expect(await handler(IpcInvoke.Vpm.ProjectDetail)(projectItem.projectKey as never)).toMatchObject({
+      projectKey: projectItem.projectKey,
+      unityRevision: 'abc123',
+      packages: [expect.objectContaining({ name: 'com.example.foo', state: 'installed' })],
+      legacy: { readOnly: true, candidates: [] }
+    })
+    expect(await handler(IpcInvoke.Vpm.ProjectAdd)({ path: 'C:\\Projects\\Demo' } as never)).toMatchObject({
+      projectKey: projectItem.projectKey
+    })
+    expect(await handler(IpcInvoke.Vpm.ProjectRemove)(projectItem.projectKey as never)).toEqual({ ok: true })
+    expect(await handler(IpcInvoke.Vpm.ProjectRescan)(projectItem.projectKey as never)).toMatchObject({
+      projectKey: projectItem.projectKey
+    })
+    await expect(call(IpcInvoke.Vpm.ProjectDetail, '' as never)).rejects.toMatchObject({
+      code: 'vpmProjectInvalid'
+    })
+    await expect(call(IpcInvoke.Vpm.ProjectAdd, {} as never)).rejects.toMatchObject({
+      code: 'vpmProjectInvalid'
+    })
+    await expect(call(IpcInvoke.Vpm.ProjectOpenFolder, '' as never)).rejects.toMatchObject({
+      code: 'vpmProjectInvalid'
     })
   })
 

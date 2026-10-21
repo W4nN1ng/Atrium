@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ProjectInfo } from '../../shared/types'
 import { useUi } from '../stores/ui'
 import { Badge, Button, EmptyState } from '../components/ui'
 import { ImportHistoryDialog } from '../components/ImportHistoryDialog'
 import { ConnectionBadge } from '../components/ImportTargetPicker'
+
+/** VPM 工程台账按需加载；VPM 停用时组件自身返回 null，不影响核心工程页。 */
+const VpmProjectsSection = lazy(() =>
+  import('../vpm/components/projects/VpmProjectsSection').then((module) => ({
+    default: module.VpmProjectsSection
+  }))
+)
 
 /**
  * Unity 工程页。
@@ -146,6 +153,9 @@ export function Project(): JSX.Element {
       )}
 
       {historyProject !== undefined ? <ImportHistoryDialog projectId={historyProject} onClose={() => setHistoryProject(undefined)} /> : null}
+      <Suspense fallback={null}>
+        <VpmProjectsSection />
+      </Suspense>
       <div className="shrink-0 border-t px-3 py-2 text-[11px]" style={{ borderColor: 'var(--line)', color: 'var(--muted)' }}>
         {t('project.target')}:{' '}
         {connection.targetProjectId

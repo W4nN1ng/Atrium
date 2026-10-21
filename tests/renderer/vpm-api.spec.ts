@@ -5,6 +5,8 @@ import type {
   VpmCatalogPackageDetail,
   VpmNetworkStatus,
   VpmOperationStart,
+  VpmProjectDetailDto,
+  VpmProjectSummaryDto,
   VpmRepoDoneEvent,
   VpmRepoDto,
   VpmRepoProgressEvent
@@ -17,12 +19,41 @@ const operation: VpmOperationStart = { operationId: 'op-1', repoIds: ['repo-a'] 
 const network: VpmNetworkStatus = { consentAt: null, allowed: false }
 const page: VpmCatalogPage = { items: [], total: 0, limit: 100, offset: 0 }
 const detail = { name: 'com.example.foo' } as VpmCatalogPackageDetail
+const projectSummary = {
+  projectKey: 'c:\\projects\\demo',
+  coreId: 'core-1',
+  path: 'C:\\Projects\\Demo',
+  name: 'Demo',
+  unityVersion: '2022.3.22f1',
+  unityRevision: null,
+  running: false,
+  detectedBy: [],
+  bridgeVersion: null,
+  busyReason: null,
+  linked: true,
+  hasLedger: true,
+  lastScanAt: 1,
+  packageCount: 0,
+  legacyCount: 0,
+  hasVpmManifest: true
+} satisfies VpmProjectSummaryDto
+const projectDetail = {
+  ...projectSummary,
+  manifestHash: 'a'.repeat(64),
+  manifestMtime: 1,
+  unityExePath: null,
+  unityArgsJson: null,
+  packages: [],
+  warnings: [],
+  legacy: { readOnly: true, truncated: false, candidates: [] }
+} satisfies VpmProjectDetailDto
 
 let vpm: Record<string, ReturnType<typeof vi.fn>>
 let listeners: Map<string, (payload: unknown) => void>
 let off: ReturnType<typeof vi.fn>
 let on: ReturnType<typeof vi.fn>
 let openExternal: ReturnType<typeof vi.fn>
+let pickDirectory: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   vi.resetModules()
@@ -33,6 +64,7 @@ beforeEach(() => {
     return off
   })
   openExternal = vi.fn(async () => undefined)
+  pickDirectory = vi.fn(async () => 'C:\\Projects\\Demo')
   vpm = {
     status: vi.fn(async () => status),
     enable: vi.fn(async () => status),
@@ -47,10 +79,16 @@ beforeEach(() => {
     networkConsent: vi.fn(async () => ({ consentAt: '2026-10-21T00:00:00.000Z', allowed: true })),
     catalogQuery: vi.fn(async () => page),
     packageDetail: vi.fn(async () => detail),
-    packageVersions: vi.fn(async () => [])
+    packageVersions: vi.fn(async () => []),
+    projectsList: vi.fn(async () => [projectSummary]),
+    projectDetail: vi.fn(async () => projectDetail),
+    projectAdd: vi.fn(async () => projectDetail),
+    projectRemove: vi.fn(async () => ({ ok: true })),
+    projectRescan: vi.fn(async () => projectDetail),
+    projectOpenFolder: vi.fn(async () => ({ ok: true }))
   }
   ;(globalThis as { window?: unknown }).window = {
-    a: { vpm, on, system: { openExternal } }
+    a: { vpm, on, system: { openExternal, pickDirectory } }
   }
 })
 
@@ -82,7 +120,16 @@ describe('renderer/vpm/api', () => {
     await expect(vpmApi.catalogQuery({ text: 'foo' })).resolves.toBe(page)
     await expect(vpmApi.packageDetail('com.example.foo')).resolves.toBe(detail)
     await expect(vpmApi.packageVersions('com.example.foo')).resolves.toEqual([])
+    await expect(vpmApi.projectsList()).resolves.toEqual([projectSummary])
+    await expect(vpmApi.projectDetail(projectSummary.projectKey)).resolves.toBe(projectDetail)
+    await expect(vpmApi.projectAdd({ path: 'C:\\Projects\\Demo' })).resolves.toBe(projectDetail)
+    await expect(vpmApi.projectRemove(projectSummary.projectKey)).resolves.toEqual({ ok: true })
+    await expect(vpmApi.projectRescan(projectSummary.projectKey)).resolves.toBe(projectDetail)
+    await expect(vpmApi.projectOpenFolder(projectSummary.projectKey)).resolves.toEqual({ ok: true })
+    await expect(vpmApi.pickProjectDirectory('选工程')).resolves.toBe('C:\\Projects\\Demo')
     await expect(vpmApi.openExternal('https://example.test/docs')).resolves.toBeUndefined()
+
+    expect(pickDirectory).toHaveBeenCalledWith({ title: '选工程' })
 
     expect(vpm.repoAdd).toHaveBeenCalledWith({ url: 'https://example.test/repo.json', name: 'Repo' })
     expect(vpm.networkConsent).toHaveBeenCalledWith(true)

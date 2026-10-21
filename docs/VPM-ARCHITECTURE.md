@@ -497,7 +497,7 @@ idle → fetching → ready
 3. `main/vpm` 不 import `renderer/**`；
 4. 网络调用只在 `main/vpm/http/`（测试除外）；
 5. SQL 只在 `main/vpm/db/`、`main/vpm/repos/`；
-6. 渲染进程静态 import `renderer/vpm/**` 只允许 `Settings.tsx` 的 `lazy(() => import(...))`；
+6. 渲染进程静态 import `renderer/vpm/**` 只允许 `Settings.tsx` / `Project.tsx` 的 `lazy(() => import(...))`；
 7. `renderer/vpm` 的 `window.a` 只在 `api.ts`；
 8. 事务/备份/版本服务之外不得写工程文件（用路径/函数白名单检查，允许误报白名单但要有注释）；
 9. VPM 不得直接 import 核心 `project`/`bridge`/`import` 模块；只能通过 gate 注入的联动端口；

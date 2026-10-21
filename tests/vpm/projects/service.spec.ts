@@ -110,6 +110,10 @@ describe('ProjectsService', () => {
       linked: true,
       ledger: expect.objectContaining({ name: 'Alpha' })
     })
+    expect(service.detail(list[0].projectKey)?.snapshot).toMatchObject({
+      name: 'Alpha',
+      packages: expect.arrayContaining([expect.objectContaining({ name: 'com.test.pkg' })])
+    })
   })
 
   it('keeps a ledger row after core/disk disappear, but marks it unlinked', () => {

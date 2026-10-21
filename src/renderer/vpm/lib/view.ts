@@ -42,3 +42,13 @@ export function repoErrorLabel(code: string | null): string {
   if (!code) return ''
   return msg(`vpm.errors.${code}`, undefined, code)
 }
+
+/** 工程/扫描返回的 code 可能是 error 也可能是 warning；两边都查，最后退回原文。 */
+export function vpmCodeLabel(code: string | null | undefined): string {
+  if (!code) return ''
+  return msg(
+    `vpm.errors.${code}`,
+    undefined,
+    msg(`vpm.warnings.${code}`, undefined, code)
+  )
+}

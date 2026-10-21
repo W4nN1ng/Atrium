@@ -227,7 +227,13 @@ export const IpcInvoke = {
     NetworkStatus: 'vpm:network-status',
     CatalogQuery: 'vpm:catalog-query',
     PackageDetail: 'vpm:package-detail',
-    PackageVersions: 'vpm:package-versions'
+    PackageVersions: 'vpm:package-versions',
+    ProjectsList: 'vpm:projects-list',
+    ProjectDetail: 'vpm:project-detail',
+    ProjectAdd: 'vpm:project-add',
+    ProjectRemove: 'vpm:project-remove',
+    ProjectRescan: 'vpm:project-rescan',
+    ProjectOpenFolder: 'vpm:project-open-folder'
   }
 } as const
 

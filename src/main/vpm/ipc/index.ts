@@ -20,6 +20,7 @@ import type { CatalogPackageDetail, CatalogPackageSummary } from '../catalog'
 import { isNetworkEnabled, readNetworkConsent, setNetworkEnabled } from '../config'
 import type { VpmRuntime } from '../index'
 import type { RepoDto, RepoRefreshResult } from '../reposService'
+import { registerProjectIpc } from './projects'
 
 export interface VpmIpcOptions {
   ipc: IpcApi
@@ -319,6 +320,8 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
     const detail = requireRuntime().catalog.getPackage(name)
     return detail ? detail.versions.map(versionDto) : []
   })
+
+  registerProjectIpc({ ipc, getRuntime: options.getRuntime })
 
   return {
     dispose(): void {

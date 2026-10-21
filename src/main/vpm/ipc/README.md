@@ -43,6 +43,13 @@ P1 的只读仓库/目录 IPC：参数校验、DTO 映射、刷新操作/事件�
 - `network-consent` 只接受 boolean `allow`，表示切换联网开关（默认 true）；开启时补同意时间并 `seedIfEmpty`（无自动刷新）。
 - 所有响应由 IPC 注册器包成 `{ok,data|error}`；renderer 的 `vpmApi` 只返回 data/抛 Error。
 
+## P2-D 工程台账
+
+- `ProjectsList` / `ProjectDetail` / `ProjectAdd` / `ProjectRemove` / `ProjectRescan` /
+  `ProjectOpenFolder`：只读工程页用；`ProjectDetail` 现场只读扫描（不写台账），
+  `ProjectRescan` 才更新缓存；`ProjectRemove` 只删 VPM 台账，不删盘/核心工程。
+- 打开文件夹只接受台账里已有的 `projectKey`，不接受任意路径。
+
 ## 测试入口
 
 - `tests/vpm/ipc/vpm-ipc.spec.ts`
