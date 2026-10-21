@@ -43,7 +43,7 @@
 
 | ID | 任务 | 依赖 | 主要产物 | 对账 | 状态 |
 |---|---|---|---|---|---|
-| P1-A | 模块边界、依赖方向与架构闸门 | P0 | 模块 README、依赖规则、`architecture.spec.ts`、renderer API 包装 | I4/I6/I7/I8 | todo |
+| P1-A | 模块边界、依赖方向与架构闸门 | P0 | 模块 README、依赖规则、`architecture.spec.ts`、renderer API 包装 | I4/I6/I7/I8 | done |
 | P1-B | `vpm.db` v1、迁移器与仓储 | P1-A | `db/`、`repos/`、v1 表、迁移/备份 | C8/C14/I7 | todo |
 | P1-C | HTTP、缓存与联网同意 | P1-A | `http/`、`cache/`、同意门、fake 测试 | C8/C9/C10/G2/I6 | todo |
 | P1-D | 仓库服务、官方/curated 与来源合并 | P1-B/P1-C | `reposService`、`catalog`、种子仓库 | C1/C2/C8/C10/C14/B15 | todo |
@@ -85,8 +85,8 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0 已完成，下一个执行任务是 **P1-A**。P1-A 只补模块边界/文档/架构闸门，不实现业务；
-> 如果发现与 P0 代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A 已完成，下一个执行任务是 **P1-B**（vpm.db v1、迁移器与仓储）。
+> P1-B 开工前先读 §12 的 P1-A 交接；如果发现与 P0 代码冲突，先改任务卡，不直接改代码。
 
 ---
 
@@ -253,7 +253,27 @@ Task: P?-?
 
 ---
 
-## 12. 一句话
+## 12. 任务交接记录
+
+### P1-A（2026-10-21，done）
+
+- **公开 API/契约**：`src/renderer/vpm/api.ts` 新增 `vpmApi.status/enable/disable/pickDataRoot`；
+  P0 的 IPC 名称、设置格式、gate/config 行为未变。
+- **模块 README**：`src/shared/vpm/README.md`、`src/main/vpm/README.md`、`src/renderer/vpm/README.md`；
+  子模块 README 由各自任务落地时创建。
+- **架构闸门**：`tests/vpm/architecture.spec.ts` 10 条，覆盖三层 import 方向、
+  README 合同、网络/SQLite 唯一入口、跨模块只走 index、gate 唯一静态入口、设置页懒加载；
+  `tests/renderer/vpm-api.spec.ts` 验证四个包装调用原样转发。
+- **已验证**：`npm test` 156 passed / 9 skipped files、2109 passed / 19 skipped tests；
+  `npm run typecheck`、`npm run build` 退出码 0；packaged 0.9.0 沙盒下 status/停用/重新启用通过。
+- **未验证**：原生“选择文件夹”对话框仍走 P0 的输入框验收路径；没有做跨平台。
+- **给 P1-B**：`db/`、`repos/` 落地时必须提供 `index.ts` 公开面；SQLite 只能出现在
+  `db/`/`repos/`（gate 的只读快照完整性检查是 P0 例外）；不要改 P0 的 gate/config 行为。
+  开工前先跑 `node tools/check-vpm-taskpack.cjs`，确认任务卡/对账表没有漂移。
+
+---
+
+## 13. 一句话
 
 > 先读架构，再领一张卡；只改卡里的东西，做完写交接。
 > 每张卡都能独立回退，整个 VPM 才能安心做完。
