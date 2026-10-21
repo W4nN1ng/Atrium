@@ -197,3 +197,22 @@ export function writeVpmSettings(settings: VpmSettingsFile): void {
     throw new VpmError('vpmInternal', undefined, error)
   }
 }
+
+/** 读联网同意时间；没同意/没设置文件时返回 null。 */
+export function readNetworkConsent(): string | null {
+  return readVpmSettings().settings.networkConsentAt
+}
+
+/** 记录同意时间并原子写回；保留其余设置。 */
+export function grantNetworkConsent(at: Date = new Date()): string {
+  const timestamp = at.toISOString()
+  const read = readVpmSettings()
+  writeVpmSettings({ ...read.settings, networkConsentAt: timestamp })
+  return timestamp
+}
+
+/** 撤销同意（不删缓存/仓库）；下一次需要网络时重新弹窗。 */
+export function revokeNetworkConsent(): void {
+  const read = readVpmSettings()
+  writeVpmSettings({ ...read.settings, networkConsentAt: null })
+}

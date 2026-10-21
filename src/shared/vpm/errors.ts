@@ -25,6 +25,18 @@ export const VPM_ERROR_CODES = [
   'vpmRepoInvalid',
   'vpmRepoConflict',
   'vpmRepoNotFound',
+  'vpmNetworkNotConsented',
+  'vpmHttpBlocked',
+  'vpmHttpTimeout',
+  'vpmHttpTooLarge',
+  'vpmHttpStatus',
+  'vpmHttpRedirect',
+  'vpmHttpNetwork',
+  'vpmHttpInvalidJson',
+  'vpmHttpAborted',
+  'vpmCachePathInvalid',
+  'vpmCacheWriteFailed',
+  'vpmCacheHashMismatch',
   'vpmInternal'
 ] as const
 

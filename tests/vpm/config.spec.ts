@@ -5,8 +5,11 @@ import path from 'node:path'
 import { P, setAppPathsForTest } from '../../src/main/services/paths'
 import {
   defaultVpmSettings,
+  grantNetworkConsent,
   isValidVpmSettings,
+  readNetworkConsent,
   readVpmSettings,
+  revokeNetworkConsent,
   writeVpmSettings
 } from '../../src/main/vpm/config'
 import type { VpmSettingsFile } from '../../src/shared/vpm/types'
@@ -108,5 +111,45 @@ describe('VPM settings file', () => {
     expect(() => writeVpmSettings({ ...defaultVpmSettings(), checkUpdates: 'no' } as never)).toThrow(
       'i18n:vpm.errors.vpmInternal'
     )
+  })
+})
+
+describe('VPM network consent', () => {
+  it('is null by default and round-trips without touching other settings', () => {
+    expect(readNetworkConsent()).toBeNull()
+
+    writeVpmSettings({
+      ...defaultVpmSettings(),
+      enabled: true,
+      dataRoot: 'E:\\AtriumVPM',
+      allowPrerelease: true
+    })
+    const at = new Date('2026-10-21T08:00:00.000Z')
+    expect(grantNetworkConsent(at)).toBe(at.toISOString())
+    expect(readNetworkConsent()).toBe(at.toISOString())
+    expect(readVpmSettings().settings).toMatchObject({
+      enabled: true,
+      dataRoot: 'E:\\AtriumVPM',
+      allowPrerelease: true,
+      networkConsentAt: at.toISOString()
+    })
+
+    revokeNetworkConsent()
+    expect(readNetworkConsent()).toBeNull()
+    expect(readVpmSettings().settings).toMatchObject({
+      enabled: true,
+      dataRoot: 'E:\\AtriumVPM',
+      allowPrerelease: true,
+      networkConsentAt: null
+    })
+  })
+
+  it('can grant consent on a fresh profile without enabling VPM', () => {
+    grantNetworkConsent(new Date('2026-10-21T08:01:00.000Z'))
+    expect(readVpmSettings().settings).toMatchObject({
+      enabled: false,
+      dataRoot: null,
+      networkConsentAt: '2026-10-21T08:01:00.000Z'
+    })
   })
 })

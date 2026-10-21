@@ -45,7 +45,7 @@
 |---|---|---|---|---|---|
 | P1-A | 模块边界、依赖方向与架构闸门 | P0 | 模块 README、依赖规则、`architecture.spec.ts`、renderer API 包装 | I4/I6/I7/I8 | done |
 | P1-B | `vpm.db` v1、迁移器与仓储 | P1-A | `db/`、`repos/`、v1 表、迁移/备份 | C8/C14/I7 | done |
-| P1-C | HTTP、缓存与联网同意 | P1-A | `http/`、`cache/`、同意门、fake 测试 | C8/C9/C10/G2/I6 | todo |
+| P1-C | HTTP、缓存与联网同意 | P1-A | `http/`、`cache/`、同意门、fake 测试 | C8/C9/C10/G2/I6 | done |
 | P1-D | 仓库服务、官方/curated 与来源合并 | P1-B/P1-C | `reposService`、`catalog`、种子仓库 | C1/C2/C8/C10/C14/B15 | todo |
 | P1-E | 只读包目录 UI、IPC 与三语 | P1-D | 仓库区、包抽屉、同意模态、IPC | B1/B2/B3/B13/B14 | todo |
 | P2-A | Unity 编辑器发现与手动添加 | P1-B | `unity/editors`、vpm.db v2、Hub 配置 | D1/D2/D3/D4/F4 | todo |
@@ -85,8 +85,8 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B 已完成，下一个执行任务是 **P1-C**（HTTP、缓存与联网同意）。
-> P1-C 开工前先读 §12 的 P1-A/P1-B 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C 已完成，下一个执行任务是 **P1-D**（仓库服务、官方/curated 与来源合并）。
+> P1-D 开工前先读 §12 的 P1-A/P1-B/P1-C 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 
 ---
 
@@ -295,6 +295,40 @@ Task: P?-?
 - **给 P1-C**：网络唯一入口必须放 `src/main/vpm/http(_)`；未同意时不得建立连接；
   测试用本地 fake，不要打公网；缓存路径只能从已验证的数据根派生，不能落 C。
   新的 HTTP 错误码先登记 `shared/vpm/errors.ts` 和三语 i18n，再写实现。
+
+### P1-C（2026-10-21，done）
+
+- **公开 API/契约**：`http/` 导出 `VpmHttpPort`、`createVpmHttpClient`、
+  `createElectronHttpTransport`、`DEFAULT_VPM_HTTP_LIMITS` 和纯 policy 函数；
+  `cache/` 导出 `VpmCacheStore`；`config.ts` 新增
+  `readNetworkConsent/grantNetworkConsent/revokeNetworkConsent`。没有新增 IPC/UI。
+- **同意门**：`createVpmHttpClient` 的 `isNetworkAllowed` 默认 false；未同意直接抛
+  `vpmNetworkNotConsented`，不调用 transport、不建连接。P1-D 接
+  `() => readNetworkConsent() !== null`。
+- **网络策略**：HTTPS-only、拒绝 userinfo、最多 5 跳逐跳校验、跨源自定义头停止、
+  JSON 16 MiB / 下载 4 GiB、连接 15s / 空闲 60s / 总 30 分钟、可 Abort；
+  UA/条件头/无 Cookie；证书校验开启。Electron 适配器用 `net.request` +
+  `credentials:'omit'` + `useSessionCookies:false` + `redirect:'manual'`。
+- **下载/缓存**：下载流式写 `.part`、边写边算 SHA-256、失败删临时文件；
+  `VpmCacheStore` 校验 tmp/大小/期望 hash 后同卷 rename，路径用 realpath 限制在数据根；
+  `verifyFile` 可发现磁盘损坏，`clearTmp/clearPackages` 只清缓存。
+- **错误码**：新增 `vpmNetworkNotConsented/Http*/Cache*` 共 12 个，三语齐全。
+- **README**：`src/main/vpm/http/README.md`、`src/main/vpm/cache/README.md`；
+  `src/main/vpm/README.md` 已补 P1-C 落地位置。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **161 passed / 9 skipped files（170）**、**2156 passed / 20 skipped tests（2176）**；
+  定向 VPM/HTTP/cache/config/架构测试 56 条全绿。
+  覆盖 200/304/3xx、逐跳降级/跨源/上限、超时/取消、JSON 超限/坏 JSON、
+  下载 hash/大小/部分文件清理、缓存路径逃逸/损坏/清理、未同意零请求、无 Cookie。
+  其中 1 条既有 `bridge/lockfile` PowerShell 冷启动用例本轮因机器满载超时跳过（测试自报
+  “没验，不算通过”），不是 P1-C 引入。
+- **未验证**：真实公网/系统代理/TLS 连接没有打（按任务要求用 fake transport + mock
+  Electron net）；真实仓库 JSON 与 UI 同意弹窗在 P1-D/P1-E。仅 Windows x64。
+- **给 P1-D**：组合根创建 `VpmCacheStore({dataRoot})` 与
+  `createVpmHttpClient({ transport: createElectronHttpTransport(),
+  isNetworkAllowed: () => readNetworkConsent() !== null, userAgent: 'Atrium/<version>' })`；
+  刷新仓库必须走 `getJson` 条件请求，304 保留旧行；下载走 `downloadToFile` + cache commit；
+  不要在别处 import `electron.net` 或写 fetch。
 
 ---
 

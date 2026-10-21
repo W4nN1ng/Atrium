@@ -1228,6 +1228,18 @@
       "vpmRepoInvalid": "仓库信息不完整或格式不对。",
       "vpmRepoConflict": "已经有相同地址的仓库。",
       "vpmRepoNotFound": "找不到这个仓库。",
+      "vpmNetworkNotConsented": "还没有同意联网；当前只能使用本地/缓存数据。",
+      "vpmHttpBlocked": "这个地址不允许访问（只允许 HTTPS，且不能带凭据）。",
+      "vpmHttpTimeout": "网络请求超时。",
+      "vpmHttpTooLarge": "服务器返回的内容超过大小上限。",
+      "vpmHttpStatus": "服务器返回了错误状态。",
+      "vpmHttpRedirect": "重定向不安全或次数过多，已停止。",
+      "vpmHttpNetwork": "网络连接失败。",
+      "vpmHttpInvalidJson": "服务器返回的不是有效 JSON。",
+      "vpmHttpAborted": "网络请求已取消。",
+      "vpmCachePathInvalid": "缓存路径不在数据根内，已拒绝。",
+      "vpmCacheWriteFailed": "缓存文件写入失败。",
+      "vpmCacheHashMismatch": "缓存文件校验失败，内容不匹配。",
       "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。"
     }
   }
