@@ -22,13 +22,13 @@
 
 - `docs/VPM-ARCHITECTURE.md` §5、§6.3
 - `docs/prompts/VPM-P2.md` §5、§5.1–§5.5
-- `src/shared/vpm/domain/manifest.ts`（P1）
+- `src/shared/vpm/domain/project.ts`（本卡新建；含 manifest 解析）
 - `docs/VPM-IMPLEMENTATION-GUIDE.md` §5.2
 
 ## 文件所有权
 
-- 新增：`src/shared/vpm/domain/project.ts`（或 `shared/vpm/project.ts`）
-- 新增：`tests/vpm/domain/project.spec.ts` + fixtures
+- 新增：`src/shared/vpm/domain/project.ts`、`src/shared/vpm/domain/hash.ts`
+- 新增：`tests/vpm/domain/project.spec.ts` + fixtures（内存 reader 夹具）
 - 新增：`tests/fixtures/vpm/projects/`
 
 ## 交付物

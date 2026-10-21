@@ -25,6 +25,10 @@ export const VPM_ERROR_CODES = [
   'vpmRepoInvalid',
   'vpmRepoConflict',
   'vpmRepoNotFound',
+  'vpmProjectInvalid',
+  'vpmManifestInvalid',
+  'vpmProjectPackagesUnreadable',
+  'vpmProjectAccessDenied',
   'vpmUnityNotFound',
   'vpmUnityInvalid',
   'vpmUnityAccessDenied',
@@ -50,7 +54,11 @@ export type VpmErrorCode = (typeof VPM_ERROR_CODES)[number]
 export const VPM_WARNING_CODES = [
   'vpmDataRootUnc',
   'vpmDataRootRemovable',
-  'vpmDataRootNonNtfs'
+  'vpmDataRootNonNtfs',
+  'vpmProjectSymlinkSkipped',
+  'vpmProjectDuplicatePackage',
+  'vpmProjectScanTruncated',
+  'vpmProjectPackageInvalid'
 ] as const
 
 export type VpmWarningCode = (typeof VPM_WARNING_CODES)[number]
