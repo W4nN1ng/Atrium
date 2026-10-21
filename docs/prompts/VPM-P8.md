@@ -1,5 +1,9 @@
 # VPM-P8 执行提示词：轻量化收口、日志、更新与功能对账
 
+> **执行入口（2026-10-21 起）**：本文件是 P8 阶段规格，不是一次执行的任务。
+> 请按 [`tasks/P8-*.md`](tasks/) 的任务卡逐个执行；本文件只查阅任务卡列出的章节。
+> 任务板：[`../VPM-TASKS.md`](../VPM-TASKS.md) · 共同规则：[`_COMMON.md`](_COMMON.md) · 架构：[`../VPM-ARCHITECTURE.md`](../VPM-ARCHITECTURE.md)。
+
 > 前置：P0–P7 已合并。功能面基本齐了；现在要把它收成"按钮少、能解释、能支持"的产品。
 > 必读：`AGENTS.md`、`docs/VPM-MERGE-PLAN.md`、`docs/VPM-CLEANROOM.md`、
 > `docs/VPM-PARITY.md`、`docs/VPM-ROLLBACK.md`、`docs/VPM-IMPLEMENTATION-GUIDE.md` §11。

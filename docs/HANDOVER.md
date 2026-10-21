@@ -8,6 +8,7 @@
 > 不糊成"应该可以"。凡与代码冲突，**以代码为准**，并请回来改掉这份文档。
 
 > **2026-10-21：VPM 合并已启动。** 规划见 [VPM-MERGE-PLAN.md](VPM-MERGE-PLAN.md)，
+> 架构见 [VPM-ARCHITECTURE.md](VPM-ARCHITECTURE.md)，任务板见 [VPM-TASKS.md](VPM-TASKS.md)，
 > 实现解剖见 [VPM-IMPLEMENTATION-GUIDE.md](VPM-IMPLEMENTATION-GUIDE.md)，
 > 回退见 [VPM-ROLLBACK.md](VPM-ROLLBACK.md)。P0 之后版本线进入 **0.9.0**；
 > VPM 默认关闭，独立使用 `%APPDATA%\A\vpm\`，核心 `library.db` schema 仍是 11。

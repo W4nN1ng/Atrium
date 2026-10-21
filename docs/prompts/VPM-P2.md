@@ -1,5 +1,9 @@
 # VPM-P2 执行提示词：Unity 发现、项目台账与只读集成
 
+> **执行入口（2026-10-21 起）**：本文件是 P2 阶段规格，不是一次执行的任务。
+> 请按 [`tasks/P2-*.md`](tasks/) 的任务卡逐个执行；本文件只查阅任务卡列出的章节。
+> 任务板：[`../VPM-TASKS.md`](../VPM-TASKS.md) · 共同规则：[`_COMMON.md`](_COMMON.md) · 架构：[`../VPM-ARCHITECTURE.md`](../VPM-ARCHITECTURE.md)。
+
 > 前置：P1 已合并。VPM 默认关闭；仓库/目录可用；还没有装包。
 > 必读：`AGENTS.md`、`docs/VPM-MERGE-PLAN.md`、`docs/VPM-CLEANROOM.md`、`docs/VPM-PARITY.md`、`docs/VPM-IMPLEMENTATION-GUIDE.md` §5、§6、§10。
 >

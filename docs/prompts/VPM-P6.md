@@ -1,5 +1,9 @@
 # VPM-P6 执行提示词：工程备份、复制、Unity 版本与旧版迁移
 
+> **执行入口（2026-10-21 起）**：本文件是 P6 阶段规格，不是一次执行的任务。
+> 请按 [`tasks/P6-*.md`](tasks/) 的任务卡逐个执行；本文件只查阅任务卡列出的章节。
+> 任务板：[`../VPM-TASKS.md`](../VPM-TASKS.md) · 共同规则：[`_COMMON.md`](_COMMON.md) · 架构：[`../VPM-ARCHITECTURE.md`](../VPM-ARCHITECTURE.md)。
+
 > 前置：P5 已合并；新建/启动/装包可用。
 > 必读：`AGENTS.md`、`docs/VPM-MERGE-PLAN.md`、`docs/VPM-CLEANROOM.md`、
 > `docs/VPM-PARITY.md`、`docs/VPM-ROLLBACK.md`、`docs/VPM-IMPLEMENTATION-GUIDE.md` §8、§9。

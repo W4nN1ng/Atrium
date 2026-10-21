@@ -1,6 +1,10 @@
 # VPM-P0 执行提示词：基线、开关与回退闸
 
-> 把这一份完整交给执行 Agent。它只做 P0，不提前做 VPM 功能。
+> **状态：已完成（0.9.0）。** 保留作行为与验收参考，不再重复执行。
+> 后续请从 [`tasks/P1-A.md`](tasks/P1-A.md) 开始；任务板：[`../VPM-TASKS.md`](../VPM-TASKS.md) · 架构：[`../VPM-ARCHITECTURE.md`](../VPM-ARCHITECTURE.md)。
+
+> 以下是 P0 的历史执行说明/验收记录，**已不再重复执行**；保留作行为与回退参考。
+> P1 起请用 `tasks/` 下的任务卡。
 > 必读：`AGENTS.md`、`docs/VPM-MERGE-PLAN.md`、`docs/VPM-CLEANROOM.md`、
 > `docs/VPM-PARITY.md`、`docs/VPM-ROLLBACK.md`、
 > `docs/VPM-IMPLEMENTATION-GUIDE.md` §0、§11。
