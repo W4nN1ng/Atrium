@@ -41,7 +41,7 @@ git switch -c codex/vpm-p8-polish origin/main
 ## 3. 明确不做
 
 - 不新增核心 `library.db` schema；不引入新的大功能（除非补对账空白）。
-- 不静默自更新；不在未同意时联网。
+- 不静默自更新；关闭联网时不发起 HTTP。
 - 不自动清理回滚仓/工程备份。
 - 不为了"好看"重写现有素材页。
 - 不发布 0.9.0（P9 才发）。
@@ -219,7 +219,7 @@ git switch -c codex/vpm-p8-polish origin/main
 
 新建 `src/main/vpm/updater.ts`（或 `src/main/updates.ts`，若不属于 VPM）。
 
-- 设置 `checkUpdates` 默认 false；手动按钮始终可用（需联网同意？更新检查是独立网络，
+- 设置 `checkUpdates` 默认 false；手动按钮始终可用（更新检查是独立网络，仍受 VPM 联网开关约束；
   首次点击时说明访问 GitHub）。
 - 请求：`https://api.github.com/repos/W4nN1ng/Atrium/releases/latest`
   - 无 token；`User-Agent`；超时 15s；响应 ≤2 MiB；

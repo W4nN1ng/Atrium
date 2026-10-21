@@ -2,14 +2,14 @@
 
 ## 职责
 
-VPM 的唯一网络入口：JSON 条件请求、流式下载、HTTPS/重定向/大小/超时策略、联网同意门。
+VPM 的唯一网络入口：JSON 条件请求、流式下载、HTTPS/重定向/大小/超时策略、联网开关门。
 所有网络调用都必须经过 `VpmHttpPort`；其他模块不得直接 `fetch`/`net.request`。
 
 ## 不负责什么
 
 - 不解析仓库 JSON（P1-D）、不决定包版本/来源。
 - 不实现缓存落盘/重命名（`cache/` 负责）。
-- 不弹联网同意 UI（P1-E）；这里只拒绝未同意的请求。
+- 默认联网；P1-E 提供可关闭的联网开关，这里只拒绝关闭时的请求。
 - 不做自定义请求头的加密存储（P7-B）；只做安全校验。
 
 ## 公开 API
@@ -46,7 +46,7 @@ VPM 的唯一网络入口：JSON 条件请求、流式下载、HTTPS/重定向/�
 
 ## 测试入口
 
-- `tests/vpm/http/client.spec.ts`（fake transport：重定向/304/大小/超时/取消/同意门）
+- `tests/vpm/http/client.spec.ts`（fake transport：重定向/304/大小/超时/取消/联网开关）
 - `tests/vpm/http/electron.spec.ts`（mock net：无 Cookie、manual redirect、followRedirect）
 - 运行：`npm test`
 

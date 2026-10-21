@@ -18,6 +18,7 @@ export function defaultVpmSettings(): VpmSettingsFile {
   return {
     schemaVersion: VPM_SETTINGS_SCHEMA_VERSION,
     enabled: false,
+    networkEnabled: true,
     networkConsentAt: null,
     dataRoot: null,
     cacheQuotaGb: 20,
@@ -71,6 +72,8 @@ export function isValidVpmSettings(value: unknown): value is VpmSettingsFile {
   if (!isRecord(value)) return false
   if (value.schemaVersion !== VPM_SETTINGS_SCHEMA_VERSION) return false
   if (typeof value.enabled !== 'boolean') return false
+  // 旧设置文件没有这个字段：按默认开启处理，读取时补全。
+  if (value.networkEnabled !== undefined && typeof value.networkEnabled !== 'boolean') return false
   if (!(value.networkConsentAt === null || validTimestamp(value.networkConsentAt))) return false
   if (!validDataRoot(value.dataRoot)) return false
   if (!validQuota(value.cacheQuotaGb) || !validQuota(value.vaultQuotaGb)) return false
@@ -155,6 +158,7 @@ export function readVpmSettings(): VpmReadResult {
   return {
     settings: {
       ...parsed,
+      networkEnabled: parsed.networkEnabled !== false,
       hiddenPackageIds: [...parsed.hiddenPackageIds],
       rollbackSnapshot: parsed.rollbackSnapshot ? { ...parsed.rollbackSnapshot } : null
     },
@@ -198,21 +202,39 @@ export function writeVpmSettings(settings: VpmSettingsFile): void {
   }
 }
 
-/** 读联网同意时间；没同意/没设置文件时返回 null。 */
+/** 读联网同意记录时间；没记录/没设置文件时返回 null。 */
 export function readNetworkConsent(): string | null {
   return readVpmSettings().settings.networkConsentAt
 }
 
-/** 记录同意时间并原子写回；保留其余设置。 */
+/** 记录同意时间并开启联网；保留其余设置。 */
 export function grantNetworkConsent(at: Date = new Date()): string {
   const timestamp = at.toISOString()
   const read = readVpmSettings()
-  writeVpmSettings({ ...read.settings, networkConsentAt: timestamp })
+  writeVpmSettings({ ...read.settings, networkConsentAt: timestamp, networkEnabled: true })
   return timestamp
 }
 
-/** 撤销同意（不删缓存/仓库）；下一次需要网络时重新弹窗。 */
+/** 撤销同意（关闭联网，不删缓存/仓库）；需要时可在仓库区重新开启。 */
 export function revokeNetworkConsent(): void {
   const read = readVpmSettings()
-  writeVpmSettings({ ...read.settings, networkConsentAt: null })
+  writeVpmSettings({ ...read.settings, networkConsentAt: null, networkEnabled: false })
+}
+
+/** 默认开启；设置读不出来时 fail closed。 */
+export function isNetworkEnabled(): boolean {
+  try {
+    return readVpmSettings().settings.networkEnabled !== false
+  } catch {
+    return false
+  }
+}
+
+/** 用户显式开关；开启时补同意时间（仅作记录，不再是硬门）。 */
+export function setNetworkEnabled(enabled: boolean): boolean {
+  const read = readVpmSettings()
+  const next = { ...read.settings, networkEnabled: enabled }
+  if (enabled && !next.networkConsentAt) next.networkConsentAt = new Date().toISOString()
+  writeVpmSettings(next)
+  return enabled
 }

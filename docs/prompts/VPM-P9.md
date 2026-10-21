@@ -85,7 +85,7 @@ git switch -c codex/vpm-p9-release origin/main
 - [ ] 无永久删除用户文件；回滚仓校验；清理走回收站。
 - [ ] 无手写 `.meta`（静态扫描 + 真机）。
 - [ ] 缓存不在 C；没有 C 回退。
-- [ ] 未同意无出站；安全模式零 VPM 加载。
+- [ ] 关闭联网时无出站；安全模式零 VPM 加载。
 
 ### 2.2 可靠性
 
@@ -127,7 +127,7 @@ Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
 
 场景：
 
-1. 启用 VPM（非 C 数据根）→ 同意联网 → 官方/curated 刷新。
+1. 启用 VPM（非 C 数据根）→ 确认联网开关默认开启 → 官方/curated 刷新。
 2. 新建角色工程 → 装官方 SDK 包 → 打开 Unity → 无编译/包错误。
 3. 装/升/降/重装/卸一个包 → 打开 Unity；检查 manifest/包目录。
 4. 旧式 Assets 夹具 → 迁移 → 打开 Unity；回滚仓有副本。

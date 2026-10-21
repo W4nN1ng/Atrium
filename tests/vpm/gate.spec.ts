@@ -80,7 +80,7 @@ function errorCode(error: unknown): string | undefined {
 }
 
 describe('VPM gate (P0)', () => {
-  it('reports a disabled shell by default and registers exactly the four IPC channels', () => {
+  it('reports a disabled shell by default and registers the P0 plus P1 IPC channels', () => {
     const status = getVpmStatus()
     expect(status).toMatchObject({
       enabled: false,
@@ -94,8 +94,15 @@ describe('VPM gate (P0)', () => {
       appVersion: '0.9.0',
       rollbackSnapshot: null
     })
-    expect([...handlers.keys()].sort()).toEqual(
-      [IpcInvoke.Vpm.Status, IpcInvoke.Vpm.Enable, IpcInvoke.Vpm.Disable, IpcInvoke.Vpm.PickDataRoot].sort()
+    expect([...handlers.keys()]).toEqual(
+      expect.arrayContaining([
+        IpcInvoke.Vpm.Status,
+        IpcInvoke.Vpm.Enable,
+        IpcInvoke.Vpm.Disable,
+        IpcInvoke.Vpm.PickDataRoot,
+        IpcInvoke.Vpm.ReposList,
+        IpcInvoke.Vpm.CatalogQuery
+      ])
     )
     expect(typeof handlers.get(IpcInvoke.Vpm.Status)).toBe('function')
   })

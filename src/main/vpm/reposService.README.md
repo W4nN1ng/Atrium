@@ -18,15 +18,15 @@
 - `addRepo({ url, name? })`：
   - URL 归一（去 fragment/尾斜杠、保留 query），必须 HTTPS；
   - 同 URL 去重 → `vpmRepoConflict`；
-  - 未同意网络时只加条目、不刷新；
-  - 已同意时尝试刷新；失败保留条目 + `lastErrorCode`，不抛网络错误。
+  - 联网关闭时只加条目、不刷新；
+  - 联网开启时尝试刷新；失败保留条目 + `lastErrorCode`，不抛网络错误。
 - `removeRepo(id)`：只删索引（FK 级联包行）；不删缓存/工程；找不到 → `vpmRepoNotFound`。
 - `refreshRepo(id)`：返回 `{repo,status,packageCount,errorCode}`；
   - 304 → 只更新 fetch 元数据，包行不动；
   - 200 → 解析 + 单事务替换包行 + 更新 ETag/时间；失败保留旧行；
   - 同仓库并发去重；刷新失败返回 `status:'error'`，不把整个服务带崩。
 - `refreshAll()`：只刷启用仓库，默认 2 并发；每仓库独立结果。
-- `seedIfEmpty()`：已同意且仓库表为空时加入 official/curated（排序 0/1）；
+- `seedIfEmpty()`：联网开启且仓库表为空时加入 official/curated（排序 0/1）；
   **只建条目，不自动刷新**，避免启动时突然联网。
 - `dispose()`：中止 in-flight HTTP，后续不再写库。
 
@@ -40,7 +40,7 @@
 
 ## 失败模式
 
-- 无同意：`refreshRepo` 记录 `vpmNetworkNotConsented`，不发请求；`addRepo` 不自动刷新。
+- 联网关闭：`refreshRepo` 记录 `vpmNetworkNotConsented`，不发请求；`addRepo` 不自动刷新。
 - 网络/超时/坏 JSON/超限：记录对应 `vpmHttp*/vpmRepo*`，保留旧包行。
 - 包行替换失败：事务回滚，记录错误码。
 - 找不到仓库：`vpmRepoNotFound`（单个方法）；`refreshAll` 捕获并给出 error 结果。

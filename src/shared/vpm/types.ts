@@ -17,6 +17,8 @@ export interface VpmRollbackSnapshot {
 export interface VpmSettingsFile {
   schemaVersion: typeof VPM_SETTINGS_SCHEMA_VERSION
   enabled: boolean
+  /** 默认 true；用户可在仓库区关闭。 */
+  networkEnabled: boolean
   networkConsentAt: string | null
   dataRoot: string | null
   cacheQuotaGb: number

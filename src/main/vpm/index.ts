@@ -9,7 +9,7 @@ export interface InitVpmOptions {
   /** gate 已校验过的非 C 数据根；runtime 仍会用 cache 的路径检查兜底。 */
   dataRoot: string
   userAgent: string
-  /** 必须读实时同意状态；未同意时 HTTP 端口 fail closed。 */
+  /** 必须读实时联网开关；关闭时 HTTP 端口 fail closed。 */
   isNetworkAllowed: () => boolean
   now?: () => number
   fetchConcurrency?: number

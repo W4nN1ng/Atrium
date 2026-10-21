@@ -54,7 +54,16 @@ beforeEach(async () => {
 
   store.replaceRepoPackages('a', [
     pkg({ version: '1.9.0', displayName: 'Foo A', zipSha256: 'a'.repeat(64) }),
-    pkg({ version: '1.10.0', displayName: 'Foo Latest', zipSha256: 'b'.repeat(64), unityMin: '2022.3' }),
+    pkg({
+      version: '1.10.0',
+      displayName: 'Foo Latest',
+      zipSha256: 'b'.repeat(64),
+      unityMin: '2022.3',
+      manifestJson: JSON.stringify({
+        changelogUrl: 'https://example.test/changelog',
+        documentationUrl: 'https://example.test/docs'
+      })
+    }),
     pkg({ name: 'com.bar', version: '2.0.0', displayName: 'Bar', zipSha256: 'c'.repeat(64), aliasesJson: '["bar-alias"]' }),
     pkg({ name: 'com.hidden', version: '1.0.0', hidden: true, zipSha256: 'e'.repeat(64) }),
     pkg({ name: 'com.baz', version: '1.0.0', yanked: true, yankedReason: 'broken', zipSha256: 'f'.repeat(64) })
@@ -96,7 +105,11 @@ describe('CatalogService', () => {
 
   it('flags same-version different hashes instead of choosing one', () => {
     const detail = catalog.getPackage('com.foo')!
-    expect(detail.versions[0].version).toBe('1.10.0')
+    expect(detail.versions[0]).toMatchObject({
+      version: '1.10.0',
+      changelogUrl: 'https://example.test/changelog',
+      documentationUrl: 'https://example.test/docs'
+    })
     expect(detail.versions[1].version).toBe('1.9.0')
     expect(detail.conflicts).toEqual([
       {

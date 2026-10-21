@@ -131,6 +131,7 @@ src/main/vpm/types.ts
   interface VpmSettingsFile {
     schemaVersion: 1
     enabled: boolean
+    networkEnabled: boolean
     networkConsentAt: string | null
     dataRoot: string | null
     cacheQuotaGb: number
@@ -143,7 +144,7 @@ src/main/vpm/types.ts
   }
   ```
 
-- 默认：`enabled=false`、`networkConsentAt=null`、`dataRoot=null`、
+- 默认：`enabled=false`、`networkEnabled=true`、`networkConsentAt=null`、`dataRoot=null`、
   `cacheQuotaGb=20`、`vaultQuotaGb=20`、`allowPrerelease=false`、
   `hiddenPackageIds=[]`、`defaultUnityArgs=''`、`checkUpdates=false`。
 - 读取：

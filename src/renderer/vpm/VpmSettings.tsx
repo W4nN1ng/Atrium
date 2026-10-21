@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { VpmDataRootValidation, VpmStatus } from '../../shared/vpm/types'
-import { errorText } from '../lib/msg'
+import { errorText, msg } from '../lib/msg'
 import { Badge, Button, Field, Modal } from '../components/ui'
 import { vpmApi } from './api'
+import { VpmWorkspace } from './VpmWorkspace'
 
 function shortHash(value: string): string {
   return value.length > 16 ? `${value.slice(0, 12)}…${value.slice(-4)}` : value
@@ -123,6 +124,9 @@ export function VpmSettings(): JSX.Element {
       {status?.degraded ? (
         <div className="mb-3 rounded border px-3 py-2 text-[11px] leading-relaxed" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}>
           {t('vpm.degradedBody')}
+          {status.degradedCode ? (
+            <div className="mt-1">{msg(`vpm.errors.${status.degradedCode}`, undefined, status.degradedCode)}</div>
+          ) : null}
         </div>
       ) : null}
       {status?.configRecovered ? (
@@ -171,9 +175,7 @@ export function VpmSettings(): JSX.Element {
               {t('vpm.disable')}
             </Button>
           </div>
-          <div className="mt-3 rounded border px-3 py-2 text-[11px] leading-relaxed" style={{ borderColor: 'var(--line-2)', color: 'var(--muted)' }}>
-            {t('vpm.placeholder')}
-          </div>
+          {!status.safeMode && !status.degraded ? <VpmWorkspace enabled={status.enabled} /> : null}
         </div>
       ) : null}
 

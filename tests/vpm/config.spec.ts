@@ -6,10 +6,12 @@ import { P, setAppPathsForTest } from '../../src/main/services/paths'
 import {
   defaultVpmSettings,
   grantNetworkConsent,
+  isNetworkEnabled,
   isValidVpmSettings,
   readNetworkConsent,
   readVpmSettings,
   revokeNetworkConsent,
+  setNetworkEnabled,
   writeVpmSettings
 } from '../../src/main/vpm/config'
 import type { VpmSettingsFile } from '../../src/shared/vpm/types'
@@ -37,6 +39,7 @@ describe('VPM settings file', () => {
     expect(read.recovered).toBe(false)
     expect(read.settings).toEqual(defaultVpmSettings())
     expect(read.settings.enabled).toBe(false)
+    expect(read.settings.networkEnabled).toBe(true)
     expect(read.settings.dataRoot).toBeNull()
     expect(fs.existsSync(P.vpm())).toBe(false)
   })
@@ -115,6 +118,30 @@ describe('VPM settings file', () => {
 })
 
 describe('VPM network consent', () => {
+  it('defaults network on and reads legacy files without the field as on', () => {
+    expect(isNetworkEnabled()).toBe(true)
+    fs.mkdirSync(P.vpm(), { recursive: true })
+    const legacy = { ...defaultVpmSettings() } as Record<string, unknown>
+    delete legacy.networkEnabled
+    fs.writeFileSync(P.vpmSettings(), JSON.stringify(legacy), 'utf8')
+    expect(readVpmSettings().settings.networkEnabled).toBe(true)
+    expect(isNetworkEnabled()).toBe(true)
+  })
+
+  it('toggles network without touching the data root or repository settings', () => {
+    writeVpmSettings({ ...defaultVpmSettings(), enabled: true, dataRoot: 'E:\\AtriumVPM' })
+    expect(setNetworkEnabled(false)).toBe(false)
+    expect(isNetworkEnabled()).toBe(false)
+    expect(readVpmSettings().settings).toMatchObject({
+      enabled: true,
+      dataRoot: 'E:\\AtriumVPM',
+      networkEnabled: false
+    })
+    expect(setNetworkEnabled(true)).toBe(true)
+    expect(isNetworkEnabled()).toBe(true)
+    expect(readVpmSettings().settings.networkConsentAt).toBeTruthy()
+  })
+
   it('is null by default and round-trips without touching other settings', () => {
     expect(readNetworkConsent()).toBeNull()
 
