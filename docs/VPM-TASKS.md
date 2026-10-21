@@ -48,7 +48,7 @@
 | P1-C | HTTP、缓存与联网开关 | P1-A | `http/`、`cache/`、联网开关、fake 测试 | C8/C9/C10/G2/I6 | done |
 | P1-D | 仓库服务、官方/curated 与来源合并 | P1-B/P1-C | `reposService`、`catalog`、种子仓库 | C1/C2/C8/C10/C14/B15 | done |
 | P1-E | 只读包目录 UI、IPC 与三语 | P1-D | 仓库区、包抽屉、联网开关、IPC | B1/B2/B3/B13/B14 | done |
-| P2-A | Unity 编辑器发现与手动添加 | P1-B | `unity/editors`、vpm.db v2、Hub 配置 | D1/D2/D3/D4/F4 | todo |
+| P2-A | Unity 编辑器发现与手动添加 | P1-B | `unity/editors`、vpm.db v2、Hub 配置 | D1/D2/D3/D4/F4 | done |
 | P2-B | 工程读取纯逻辑与 legacy 报告 | P1-A | `shared/vpm/domain/project.ts`、manifest 读取、fixtures | A1/A3/B17/A22 | todo |
 | P2-C | 工程台账 v2、VCC 工程与核心整合 | P2-A/P2-B | `projects/ledger`、vpm.db v2、只读 VCC 工程 | A1/A2/A3/A18/A23/B28/F1 | todo |
 | P2-D | 只读工程页 UI 与 IPC | P2-C | 工程列表/详情、打开文件夹、运行状态 | A1/A2/A3/A14/A18/A20/B17/B28 | todo |
@@ -88,8 +88,9 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E 已完成，下一个执行任务是 **P2-A**（Unity 编辑器发现与手动添加）。
-> P2-A 开工前先读 §12 的 P1-A…P1-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A 已完成，下一个执行任务是 **P2-B**
+> （工程读取纯逻辑与 legacy 报告）；P2-B 可与 P2-C 的准备工作并行，但 P2-C 仍要等 P2-B。
+> 开工前先读 §12 的 P1-A…P2-A 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -398,6 +399,32 @@ Task: P?-?
   需要展示包时继续用 `CatalogService` 的 DTO，不要把仓库 JSON/DB 行带给 UI。
 - **给 P2-E/P5-E**：素材联动是硬需求；P2-E 做核心启动绑定/优先级，P5-E 真机验
   “打开工程 → 双击素材进该工程”，不要等 P8 再补。
+
+### P2-A（2026-10-22，done）
+
+- **公开 API/契约**：`src/main/vpm/unity/` 导出 `discoverUnityEditors(options?)`、
+  `UnityInstallStore`、`UnityEditorService`、`listUnityInstalls(db)`、
+  `parseHubEditorRecords/parseInstallRoots/parseUnityVersion/parseUnityArch` 与类型；
+  `VpmRuntime.unity` 可在不启动 Unity 的情况下 discovery/refresh/addManual。
+- **发现**：只读 `%APPDATA%\UnityHub\editors-v2.json`/`editors.json`、
+  `secondaryInstallPath.json`/`settings.json` 的绝对安装根，再扫描
+  `%ProgramFiles%\Unity\Hub\Editor`、`%ProgramFiles(x86)%\...`、`%LOCALAPPDATA%\...`。
+  路径 realpath + 大小写不敏感去重；同一路径只留一条，不删除旧记录，只标 missing。
+- **版本/架构**：优先 Hub 版本/revision，其次路径 `YYYY.MINOR.PATCH[abfp]N[cN]`；
+  未知版本 `versionUnknown`，手动添加默认拒绝并给 `vpmUnityVersionUnknown`；
+  未知架构按 x86_64 显示但 `archInferred=true`，DB 存 null；不启动 Unity 询问。
+- **数据**：`vpm.db` v2 建 `vpm_unity_install` + `vpm_project`/`vpm_project_package`
+  （后两张供 P2-C 使用，避免两卡抢同一迁移版本）；v1→v2 迁移前备份、必需表/完整性检查。
+- **错误码**：新增 `vpmUnityNotFound/Invalid/AccessDenied/VersionUnknown`，三语齐全。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **169 passed / 9 skipped files（178）**、**2211 passed / 19 skipped tests（2230）**；
+  定向 editors/db/runtime/errors/gate 38 条全绿。
+  真实只读发现本机 `E:\unity\2022.3.22f1\Editor\Unity.exe`（source=scan，2022.3.22f1）。
+- **未验证**：编辑器选择 UI/IPC（P2-D/P5-D）；启动 Unity；其他 Unity 版本真机；
+  无权限/损坏 PE 的真机错误路径（单测用 fake 文件）。
+- **给 P2-B/P2-C**：工程表 v2 已建好，P2-C 不要再加迁移；工程读取继续只读。
+- **给 P5-D**：版本匹配用 `UnityInstall.version`/`versionWithRevision`；
+  `source`/`missing`/`archInferred` 仅供展示/筛选，不要启动 Unity 去校验。
 
 ---
 

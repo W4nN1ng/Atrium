@@ -34,6 +34,7 @@ P1-D 当前已落地：
   需要时种子 official/curated；不注册 IPC。
 - `reposService.ts`：仓库增删/刷新/种子/错误隔离；见 `reposService.README.md`。
 - `catalog/`：只读目录合并/搜索/冲突；见 `catalog/README.md`。
+- `unity/`：只读发现 Unity Hub/安装根，v2 编辑器仓储；见 `unity/README.md`。
 - `ipc/`：P1 只读仓库/目录/联网开关 IPC + 刷新事件；见 `ipc/README.md`。
 - `gate.ts`：enabled 时动态加载 runtime，`startVpmRuntime()` 在 app ready 调用；
   初始化失败只置 `degraded + degradedCode`，核心继续。
@@ -67,6 +68,7 @@ P2 起：
 - `tests/vpm/gate.spec.ts`、`config.spec.ts`、`data-root.spec.ts`、`static-imports.spec.ts`
 - `tests/vpm/runtime.spec.ts`、`repos/repos-service.spec.ts`、`catalog/*.spec.ts`
 - `tests/vpm/ipc/vpm-ipc.spec.ts`、`tests/renderer/vpm-api.spec.ts`、`tests/renderer/vpm-view.spec.ts`
+- `tests/vpm/unity/editors.spec.ts`、`tests/vpm/db/migrate.spec.ts`
 - 架构边界：`tests/vpm/architecture.spec.ts`
 - 运行：`npm test`；涉及 Electron 构建时再跑 `npm run build:dir`
 

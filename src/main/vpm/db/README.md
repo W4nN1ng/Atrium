@@ -25,6 +25,9 @@ VPM 独立库 `vpm.db` 的连接、版本检查、只前进迁移和迁移前备
 ## 数据 / 写入
 
 - 库文件：`P.vpmDb()` → `%APPDATA%\A\vpm\vpm.db`。
+- 当前 schema：v2。
+  - v1：`vpm_repo`、`vpm_repo_package`。
+  - v2：`vpm_unity_install`、`vpm_project`、`vpm_project_package`（工程表由 P2-C 使用，避免两卡抢同一个迁移版本）。
 - 备份：`P.vpmBackups()` → `%APPDATA%\A\vpm\backups\vpm.db.bak-v<from>-<ts>`。
 - 连接：WAL、`foreign_keys=ON`、`busy_timeout=5000`、`synchronous=NORMAL`。
 - 迁移前若 `user_version > 0` 且要升级：
