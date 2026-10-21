@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { VpmDataRootValidation, VpmStatus } from '../../shared/vpm/types'
 import { errorText } from '../lib/msg'
 import { Badge, Button, Field, Modal } from '../components/ui'
+import { vpmApi } from './api'
 
 function shortHash(value: string): string {
   return value.length > 16 ? `${value.slice(0, 12)}…${value.slice(-4)}` : value
@@ -23,7 +24,7 @@ export function VpmSettings(): JSX.Element {
 
   const refresh = async (): Promise<void> => {
     try {
-      const next = await window.a.vpm.status()
+      const next = await vpmApi.status()
       setStatus(next)
       setPageError(null)
     } catch (error) {
@@ -48,7 +49,7 @@ export function VpmSettings(): JSX.Element {
   const chooseRoot = async (): Promise<void> => {
     setDialogError(null)
     try {
-      const result = await window.a.vpm.pickDataRoot()
+      const result = await vpmApi.pickDataRoot()
       if (!result.path) return
       setPicked(result.path)
       setValidation(result.validation)
@@ -62,7 +63,7 @@ export function VpmSettings(): JSX.Element {
     setBusy(true)
     setDialogError(null)
     try {
-      const next = await window.a.vpm.enable(picked)
+      const next = await vpmApi.enable(picked)
       setStatus(next)
       setEnableOpen(false)
     } catch (error) {
@@ -76,7 +77,7 @@ export function VpmSettings(): JSX.Element {
     setBusy(true)
     setDialogError(null)
     try {
-      const next = await window.a.vpm.disable()
+      const next = await vpmApi.disable()
       setStatus(next)
       setDisableOpen(false)
     } catch (error) {
