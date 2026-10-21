@@ -55,7 +55,7 @@
 | P2-E | 当前工程与导入目标联动（核心） | P2-D | 目标绑定/优先级、工程页目标徽标、测试 | K1/K3/K6 | done |
 | P3-A | 版本、范围、Unity 兼容纯逻辑 | P1-B | `domain/version|range|unityVersion|packageId` | B10/B12/B16 | done |
 | P3-B | 解析器引擎、锁定与冲突 | P3-A/P1-D | `domain/resolver.ts`、候选/队列/冲突 | B10/B11/B12/B16/B22/K5 | done |
-| P3-C | 变更计划、卸载、升级全部与解释 | P3-B | `domain/plan.ts`、mark-and-sweep、upgradeAll | B5/B7/B8/B9/B11/B27 | todo |
+| P3-C | 变更计划、卸载、升级全部与解释 | P3-B | `domain/plan.ts`、mark-and-sweep、upgradeAll | B5/B7/B8/B9/B11/B27 | done |
 | P3-D | 解析测试矩阵与只读计划 UI/IPC | P3-C/P2-D | 冲突矩阵、计划预览、解释面板 | B9/B11/B27/I9 | todo |
 | P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | todo |
 | P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | todo |
@@ -88,9 +88,9 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B 已完成，
-> 下一个执行任务是 **P3-C**（变更计划、卸载、升级全部与解释）。
-> 开工前先读 §12 的 P1-A…P3-B 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B、P3-C 已完成，
+> 下一个执行任务是 **P3-D**（解析测试矩阵与只读计划 UI/IPC）。
+> 开工前先读 §12 的 P1-A…P3-C 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -562,6 +562,27 @@ Task: P?-?
   maxUpdates/深层环只用合成矩阵。
 - **给 P3-C**：解析器输出 selected/requirements/conflicts/missing/unused；计划层负责
   action/reason/downloads/disk/planId，不要把解析规则复制到 UI。
+
+### P3-C（2026-10-22，done）
+
+- **公开 API/契约**：`domain/plan.ts` 导出 `buildChangePlan`、`ChangePlanInput/ChangePlan`、
+  动作/原因/冲突/下载/磁盘类型。
+- **行为**：
+  - 从 resolver selected/installed 计算 install/upgrade/downgrade/reinstall/remove/keep；
+  - `from/to/isMajor/reason/requested/requiredBy/repoId/risk` 可解释；
+  - 移除只来自 resolver.unused，排除 protected/legacy/unlisted 和冲突/缺失包；
+  - upgradeAll 只发 upgrade 请求，根包升级、传递依赖尽力最新但不提升为根；
+  - 远端动作缺 URL/hash → blocked 且不产生 download；reinstall 无源 → missingSource；
+  - `downloads/disk`、`requiresUnityClosed`、稳定 `planHash`（canonical JSON）。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **178 passed / 9 skipped files（187）**、**2319 passed / 19 skipped tests（2338）**；
+  定向 plan/resolver 26 条全绿。覆盖安装/保持/升级/重装/移除/降级、独占/共享依赖、
+  冲突/缺失、missingHash/missingSource、protected/legacy、upgradeAll、空升级、
+  输入不变性和 catalog 顺序无关的稳定 hash。
+- **未验证**：P3-D IPC/UI 和主进程 planId 缓存尚未接；真实工程 locked/manifest 生成
+  计划未做；性能基准在 P3-D/P8。
+- **给 P3-D**：直接消费 `ChangePlan`，只读展示 changes/conflicts/missing/downloads/disk；
+  应用按钮不可用；不要重新解析或复制语义。
 
 ---
 
