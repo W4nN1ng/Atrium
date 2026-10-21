@@ -341,6 +341,9 @@ export interface ProjectLinkagePort {
 }
 ```
 
+P2-E 先落地目标三方法（`currentTarget/bindLaunchTarget/clearLaunchTarget`）；
+`activity/acquireMaintenance` 由 P4-F 追加，属于同一个端口。
+
 规则：
 
 - `bindLaunchTarget` 是**应用状态**，不是工程文件写入；不需要 Unity 已运行。

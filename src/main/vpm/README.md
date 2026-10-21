@@ -36,6 +36,7 @@ P1-D 当前已落地：
 - `catalog/`：只读目录合并/搜索/冲突；见 `catalog/README.md`。
 - `unity/`：只读发现 Unity Hub/安装根，v2 编辑器仓储；见 `unity/README.md`。
 - `projects/`：工程台账、fs reader、VCC userProjects 只读导入；见 `projects/README.md`。
+- `linkage`（`shared/vpm/linkage.ts`）：核心导入目标的窄端口；`runtime.linkage` 由主进程注入。
 - `ipc/`：P1 只读仓库/目录/联网开关 IPC + 刷新事件；见 `ipc/README.md`。
 - `gate.ts`：enabled 时动态加载 runtime，`startVpmRuntime()` 在 app ready 调用；
   初始化失败只置 `degraded + degradedCode`，核心继续。

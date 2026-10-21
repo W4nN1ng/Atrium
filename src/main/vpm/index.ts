@@ -11,6 +11,7 @@ import {
   type VccProjectSource
 } from './projects'
 import type { ProjectReaderPort } from '../../shared/vpm/domain/project'
+import type { ProjectLinkagePort } from '../../shared/vpm/linkage'
 import {
   UnityEditorService,
   UnityInstallStore,
@@ -33,6 +34,8 @@ export interface InitVpmOptions {
   vccProjects?: VccProjectSource
   /** 测试可替换 fs reader；默认使用 ProjectFsReader。 */
   projectReader?: (projectPath: string) => ProjectReaderPort
+  /** 核心导入目标/启动绑定；P5-D 启动工程前调用。 */
+  projectLinkage?: ProjectLinkagePort
 }
 
 export interface VpmRuntime {
@@ -43,6 +46,7 @@ export interface VpmRuntime {
   catalog: CatalogService
   unity: UnityEditorService
   projects: ProjectsService
+  linkage?: ProjectLinkagePort
   dispose(): void
 }
 
@@ -96,6 +100,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       catalog,
       unity,
       projects,
+      linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return
         disposed = true

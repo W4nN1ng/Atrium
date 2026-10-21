@@ -294,6 +294,7 @@
     "manage": "Manage projects (refresh / install bridge)…",
     "detectNote": "Running state = union of three probes: lockfile / bridge heartbeat / process command line",
     "isTarget": "current import target",
+    "targetWaiting": "waiting for Unity",
     "setTarget": "Set as import target",
     "installBridge": "Install bridge",
     "uninstallBridge": "Uninstall bridge",

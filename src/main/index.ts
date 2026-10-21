@@ -135,6 +135,18 @@ function bootstrap(): void {
     readVccProjects: () => {
       const manifest = readVccManifest()
       return { paths: manifest.projects, error: manifest.error }
+    },
+    projectLinkage: {
+      currentTarget: () => {
+        const snapshot = connections?.snapshot()
+        if (!snapshot?.targetProjectId) return null
+        const project = snapshot.projects.find((item) => item.projectId === snapshot.targetProjectId)
+        return project
+          ? { projectId: project.projectId, path: project.projectPath, phase: project.phase }
+          : null
+      },
+      bindLaunchTarget: (projectId) => connections?.bindLaunchTarget(projectId),
+      clearLaunchTarget: (projectId) => connections?.clearLaunchTarget(projectId)
     }
   })
 

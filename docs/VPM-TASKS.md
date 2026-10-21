@@ -52,7 +52,7 @@
 | P2-B | 工程读取纯逻辑与 legacy 报告 | P1-A | `shared/vpm/domain/project.ts`、manifest 读取、fixtures | A1/A3/B17/A22 | done |
 | P2-C | 工程台账 v2、VCC 工程与核心整合 | P2-A/P2-B | `projects/ledger`、vpm.db v2、只读 VCC 工程 | A1/A2/A3/A18/A23/B28/F1 | done |
 | P2-D | 只读工程页 UI 与 IPC | P2-C | 工程列表/详情、打开文件夹、运行状态 | A1/A2/A3/A14/A18/A20/B17/B28 | done |
-| P2-E | 当前工程与导入目标联动（核心） | P2-D | 目标绑定/优先级、工程页目标徽标、测试 | K1/K3/K6 | todo |
+| P2-E | 当前工程与导入目标联动（核心） | P2-D | 目标绑定/优先级、工程页目标徽标、测试 | K1/K3/K6 | done |
 | P3-A | 版本、范围、Unity 兼容纯逻辑 | P1-B | `domain/version|range|unityVersion|packageId` | B10/B12/B16 | todo |
 | P3-B | 解析器引擎、锁定与冲突 | P3-A/P1-D | `domain/resolver.ts`、候选/队列/冲突 | B10/B11/B12/B16/B22/K5 | todo |
 | P3-C | 变更计划、卸载、升级全部与解释 | P3-B | `domain/plan.ts`、mark-and-sweep、upgradeAll | B5/B7/B8/B9/B11/B27 | todo |
@@ -88,9 +88,9 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D 已完成，下一个执行任务是 **P2-E**
-> （当前工程与导入目标联动）；P2-E 只做核心目标状态/优先级，不改工程文件。
-> 开工前先读 §12 的 P1-A…P2-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E 已完成，下一个执行任务是 **P3-A**
+> （版本/范围/Unity 兼容纯逻辑）；VPM 启动绑定已可用，但真正“打开 Unity”在 P5-D/P5-E。
+> 开工前先读 §12 的 P1-A…P2-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -495,6 +495,27 @@ Task: P?-?
   `vpm-p2d-add.png`、`vpm-p2d-projects-125.png`。
 - **给 P2-E**：目标状态只看核心 `UnityConnections`；VPM 台账不保存当前目标；
   工程页可显示目标徽标，但不要复制一份当前工程。
+
+### P2-E（2026-10-22，done）
+
+- **公开 API/契约**：`UnityConnections` 新增 `bindLaunchTarget/clearLaunchTarget`；
+  `UnityConnectionSnapshot.targetMode` 增加 `launch`，新增 `targetPending`；
+  `shared/vpm/linkage.ts` 定义 `ProjectLinkagePort` 目标三方法；
+  `VpmRuntime.linkage` + gate `projectLinkage` 由 main 注入。
+- **优先级/清理**：显式 `select` > 启动绑定 > 单工程自动；启动绑定允许 closed；
+  显式选择清除启动绑定；工程移除、启动后关闭、启动绑定被调用方取消时清除；
+  选择 `null` 同时清启动绑定。绑定不跨重启持久化。
+- **导入等待**：`prepare()` 对“启动绑定但还没运行”的工程不立即报 closed，
+  按 180s/取消规则等待；resolveTarget 返回该工程，不会弹目标选择器/改投别的工程。
+- **UI**：核心工程页显示当前目标徽标；启动等待时显示“等待 Unity 启动”；
+  VPM 项目区通过同一快照显示目标徽标（不新增第二份目标状态）。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **173 passed / 9 skipped files（182）**、**2242 passed / 20 skipped tests（2262）**；
+  定向 connections/renderer/architecture/i18n 105 条全绿。
+- **未验证**：真正从 Atrium 启动 Unity 并触发绑定（P5-D/P5-E）；真 Unity 双击等待；
+  VPM 行目标徽标的真机视觉（只有 props wiring 测试）。
+- **给 P5-D/P5-E**：spawn 前调用 `runtime.linkage?.bindLaunchTarget(projectId)`；
+  失败/取消调用 `clearLaunchTarget`；P5-E 真机验双击等待，不要另建目标状态。
 
 ---
 

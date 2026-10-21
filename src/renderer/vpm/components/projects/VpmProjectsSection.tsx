@@ -148,7 +148,13 @@ function DetailBody({ detail }: { detail: VpmProjectDetailDto }): JSX.Element {
   )
 }
 
-export function VpmProjectsSection(): JSX.Element | null {
+export function VpmProjectsSection({
+  targetProjectId = null,
+  targetPending = false
+}: {
+  targetProjectId?: string | null
+  targetPending?: boolean
+}): JSX.Element | null {
   const { t } = useTranslation()
   const projects = useVpmProjects()
   const [query, setQuery] = useState('')
@@ -292,6 +298,12 @@ export function VpmProjectsSection(): JSX.Element | null {
                   <Badge tone={item.running ? 'ok' : 'default'}>
                     {item.running ? t('vpm.projects.running') : t('vpm.projects.notRunning')}
                   </Badge>
+                  {item.coreId && item.coreId === targetProjectId ? (
+                    <Badge tone="accent">{t('project.isTarget')}</Badge>
+                  ) : null}
+                  {item.coreId && item.coreId === targetProjectId && targetPending ? (
+                    <Badge tone="warn">{t('project.targetWaiting')}</Badge>
+                  ) : null}
                   {!item.linked ? <Badge tone="warn">{t('vpm.projects.unlinkedShort')}</Badge> : null}
                   {item.legacyCount ? (
                     <Badge tone="warn">{t('vpm.projects.legacyCount', { count: item.legacyCount })}</Badge>

@@ -294,6 +294,7 @@
     "manage": "管理工程（刷新 / 安装桥接）…",
     "detectNote": "运行状态三路取并集判定：锁文件 / 桥接心跳 / 进程命令行",
     "isTarget": "当前导入目标",
+    "targetWaiting": "等待 Unity 启动",
     "setTarget": "设为导入目标",
     "installBridge": "安装桥接",
     "uninstallBridge": "卸载桥接",

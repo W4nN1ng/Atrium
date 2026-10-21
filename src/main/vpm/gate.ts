@@ -18,6 +18,7 @@ import type {
   CoreProjectSummary,
   VccProjectsRead
 } from './projects'
+import type { ProjectLinkagePort } from '../../shared/vpm/linkage'
 import {
   VPM_SETTINGS_SCHEMA_VERSION,
   type VpmDataRootContext,
@@ -46,6 +47,8 @@ export interface VpmGateDeps {
   registerCoreProject?(input: CoreProjectInput): CoreProjectSummary
   /** VCC settings.json 的只读 userProjects。 */
   readVccProjects?(): VccProjectsRead
+  /** 核心当前导入目标/启动绑定；P5-D 启动工程前调用。 */
+  projectLinkage?: ProjectLinkagePort
   appVersion?(): string
   appInstallDirs?(): string[]
   /** 主进程事件广播；P1-E 的刷新进度用。 */
@@ -206,7 +209,8 @@ async function ensureRuntime(): Promise<void> {
           : undefined,
         vccProjects: readVccProjects
           ? { read: () => readVccProjects() }
-          : undefined
+          : undefined,
+        projectLinkage: gateDeps.projectLinkage
       })
       if (generation !== runtimeGeneration) {
         handle.dispose()

@@ -28,6 +28,7 @@ P1 起（见 `docs/VPM-ARCHITECTURE.md` §4）：
 - `domain/hash.ts`：纯 TS SHA-256（工程指纹/短名；不 import `node:crypto`）。
 - `domain/project.ts`：P2-B 的工程快照纯逻辑（ProjectVersion、vpm-manifest、Packages、
   legacy 报告、指纹）；文件读取由 `ProjectReaderPort` 注入。
+- `linkage.ts`：P2-E 的 `ProjectLinkagePort`（当前目标/启动绑定/清除）；P4-F 再扩展活动租约。
 - 后续：`domain/range|unityVersion|packageId|manifest|template|plan|resolver|unitypackage`
 - `dto/`：IPC 请求/响应形状，不包含数据库行。
 

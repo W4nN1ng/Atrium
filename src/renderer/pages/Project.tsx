@@ -101,6 +101,9 @@ export function Project(): JSX.Element {
                   <div className="flex items-center gap-2">
                     <span className="truncate text-[13px]">{p.name}</span>
                     {isTarget ? <Badge tone="accent">{t('project.isTarget')}</Badge> : null}
+                    {isTarget && connection.targetPending ? (
+                      <Badge tone="warn">{t('project.targetWaiting')}</Badge>
+                    ) : null}
                   </div>
                   <div className="truncate text-[11px]" style={{ color: 'var(--faint)' }}>
                     {p.path}
@@ -154,7 +157,10 @@ export function Project(): JSX.Element {
 
       {historyProject !== undefined ? <ImportHistoryDialog projectId={historyProject} onClose={() => setHistoryProject(undefined)} /> : null}
       <Suspense fallback={null}>
-        <VpmProjectsSection />
+        <VpmProjectsSection
+          targetProjectId={connection.targetProjectId}
+          targetPending={connection.targetPending === true}
+        />
       </Suspense>
       <div className="shrink-0 border-t px-3 py-2 text-[11px]" style={{ borderColor: 'var(--line)', color: 'var(--muted)' }}>
         {t('project.target')}:{' '}

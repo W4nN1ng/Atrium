@@ -457,6 +457,78 @@ describe('import target selection', () => {
   })
 })
 
+describe('launch target binding', () => {
+  it('binds a closed project immediately and clears after it was running then closes', () => {
+    const p = project('launch', { running: false })
+    const h = harness()
+    h.controller.update([p])
+
+    h.controller.bindLaunchTarget(p.id)
+    expect(h.controller.snapshot()).toMatchObject({
+      targetProjectId: p.id,
+      targetMode: 'launch',
+      targetPending: true,
+      ambiguous: false
+    })
+
+    h.controller.update([{ ...p, running: true }])
+    expect(h.controller.snapshot()).toMatchObject({
+      targetProjectId: p.id,
+      targetMode: 'launch',
+      targetPending: false
+    })
+
+    h.controller.update([{ ...p, running: false }])
+    expect(h.controller.snapshot()).toMatchObject({ targetProjectId: null, targetMode: 'auto' })
+  })
+
+  it('waits for a launch-bound closed project instead of failing target preparation', async () => {
+    vi.useFakeTimers()
+    const p = project('launch-wait', { running: false })
+    const h = harness()
+    h.controller.update([p])
+    h.controller.bindLaunchTarget(p.id)
+
+    const waiting = h.controller.prepare(p.id, { timeoutMs: 5_000 })
+    await flush()
+    h.statuses.set(p.path, { ...asleep, bridgeReady: true })
+    h.controller.update([{ ...p, running: true }])
+    await vi.advanceTimersByTimeAsync(500)
+
+    await expect(waiting).resolves.toMatchObject({ projectId: p.id, phase: 'ready' })
+  })
+
+  it('lets explicit selection override a launch binding and selection(null) clear both', () => {
+    const a = project('a')
+    const b = project('b')
+    const h = harness()
+    h.controller.update([a, b])
+    h.controller.bindLaunchTarget(a.id)
+    expect(h.controller.snapshot()).toMatchObject({ targetProjectId: a.id, targetMode: 'launch' })
+
+    h.controller.select(b.id)
+    expect(h.controller.snapshot()).toMatchObject({ targetProjectId: b.id, targetMode: 'manual', targetPending: false })
+
+    h.controller.select(null)
+    expect(h.controller.snapshot()).toMatchObject({ targetProjectId: null, targetMode: 'auto', ambiguous: true })
+  })
+
+  it('clears a launch binding when the project disappears or the caller cancels it', () => {
+    const a = project('a')
+    const b = project('b')
+    const h = harness()
+    h.controller.update([a, b])
+    h.controller.bindLaunchTarget(a.id)
+    h.controller.update([b])
+    expect(h.controller.snapshot()).toMatchObject({ targetProjectId: b.id, targetMode: 'auto' })
+
+    h.controller.bindLaunchTarget(b.id)
+    h.controller.clearLaunchTarget(b.id)
+    expect(h.controller.snapshot()).toMatchObject({ targetProjectId: b.id, targetMode: 'auto' })
+    expect(() => h.controller.bindLaunchTarget('missing')).toThrow('project.connectionProjectMissing')
+  })
+})
+
 describe('fixed-project connection preparation', () => {
   it('waits for a real heartbeat and keeps its project when the global choice changes', async () => {
     vi.useFakeTimers()
