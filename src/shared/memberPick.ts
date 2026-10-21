@@ -201,11 +201,14 @@ export function batchesOf<T>(list: T[], max: number): T[][] {
  * 漂的结果是"双击一张卡让我选成员，框选同样的卡却偷偷导了第一个包"，
  * 而后者是拿用户工程当试验田。
  *
- * 判据（与 `importAsset` 原样等价，别"顺手改严"）：
+ * 判据（2026-10-21 交互简化后）：
  *  - `empty` 这张卡没有可导入的包；
- *  - `needs-choice` 有**要抽出来才有路径**的成员，且这张卡不止那一个候选
- *    （好几个成员、或者"一个成员 + 一个直导包"混着 —— 两种都是真有两件事要选）；
+ *  - `needs-choice` 这张卡**不止一个候选** —— 不管它们是要抽出来才有路径的成员，
+ *    还是磁盘上就摆着的多个 `.unitypackage`。移除所有导入按钮之后，双击是唯一入口；
+ *    再"先导第一个"就等于替用户挑，而且旧提示会指向一个不存在的"卡内部"；
  *  - `single` 只有一个候选 → 直接导，`indexes[0]` 就是它。
+ *
+ * 多选批量对 `needs-choice` 的卡跳过并如实报数（`importSelected` 原有语义）。
  */
 export function cardImportChoice(packages: Array<{ path: string | null }>): {
   kind: 'empty' | 'single' | 'needs-choice'
@@ -213,9 +216,7 @@ export function cardImportChoice(packages: Array<{ path: string | null }>): {
   indexes: number[]
 } {
   if (!packages.length) return { kind: 'empty', indexes: [] }
-  const needExtract = packages.map((p, i) => (p.path === null ? i : -1)).filter((i) => i >= 0)
-  if (needExtract.length && packages.length > 1) return { kind: 'needs-choice', indexes: [] }
-  if (needExtract.length === 1) return { kind: 'single', indexes: [needExtract[0]] }
+  if (packages.length > 1) return { kind: 'needs-choice', indexes: [] }
   return { kind: 'single', indexes: [0] }
 }
 

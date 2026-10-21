@@ -32,7 +32,6 @@ export function DetailPanel(): JSX.Element {
   /** 顶栏当前选的导入目标：反查列表要把"就是现在这个工程"标出来 */
   const targetProjectId = useUi((s) => s.unity.targetProjectId)
   const importTargetName = useUi((s) => s.connection.projects.find((p) => p.projectId === s.connection.targetProjectId)?.name)
-  const importBusy = useUi((s) => s.importFlow.busy || s.targetPicker.open)
   const locale = i18n.language as LocaleKey
 
   const [cat, setCat] = useState('')
@@ -315,14 +314,17 @@ export function DetailPanel(): JSX.Element {
       </div>
 
       <div className="mt-auto flex flex-col gap-2 border-t p-3" style={{ borderColor: 'var(--line)' }}>
-        <Button
-          variant="accent"
-          disabled={importBusy}
-          onClick={() => void useUi.getState().importAsset(asset.id)}
-          title={t('library.importToUnityHint')}
-        >
-          {importTargetName ? t('library.importToProject', { name: importTargetName }) : t('library.importToUnity')}
-        </Button>
+        {/*
+          2026-10-21 · 常驻导入按钮已按用户裁定移除。
+          这一行不是按钮，只是告诉用户手势往哪儿走；目标名沿用顶栏/自动解析的结果。
+        */}
+        <div className="text-[11px] leading-relaxed" style={{ color: 'var(--faint)' }}>
+          {asset.is_bundle === 1
+            ? t('library.holdToOpen')
+            : importTargetName
+              ? t('library.dblclickImportHint', { name: importTargetName })
+              : t('library.dblclickImportHintNoTarget')}
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button
             disabled={!(asset.library_path ?? asset.source_path)}

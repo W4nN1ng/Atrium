@@ -330,11 +330,12 @@ describe('接线', () => {
     expect(app).toContain('<BatchImportDialog />')
   })
 
-  it('Enter 多选走批量、单选走老路（以前框三张按回车只进去第一张）', async () => {
+  it('Enter 多选走批量、单选普通卡走 importAsset、单选合集走 importWhole', async () => {
     const fs = await import('node:fs')
     const app = fs.readFileSync('src/renderer/App.tsx', 'utf8')
-    expect(app).toContain('if (sel.length > 1) void useUi.getState().importSelected()')
-    expect(app).toContain('else if (sel.length === 1) void useUi.getState().importAsset(sel[0])')
+    expect(app).toContain('if (sel.length > 1) void st.importSelected()')
+    expect(app).toContain('if (card?.isBundle) void st.importWhole(sel[0])')
+    expect(app).toContain('else void st.importAsset(sel[0])')
   })
 
   it('主进程的 import-plan 真的认 items[] 这种入参（不认的话界面这套形状就是空谈）', async () => {

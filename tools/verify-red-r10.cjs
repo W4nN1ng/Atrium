@@ -3,6 +3,7 @@
  * **第 10 轮的回退验证器**：把本轮六块修复（A 滚动 / B 四颗假按钮 / C 筐摊平 /
  * D 卡名优先级 / E 拖放静默 / F 文案大扫除，外加 #112 那道按库判的刹车）
  * 逐处临时改回旧写法，跑一遍用例，确认它**真的会红**，然后无条件还原。
+ * 2026-10-21 交互简化又加了 I 组（双击导入 / 长按开合集 / 常驻按钮移除）。
  *
  * ## 这张表要钉住的三类毛病
  *
@@ -38,6 +39,7 @@ const SPECS = [
   'tests/classify',
   'tests/shared',
   'tests/renderer/r10-container-and-copy.spec.ts',
+  'tests/renderer/gesture-wiring.spec.ts',
   'tests/renderer/r10-drop.spec.ts',
   'tests/renderer/auto-remerge-wiring.spec.ts',
   'tests/renderer/i18n.spec.ts',
@@ -45,6 +47,8 @@ const SPECS = [
 ]
 
 const BD = 'src/renderer/components/BundleDetail.tsx'
+const AG = 'src/renderer/components/AssetGrid.tsx'
+const CG = 'src/shared/cardGesture.ts'
 const DO = 'src/renderer/components/DropOverlay.tsx'
 const APP = 'src/renderer/App.tsx'
 const BU = 'src/main/classify/bundle.ts'
@@ -68,41 +72,7 @@ const CASES = [
     patches: [{ file: BD, from: 'className="flex min-h-0 min-w-0 flex-1 flex-col"', to: 'className="flex min-w-0 flex-1 flex-col"' }],
     expect: ['⭐ 组件根那一层带 min-h-0', '旧的那一层写法没有第二处']
   },
-  // ---------------------------------------------------------------- B 四颗假按钮
-  {
-    title: 'B1. 行内那颗「导入」退回 disabled 的假按钮（报障 1 本尊）',
-    patches: [
-      {
-        file: BD,
-        from: `<Button className="shrink-0" onClick={() => void importAsset(r.id)} title={t('library.importToUnityHint')}>`,
-        to: `<Button className="shrink-0" disabled title={t('library.importToUnityHint')}>`
-      }
-    ],
-    expect: ['⭐ 行内那颗「导入」不再是 disabled']
-  },
-  {
-    title: 'B2. 容器里的双击退回那句过期占位（不吃「双击行为」，和外面两套动作）',
-    patches: [
-      {
-        file: BD,
-        from:
-          "                  if (settings.doubleClickAction === 'import') void importAsset(r.id)\n                  else if (settings.doubleClickAction === 'reveal') toast('info', t('library.revealHint'))",
-        to: "                  toast('info', t('library.importDeferred'))"
-      }
-    ],
-    expect: ['⭐ 行双击吃设置里的「双击行为」', '代码里不许再引用这批 key']
-  },
-  {
-    title: 'B3. 顶部那颗「整包」不预勾成员（面板开了却一个都没勾，等于让用户自己勾 22 下）',
-    patches: [
-      {
-        file: BD,
-        from: '                await openMemberPicker(bundleId)\n                pickAllMembers()',
-        to: '                await openMemberPicker(bundleId)'
-      }
-    ],
-    expect: ['顶部那颗「整包导入 Unity」不再是假的']
-  },
+  // ---------------------------------------------------------------- B 容器导入入口（2026-10-21 后只剩手势 + Enter）
   {
     title: 'B4. 容器里按 Enter 又只弹一句没人接的话（Q1 那条"统一和外面一样"的入口）',
     patches: [
@@ -416,6 +386,68 @@ const CASES = [
     title: 'G5. 落时间戳时不记是哪套库（下一次换库就松不开刹车）',
     patches: [{ file: UI, from: ', autoRemergeRunRoot: st.libraryRoot }', to: ' }', count: 2 }],
     expect: ['⭐ 落时间戳的两条路都连带落库根']
+  },
+  // ---------------------------------------------------------------- I 2026-10-21 双击导入 / 长按开合集
+  {
+    title: 'I1. 双击普通卡退回“进入合集”（长按才该干这个）',
+    patches: [
+      {
+        file: AG,
+        from: '        if (card.isBundle) {\n          void useUi.getState().importWhole(card.id)\n          return\n        }',
+        to: '        if (card.isBundle) {\n          setNav(\'bundle:\' + card.id)\n          return\n        }',
+        count: 2
+      }
+    ],
+    expect: ['双击普通卡走 importAsset']
+  },
+  {
+    title: 'I2. 长按对所有卡生效（普通卡也能长按，进度条到处闪）',
+    patches: [{ file: AG, from: 'enabled: card.isBundle', to: 'enabled: true', count: 2 }],
+    expect: ['只对合集卡生效']
+  },
+  {
+    title: 'I3. 长按时长改回 900ms（用户指定的 1 秒被悄悄改掉）',
+    patches: [{ file: CG, from: 'export const LONG_PRESS_MS = 1000', to: 'export const LONG_PRESS_MS = 900' }],
+    expect: ['用户指定 1 秒']
+  },
+  {
+    title: 'I4. 双击前的多选快照被清空（框三张、双击其中一张只导一张）',
+    patches: [
+      {
+        file: AG,
+        from: 'if (e.detail === 1) pressSelection.current = useUi.getState().selection',
+        to: 'pressSelection.current = []',
+        count: 2
+      }
+    ],
+    expect: ['多选快照']
+  },
+  {
+    title: 'I5. 双击合集只开面板不预勾（用户得自己勾 22 下）',
+    patches: [{ file: UI, from: '      get().pickAllMembers()', to: '      void 0' }],
+    expect: ['整包能力搬到网格双击合集']
+  },
+  {
+    title: 'I6. 详情面板把「导入到 Unity」按钮加回来（用户明确说以后不要再出现）',
+    patches: [
+      {
+        file: 'src/renderer/components/DetailPanel.tsx',
+        from: '        <div className="flex flex-wrap gap-2">',
+        to: "        <button type=\"button\">{t('library.importToUnity')}</button>\n        <div className=\"flex flex-wrap gap-2\">"
+      }
+    ],
+    expect: ['四个界面文件里不再引用这些 key']
+  },
+  {
+    title: 'I7. App 又抢容器内部的 Enter（容器里按一次，面板开两遍）',
+    /** App.tsx 是 CRLF —— 只能单行锚 */
+    patches: [{ file: APP, from: "        if (nav.startsWith('bundle:')) return", to: '' }],
+    expect: ['App 不抢容器内部的 Enter']
+  },
+  {
+    title: 'I8. 合集卡的 title 只剩长按、不再提双击导入（用户看不到鼠标的两条路）',
+    patches: [{ file: AG, from: "t('library.bundleTitleHint')", to: "t('library.holdToOpen')", count: 2 }],
+    expect: ['网格卡和列表行各挂一次长按']
   }
 ]
 

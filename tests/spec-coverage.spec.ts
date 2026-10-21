@@ -181,7 +181,7 @@ const RULES: Rule[] = [
   { id: 'R-64', what: '撤销写 import_log.status=rolledback + journal（op=import_rollback）', impl: ['src/main/import/coordinator.ts'], test: ['tests/import/coordinator.spec.ts'] },
   { id: 'R-65', what: '⚠ delete_guids 必须校验白名单 + Assets/ 前缀，绝不提供"按 GUID 随便删"', impl: ['resources/unity-bridge/com.avca.bridge/Editor/AVCABridge.cs'], test: ['tests/bridge/protocol-conformance.spec.ts', 'tests/bridge/ipc.spec.ts'] },
   { id: 'R-66', what: '被覆盖文件备份默认开，保留最近 20 次，超出走回收站', impl: ['src/main/import/coordinator.ts', 'src/shared/constants.ts'], test: ['tests/import/coordinator.spec.ts'] },
-  { id: 'R-67', what: '双击：图片打开预览；归档素材优先导入其中的 .unitypackage', impl: ['src/renderer/components/AssetGrid.tsx', 'src/main/bridge/ipc.ts'], test: ['tests/bridge/ipc.spec.ts'] },
+  { id: 'R-67', what: '双击素材卡导入（多包先开成员面板）；长按合集卡 1 秒打开；常驻导入按钮已移除（2026-10-21 交互简化）', impl: ['src/renderer/components/AssetGrid.tsx', 'src/renderer/lib/useLongPress.ts', 'src/shared/cardGesture.ts', 'src/renderer/stores/ui.ts'], test: ['tests/renderer/gesture-wiring.spec.ts', 'tests/shared/card-gesture.spec.ts', 'tests/shared/member-pick.spec.ts'] },
 
   // ------------------------------------------------ 1.9 Unity 侧 C#（16 条）
   { id: 'R-68', what: '§6 是最容易翻车的部分，逐条对照实现', impl: ['docs/BRIDGE.md'], test: ['tests/bridge/real-template.spec.ts'] },
@@ -886,7 +886,7 @@ const R4_RULES: M5bRule[] = [
   },
   {
     id: 'R4-09',
-    what: '一张卡能不能直导的判据**只写一处**（`cardImportChoice`），单卡与多选共用；不替他挑成员',
+    what: '一张卡能不能直导的判据**只写一处**（`cardImportChoice`），单卡与多选共用；多成员/多包都不替他挑',
     impl: ['src/shared/memberPick.ts', 'src/renderer/stores/ui.ts'],
     test: ['tests/shared/member-pick.spec.ts', 'tests/renderer/batch-import-store.spec.ts']
   },

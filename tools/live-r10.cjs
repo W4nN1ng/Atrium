@@ -1,6 +1,7 @@
 /**
  * 第 10 轮的活体：在真窗口里验 A 滚动 / B 容器里那四颗按钮 / C 筐摊平 / D 卡名优先级 /
  * E 拖放不再静默 / F 旧文案，外加 #112 那道按库判的刹车。
+ * 2026-10-21 追加 I 段：网格双击导入、合集长按 1 秒打开、常驻导入按钮已移除。
  *
  * ## 为什么单测绿了还要跑这一场
  *
@@ -117,7 +118,10 @@ const HELPERS = [
   "var find = function (sel, s) { return Array.prototype.slice.call(document.querySelectorAll(sel)).filter(function (e) { return txt(e).indexOf(s) >= 0 }) };",
   "var leaf = function (s) { var a = Array.prototype.slice.call(document.querySelectorAll('button,a,span,div')).filter(function (e) { return txt(e) === s }); return a.length ? a[a.length - 1] : null };",
   "var click = function (el) { if (!el) return 'NOELEMENT'; el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); return 'CLICKED' };",
-  "var dbl = function (el) { if (!el) return 'NOELEMENT'; el.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true })); return 'DBLCLICKED' };",
+  "var mclick = function (el, ctrl) { if (!el) return 'NOELEMENT'; el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1, ctrlKey: !!ctrl })); return 'CLICKED' };",
+  "var dbl = function (el) { if (!el) return 'NOELEMENT'; el.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, detail: 2 })); return 'DBLCLICKED' };",
+  "var cardOf = function (name) { var a = Array.prototype.slice.call(document.querySelectorAll('.card')); for (var i = 0; i < a.length; i++) { if (txt(a[i]).indexOf(name) >= 0) return a[i] } return null };",
+  "var pev = function (el, type, x, y) { if (!el) return 'NOELEMENT'; el.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, clientX: x || 0, clientY: y || 0 })); return 'PEV' };",
   "var dropTarget = function () { return document.querySelector('main') || document.querySelector('#root > div') || document.body };",
   "var overlay = function () { return document.querySelector('.fixed.inset-0') };",
   'var mkdt = function (files) { var d = new DataTransfer(); for (var i = 0; i < files.length; i++) d.items.add(files[i]); return d };',
@@ -134,7 +138,13 @@ function evalIn(expr) {
   let out = ''
   try {
     out = cp
-      .execFileSync(process.execPath, [path.join(HERE, 'cdp-eval.cjs'), '--file', f], { env, maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] })
+      .execFileSync(process.execPath, [path.join(HERE, 'cdp-eval.cjs'), '--file', f], {
+        env,
+        maxBuffer: 16 * 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        /** 渲染层导航/重启时 CDP 可能永远不回；没有这道闸，一整场活体会挂到天荒地老 */
+        timeout: 20000
+      })
       .toString('utf8')
       .trim()
   } catch (e) {
@@ -159,7 +169,7 @@ function wheel(findExpr, afterExpr, delta = 600, ticks = 3) {
       .execFileSync(
         process.execPath,
         [path.join(HERE, 'cdp-wheel.cjs'), '--find', findExpr, '--delta', String(delta), '--ticks', String(ticks), '--after', afterExpr],
-        { env, encoding: 'utf8' }
+        { env, encoding: 'utf8', timeout: 30000 }
       )
       .toString()
       .trim()
@@ -175,8 +185,13 @@ function wheel(findExpr, afterExpr, delta = 600, ticks = 3) {
 }
 function shot(name) {
   fs.mkdirSync(SHOTS, { recursive: true })
-  cp.execFileSync(process.execPath, [path.join(HERE, 'cdp-shot.cjs'), path.join(SHOTS, name)], { env, stdio: 'ignore' })
-  console.log('  📷 docs/screenshots/' + name)
+  try {
+    cp.execFileSync(process.execPath, [path.join(HERE, 'cdp-shot.cjs'), path.join(SHOTS, name)], { env, stdio: 'ignore', timeout: 20000 })
+    console.log('  📷 docs/screenshots/' + name)
+  } catch (e) {
+    /** 截图只是证据，不是判据；CDP 偶尔抽风不该把整场活体带崩（04:12 实测一次） */
+    console.log('  ⚠ 截图失败（不阻断）：' + name + ' · ' + String((e && e.message) || e).slice(0, 120))
+  }
 }
 
 const fails = []
@@ -277,7 +292,6 @@ fs.writeFileSync(
       onboardingDone: true,
       autoArchive: false,
       language: 'zh-CN',
-      doubleClickAction: 'import',
       autoRemergeRunAt: STAMP,
       autoRemergeRunRoot: LIB.split('\\').join('/')
     },
@@ -290,6 +304,15 @@ fs.writeFileSync(
 boot()
 if (!waitUntil('界面出来', () => bodyText().length > 200)) die('CDP 连不上或界面是空的')
 sleepSync(2500)
+const seenProjects = evalIn(`(async () => {
+  var p = await window.a.unity.listProjects();
+  return { n: p.length, names: p.map(function (x) { return x.name }) };
+})()`)
+if (seenProjects.n !== 0) {
+  killApp()
+  die('沙盒里看到了工程，拒绝继续（真 Unity 可能被登记进来了）：' + JSON.stringify(seenProjects))
+}
+console.log('工程发现：0 个（沙盒隔离正常）')
 
 /* --------------------------------------------------------- 3. E 拖放（先做，此刻库里没东西） */
 
@@ -422,18 +445,139 @@ evalIn(`(async () => {
   await sleep(300); return 'CLEARED'
 })()`)
 
-/* ------------------------------------------------------ 6. A+B 容器视图：滚与四颗按钮 */
+/* ---------------------------------------- 6. I 2026-10-21 手势（先验入口，再进去滚） */
 
-console.log('\n=== A+B. 合集卡进去以后：24 行滚得到底、那颗按钮不是假的 ===')
-evalIn(`(async () => { click(leaf('全部素材')); await sleep(400); return 'OK' })()`)
-const entered = evalIn(`(async () => {
-  var card = find('div', '插件道具合集-测试小店').slice(-1)[0];
-  if (!card) return { no: 'NOCARD' };
-  dbl(card);
-  await sleep(900);
-  return { body: txt(document.body).slice(0, 300) }
+console.log('\n=== I. 双击导入 / 长按 1 秒开合集 / 常驻导入按钮已移除 ===')
+evalIn(`(async () => { click(leaf('全部素材')); await sleep(500); return 'OK' })()`)
+const gestures = evalIn(`(async () => {
+  var b = txt(document.body);
+  var bundle = cardOf('插件道具合集-测试小店');
+  var nun = cardOf('修女');
+  if (!bundle || !nun) return { no: 'NOCARD' };
+  mclick(bundle);
+  await sleep(80);
+  dbl(bundle);
+  await sleep(550);
+  var afterBundle = txt(document.body);
+  mclick(nun);
+  await sleep(80);
+  dbl(nun);
+  await sleep(550);
+  var afterNun = txt(document.body);
+  /** 提示条本身也是 <button>，文案里带「Unity…导入」；那是可点的关闭按钮，不是常驻导入按钮，必须排除 */
+  var toastBox = document.querySelector('.fixed.bottom-8');
+  var btns = Array.prototype.slice.call(document.querySelectorAll('button'))
+    .filter(function (e) { return !(toastBox && toastBox.contains(e)) })
+    .map(function (e) { return txt(e) });
+  return {
+    hint: b.indexOf('双击导入 · 长按 1 秒打开合集') >= 0,
+    bundleStayed: afterBundle.indexOf('双击导入 · 长按 1 秒打开合集') >= 0,
+    bundleWarned: afterBundle.indexOf('请先打开 Unity') >= 0,
+    nunWarned: afterNun.indexOf('请先打开 Unity') >= 0,
+    detailHint: afterNun.indexOf('双击卡片导入') >= 0,
+    importUnityButtons: btns.filter(function (s) { return /导入.*Unity|Unity.*导入|整包导入|选包导入/.test(s) })
+  }
 })()`)
-ok(!entered.no, '双击合集卡进了容器视图', JSON.stringify(entered).slice(0, 160))
+ok(gestures.no === undefined, '网格里找得到合集卡和「修女」', JSON.stringify(gestures).slice(0, 160))
+ok(gestures.hint === true, '⭐ 底部状态栏写着「双击导入 · 长按 1 秒打开合集」', String(gestures.hint))
+ok(gestures.bundleStayed === true, '⭐ 双击合集卡不再直接进容器（旧行为会让那 24 行立刻出现）')
+ok(gestures.bundleWarned === true, '双击合集走导入链路（成员面板 + 全预勾；沙盒没工程所以先提示开 Unity）')
+ok(gestures.nunWarned === true, '⭐ 双击普通卡走导入链路（不再是打开详情那种无声动作）')
+ok(gestures.detailHint === true, '详情面板底部改成手势提示（不再冒充按钮）')
+ok((gestures.importUnityButtons || []).length === 0, '⭐ 网格 / 详情面板里没有任何「导入到 Unity / 整包导入」按钮', JSON.stringify(gestures.importUnityButtons))
+shot('gesture-grid-hint.png')
+
+const multi = evalIn(`(async () => {
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await sleep(250);
+  var nun = cardOf('修女');
+  var small = cardOf('小刀');
+  var bottle = cardOf('奶瓶');
+  if (!nun || !small || !bottle) return { no: 'NOCARD' };
+  mclick(nun); await sleep(90);
+  mclick(small, true); await sleep(90);
+  mclick(bottle, true); await sleep(150);
+  var before = txt(document.body).indexOf('已选 3 项') >= 0;
+  /** 双击的第一下：先把「点之前那 3 张」存进快照，随后普通 click 会把选区收敛成 1 张 */
+  mclick(small);
+  await sleep(80);
+  dbl(small);
+  await sleep(650);
+  var b = txt(document.body);
+  return {
+    before: before,
+    restored: b.indexOf('已选 3 项') >= 0,
+    batchHint: b.indexOf('双击其中一张一起导入') >= 0,
+    warned: b.indexOf('请先打开 Unity') >= 0
+  }
+})()`)
+ok(multi.before === true, '三张卡真的选中了（先验证前置条件，别拿空选区自欺）', JSON.stringify(multi))
+ok(multi.restored === true && multi.batchHint === true, '⭐ 多选里双击其中一张：双击前的 3 张选区被还原（不是只剩 1 张）')
+ok(multi.warned === true, '多选双击走的是批量导入链路（沙盒里停在"先开 Unity"，没有偷偷改库）')
+shot('gesture-batch-hint.png')
+
+const hold = evalIn(`(async () => {
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await sleep(250);
+  var card = cardOf('插件道具合集-测试小店');
+  if (!card) return { no: 'NOCARD' };
+  var cover = card.firstElementChild;
+  /**
+   * ① 按住 300ms：进度条要出现，且它自己的动画时长必须是 1000ms。
+   * ⚠ 不在 930/980ms 采样 —— CDP 一次往返 + React 重渲染就可能把检查推到计时器之后，
+   *   那是拿工具的抖动判产品（上一版 930/980 采样偶发假红，后续轮子还跟着挂）。
+   *   精确常量由 tests/shared/card-gesture.spec.ts 钉；这里量的是“条真的挂上、时长没漂”。
+   */
+  pev(cover, 'pointerdown', 100, 100);
+  await sleep(150);
+  var barEl = card.querySelector('.card-hold-bar');
+  var bar = !!barEl;
+  var barDur = barEl ? barEl.style.animationDuration : null;
+  await sleep(150);
+  var stillAt300 = txt(document.body).indexOf('双击导入 · 长按 1 秒打开合集') >= 0;
+  pev(cover, 'pointerup', 100, 100);
+  /** 松手后再等 900ms（总计约 1.2 秒）：如果计时器没被清理，这里会自己跳进容器 */
+  await sleep(900);
+  var stillAfterRelease = txt(document.body).indexOf('双击导入 · 长按 1 秒打开合集') >= 0;
+  /** ② 按住后移动 40px：取消，等过 1 秒也不许进 */
+  var cardMove = cardOf('插件道具合集-测试小店');
+  if (!cardMove) return { no: 'NOCARD-MOVE', bar: bar, barDur: barDur, stillAt300: stillAt300, stillAfterRelease: stillAfterRelease }
+  var coverMove = cardMove.firstElementChild;
+  pev(coverMove, 'pointerdown', 100, 100);
+  await sleep(150);
+  pev(coverMove, 'pointermove', 140, 100);
+  await sleep(120);
+  var barGone = !cardMove.querySelector('.card-hold-bar');
+  await sleep(900);
+  var stillAfterMove = txt(document.body).indexOf('双击导入 · 长按 1 秒打开合集') >= 0;
+  pev(coverMove, 'pointerup', 100, 100);
+  await sleep(180);
+  /** ③ 真按住 1.15 秒：进容器 */
+  var card2 = cardOf('插件道具合集-测试小店');
+  if (!card2) return { no: 'NOCARD-HOLD', bar: bar, barDur: barDur }
+  pev(card2.firstElementChild, 'pointerdown', 100, 100);
+  await sleep(1150);
+  await sleep(550);
+  var b = txt(document.body);
+  return {
+    bar: bar,
+    barDur: barDur,
+    stillAt300: stillAt300,
+    stillAfterRelease: stillAfterRelease,
+    barGone: barGone,
+    stillAfterMove: stillAfterMove,
+    entered: b.indexOf('双击一行导入') >= 0,
+    body: b.slice(0, 200)
+  }
+})()`)
+ok(hold.no === undefined, '长按前合集卡还在网格里', JSON.stringify(hold).slice(0, 160))
+ok(hold.bar === true && hold.barDur === '1000ms', '⭐ 按住时封面底部出现 1 秒进度条', String(hold.barDur))
+ok(hold.stillAt300 === true, '按住 300ms 还停在库列表（没到点不许开）')
+ok(hold.stillAfterRelease === true, '松手后等过 1 秒也不进（计时器被清理了）')
+ok(hold.barGone === true, '移动超过 8px 后进度条消失（这一下是"我在拖，不是长按"）')
+ok(hold.stillAfterMove === true, '⭐ 移动取消后即使超过 1 秒也不进容器')
+ok(hold.entered === true, '⭐ 真按住 1.15 秒 → 进了合集容器', JSON.stringify(hold.body))
+shot('gesture-container-no-import.png')
 
 const listBox = `(function () {
   var best = null;
@@ -481,29 +625,51 @@ shot('r10-3-container-scrolled-bottom.png')
 
 const stale = evalIn(`(async () => {
   var b = txt(document.body);
-  var btns = Array.prototype.slice.call(document.querySelectorAll('button'));
-  var imp = btns.filter(function (e) { return txt(e) === '导入' });
+  var btns = Array.prototype.slice.call(document.querySelectorAll('button')).map(function (e) { return txt(e) });
   return {
     hasJiaofu: /交付|里程碑|将在 ?M\\d|M\\d ?交付/.test(b),
     milestone: (b.match(/M\\d/g) || []).slice(0, 5),
-    importButtons: imp.length,
-    anyDisabled: imp.some(function (e) { return e.disabled }),
-    whole: !!leaf('整包导入 Unity')
+    importUnityButtons: btns.filter(function (s) { return /导入.*Unity|Unity.*导入|整包导入|选包导入/.test(s) }),
+    exactImport: btns.filter(function (s) { return s === '导入' }).length,
+    hint: b.indexOf('双击一行导入 · Enter 选包 · Esc 返回') >= 0
   }
 })()`)
 ok(stale.hasJiaofu === false, '⭐ 容器视图里没有"×× 在 M5 交付"那类旧文案', JSON.stringify(stale).slice(0, 220))
-ok(stale.importButtons > 0 && stale.anyDisabled === false, '行内那颗「导入」不再是 disabled 的假按钮', stale.importButtons + ' 颗 / disabled=' + stale.anyDisabled)
+ok((stale.importUnityButtons || []).length === 0, '⭐ 容器里的「整包导入 / 选包导入 / 行内导入」按钮全没了', JSON.stringify(stale.importUnityButtons))
+ok(stale.exactImport === 0, '容器里没有任何一颗常驻「导入」按钮（入口只剩双击 / Enter）', String(stale.exactImport))
+ok(stale.hint === true, '容器底部状态栏写着手势：双击一行导入 · Enter 选包 · Esc 返回')
 
 const dblRow = evalIn(`(async () => {
-  var row = find('div', '测试道具24').slice(-1)[0];
-  if (!row) return { no: 'NOROW' };
+  /**
+   * ⚠ 不能取 find('div','测试道具24').slice(-1)[0]：详情面板里那行也含同样的字，
+   * 而且 DOM 顺序更靠后 —— 上一版就是这样双击了详情面板的一行，产品没反应，用例却怪产品。
+   * 容器行的判据：**直接子元素里有复选框**。
+   */
+  var rows = find('div', '测试道具24');
+  var row = rows.filter(function (d) {
+    return Array.prototype.slice.call(d.children).some(function (c) {
+      return c.tagName === 'INPUT' && c.type === 'checkbox'
+    })
+  })[0];
+  if (!row) return { no: 'NOROW', n: rows.length, classes: rows.map(function (r) { return String(r.className).slice(0, 40) }) };
+  var nativeHit = 0;
+  row.addEventListener('dblclick', function () { nativeHit++ });
   dbl(row);
-  await sleep(700);
-  return { body: txt(document.body) }
+  await sleep(900);
+  var b = txt(document.body);
+  return {
+    nativeHit: nativeHit,
+    stayed: b.indexOf('双击一行导入 · Enter 选包 · Esc 返回') >= 0,
+    warned: b.indexOf('请先打开 Unity') >= 0,
+    tail: b.slice(-260)
+  }
 })()`)
-const rowBody = String(dblRow.body || '')
+const rowBody = String(dblRow.tail || '')
 ok(!dblRow.no, '双击容器里的一行有反应')
-ok(/成员|包|导入|工程/.test(rowBody) && !/交付/.test(rowBody), '弹出来的不是"过期占位"那句话（吃的是设置里的双击行为）')
+ok(dblRow.nativeHit === 1, '行上真的收到了 dblclick 事件', String(dblRow.nativeHit))
+ok(dblRow.stayed === true && dblRow.warned === true, '⭐ 行双击走导入链路（沙盒没工程 → 先提示开 Unity；不再弹过期占位）', JSON.stringify(dblRow).slice(0, 500))
+ok(!/成员选择|将在 ?M\\d|交付/.test(rowBody), '弹出来的不是"过期占位"那句话')
+shot('gesture-row-import.png')
 /** 沙盒里没有 Unity 工程，那一步会留下一个待确认的面板 —— 收掉它，别污染后面设置页的读数 */
 evalIn(`(async () => {
   var names = ['取消', '关闭', '以后再说', '知道了'];

@@ -295,6 +295,12 @@ describe('cardImportChoice（一张卡能不能直接导，R4 ②）', () => {
     expect(r.indexes).toEqual([])
   })
 
+  it('磁盘上就摆着多个包 → 也是 needs-choice（按钮移除后不许静默只导第一个）', () => {
+    const r = cardImportChoice([pkg('E:\\lib\\a.unitypackage'), pkg('E:\\lib\\b.unitypackage')])
+    expect(r.kind).toBe('needs-choice')
+    expect(r.indexes).toEqual([])
+  })
+
   it('单卡与多选批量用的是同一条判据（这条断言挡的是"两边各写一遍然后漂掉"）', async () => {
     const fs = await import('node:fs')
     const store = fs.readFileSync('src/renderer/stores/ui.ts', 'utf8')
