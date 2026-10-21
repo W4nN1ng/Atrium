@@ -23,7 +23,9 @@ VPM 的纯类型、错误码、路径校验和（P1 起）纯领域逻辑。这�
 
 P1 起（见 `docs/VPM-ARCHITECTURE.md` §4）：
 
-- `domain/version|range|unityVersion|packageId|manifest|repo|project|template|plan|resolver|unitypackage`
+- `domain/version.ts`：P1-D 的最小 SemVer 比较（P3-A 会补严格解析/范围）。
+- `domain/repo.ts`：仓库 JSON 解析/归一、包名/版本/URL/hash 防御、headers 剥离。
+- 后续：`domain/range|unityVersion|packageId|manifest|project|template|plan|resolver|unitypackage`
 - `dto/`：IPC 请求/响应形状，不包含数据库行。
 
 ## 数据 / 写入
@@ -39,7 +41,7 @@ P1 起（见 `docs/VPM-ARCHITECTURE.md` §4）：
 ## 测试入口
 
 - `tests/vpm/data-root.spec.ts`、`tests/vpm/errors-i18n.spec.ts`
-- P1 起：`tests/vpm/domain/*.spec.ts`
+- `tests/vpm/domain/repo.spec.ts`、`tests/vpm/domain/version.spec.ts`
 - 运行：`npm test`（会先切到 Node ABI）
 
 ## 谁依赖我 / 我依赖谁

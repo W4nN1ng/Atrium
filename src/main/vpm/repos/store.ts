@@ -337,6 +337,7 @@ export class RepoStore {
   queryCatalog(query: CatalogQuery = {}): CatalogPage {
     if (!query || typeof query !== 'object') throw invalid('query')
     if (query.text !== undefined && typeof query.text !== 'string') throw invalid('text')
+    const exactName = query.name === undefined ? null : text(query.name, 'name', 214)
     const rawText = query.text === undefined ? '' : query.text.trim()
     if (rawText.length > 200) throw invalid('text')
     const repoIds = Array.isArray(query.repoIds)
@@ -352,6 +353,10 @@ export class RepoStore {
     if (query.enabledOnly !== false) where.push('r.enabled = 1')
     if (query.includeHidden !== true) where.push('p.hidden = 0')
     if (query.includeYanked !== true) where.push('p.yanked = 0')
+    if (exactName) {
+      where.push('p.name = @name')
+      filters.name = exactName
+    }
     if (rawText) {
       // instr + lower：按字面量搜索，`%`/`_` 不当通配符；中文仍按原字面匹配。
       where.push(

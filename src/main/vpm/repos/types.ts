@@ -56,6 +56,8 @@ export interface PackageVersionInput {
 }
 
 export interface CatalogQuery {
+  /** 精确包名（详情页用）；与 text 可同时使用。 */
+  name?: string
   /** 包名/显示名/描述/别名/关键词/仓库名的子串；空则不筛。 */
   text?: string
   /** 只查这些仓库；空数组视为不筛。 */

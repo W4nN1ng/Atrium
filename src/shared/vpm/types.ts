@@ -33,6 +33,8 @@ export interface VpmStatus {
   enabled: boolean
   safeMode: boolean
   degraded: boolean
+  /** 运行时/配置降级原因；正常为 null。 */
+  degradedCode: VpmErrorCode | null
   dataRoot: string | null
   dataRootValid: boolean
   networkConsentAt: string | null

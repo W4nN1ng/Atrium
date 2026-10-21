@@ -46,7 +46,7 @@
 | P1-A | 模块边界、依赖方向与架构闸门 | P0 | 模块 README、依赖规则、`architecture.spec.ts`、renderer API 包装 | I4/I6/I7/I8 | done |
 | P1-B | `vpm.db` v1、迁移器与仓储 | P1-A | `db/`、`repos/`、v1 表、迁移/备份 | C8/C14/I7 | done |
 | P1-C | HTTP、缓存与联网同意 | P1-A | `http/`、`cache/`、同意门、fake 测试 | C8/C9/C10/G2/I6 | done |
-| P1-D | 仓库服务、官方/curated 与来源合并 | P1-B/P1-C | `reposService`、`catalog`、种子仓库 | C1/C2/C8/C10/C14/B15 | todo |
+| P1-D | 仓库服务、官方/curated 与来源合并 | P1-B/P1-C | `reposService`、`catalog`、种子仓库 | C1/C2/C8/C10/C14/B15 | done |
 | P1-E | 只读包目录 UI、IPC 与三语 | P1-D | 仓库区、包抽屉、同意模态、IPC | B1/B2/B3/B13/B14 | todo |
 | P2-A | Unity 编辑器发现与手动添加 | P1-B | `unity/editors`、vpm.db v2、Hub 配置 | D1/D2/D3/D4/F4 | todo |
 | P2-B | 工程读取纯逻辑与 legacy 报告 | P1-A | `shared/vpm/domain/project.ts`、manifest 读取、fixtures | A1/A3/B17/A22 | todo |
@@ -85,8 +85,8 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C 已完成，下一个执行任务是 **P1-D**（仓库服务、官方/curated 与来源合并）。
-> P1-D 开工前先读 §12 的 P1-A/P1-B/P1-C 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D 已完成，下一个执行任务是 **P1-E**（只读包目录 UI、IPC 与三语）。
+> P1-E 开工前先读 §12 的 P1-A…P1-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 
 ---
 
@@ -329,6 +329,32 @@ Task: P?-?
   isNetworkAllowed: () => readNetworkConsent() !== null, userAgent: 'Atrium/<version>' })`；
   刷新仓库必须走 `getJson` 条件请求，304 保留旧行；下载走 `downloadToFile` + cache commit；
   不要在别处 import `electron.net` 或写 fetch。
+
+### P1-D（2026-10-21，done）
+
+- **公开 API/契约**：
+  - `src/main/vpm/index.ts`：`initVpm(options)` / `VpmRuntime`，组装 DB/http/cache/store/repos/catalog，不注册 IPC。
+  - `reposService.ts`：`ReposService` 的 `listRepos/addRepo/removeRepo/refreshRepo/refreshAll/seedIfEmpty/dispose`、
+    `RepoDto/RepoRefreshResult`、`normalizeRepoUrl`、official/curated URL 常量。
+  - `catalog/`：`CatalogService.query/getPackage` 与目录/版本/冲突 DTO。
+  - `shared/vpm/domain/repo.ts`：仓库 JSON 纯解析；`domain/version.ts`：最小 SemVer 比较。
+  - gate：新增 `startVpmRuntime()`、`VpmGateDeps.enableRuntime`、`VpmStatus.degradedCode`；
+    app ready/enable 时动态加载 runtime，失败只降级。
+- **数据/行为**：仓库 URL 归一/去重；刷新条件请求，304 保留包行；失败保留旧包行并记错误；
+  official/curated 仅在同意且仓库表为空时种子（排序 0/1，不自动刷新）；同名包跨仓库合并，
+  同版本不同 hash 标冲突。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **166 passed / 9 skipped files（175）**、**2188 passed / 19 skipped tests（2207）**；
+  定向 VPM/仓库/目录/运行时/架构测试 59 条全绿。
+- **沙盒实测**：packaged 0.9.0 在启用 VPM 的沙盒启动，日志出现“VPM 运行时已加载”；
+  创建 `vpm.db`（user_version=1，两张表）；无同意时仓库 0 个；写入同意后重启，
+  种子 official/curated 两个仓库，`last_fetch_at` 仍为空，证明没有自动联网。
+- **未验证**：没有对真实 VCC/官方仓库执行刷新（网络在本轮仍只经过 fake/mock）；
+  IPC/UI 在 P1-E；仅 Windows x64。
+- **给 P1-E**：runtime 目前由 gate 私有持有。P1-E 应在 `src/main/vpm/index.ts` 里加
+  IPC 注册函数（由 gate 初始化成功后调用），不要把 runtime 服务暴露给核心其他文件；
+  同意后要调用 `runtime.repos.seedIfEmpty()` 再刷新；UI 只通过 `renderer/vpm/api.ts`；
+  `VpmStatus.degradedCode` 已可显示具体原因。
 
 ---
 

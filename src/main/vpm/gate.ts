@@ -9,7 +9,7 @@ import { createDatabaseBackup } from '../db/backup'
 import type { IpcApi } from '../ipc/types'
 import { P } from '../services/paths'
 import { validateVpmDataRoot } from '../../shared/vpm/dataRoot'
-import { VpmError } from '../../shared/vpm/errors'
+import { VpmError, type VpmErrorCode } from '../../shared/vpm/errors'
 import { IpcInvoke } from '../../shared/ipc'
 import {
   VPM_SETTINGS_SCHEMA_VERSION,
@@ -21,7 +21,12 @@ import {
   type VpmSettingsFile,
   type VpmStatus
 } from '../../shared/vpm/types'
-import { defaultVpmSettings, readVpmSettings, writeVpmSettings } from './config'
+import {
+  defaultVpmSettings,
+  readNetworkConsent,
+  readVpmSettings,
+  writeVpmSettings
+} from './config'
 
 export interface VpmGateDeps {
   ipc: IpcApi
@@ -30,10 +35,20 @@ export interface VpmGateDeps {
   getKnownProjectPaths(): string[]
   appVersion?(): string
   appInstallDirs?(): string[]
+  /** 测试可关掉动态运行时加载；生产默认开启。 */
+  enableRuntime?: boolean
+}
+
+interface VpmRuntimeHandle {
+  dispose(): void
 }
 
 let deps: VpmGateDeps | null = null
 let configRecovered = false
+let runtime: VpmRuntimeHandle | null = null
+let runtimePromise: Promise<void> | null = null
+let runtimeCode: VpmErrorCode | null = null
+let runtimeGeneration = 0
 
 export function isSafeMode(
   argv: readonly string[] = process.argv,
@@ -108,7 +123,8 @@ function baseStatus(settings = defaultVpmSettings()): VpmStatus {
   return {
     enabled: settings.enabled,
     safeMode: isSafeMode(),
-    degraded: false,
+    degraded: runtimeCode !== null,
+    degradedCode: runtimeCode,
     dataRoot: settings.dataRoot,
     dataRootValid: dataRootLooksValid(settings.dataRoot, context()),
     networkConsentAt: settings.networkConsentAt,
@@ -126,8 +142,78 @@ export function getVpmStatus(): VpmStatus {
     return baseStatus(read.settings)
   } catch (error) {
     log.warn('VPM 状态读取失败（核心继续）：' + (error instanceof Error ? error.message : String(error)))
-    return { ...baseStatus(), degraded: true }
+    return { ...baseStatus(), degraded: true, degradedCode: runtimeCode ?? 'vpmInternal' }
   }
+}
+
+function disposeRuntime(): void {
+  runtimeGeneration++
+  runtimePromise = null
+  runtimeCode = null
+  const current = runtime
+  runtime = null
+  try {
+    current?.dispose()
+  } catch (error) {
+    log.warn('VPM 运行时释放失败：' + (error instanceof Error ? error.message : String(error)))
+  }
+}
+
+async function ensureRuntime(): Promise<void> {
+  if (!deps || deps.enableRuntime === false) return
+  if (runtime) return
+  if (runtimePromise) return runtimePromise
+
+  const status = getVpmStatus()
+  if (!status.enabled || status.safeMode) return
+  if (!status.dataRoot || !status.dataRootValid) {
+    runtimeCode = 'vpmDataRootInvalid'
+    log.warn('VPM 运行时未加载：数据根不可用')
+    return
+  }
+
+  const generation = runtimeGeneration
+  runtimePromise = (async () => {
+    try {
+      const { initVpm } = await import('./index')
+      const handle = await initVpm({
+        dataRoot: status.dataRoot as string,
+        userAgent: `Atrium/${status.appVersion || '0.0.0'}`,
+        isNetworkAllowed: () => {
+          try {
+            return readNetworkConsent() !== null
+          } catch {
+            return false
+          }
+        }
+      })
+      if (generation !== runtimeGeneration) {
+        handle.dispose()
+        return
+      }
+      runtime = handle
+      runtimeCode = null
+      log.info('VPM 运行时已加载（仓库/缓存/目录服务）')
+    } catch (error) {
+      if (generation !== runtimeGeneration) return
+      runtimeCode = error instanceof VpmError ? error.code : 'vpmInternal'
+      log.warn(
+        'VPM 运行时加载失败（核心继续）：' +
+          runtimeCode +
+          (error instanceof Error ? ' / ' + error.message : '')
+      )
+    } finally {
+      if (generation === runtimeGeneration) runtimePromise = null
+    }
+  })()
+
+  await runtimePromise
+}
+
+/** 应用启动/启用后调用；disabled/safe mode 不加载重模块。 */
+export async function startVpmRuntime(): Promise<void> {
+  if (!deps || deps.enableRuntime === false) return
+  await ensureRuntime()
 }
 
 /**
@@ -287,6 +373,9 @@ export async function enableVpm(input: VpmEnableInput): Promise<VpmStatus> {
   }
   configRecovered = false
   log.info(`VPM 已启用：dataRoot=${evaluated.normalized} snapshot=${snapshot.path}`)
+
+  disposeRuntime()
+  if (deps.enableRuntime !== false) await ensureRuntime()
   return getVpmStatus()
 }
 
@@ -299,6 +388,7 @@ export function disableVpm(): VpmStatus {
       configRecovered = false
       log.info('VPM 已停用（数据根/设置/快照保留）')
     }
+    disposeRuntime()
   } catch (error) {
     log.warn('VPM 停用失败：' + (error instanceof Error ? error.message : String(error)))
     throw new VpmError('vpmInternal', undefined, error)
@@ -356,11 +446,12 @@ export function registerVpmGateIpc(next: VpmGateDeps): void {
 }
 
 export function disposeVpm(): void {
-  // P0 没有后台任务/连接；保留生命周期钩子给 P1 的仓库刷新与 P4 的恢复扫描。
+  disposeRuntime()
 }
 
 /** 只给测试用：清掉模块级 deps/恢复标记，避免测试文件互相污染。 */
 export function resetVpmGateForTest(): void {
+  disposeRuntime()
   deps = null
   configRecovered = false
 }
