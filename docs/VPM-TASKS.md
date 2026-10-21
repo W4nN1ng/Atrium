@@ -538,8 +538,9 @@ Task: P?-?
 - **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
   **176 passed / 9 skipped files（185）**、**2293 passed / 19 skipped tests（2312）**；
   定向 version/range/unity/package/repo/catalog 78 条全绿。
-- **未验证**：P3-B 解析器/计划尚未接入；真实仓库范围写法只用 golden vectors 覆盖；
-  Unity 版本矩阵未真机矩阵化。
+- **未验证**：P3-B 解析器/计划尚未接入；Unity 版本矩阵未真机矩阵化。
+  真实仓库语料已从沙盒 `vpm.db` 抽取 **182 个版本、115 个依赖范围**跑解析，
+  0 个非法（范围含 `3.10.0-beta.1`、`3.1.x` 等）。
 - **给 P3-B**：候选选择用 strict `parseVpmVersion`/`satisfiesVpmRange`；预发布策略
   通过 `includePrerelease` 显式控制，不要退回宽容比较。
 
