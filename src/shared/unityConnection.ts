@@ -12,7 +12,9 @@ export interface ProjectConnection {
 export interface UnityConnectionSnapshot {
   projects: ProjectConnection[]
   targetProjectId: string | null
-  targetMode: 'auto' | 'manual'
+  targetMode: 'auto' | 'manual' | 'launch'
+  /** launch 绑定后、Unity 还没真正启动/连接时为 true；界面可显示“正在启动”。 */
+  targetPending?: boolean
   ambiguous: boolean
 }
 

@@ -294,6 +294,7 @@
     "manage": "プロジェクトを管理（更新 / ブリッジ導入）…",
     "detectNote": "起動状態は三系統の OR 判定：ロックファイル / ブリッジ心跳 / プロセスコマンドライン",
     "isTarget": "現在の読み込み先",
+    "targetWaiting": "Unity の起動待ち",
     "setTarget": "読み込み先にする",
     "installBridge": "ブリッジを導入",
     "uninstallBridge": "ブリッジを削除",

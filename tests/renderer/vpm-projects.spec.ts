@@ -14,7 +14,9 @@ describe('VPM project page wiring', () => {
     const page = read('src/renderer/pages/Project.tsx')
     expect(page).toContain("import('../vpm/components/projects/VpmProjectsSection')")
     expect(page).toContain('<Suspense fallback={null}>')
-    expect(page).toContain('<VpmProjectsSection />')
+    expect(page).toContain('<VpmProjectsSection')
+    expect(page).toContain('targetProjectId={connection.targetProjectId}')
+    expect(page).toContain('targetPending={connection.targetPending === true}')
     expect(page).not.toMatch(/from '\.\.\/vpm\//)
   })
 

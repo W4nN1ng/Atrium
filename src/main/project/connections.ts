@@ -79,6 +79,9 @@ export class UnityConnections {
   private readonly watched = new Set<string>()
   private readonly waiters = new Set<Waiter>()
   private manualId: string | null = null
+  /** Atrium 启动工程时写入；closed 也保留，表示“Unity 正在启动/等待连接”。 */
+  private launchId: string | null = null
+  private launchSawRunning = false
   private lastPublished: string | null = null
   private disposed = false
 
@@ -88,6 +91,7 @@ export class UnityConnections {
     if (this.disposed) return
     this.projects = new Map(projects.map((project) => [project.id, { ...project }]))
     this.pruneExplicitRetries()
+    this.pruneLaunchBinding()
     for (const p of this.projects.values()) this.ensure(p)
     this.publish()
   }
@@ -98,11 +102,16 @@ export class UnityConnections {
     const candidates = projects.filter((p) => !['closed', 'disabled', 'unsupported'].includes(p.phase)
       && p.reasonKey !== 'project.connectionUnsafe')
     if (this.manualId && !candidates.some((p) => p.projectId === this.manualId)) this.manualId = null
+    const launch = this.launchId ? projects.find((p) => p.projectId === this.launchId) : undefined
+    const launchUsable = Boolean(launch && !['disabled', 'unsupported'].includes(launch.phase))
+    const targetProjectId = this.manualId ?? (launchUsable ? this.launchId : null)
+      ?? (candidates.length === 1 ? candidates[0].projectId : null)
     return {
       projects,
-      targetProjectId: this.manualId ?? (candidates.length === 1 ? candidates[0].projectId : null),
-      targetMode: this.manualId ? 'manual' : 'auto',
-      ambiguous: this.manualId === null && candidates.length > 1
+      targetProjectId,
+      targetMode: this.manualId ? 'manual' : launchUsable ? 'launch' : 'auto',
+      targetPending: !this.manualId && launchUsable && !this.launchSawRunning,
+      ambiguous: this.manualId === null && !launchUsable && candidates.length > 1
     }
   }
 
@@ -110,6 +119,29 @@ export class UnityConnections {
     this.assertLive()
     if (id !== null) this.assertEligible(this.requiredProject(id))
     this.manualId = id
+    this.launchId = null
+    this.launchSawRunning = false
+    this.publish()
+  }
+
+  /**
+   * Atrium 启动工程前调用：不要求 Unity 已运行。
+   * 新启动动作覆盖旧的启动绑定，并清除显式选择；启动失败由调用方 clear。
+   */
+  bindLaunchTarget(id: string): void {
+    this.assertLive()
+    const project = this.requiredProject(id)
+    this.launchId = id
+    this.launchSawRunning = project.running
+    this.manualId = null
+    this.publish()
+  }
+
+  clearLaunchTarget(id: string): void {
+    this.assertLive()
+    if (this.launchId !== id) return
+    this.launchId = null
+    this.launchSawRunning = false
     this.publish()
   }
 
@@ -158,7 +190,9 @@ export class UnityConnections {
           if (!current || current.path !== projectPath) { finish('project.connectionProjectMissing'); return }
           const connection = this.connection(current)
           if (connection.phase === 'ready') { finish(null, connection); return }
-          if (['closed', 'disabled', 'unsupported', 'failed'].includes(connection.phase)) {
+          if (connection.phase === 'closed' && this.isLaunchPending(id)) {
+            // Atrium 已经绑定这个工程，只是 Unity 还没启动；继续等到超时/取消。
+          } else if (['closed', 'disabled', 'unsupported', 'failed'].includes(connection.phase)) {
             finish(connection.reasonKey ?? 'project.connectionFailed'); return
           }
           const remaining = deadline - this.now()
@@ -251,6 +285,35 @@ export class UnityConnections {
       } catch (error) { attempt.error = messageOf(error) }
       finally { attempt.pending = false }
     }).then(() => { if (!this.disposed) this.publish() })
+  }
+
+  private isLaunchPending(id: string): boolean {
+    const project = this.projects.get(id)
+    return this.launchId === id && Boolean(project) && !this.launchSawRunning && project?.running === false
+  }
+
+  private pruneLaunchBinding(): void {
+    if (!this.launchId) return
+    const project = this.projects.get(this.launchId)
+    if (!project) {
+      this.launchId = null
+      this.launchSawRunning = false
+      return
+    }
+    if (project.running) {
+      this.launchSawRunning = true
+      return
+    }
+    if (this.launchSawRunning) {
+      this.launchId = null
+      this.launchSawRunning = false
+      return
+    }
+    const phase = this.connection(project).phase
+    if (phase === 'disabled' || phase === 'unsupported') {
+      this.launchId = null
+      this.launchSawRunning = false
+    }
   }
 
   private pruneExplicitRetries(): void {

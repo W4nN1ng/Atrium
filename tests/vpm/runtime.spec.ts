@@ -54,6 +54,21 @@ describe('VPM composition root', () => {
     expect(repos.every((repo) => repo.lastFetchAt === null)).toBe(true)
   })
 
+  it('exposes the injected project target linkage to the runtime', async () => {
+    const linkage = {
+      currentTarget: () => null,
+      bindLaunchTarget: () => {},
+      clearLaunchTarget: () => {}
+    }
+    runtime = await initVpm({
+      dataRoot,
+      userAgent: 'Atrium/test',
+      isNetworkAllowed: () => false,
+      projectLinkage: linkage
+    })
+    expect(runtime.linkage).toBe(linkage)
+  })
+
   it('exposes project ledger merging through injected core/VCC ports', async () => {
     runtime = await initVpm({
       dataRoot,
