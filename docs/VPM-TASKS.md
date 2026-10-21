@@ -54,7 +54,7 @@
 | P2-D | 只读工程页 UI 与 IPC | P2-C | 工程列表/详情、打开文件夹、运行状态 | A1/A2/A3/A14/A18/A20/B17/B28 | done |
 | P2-E | 当前工程与导入目标联动（核心） | P2-D | 目标绑定/优先级、工程页目标徽标、测试 | K1/K3/K6 | done |
 | P3-A | 版本、范围、Unity 兼容纯逻辑 | P1-B | `domain/version|range|unityVersion|packageId` | B10/B12/B16 | done |
-| P3-B | 解析器引擎、锁定与冲突 | P3-A/P1-D | `domain/resolver.ts`、候选/队列/冲突 | B10/B11/B12/B16/B22/K5 | todo |
+| P3-B | 解析器引擎、锁定与冲突 | P3-A/P1-D | `domain/resolver.ts`、候选/队列/冲突 | B10/B11/B12/B16/B22/K5 | done |
 | P3-C | 变更计划、卸载、升级全部与解释 | P3-B | `domain/plan.ts`、mark-and-sweep、upgradeAll | B5/B7/B8/B9/B11/B27 | todo |
 | P3-D | 解析测试矩阵与只读计划 UI/IPC | P3-C/P2-D | 冲突矩阵、计划预览、解释面板 | B9/B11/B27/I9 | todo |
 | P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | todo |
@@ -88,9 +88,9 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A 已完成，
-> 下一个执行任务是 **P3-B**（解析器引擎、锁定与冲突）。
-> 开工前先读 §12 的 P1-A…P3-A 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B 已完成，
+> 下一个执行任务是 **P3-C**（变更计划、卸载、升级全部与解释）。
+> 开工前先读 §12 的 P1-A…P3-B 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -543,6 +543,25 @@ Task: P?-?
   0 个非法（范围含 `3.10.0-beta.1`、`3.1.x` 等）。
 - **给 P3-B**：候选选择用 strict `parseVpmVersion`/`satisfiesVpmRange`；预发布策略
   通过 `includePrerelease` 显式控制，不要退回宽容比较。
+
+### P3-B（2026-10-22，done）
+
+- **公开 API/契约**：`shared/vpm/domain/resolver.ts` 导出 `resolveVpmDependencies`、
+  `ResolverInput/ResolveResult` 及请求/候选/冲突/警告类型。
+- **语义**：约束表 + 工作队列 + 局部修复；根约束来源 `''`，依赖来源为包名；
+  - locked 是偏好，无显式升级/降级且满足约束时保留；
+  - 候选过滤：范围 → Unity → yanked/预发布 → 仓库优先级/同版本 hash；
+  - 同版本不同 hash → `hashConflict`；受保护包/legacy → 永不选中；
+  - 冲突/缺失保留 requirements；不回溯、不装一半；unused 只列已安装且不再可达，
+    unlisted 单独列出且永不自动移除。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **177 passed / 9 skipped files（186）**、**2309 passed / 19 skipped tests（2328）**；
+  定向 resolver 16 条全绿。另用沙盒真实仓库目录（387 个包版本）解析
+  `com.vrchat.avatars ^3.0.0`：选中 3.10.5 + 3.10.5 base，blocked=false。
+- **未验证**：P3-C 计划/升级全部/卸载 UI 尚未接入；真实工程 locked 快照对比未做；
+  maxUpdates/深层环只用合成矩阵。
+- **给 P3-C**：解析器输出 selected/requirements/conflicts/missing/unused；计划层负责
+  action/reason/downloads/disk/planId，不要把解析规则复制到 UI。
 
 ---
 

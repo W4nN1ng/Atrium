@@ -19,6 +19,18 @@
 - `packageId.ts`：VPM 包名归一/校验；拒绝路径分隔符、`..`、尾点/空格、Windows 保留名。
 - `project.ts`：P2-B 的工程快照纯逻辑（ProjectVersion、vpm-manifest、Packages、
   legacy 报告、指纹）；文件读取通过 `ProjectReaderPort` 注入，不 import `node:fs`。
+- `resolver.ts`：P3-B 的确定性贪心解析器（约束表 + 工作队列 + 局部修复）；
+  不做全局回溯，输出 selected/requirements/conflicts/missing/unused，计划由 P3-C 生成。
+
+### 解析器语义
+
+- 根约束来源为 `''`；传递依赖来源是要求它的包名；
+- locked 是偏好：无显式升级/降级且满足约束时保留；新约束不满足才重选；
+- 候选过滤顺序：范围 → Unity → yanked/预发布 → 仓库优先级/同版本 hash；
+- 受保护包（默认 `com.avca.bridge`）和 legacy 包永不选中；
+- 找不到版本时 `blocked=true`，保留 requirements 与来源，不猜测、不回溯；
+- 预发布默认遵循 SemVer；`allowPrerelease` 只影响候选策略，不改变范围解析。
+- `unused` 只列已安装但不再可达的包；unlisted 单独列出，永不自动移除。
 
 ## 不支持的范围写法
 
