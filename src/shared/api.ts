@@ -48,6 +48,9 @@ import type {
   VpmCatalogVersionDto,
   VpmNetworkStatus,
   VpmOperationStart,
+  VpmPlanDto,
+  VpmPlanExplainDto,
+  VpmPlanResolveInput,
   VpmProjectDetailDto,
   VpmProjectSummaryDto,
   VpmRepoDto
@@ -307,6 +310,8 @@ export interface AApi {
     projectRemove(projectKey: string): Promise<{ ok: boolean }>
     projectRescan(projectKey: string): Promise<VpmProjectDetailDto>
     projectOpenFolder(projectKey: string): Promise<{ ok: boolean }>
+    planResolve(input: VpmPlanResolveInput): Promise<VpmPlanDto>
+    planExplain(planId: string, name?: string): Promise<VpmPlanExplainDto>
   }
   categories: {
     list(): Promise<CategoryConfig>

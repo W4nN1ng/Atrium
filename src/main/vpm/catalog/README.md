@@ -18,6 +18,8 @@ yanked/hidden 和同版本多源 hash 冲突提示。
   - `query({ name?, text?, repoIds?, enabledOnly?, includeHidden?, includeYanked?, limit?, offset? })`
     → `{ items: CatalogPackageSummary[], total, limit, offset }`
   - `getPackage(name)` → `CatalogPackageDetail | null`（含所有版本、来源、冲突）
+  - `resolverCatalog()` → `ResolverCatalogPackage[]`（仅主进程解析器用：依赖/Unity/
+    URL/hash/仓库优先级；不暴露给渲染层）
 - 摘要：`name/displayName/description/unityMin/latestVersion/versionCount/sources/
   hasConflict/conflictCount/hasYanked/hidden/keywords/aliases`。
 - 详情额外：`versions[]`（每版本来源、zip URL/hash/size、yanked/hidden/deprecated）和

@@ -2,6 +2,7 @@ import { CatalogService } from './catalog'
 import { VpmCacheStore } from './cache'
 import { closeVpmDb, openVpmDb, type VpmDb } from './db'
 import { createElectronHttpTransport, createVpmHttpClient, type VpmHttpPort } from './http'
+import { PlanService } from './planService'
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
 import {
@@ -46,6 +47,7 @@ export interface VpmRuntime {
   catalog: CatalogService
   unity: UnityEditorService
   projects: ProjectsService
+  plans: PlanService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -89,6 +91,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       vcc: options.vccProjects,
       reader: options.projectReader
     })
+    const plans = new PlanService({ projects, catalog, now: options.now })
     await repos.seedIfEmpty()
 
     let disposed = false
@@ -100,10 +103,12 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       catalog,
       unity,
       projects,
+      plans,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return
         disposed = true
+        plans.dispose()
         repos.dispose()
         closeVpmDb(db)
       }

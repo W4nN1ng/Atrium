@@ -5,6 +5,7 @@ import { Badge, Button, Field, Modal } from '../../../components/ui'
 import { errorText } from '../../../lib/msg'
 import { cleanText, formatTimestamp, vpmCodeLabel } from '../../lib/view'
 import { useVpmProjects } from '../../hooks/useProjects'
+import { VpmPlanSheet } from '../plan/VpmPlanSheet'
 
 function shortHash(value: string | null): string {
   if (!value) return ''
@@ -164,6 +165,7 @@ export function VpmProjectsSection({
   const [removeTarget, setRemoveTarget] = useState<VpmProjectSummaryDto | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [planProjectKey, setPlanProjectKey] = useState<string | null>(null)
 
   useEffect(() => {
     if (!projects.notice) return
@@ -397,6 +399,17 @@ export function VpmProjectsSection({
               <Button variant="ghost" onClick={() => void rescan(detail.projectKey)} disabled={projects.busy}>
                 {t('vpm.projects.rescan')}
               </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setPlanProjectKey(detail.projectKey)
+                  projects.closeDetail()
+                  setActionError(null)
+                  setRemoveTarget(null)
+                }}
+              >
+                {t('vpm.plan.preview')}
+              </Button>
               <button
                 type="button"
                 className="btn"
@@ -460,6 +473,14 @@ export function VpmProjectsSection({
           </Modal>
         </div>
       </Modal>
+
+      <VpmPlanSheet
+        open={planProjectKey !== null}
+        projectKey={planProjectKey ?? ''}
+        onOpenChange={(next) => {
+          if (!next) setPlanProjectKey(null)
+        }}
+      />
     </section>
   )
 }

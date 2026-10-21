@@ -1,4 +1,5 @@
 import { compareVpmVersions } from '../../../shared/vpm/domain/version'
+import type { ResolverCatalogPackage } from '../../../shared/vpm/domain/resolver'
 import type { CatalogPackageRow, CatalogQuery, RepoStore } from '../repos'
 import type {
   CatalogConflictDto,
@@ -59,6 +60,22 @@ function httpLink(value: unknown): string | null {
     return url.href
   } catch {
     return null
+  }
+}
+
+function dependencyMap(manifestJson: string): Record<string, string> {
+  try {
+    const parsed: unknown = JSON.parse(manifestJson)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    const raw = (parsed as Record<string, unknown>).vpmDependencies
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+    const out: Record<string, string> = {}
+    for (const [name, range] of Object.entries(raw)) {
+      if (typeof range === 'string' && range.trim()) out[name] = range.trim()
+    }
+    return out
+  } catch {
+    return {}
   }
 }
 
@@ -205,6 +222,29 @@ export class CatalogService {
       includeYanked: true
     })
     return rows.length ? detailFor(name, rows) : null
+  }
+
+  /** P3-B/P3-D 解析用：完整候选行（含依赖/URL/hash/仓库优先级），不暴露给渲染层。 */
+  resolverCatalog(): ResolverCatalogPackage[] {
+    const priority = new Map(
+      this.store.listRepos().map((repo) => [repo.id, repo.sortOrder] as const)
+    )
+    return this.fetchRows({
+      enabledOnly: true,
+      includeHidden: true,
+      includeYanked: true
+    }).map((row) => ({
+      name: row.name,
+      version: row.version,
+      dependencies: dependencyMap(row.manifestJson),
+      unity: row.unityMin,
+      yanked: row.yanked,
+      repoId: row.repoId,
+      repoPriority: priority.get(row.repoId) ?? 0,
+      sha256: row.zipSha256,
+      url: row.zipUrl,
+      size: row.zipSize
+    }))
   }
 
   private fetchRows(query: CatalogQuery): CatalogPackageRow[] {

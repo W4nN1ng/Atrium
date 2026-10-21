@@ -20,6 +20,8 @@ VPM 在渲染层的界面与数据访问：设置页的“项目与包”面板�
 - `api.ts`：唯一的 `window.a.vpm` 包装；P0 开关 + P1 仓库/目录 + P2 工程台账。
 - `components/projects/VpmProjectsSection.tsx` + `hooks/useProjects.ts`：工程页懒加载的
   只读台账区（列表/详情/添加/移除/重扫/打开文件夹）。
+- `components/plan/VpmPlanSheet.tsx` + `hooks/useVpmPlan.ts`：只读变更计划预览；
+  展示动作/来源/冲突/缺失/下载，应用按钮禁用。
 
 P1 起（按 `docs/VPM-ARCHITECTURE.md` §4/§11）：
 

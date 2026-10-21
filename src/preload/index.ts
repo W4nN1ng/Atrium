@@ -106,7 +106,9 @@ const api: AApi = {
     projectAdd: (input) => invoke('vpm:project-add', input),
     projectRemove: (projectKey) => invoke('vpm:project-remove', projectKey),
     projectRescan: (projectKey) => invoke('vpm:project-rescan', projectKey),
-    projectOpenFolder: (projectKey) => invoke('vpm:project-open-folder', projectKey)
+    projectOpenFolder: (projectKey) => invoke('vpm:project-open-folder', projectKey),
+    planResolve: (input) => invoke('vpm:plan-resolve', input),
+    planExplain: (planId, name) => invoke('vpm:plan-explain', planId, name)
   },
   categories: {
     list: () => invoke('categories:list'),
