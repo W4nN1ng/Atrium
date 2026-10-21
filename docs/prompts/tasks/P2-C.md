@@ -28,7 +28,7 @@
 ## 文件所有权
 
 - 新增：`src/main/vpm/projects/`（ledger、reader 适配、VCC 工程读取）
-- 新增：vpm.db v2 工程表
+- 使用：P2-A 已建的 vpm.db v2 工程表（本卡不新增迁移）
 - 修改：`src/main/vpm/index.ts` 组合根、`gate.ts` 的 deps（只加必要读取）
 - 新增：`tests/vpm/projects/*.spec.ts`
 
@@ -41,7 +41,7 @@
 
 ## 施工步骤
 
-1. 迁移 v2 工程表。
+1. 确认 v2 工程表存在（P2-A 已建），不重复迁移。
 2. 实现台账仓储与快照更新。
 3. 接 VCC settings 只读导入。
 4. 接核心工程发现（只读），写合并/去重测试。

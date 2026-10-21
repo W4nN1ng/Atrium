@@ -12,7 +12,7 @@ export interface VpmMigration {
   sql: string
 }
 
-export const VPM_SCHEMA_VERSION = 1
+export const VPM_SCHEMA_VERSION = 2
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS vpm_repo (
@@ -58,9 +58,64 @@ CREATE INDEX IF NOT EXISTS idx_vpm_pkg_name ON vpm_repo_package(name);
 CREATE INDEX IF NOT EXISTS idx_vpm_pkg_version ON vpm_repo_package(version);
 `
 
-export const VPM_MIGRATIONS: readonly VpmMigration[] = [{ version: 1, sql: V1 }]
+const V2 = `
+CREATE TABLE IF NOT EXISTS vpm_unity_install (
+  id TEXT PRIMARY KEY,
+  path TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  version TEXT,
+  version_with_revision TEXT,
+  source TEXT NOT NULL,
+  arch TEXT,
+  last_seen_at INTEGER,
+  missing INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_vpm_unity_version ON vpm_unity_install(version);
+
+CREATE TABLE IF NOT EXISTS vpm_project (
+  project_key TEXT PRIMARY KEY,
+  project_path TEXT NOT NULL,
+  name TEXT NOT NULL,
+  unity_version TEXT,
+  unity_revision TEXT,
+  unity_exe_path TEXT,
+  unity_args_json TEXT,
+  manifest_hash TEXT,
+  manifest_mtime INTEGER,
+  last_scan_at INTEGER,
+  last_op_id TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS vpm_project_package (
+  project_key TEXT NOT NULL,
+  name TEXT NOT NULL,
+  version TEXT,
+  source TEXT,
+  is_legacy INTEGER NOT NULL DEFAULT 0,
+  state TEXT NOT NULL,
+  dependency_json TEXT,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (project_key, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_vpm_project_pkg_key ON vpm_project_package(project_key);
+`
+
+export const VPM_MIGRATIONS: readonly VpmMigration[] = [
+  { version: 1, sql: V1 },
+  { version: 2, sql: V2 }
+]
 
 /** 每个版本完整迁移后必须存在的表；用于发现“版本号对但表被删/半迁移”的库。 */
 export const VPM_REQUIRED_TABLES: Readonly<Record<number, readonly string[]>> = {
-  1: ['vpm_repo', 'vpm_repo_package']
+  1: ['vpm_repo', 'vpm_repo_package'],
+  2: [
+    'vpm_repo',
+    'vpm_repo_package',
+    'vpm_unity_install',
+    'vpm_project',
+    'vpm_project_package'
+  ]
 }

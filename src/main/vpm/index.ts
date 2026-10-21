@@ -4,6 +4,11 @@ import { closeVpmDb, openVpmDb, type VpmDb } from './db'
 import { createElectronHttpTransport, createVpmHttpClient, type VpmHttpPort } from './http'
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
+import {
+  UnityEditorService,
+  UnityInstallStore,
+  type UnityDiscoveryOptions
+} from './unity'
 
 export interface InitVpmOptions {
   /** gate 已校验过的非 C 数据根；runtime 仍会用 cache 的路径检查兜底。 */
@@ -13,6 +18,8 @@ export interface InitVpmOptions {
   isNetworkAllowed: () => boolean
   now?: () => number
   fetchConcurrency?: number
+  /** 测试/沙盒可注入 Hub/安装根；生产默认读当前用户的 Unity Hub。 */
+  unityDiscovery?: UnityDiscoveryOptions
 }
 
 export interface VpmRuntime {
@@ -21,6 +28,7 @@ export interface VpmRuntime {
   cache: VpmCacheStore
   repos: ReposService
   catalog: CatalogService
+  unity: UnityEditorService
   dispose(): void
 }
 
@@ -53,6 +61,10 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       concurrency: options.fetchConcurrency
     })
     const catalog = new CatalogService(store)
+    const unity = new UnityEditorService(
+      new UnityInstallStore(db, options.now),
+      options.unityDiscovery
+    )
     await repos.seedIfEmpty()
 
     let disposed = false
@@ -62,6 +74,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       cache,
       repos,
       catalog,
+      unity,
       dispose(): void {
         if (disposed) return
         disposed = true

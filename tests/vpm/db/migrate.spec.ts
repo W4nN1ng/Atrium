@@ -44,15 +44,23 @@ function tableNames(target: Database.Database): string[] {
 }
 
 describe('vpm.db connection and migrations', () => {
-  it('creates schema v1 in the VPM state directory with WAL and foreign keys', async () => {
+  it('creates schema v2 in the VPM state directory with WAL and foreign keys', async () => {
     db = await openVpmDb()
 
     expect(fs.existsSync(file)).toBe(true)
     expect(file).toBe(path.join(root, 'vpm', 'vpm.db'))
-    expect(db.pragma('user_version', { simple: true })).toBe(1)
+    expect(db.pragma('user_version', { simple: true })).toBe(2)
     expect(String(db.pragma('journal_mode', { simple: true })).toLowerCase()).toBe('wal')
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1)
-    expect(tableNames(db)).toEqual(expect.arrayContaining(['vpm_repo', 'vpm_repo_package']))
+    expect(tableNames(db)).toEqual(
+      expect.arrayContaining([
+        'vpm_repo',
+        'vpm_repo_package',
+        'vpm_unity_install',
+        'vpm_project',
+        'vpm_project_package'
+      ])
+    )
     expect(fs.existsSync(backupsDir) ? fs.readdirSync(backupsDir) : []).toEqual([])
   })
 
@@ -62,17 +70,17 @@ describe('vpm.db connection and migrations', () => {
     db = null
     db = await openVpmDb()
 
-    expect(db.pragma('user_version', { simple: true })).toBe(1)
+    expect(db.pragma('user_version', { simple: true })).toBe(2)
     expect(fs.existsSync(backupsDir) ? fs.readdirSync(backupsDir) : []).toEqual([])
   })
 
   it('refuses a database newer than this build instead of downgrading or rebuilding', async () => {
-    makeRawDb((raw) => raw.pragma('user_version = 2'))
+    makeRawDb((raw) => raw.pragma('user_version = 3'))
 
     await expect(openVpmDb()).rejects.toMatchObject({ code: 'vpmDbVersionTooNew' })
     const raw = new Database(file, { readonly: true, fileMustExist: true })
     try {
-      expect(raw.pragma('user_version', { simple: true })).toBe(2)
+      expect(raw.pragma('user_version', { simple: true })).toBe(3)
     } finally {
       raw.close()
     }
@@ -116,7 +124,7 @@ describe('vpm.db connection and migrations', () => {
 
     const blocked = path.join(root, 'not-a-directory')
     fs.writeFileSync(blocked, 'x')
-    const migrations = [...VPM_MIGRATIONS, { version: 2, sql: 'CREATE TABLE vpm_v2 (id TEXT);' }]
+    const migrations = [...VPM_MIGRATIONS, { version: 3, sql: 'CREATE TABLE vpm_v3 (id TEXT);' }]
 
     await expect(openVpmDb({ file, backupsDir: blocked, migrations })).rejects.toMatchObject({
       code: 'vpmDbBackupFailed'
@@ -124,42 +132,42 @@ describe('vpm.db connection and migrations', () => {
 
     const raw = new Database(file, { readonly: true, fileMustExist: true })
     try {
-      expect(raw.pragma('user_version', { simple: true })).toBe(1)
-      expect(tableNames(raw)).not.toContain('vpm_v2')
+      expect(raw.pragma('user_version', { simple: true })).toBe(2)
+      expect(tableNames(raw)).not.toContain('vpm_v3')
     } finally {
       raw.close()
     }
   })
 
   it('backs up a populated v1 database before applying v2, and verifies the backup', async () => {
-    db = await openVpmDb()
+    db = await openVpmDb({ file, backupsDir, migrations: [VPM_MIGRATIONS[0]] })
     db.prepare(
       'INSERT INTO vpm_repo (id, url, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
     ).run('repo-a', 'https://example.test/repo.json', 'Repo A', 1, 1)
     closeVpmDb(db)
     db = null
 
-    const migrations = [...VPM_MIGRATIONS, { version: 2, sql: 'CREATE TABLE vpm_v2 (id TEXT);' }]
     const fixed = new Date('2026-10-21T12:34:56')
-    db = await openVpmDb({ file, backupsDir, migrations, now: () => fixed })
+    db = await openVpmDb({ file, backupsDir, now: () => fixed })
 
     const backup = path.join(backupsDir, 'vpm.db.bak-v1-20261021-123456')
     expect(fs.existsSync(backup)).toBe(true)
     expect(db.pragma('user_version', { simple: true })).toBe(2)
-    expect(tableNames(db)).toContain('vpm_v2')
+    expect(tableNames(db)).toContain('vpm_unity_install')
+    expect(tableNames(db)).toContain('vpm_project')
 
     const check = new Database(backup, { readonly: true, fileMustExist: true })
     try {
       expect(check.pragma('user_version', { simple: true })).toBe(1)
       expect(check.pragma('integrity_check', { simple: true })).toBe('ok')
       expect(check.prepare('SELECT COUNT(*) AS n FROM vpm_repo').get()).toEqual({ n: 1 })
-      expect(tableNames(check)).not.toContain('vpm_v2')
+      expect(tableNames(check)).not.toContain('vpm_unity_install')
     } finally {
       check.close()
     }
   })
 
-  it('rolls back a failed v2 migration and keeps v1 plus the backup', async () => {
+  it('rolls back a failed v3 migration and keeps v2 plus the backup', async () => {
     db = await openVpmDb()
     db.prepare(
       'INSERT INTO vpm_repo (id, url, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
@@ -170,8 +178,8 @@ describe('vpm.db connection and migrations', () => {
     const migrations = [
       ...VPM_MIGRATIONS,
       {
-        version: 2,
-        sql: 'CREATE TABLE vpm_v2 (id TEXT); INSERT INTO missing_table VALUES (1);'
+        version: 3,
+        sql: 'CREATE TABLE vpm_v3 (id TEXT); INSERT INTO missing_table VALUES (1);'
       }
     ]
     const fixed = new Date('2026-10-21T12:35:00')
@@ -181,17 +189,17 @@ describe('vpm.db connection and migrations', () => {
 
     const raw = new Database(file, { readonly: true, fileMustExist: true })
     try {
-      expect(raw.pragma('user_version', { simple: true })).toBe(1)
-      expect(tableNames(raw)).not.toContain('vpm_v2')
+      expect(raw.pragma('user_version', { simple: true })).toBe(2)
+      expect(tableNames(raw)).not.toContain('vpm_v3')
       expect(raw.prepare('SELECT COUNT(*) AS n FROM vpm_repo').get()).toEqual({ n: 1 })
     } finally {
       raw.close()
     }
     const backups = fs.readdirSync(backupsDir)
-    expect(backups).toContain('vpm.db.bak-v1-20261021-123500')
+    expect(backups).toContain('vpm.db.bak-v2-20261021-123500')
     const backup = new Database(path.join(backupsDir, backups[0]), { readonly: true })
     try {
-      expect(backup.pragma('user_version', { simple: true })).toBe(1)
+      expect(backup.pragma('user_version', { simple: true })).toBe(2)
       expect(backup.pragma('integrity_check', { simple: true })).toBe('ok')
     } finally {
       backup.close()
@@ -207,7 +215,7 @@ describe('vpm.db connection and migrations', () => {
 
   it('refuses a version-current database whose required tables are missing', async () => {
     makeRawDb((raw) => {
-      raw.pragma('user_version = 1')
+      raw.pragma('user_version = 2')
       raw.exec('CREATE TABLE vpm_repo (id TEXT PRIMARY KEY)')
     })
 

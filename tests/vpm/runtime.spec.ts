@@ -37,6 +37,7 @@ describe('VPM composition root', () => {
     expect(fs.statSync(path.join(dataRoot, 'cache')).isDirectory()).toBe(true)
     expect(runtime.repos.listRepos()).toEqual([])
     expect(runtime.catalog.query()).toMatchObject({ items: [], total: 0 })
+    expect(runtime.unity.list()).toEqual([])
   })
 
   it('seeds official/curated only when consent is already granted', async () => {
@@ -74,7 +75,7 @@ describe('VPM composition root', () => {
     fs.mkdirSync(path.dirname(P.vpmDb()), { recursive: true })
     const raw = new Database(P.vpmDb())
     try {
-      raw.pragma('user_version = 2')
+      raw.pragma('user_version = 3')
     } finally {
       raw.close()
     }
@@ -88,7 +89,7 @@ describe('VPM composition root', () => {
     ).rejects.toMatchObject({ code: 'vpmDbVersionTooNew' })
     const check = new Database(P.vpmDb(), { readonly: true })
     try {
-      expect(check.pragma('user_version', { simple: true })).toBe(2)
+      expect(check.pragma('user_version', { simple: true })).toBe(3)
     } finally {
       check.close()
     }
