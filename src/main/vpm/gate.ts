@@ -13,6 +13,11 @@ import { VpmError, type VpmErrorCode } from '../../shared/vpm/errors'
 import { IpcInvoke } from '../../shared/ipc'
 import { registerVpmIpc } from './ipc'
 import type { VpmRuntime } from './index'
+import type {
+  CoreProjectInput,
+  CoreProjectSummary,
+  VccProjectsRead
+} from './projects'
 import {
   VPM_SETTINGS_SCHEMA_VERSION,
   type VpmDataRootContext,
@@ -35,6 +40,12 @@ export interface VpmGateDeps {
   getDb(): Db
   getLibraryRoot(): string | null
   getKnownProjectPaths(): string[]
+  /** 核心工程发现/运行状态；P2-C 的台账合并用。 */
+  getCoreProjects?(): CoreProjectSummary[]
+  /** 添加已有工程时写核心 `project` 表（DML，不改 schema）。 */
+  registerCoreProject?(input: CoreProjectInput): CoreProjectSummary
+  /** VCC settings.json 的只读 userProjects。 */
+  readVccProjects?(): VccProjectsRead
   appVersion?(): string
   appInstallDirs?(): string[]
   /** 主进程事件广播；P1-E 的刷新进度用。 */
@@ -173,14 +184,29 @@ async function ensureRuntime(): Promise<void> {
     return
   }
 
+  const gateDeps = deps
   const generation = runtimeGeneration
   runtimePromise = (async () => {
     try {
       const { initVpm } = await import('./index')
+      const readCoreProjects = gateDeps.getCoreProjects
+      const registerCoreProject = gateDeps.registerCoreProject
+      const readVccProjects = gateDeps.readVccProjects
       const handle = await initVpm({
         dataRoot: status.dataRoot as string,
         userAgent: `Atrium/${status.appVersion || '0.0.0'}`,
-        isNetworkAllowed: () => isNetworkEnabled()
+        isNetworkAllowed: () => isNetworkEnabled(),
+        coreProjects: readCoreProjects
+          ? {
+              list: () => readCoreProjects(),
+              register: registerCoreProject
+                ? (input) => registerCoreProject(input)
+                : undefined
+            }
+          : undefined,
+        vccProjects: readVccProjects
+          ? { read: () => readVccProjects() }
+          : undefined
       })
       if (generation !== runtimeGeneration) {
         handle.dispose()
