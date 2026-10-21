@@ -305,8 +305,14 @@ CREATE TABLE IF NOT EXISTS vpm_recent_location (
   - 失败给 `vpmUnityLaunchFailed` + 参数（不含敏感信息）。
 - 已在运行：
   - 用现有三路状态判断；运行中不重复启动；
-  - 返回 `alreadyRunning`（P8 可选"顶到前台"）。
-- 不在启动时自动改工程/装包；启动是只读动作。
+  - 返回 `alreadyRunning`（P8 可选"顶到前台"）；仍把该工程设为当前导入目标。
+- **启动前绑定导入目标**：
+  - 通过 gate 注入的 `ProjectLinkagePort.bindLaunchTarget(projectId)`，在 `spawn` 前调用；
+  - 绑定立即生效，不要求 bridge 就绪；双击素材时 `ensureImportTarget` 会等它启动/连接；
+  - 启动失败/用户取消 → `clearLaunchTarget(projectId)`，不能留旧目标；
+  - 多实例时启动绑定优先于“单工程自动”，用户显式选择覆盖它；
+  - 工程关闭/移除后清除绑定；不跨重启持久化。
+- 不在启动时自动改工程/装包；启动本身仍是只读动作（目标绑定是应用状态）。
 
 ---
 
@@ -344,6 +350,8 @@ CREATE TABLE IF NOT EXISTS vpm_recent_location (
   - 打开自定义参数（存到 `vpm_project.unity_args_json`，启动前预览实际 argv）；
   - "打开工程文件夹"放溢出/次要位置。
 - 显示匹配的编辑器/版本；可切换（P6 才支持改版本，这里只选启动用的编辑器）。
+- 工程行/详情显示“当前导入目标”徽标；启动中/连接中也显示，并说明双击素材会等它就绪。
+- 多个 Unity 运行时，启动的工程优先；用户“设为导入目标”立即覆盖，徽标跟随。
 - 依赖未装完的工程：顶部 warning + "重试安装"。
 
 ### 8.4 按钮纪律
@@ -398,8 +406,10 @@ tests/vpm/create-ui.spec.ts
 ## 10. 手工验收（沙盒）
 
 - 用沙盒数据根/工程目录。
-- 新建空白工程 → 打开 Unity → 正常。
+- 新建空白工程 → 打开 Unity → 正常；工程立即成为当前导入目标。
 - 新建角色工程（网络可用时）→ 装 SDK → 打开；检查包目录/manifest。
+- 在 Atrium 双击一个素材 → 确认进入刚启动的工程（不是另一个已开工程）；
+  Unity 启动中双击会等待，不提示“没有目标”，也不静默改投。
 - 新建带附件模板 → 检查 Assets/`.meta`/GUID。
 - 路径/名称错误、已存在、无权限。
 - 启动 Unity 失败（选一个假路径）、已在运行。

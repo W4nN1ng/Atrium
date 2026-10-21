@@ -251,6 +251,10 @@ type PreparedPackage =
 - 目标 `Packages/<id>` 路径合法；计划里的 remove 目标存在或明确可忽略；
 - 旧包目录不能是符号链接/junction（否则移动可能影响工程外目标）；发现就拒绝并报告；
 - 计划 blocked/冲突/缺失 → 拒绝。
+- 工程活动闸门：必须先拿到维护租约；`unityRunning=true` 或 `importing=true` 时拒绝
+  （素材写入进行中不允许包事务），错误要说明“先等导入结束/关闭 Unity”。
+- 素材导入目标与包操作工程不要求相同，但 UI 必须明确当前操作的是哪个工程；
+  不得因为双击过素材就把包装到另一个工程。
 - 对升级/降级/重装/卸载，明确提示"旧包目录会先移到回滚仓"；
   如果用户可能在包目录里改过文件，这是唯一的安全网。
 - 预检失败：operation `failed`，不动工程。
@@ -332,16 +336,18 @@ type PreparedPackage =
 
 ## 8. 旧式 Assets 清理的硬规则
 
-- 只按包清单声明的 legacy 路径/包名，不扫描整个 Assets 乱删。
+- 只按包清单声明的 legacy 路径/包名/GUID，不扫描整个 Assets 乱删。
 - 路径必须：
   - 在允许列表里；
   - resolve 后仍在 `<project>/Assets/` 下；
   - 不是 `Assets` 根本身；
   - 不跟随符号链接/junction。
-- 文件连同同名 `.meta` 一起移动；目录连同目录 `.meta` 一起移动。
+- 文件连同同名 `.meta` 一起移动；**只有该目录下每个文件都能对应到旧包的声明 GUID 时，
+  才允许整目录移动**；否则只移匹配项，剩余目录保留并报告。
+- 与 `import_log` 记录、`Packages/com.avca.bridge`、未知文件重叠 → 保留，不移动。
 - 先移到 `.atrium-tx/<op>/trash/legacy/`，再归档到回滚仓。
 - 任何不确定 → 不做，给 warning；宁可留旧文件，不可误删。
-- GUID 级清理/P6 迁移单独做；P4 不实现。
+- GUID 级清理/P6 迁移单独做；P4 只做路径级，P6 才做 GUID 匹配。
 
 ---
 
@@ -475,7 +481,9 @@ tests/vpm/upgrade-all-ui.spec.ts
 - hash 不匹配/缓存损坏/缓存被替换；
 - 磁盘不足（mock statfs）；
 - manifest 只读/被占用/外部改动；
-- 受保护包被计划包含 → 拒绝；
+- 受保护包被计划包含 → 拒绝；`com.avca.bridge` 无论来自仓库/依赖/清理都不可选；
+- 工程活动闸门：导入进行中/维护租约被占/Unity 运行中的包事务必须被拒绝；
+- 旧 Assets 清理碰到 `import_log` 已知资产/未知文件 → 保留并给 warning；
 - legacy 路径 `Assets/../`、`Assets` 根、symlink → 拒绝/警告；
 - 并发 apply 同一工程 → 一个成功/一个 busy；
 - 双击 apply → 不重复。

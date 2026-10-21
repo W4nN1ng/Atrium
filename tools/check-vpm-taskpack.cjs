@@ -25,11 +25,11 @@ function check() {
   const errors = []
   const files = fs
     .readdirSync(TASKS)
-    .filter((name) => /^P\d-[A-E]\.md$/.test(name))
+    .filter((name) => /^P\d-[A-F]\.md$/.test(name))
     .sort()
   const fileIds = files.map((name) => name.replace(/\.md$/, ''))
   const board = read(BOARD)
-  const boardIds = [...board.matchAll(/^\| (P\d-[A-E]) \|/gm)].map((m) => m[1])
+  const boardIds = [...board.matchAll(/^\| (P\d-[A-F]) \|/gm)].map((m) => m[1])
 
   if (fileIds.length !== boardIds.length) {
     errors.push(`任务卡 ${fileIds.length} 张，任务板 ${boardIds.length} 行`)
@@ -48,7 +48,7 @@ function check() {
   const parity = read(PARITY)
   const wanted = []
   for (const line of parity.split('\n')) {
-    const m = /^\| ([A-I]\d+) \| .*? \| (完整|部分|额外) \|/.exec(line)
+    const m = /^\| ([A-K]\d+) \| .*? \| (完整|部分|额外) \|/.exec(line)
     if (m) wanted.push(m[1])
   }
   for (const id of new Set(wanted)) {

@@ -7,7 +7,7 @@
 >
 > 1. **架构合同**：[`../VPM-ARCHITECTURE.md`](../VPM-ARCHITECTURE.md)
 > 2. **任务板**：[`../VPM-TASKS.md`](../VPM-TASKS.md)
-> 3. **任务卡**：[`tasks/`](tasks/)（41 张，按阶段编号）
+> 3. **任务卡**：[`tasks/`](tasks/)（44 张，按阶段编号）
 >
 > 阶段文件 [`VPM-P0.md`](VPM-P0.md) … [`VPM-P9.md`](VPM-P9.md) 保留为**规格/验收参考**，
 > 不是一次执行的内容。任务卡会写明只读它们的哪几节。
@@ -56,10 +56,10 @@
 |---|---|---|---|
 | P0 | 已完成（0.9.0） | 开关/数据根/快照/安全模式/最小入口 | 核心零变化、可停用/可回退 |
 | P1 | [A](tasks/P1-A.md) [B](tasks/P1-B.md) [C](tasks/P1-C.md) [D](tasks/P1-D.md) [E](tasks/P1-E.md) | 纯逻辑、vpm.db v1、HTTP、仓库、只读目录 | 纯逻辑绿、离线可用、无 C 缓存 |
-| P2 | [A](tasks/P2-A.md) [B](tasks/P2-B.md) [C](tasks/P2-C.md) [D](tasks/P2-D.md) | Unity 发现、工程读取、台账、只读工程页 | 全程只读、核心发现不回归 |
+| P2 | [A](tasks/P2-A.md) [B](tasks/P2-B.md) [C](tasks/P2-C.md) [D](tasks/P2-D.md) [E](tasks/P2-E.md) | Unity 发现、工程读取、台账、只读工程页、导入目标联动 | 全程只读、核心发现不回归、目标优先级有测试 |
 | P3 | [A](tasks/P3-A.md) [B](tasks/P3-B.md) [C](tasks/P3-C.md) [D](tasks/P3-D.md) | 版本/范围、解析器、计划、只读预览 | 计划不写盘、冲突可解释 |
-| P4 | [A](tasks/P4-A.md) [B](tasks/P4-B.md) [C](tasks/P4-C.md) [D](tasks/P4-D.md) [E](tasks/P4-E.md) | journal、缓存/解压、事务、失败注入、包 UI | 每步失败可回滚、真 Unity 通过 |
-| P5 | [A](tasks/P5-A.md) [B](tasks/P5-B.md) [C](tasks/P5-C.md) [D](tasks/P5-D.md) | 模板、建工程、unitypackage、启动 Unity | 真 Unity 能打开、不手写 .meta |
+| P4 | [A](tasks/P4-A.md) [B](tasks/P4-B.md) [C](tasks/P4-C.md) [D](tasks/P4-D.md) [E](tasks/P4-E.md) [F](tasks/P4-F.md) | journal、缓存/解压、事务、失败注入、包 UI、活动闸门 | 每步失败可回滚、素材/包互斥、真 Unity 通过 |
+| P5 | [A](tasks/P5-A.md) [B](tasks/P5-B.md) [C](tasks/P5-C.md) [D](tasks/P5-D.md) [E](tasks/P5-E.md) | 模板、建工程、unitypackage、启动 Unity、素材联动验收 | 真 Unity 能打开、不手写 .meta、双击素材进对工程 |
 | P6 | [A](tasks/P6-A.md) [B](tasks/P6-B.md) [C](tasks/P6-C.md) [D](tasks/P6-D.md) | 收集器、备份/恢复、复制/换版本、迁移 | 备份可解压、迁移可回退 |
 | P7 | [A](tasks/P7-A.md) [B](tasks/P7-B.md) [C](tasks/P7-C.md) [D](tasks/P7-D.md) [E](tasks/P7-E.md) | 仓库治理、密钥、本地包、VCC、深链 | 不写 VCC、深链需确认 |
 | P8 | [A](tasks/P8-A.md) [B](tasks/P8-B.md) [C](tasks/P8-C.md) [D](tasks/P8-D.md) [E](tasks/P8-E.md) | UI 收口、日志、设置/更新、对账、性能 | 对账无空白、按钮纪律通过 |
@@ -119,7 +119,8 @@
 | 用户软件包 | 本地包目录 | P7-C |
 | 模板 | 自有模板列表/新建/编辑/导入导出 | P5-A / P5-D / P7-D |
 | 日志 | 操作记录/诊断/打开目录 | P8-B |
-| 工程详情 → Unity 版本/打开 Unity | 启动编辑器/换版本/参数 | P5-D / P6-C |
+| 工程详情 → Unity 版本/打开 Unity | 启动编辑器/换版本/参数；启动即绑定导入目标 | P5-D / P6-C / P5-E |
+| 工程页/顶栏 → 当前导入目标 | 打开工程后自动选中；双击素材进该工程；多实例优先级 | P2-E / P5-E |
 | 管理软件包 → 搜索/筛选 | 目录 + 工程页筛选 | P1-E / P4-E |
 | 升级所有软件包（最新） | 批量计划 + 预览 + 应用 | P3-C / P3-D / P4-E |
 | 添加软件包 | 搜索/版本/加入变更单/事务 | P3-D / P4-C / P4-E |

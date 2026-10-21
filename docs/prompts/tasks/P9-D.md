@@ -3,7 +3,7 @@
 > 阶段规格：`../VPM-P9.md`（只读 §4）
 > 任务板：`../../VPM-TASKS.md` · 共同规则：`../_COMMON.md` · 架构合同：`../../VPM-ARCHITECTURE.md`
 > 前置：P9-C
-> 覆盖对账项：G8 / G9 / I9
+> 覆盖对账项：G8 / G9 / I9 / K1 / K2 / K4 / K5
 > 建议上下文：≤ 30k tokens
 
 ## 目标

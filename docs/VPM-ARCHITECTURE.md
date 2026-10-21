@@ -161,6 +161,17 @@ src/renderer/vpm/
   README.md             组件边界与状态约定
 ```
 
+核心联动（**不属于 VPM**，VPM 只能通过 gate 注入的端口访问）：
+
+```text
+src/main/project/      当前导入目标、工程活动状态（core 持有唯一真相）
+src/main/bridge/       素材导入的唯一执行者；写入 Assets 只经过 Unity 桥接
+src/renderer/stores/ui.ts  双击素材 → 解析/准备目标 → 现有导入流程
+```
+
+- 当前工程/导入目标不是 VPM 台账的字段，也不在 `vpm.db` 里另存一份。
+- VPM 的工程页可以**展示**目标，但只能调用 gate 注入的回调请求绑定，不能直接改核心状态。
+
 ### 4.1 模块公开面
 
 - 文件夹模块必须有 `index.ts`，只导出公开类型和函数。
@@ -203,8 +214,12 @@ P1-A 先建空骨架和模板；后续任务在自己模块落地时补全。
 | 数据根 `tmp/` | 各服务 | 各服务 | 仅临时；启动/结束时清理自己的残留 |
 | 工程 `Packages/` | `install` 事务 | 工程读取 | 只有事务服务能改；Unity 运行时拒绝 |
 | 工程 `Packages/vpm-manifest.json` | `install` 事务 | 工程读取 | **最后写**；保留未知字段；写前校验工程未变 |
+| 工程 `Packages/com.avca.bridge/` | **核心桥接安装器**（唯一例外） | VPM 只读/忽略 | VPM 不装/不升/不降/不卸/不覆盖；解析器和清理都跳过 |
+| 工程 `Assets/` 素材 | 现有桥接导入协调器 + Unity | VPM 只读 legacy 报告/GUID 匹配 | VPM 不直接写 Assets；清理只按包声明的白名单 |
 | 工程 `ProjectSettings/ProjectVersion.txt` | `unity/version` | 工程读取 | 改前必须备份 + 关闭 Unity；可回滚 |
 | 工程其他文件 | `backup`/`unity/create` 的明确用例 | 工程读取 | 不手写 `.meta`；不覆盖非空目录 |
+| 当前导入目标 | 核心 `project` 目标服务 | VPM 通过 gate 端口读取/请求绑定 | 单一真相；启动绑定、显式选择优先、关闭/移除清除 |
+| 工程活动状态（导入/维护） | 核心工程活动闸门 | VPM 通过 gate 端口申请/查询 | 互斥；包事务只在 Unity 关闭时；导入中拒绝维护写 |
 | VCC `settings.json` / `vcc.liteDb` | **无人**（只读） | `interop/vcc` | 绝不写回 VCC；LiteDB 只读且可选 |
 | 深链注册 | `interop/deeplink` | 主进程 | 只注册 `atrium://`；`vcc://` 需显式确认 |
 
@@ -214,8 +229,15 @@ P1-A 先建空骨架和模板；后续任务在自己模块落地时补全。
 2. **先临时后原子**：同卷临时文件/目录 → 校验 → rename；不要直接覆盖目标。
 3. **manifest 最后写**：包目录就位且校验通过后再写 manifest；manifest 写入失败要回滚包目录。
 4. **不永久删用户文件**：旧包/旧资源进 vault；缓存/临时文件例外，但要有边界和清理策略。
-5. **一个工程同一时间只允许一个变更**：进程内互斥 + `vpm.db` 操作记录；跨进程靠工程锁/文件指纹。
-6. **外部变更检测**：事务开始和提交前比较 manifest 指纹；用户/Unity 改过就中止，不硬覆盖。
+5. **一个工程同一时间只允许一个变更**：素材导入、包事务、备份/复制/迁移/换版本共用工程活动闸门；
+   进程内互斥 + `vpm.db` 操作记录；跨进程靠工程锁/文件指纹。
+6. **外部变更检测**：事务开始和提交前比较 manifest 指纹；用户/Unity/ALCOM 改过就中止，不硬覆盖。
+7. **打开即绑定**：Atrium 启动工程时先绑定导入目标，再 spawn Unity；不到"桥接就绪"才选目标。
+   绑定失败/启动失败必须清除，不把素材投给别的工程。
+8. **桥接与素材优先保护**：`Packages/com.avca.bridge` 永远不在 VPM 变更/清理集合里；
+   `Assets/` 清理只按包清单的 GUID/路径白名单，未知/导入资产保留并报告。
+9. **当前目标不跨重启猜**：目标状态是应用内存态；重启后按现有规则重新解析
+   （单工程自动、多工程显式选择），避免持久化出一个已经关闭/移动的工程。
 
 ---
 
@@ -290,6 +312,42 @@ export interface InstallOperation {
 - 失败的默认策略是**尽量自动回滚**；无法安全回滚时进入 `needs_attention`，绝不假装成功。
 - 崩溃恢复在 VPM 初始化时扫描未完成操作；只处理能证明安全的操作。
 - 事务服务是唯一能改 `Packages/` 和 manifest 的模块。
+- 例外：`Packages/com.avca.bridge` 由核心桥接安装器写入；它必须出现在事务/清理的受保护集合里。
+
+### 6.4.1 工程联动端口（core 提供，gate 注入）
+
+VPM 不 import 核心 `project`/`bridge`/`import` 模块。`main/index.ts` 把下面这个窄端口注入
+`VpmGateDeps`，VPM 的启动/工程页/维护服务只能通过它：
+
+```ts
+export interface ProjectLinkagePort {
+  /** 当前目标；可能尚未启动完成（phase=launching/connecting/closed） */
+  currentTarget(): { projectId: string; path: string; phase: string } | null
+  /** Atrium 启动工程前调用；立即生效，不要求 Unity 已就绪 */
+  bindLaunchTarget(projectId: string): void
+  /** 启动失败/用户取消/工程关闭后清理；只清自己绑的那一个 */
+  clearLaunchTarget(projectId: string): void
+  /** 只读活动状态；UI 和目标选择用 */
+  activity(projectId: string): {
+    unityRunning: boolean
+    importing: boolean
+    maintenance: 'install' | 'backup' | 'copy' | 'migrate' | 'version' | null
+  }
+  /** 维护动作的独占租约；拿不到返回可解释错误，不排队到用户不知道 */
+  acquireMaintenance(
+    projectId: string,
+    kind: 'install' | 'backup' | 'copy' | 'migrate' | 'version'
+  ): { release(): void }
+}
+```
+
+规则：
+
+- `bindLaunchTarget` 是**应用状态**，不是工程文件写入；不需要 Unity 已运行。
+- 目标优先级固定为：**用户显式选择 > Atrium 启动绑定 > 仅一个运行工程时自动**。
+- 用户显式选另一个目标时，清除旧的启动绑定；工程移除、启动失败、启动后关闭，都要清除。
+- `acquireMaintenance` 与素材导入互斥；包事务还要求 `unityRunning=false`。
+- 端口失败只返回错误码/状态，不向渲染层抛异常或数据库行。
 
 ### 6.5 IPC / DTO
 
@@ -366,11 +424,16 @@ idle → fetching → ready
 - 并发上限 2；可取消；关闭 VPM/退出时取消。
 - 不自动高频刷新；打开目录且缓存过期时最多触发一次。
 
-### 7.3 工程锁
+### 7.3 工程锁与素材导入
 
 - 写操作（装/卸/迁移/换版本/建工程）需要工程锁。
-- 锁的粒度是工程路径；记录在 `vpm.db`，并检查进程内互斥。
-- 只读操作（浏览/解析/备份读取）不拿写锁。
+- 锁的粒度是工程路径；记录在 `vpm.db`，并检查核心工程活动闸门的进程内互斥。
+- 素材写入（导入/撤销/删除 GUID/成员导入）**不是** VPM 写操作：它由现有桥接在 Unity 内执行，
+  拿的是“写入活动”而不是 VPM 工程锁；但两者的活动状态互相可见。
+- 只读操作（浏览/解析/备份读取）不拿写锁；备份仍要检查导入活动，避免复制半成品。
+- 包事务：`unityRunning=false` 且 `importing=false` 且拿到维护租约才能开始。
+- 备份/复制/迁移/换版本：拿维护租约；`importing=true` 时拒绝；换版本/迁移还要求 Unity 关闭。
+- 素材写入：目标必须等于当前绑定工程；导入计划固定 `projectId`，中途切换目标不转投。
 - 拿不到锁时返回可解释错误，不排队到用户不知道。
 
 ---
@@ -436,7 +499,9 @@ idle → fetching → ready
 5. SQL 只在 `main/vpm/db/`、`main/vpm/repos/`；
 6. 渲染进程静态 import `renderer/vpm/**` 只允许 `Settings.tsx` 的 `lazy(() => import(...))`；
 7. `renderer/vpm` 的 `window.a` 只在 `api.ts`；
-8. 事务/备份/版本服务之外不得写工程文件（用路径/函数白名单检查，允许误报白名单但要有注释）。
+8. 事务/备份/版本服务之外不得写工程文件（用路径/函数白名单检查，允许误报白名单但要有注释）；
+9. VPM 不得直接 import 核心 `project`/`bridge`/`import` 模块；只能通过 gate 注入的联动端口；
+10. `com.avca.bridge` 不得出现在解析计划、变更集合、旧 Assets 清理白名单或备份排除的“可删”一侧。
 
 规则可以随任务增加，但不能减少；减少必须在架构文档的决策记录里写原因。
 
@@ -466,6 +531,8 @@ idle → fetching → ready
   - `hooks/`：查询、变更、loading/error、取消；
   - `components/`：纯展示，不直接 `window.a`。
 - 列表虚拟化/分页在数据量大时再加；P1 包目录先按需分页，不一次渲染上万行。
+- 项目页/工程详情始终显示“当前导入目标”；打开 Unity 后立即显示该工程，
+  即使还在启动/连接也可见。多 Unity 实例时显示为什么选它，并给显式切换入口。
 - 按钮纪律：一屏一个主操作；批量操作选中后才出现；危险操作二次确认；失败有可执行的下一步。
 - 文案三语；错误码到文案的映射集中在 i18n；主进程不返回 UI 句子。
 - 可访问性：键盘可达、焦点可见、Esc/Enter 正常、不能只靠颜色表达状态。
@@ -506,6 +573,8 @@ Task: P4-C
 | ADR-08 | 复杂模块必须有 README + 公开入口 | 后来的人能独立改模块 | 2026-10-21 |
 | ADR-09 | 不新增顶级导航，挂现有项目/设置页 | 轻量化；不把 VPM 做成第二个产品 | 2026-10-21 |
 | ADR-10 | 事务默认自动回滚，无法判定进 `needs_attention` | 不假装成功；给用户/维护者可操作状态 | 2026-10-21 |
+| ADR-11 | 打开工程即绑定导入目标；目标只有核心一份状态 | 包管理与素材导入共用同一工程；VPM 不另存当前工程 | 2026-10-22 |
+| ADR-12 | 素材导入/包事务/维护动作共用工程活动闸门；桥接包受保护 | 防止错工程导入、半写、误清理用户资产 | 2026-10-22 |
 
 新增决策时追加，不覆盖历史。
 
@@ -538,6 +607,8 @@ Task: P4-C
 [ ] 只改任务卡允许的文件；没有顺手重构/新功能
 [ ] 依赖方向符合 §3；跨模块只走 index.ts
 [ ] 数据写入符合 §5；没有第二个写入者
+[ ] 没有绕过联动端口/工程活动闸门；桥接包与导入资产受保护
+[ ] 打开工程 → 目标绑定 → 双击导入这条链有测试（涉及启动/导入时）
 [ ] 新增/修改模块 README，公开 API 已列
 [ ] 纯逻辑与 IO 分离；失败可注入
 [ ] 错误码 + 三语文案；主进程无 UI 句子
