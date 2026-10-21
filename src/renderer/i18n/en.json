@@ -1220,6 +1220,14 @@
       "vpmDataRootNotWritable": "This folder cannot create files. Choose a writable folder.",
       "vpmSnapshotFailed": "The pre-enable snapshot failed, so project & package management was not enabled.",
       "vpmConfigRecovered": "The settings file was corrupt. It was backed up as .corrupt-* and defaults are in use.",
+      "vpmDbOpenFailed": "The project & package database could not be opened. Core asset features are unaffected.",
+      "vpmDbVersionTooNew": "The project & package database is newer than this app. Upgrade Atrium; it will not rebuild automatically.",
+      "vpmDbMigrationFailed": "The project & package database upgrade failed. Existing data was kept.",
+      "vpmDbBackupFailed": "Backing up the database before upgrade failed, so the upgrade was stopped.",
+      "vpmDbIntegrityFailed": "The project & package database failed its integrity check.",
+      "vpmRepoInvalid": "Repository information is incomplete or malformed.",
+      "vpmRepoConflict": "A repository with the same address already exists.",
+      "vpmRepoNotFound": "That repository could not be found.",
       "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected."
     }
   }

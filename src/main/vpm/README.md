@@ -21,10 +21,15 @@ VPM 的主进程外壳：默认关闭的门面、独立设置、数据根校验�
 - `config.ts`：独立设置读写；只给 gate/后续 runtime 用，不是公共 API。
 - `src/shared/vpm/dataRoot.ts`：纯校验，由 gate 调用。
 
-P1 起（按 `docs/VPM-ARCHITECTURE.md` §4）：
+P1-B 当前已落地：
+
+- `db/`：`openVpmDb/closeVpmDb`、只前进迁移、迁移前备份/校验；见 `db/README.md`。
+- `repos/`：`RepoStore` 的仓库 CRUD、包索引替换与目录查询；见 `repos/README.md`。
+
+P1-C 起（按 `docs/VPM-ARCHITECTURE.md` §4）：
 
 - `index.ts` 组合根（P1-D 新建，动态加载）
-- `ipc/`、`db/`、`repos/`、`http/`、`catalog/`、`projects/`、`resolver/`、
+- `ipc/`、`http/`、`catalog/`、`projects/`、`resolver/`、
   `install/`、`cache/`、`vault/`、`unity/`、`backup/`、`interop/`、`log/`
 
 每个文件夹模块必须有 `index.ts` 公开面和 README；跨模块只走公开面。

@@ -44,7 +44,7 @@
 | ID | 任务 | 依赖 | 主要产物 | 对账 | 状态 |
 |---|---|---|---|---|---|
 | P1-A | 模块边界、依赖方向与架构闸门 | P0 | 模块 README、依赖规则、`architecture.spec.ts`、renderer API 包装 | I4/I6/I7/I8 | done |
-| P1-B | `vpm.db` v1、迁移器与仓储 | P1-A | `db/`、`repos/`、v1 表、迁移/备份 | C8/C14/I7 | todo |
+| P1-B | `vpm.db` v1、迁移器与仓储 | P1-A | `db/`、`repos/`、v1 表、迁移/备份 | C8/C14/I7 | done |
 | P1-C | HTTP、缓存与联网同意 | P1-A | `http/`、`cache/`、同意门、fake 测试 | C8/C9/C10/G2/I6 | todo |
 | P1-D | 仓库服务、官方/curated 与来源合并 | P1-B/P1-C | `reposService`、`catalog`、种子仓库 | C1/C2/C8/C10/C14/B15 | todo |
 | P1-E | 只读包目录 UI、IPC 与三语 | P1-D | 仓库区、包抽屉、同意模态、IPC | B1/B2/B3/B13/B14 | todo |
@@ -85,8 +85,8 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A 已完成，下一个执行任务是 **P1-B**（vpm.db v1、迁移器与仓储）。
-> P1-B 开工前先读 §12 的 P1-A 交接；如果发现与 P0 代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B 已完成，下一个执行任务是 **P1-C**（HTTP、缓存与联网同意）。
+> P1-C 开工前先读 §12 的 P1-A/P1-B 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 
 ---
 
@@ -270,6 +270,31 @@ Task: P?-?
 - **给 P1-B**：`db/`、`repos/` 落地时必须提供 `index.ts` 公开面；SQLite 只能出现在
   `db/`/`repos/`（gate 的只读快照完整性检查是 P0 例外）；不要改 P0 的 gate/config 行为。
   开工前先跑 `node tools/check-vpm-taskpack.cjs`，确认任务卡/对账表没有漂移。
+
+### P1-B（2026-10-21，done）
+
+- **公开 API/契约**：`src/main/vpm/db/` 导出 `openVpmDb(options?): Promise<VpmDb>`、
+  `closeVpmDb(db)`、`VpmDb`、`VPM_SCHEMA_VERSION=1`；`src/main/vpm/repos/` 导出
+  `RepoStore` 与仓库/包/目录查询类型。没有新增 IPC/UI。
+- **数据/迁移**：库在 `P.vpmDb()`；从旧版本升级前 `quick_check` → `db.backup()` →
+  备份只读校验（`integrity_check` + `user_version`）→ 事务迁移 → 全量完整性/必需表检查。
+  更高 `user_version` 拒绝；`user_version=0` 但已有 VPM 表拒绝；备份失败不迁移。
+- **仓储**：`RepoStore` 的 `listRepos/getRepo/getRepoByUrl/upsertRepo/updateRepoFetchState/
+  removeRepo/replaceRepoPackages/queryCatalog`；替换包索引单事务，失败保留旧行；
+  `queryCatalog` 支持文本/仓库/启用/隐藏/yanked/分页，返回按版本行（聚合留给 P1-D）。
+- **错误码**：新增 `vpmDbOpenFailed/DbVersionTooNew/DbMigrationFailed/DbBackupFailed/
+  DbIntegrityFailed/RepoInvalid/RepoConflict/RepoNotFound`，三语齐全。
+- **README**：`src/main/vpm/db/README.md`、`src/main/vpm/repos/README.md`；
+  `src/main/vpm/README.md` 已补 P1-B 落地位置。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **158 passed / 9 skipped files（167）**、**2127 passed / 20 skipped tests（2147）**。
+  其中 1 条 `bridge/lockfile` 的 PowerShell 冷启动用例因机器满载超时被跳过（测试自己打印
+  “没验，不算通过”），不是 P1-B 引入；定向 VPM 测试 32 条全绿。
+- **未验证**：P1-B 尚未接到门面/组合根，所以应用启用 VPM 时还不会创建 `vpm.db`；
+  这条接线在 P1-D。没有真实仓库 JSON/HTTP 参与（P1-C/P1-D）。仅 Windows x64。
+- **给 P1-C**：网络唯一入口必须放 `src/main/vpm/http(_)`；未同意时不得建立连接；
+  测试用本地 fake，不要打公网；缓存路径只能从已验证的数据根派生，不能落 C。
+  新的 HTTP 错误码先登记 `shared/vpm/errors.ts` 和三语 i18n，再写实现。
 
 ---
 

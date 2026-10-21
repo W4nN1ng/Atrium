@@ -17,6 +17,14 @@ export const VPM_ERROR_CODES = [
   'vpmDataRootNotWritable',
   'vpmSnapshotFailed',
   'vpmConfigRecovered',
+  'vpmDbOpenFailed',
+  'vpmDbVersionTooNew',
+  'vpmDbMigrationFailed',
+  'vpmDbBackupFailed',
+  'vpmDbIntegrityFailed',
+  'vpmRepoInvalid',
+  'vpmRepoConflict',
+  'vpmRepoNotFound',
   'vpmInternal'
 ] as const
 
