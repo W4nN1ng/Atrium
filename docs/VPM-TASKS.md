@@ -50,25 +50,28 @@
 | P1-E | 只读包目录 UI、IPC 与三语 | P1-D | 仓库区、包抽屉、联网开关、IPC | B1/B2/B3/B13/B14 | done |
 | P2-A | Unity 编辑器发现与手动添加 | P1-B | `unity/editors`、vpm.db v2、Hub 配置 | D1/D2/D3/D4/F4 | todo |
 | P2-B | 工程读取纯逻辑与 legacy 报告 | P1-A | `shared/vpm/domain/project.ts`、manifest 读取、fixtures | A1/A3/B17/A22 | todo |
-| P2-C | 工程台账 v2、VCC 工程与核心整合 | P2-A/P2-B | `projects/ledger`、vpm.db v2、只读 VCC 工程 | A1/A2/A3/A18/A23/F1 | todo |
-| P2-D | 只读工程页 UI 与 IPC | P2-C | 工程列表/详情、打开文件夹、运行状态 | A1/A2/A3/A14/A18/A20/B17 | todo |
+| P2-C | 工程台账 v2、VCC 工程与核心整合 | P2-A/P2-B | `projects/ledger`、vpm.db v2、只读 VCC 工程 | A1/A2/A3/A18/A23/B28/F1 | todo |
+| P2-D | 只读工程页 UI 与 IPC | P2-C | 工程列表/详情、打开文件夹、运行状态 | A1/A2/A3/A14/A18/A20/B17/B28 | todo |
+| P2-E | 当前工程与导入目标联动（核心） | P2-D | 目标绑定/优先级、工程页目标徽标、测试 | K1/K3/K6 | todo |
 | P3-A | 版本、范围、Unity 兼容纯逻辑 | P1-B | `domain/version|range|unityVersion|packageId` | B10/B12/B16 | todo |
-| P3-B | 解析器引擎、锁定与冲突 | P3-A/P1-D | `domain/resolver.ts`、候选/队列/冲突 | B10/B11/B12/B16/B22 | todo |
+| P3-B | 解析器引擎、锁定与冲突 | P3-A/P1-D | `domain/resolver.ts`、候选/队列/冲突 | B10/B11/B12/B16/B22/K5 | todo |
 | P3-C | 变更计划、卸载、升级全部与解释 | P3-B | `domain/plan.ts`、mark-and-sweep、upgradeAll | B5/B7/B8/B9/B11/B27 | todo |
 | P3-D | 解析测试矩阵与只读计划 UI/IPC | P3-C/P2-D | 冲突矩阵、计划预览、解释面板 | B9/B11/B27/I9 | todo |
 | P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | todo |
 | P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | todo |
-| P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25 | todo |
-| P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/I3 | todo |
-| P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/I1/I9 | todo |
+| P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | todo |
+| P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | todo |
+| P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | todo |
+| P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | todo |
 | P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | todo |
 | P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | todo |
 | P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | todo |
-| P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10 | todo |
+| P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10/K1 | todo |
+| P5-E | 启动即绑定目标与双击素材真机验收 | P5-D/P4-F/P2-E | 启动绑定、双击导入真机、多实例回归 | K1/K2/K3/K6 | todo |
 | P6-A | 文件收集器、排除规则与取消 | P2-B | `backup/collector`、排除表、进度/取消 | E1/E3/E4 | todo |
 | P6-B | ZIP 备份、记录与从备份新建 | P6-A | `backup/service`、备份记录、恢复、打开位置 | A16/A17/E1–E7 | todo |
 | P6-C | 复制工程与更换 Unity 版本 | P6-B/P5-D | `backup/copy`、`unity/version`、回滚 | A15/A19/D6/E9 | todo |
-| P6-D | 旧式迁移、备份/迁移 UI 与真机 | P2-B/P6-C | `backup/migrate`、迁移向导、UI | B18/E8 | todo |
+| P6-D | 旧式迁移、备份/迁移 UI 与真机 | P2-B/P6-C | `backup/migrate`、迁移向导、UI | B18/E8/K4/K5 | todo |
 | P7-A | 仓库治理：编辑/启停/排序/导入导出 | P1-E | 仓库编辑、拖拽排序、lists | C3/C4/C5/C6/C13 | todo |
 | P7-B | 请求头、密钥存储与测试连接 | P7-A/P4-B | `SecretStore`、safeStorage、脱敏 | C7/C15 | todo |
 | P7-C | 本地用户包目录 | P7-B/P4-C | `localPackages`、信任/扫描、local 源 | C11 | todo |
@@ -82,11 +85,13 @@
 | P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | todo |
 | P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | todo |
 | P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | todo |
-| P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9 | todo |
+| P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
 > P0、P1-A、P1-B、P1-C、P1-D、P1-E 已完成，下一个执行任务是 **P2-A**（Unity 编辑器发现与手动添加）。
 > P2-A 开工前先读 §12 的 P1-A…P1-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
+> P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
 ---
 
@@ -96,10 +101,10 @@
 |---|---|
 | P0 | 已完成：默认关闭、可停用、可安全模式、快照可验证、核心 schema 11 |
 | P1 | 纯逻辑测试全绿；断网可用缓存；无 C 缓存；只读 UI 不提供安装；包目录有来源/版本/错误 |
-| P2 | 工程读取全程只读；不改 `Packages/`/manifest；运行状态不回归；VCC 只读 |
-| P3 | 计划不写盘；冲突/缺失/锁定可解释；升级全部与单包同一套语义 |
-| P4 | 每步失败注入可回滚；崩溃恢复可解释；真 Unity 2022.3.22f1 沙盒通过 |
-| P5 | 新工程能被真 Unity 打开；不手写 `.meta`；模板无第三方资产；启动参数不拼 shell |
+| P2 | 工程读取全程只读；不改 `Packages/`/manifest；运行状态不回归；VCC 只读；目标绑定只改应用状态 |
+| P3 | 计划不写盘；冲突/缺失/锁定可解释；升级全部与单包同一套语义；受保护包不可选 |
+| P4 | 每步失败注入可回滚；崩溃恢复可解释；工程活动闸门挡住导入/包事务并发；真 Unity 2022.3.22f1 沙盒通过 |
+| P5 | 新工程能被真 Unity 打开；不手写 `.meta`；模板无第三方资产；启动参数不拼 shell；启动即绑定导入目标，双击素材真机导入成功 |
 | P6 | 备份可解压；复制/换版本可回退；legacy 迁移有备份/事务/真机记录 |
 | P7 | 不写 VCC；请求头不出明文；深链必须确认；本地包需显式信任 |
 | P8 | 对账表无未解释空白；按钮纪律/可访问性通过；性能有基准 |
@@ -117,16 +122,18 @@ P1-A ─┬─ P1-B ─┬─ P1-D ── P1-E
       └─ P1-C ─┘
 
 P1-B ── P2-A ─┐
-P1-A ── P2-B ─┴─ P2-C ── P2-D
+P1-A ── P2-B ─┴─ P2-C ── P2-D ── P2-E
 
 P3-A ── P3-B ── P3-C ── P3-D
 P1-B/P1-D ─────────────┘
 
 P3-C ── P4-A ─┐
 P1-C ── P4-B ─┴─ P4-C ── P4-D ── P4-E
+                              └── P4-F
 
 P5-A ── P5-B ─┐
-P5-A ── P5-C ─┴─ P5-D
+P5-A ── P5-C ─┴─ P5-D ── P5-E
+P2-E/P4-F ───────────────┘
 
 P2-B ── P6-A ── P6-B ── P6-C ── P6-D
 P5-D ────────────────────┘
@@ -145,6 +152,7 @@ P9-A ── P9-B ── P9-C ── P9-D ── P9-E
 
 - P2-A 与 P2-B；
 - P4-A 与 P4-B；
+- P4-E 与 P4-F（文件不重叠时）；
 - P7-A 与 P7-D；
 - P8-A/B/C 三者。
 
@@ -388,6 +396,8 @@ Task: P?-?
 - **未验证**：其他平台；键盘/焦点细节在 P8 收口；包安装/解析仍在 P3/P4。
 - **给 P2-A**：runtime/IPC 的注册方式可复用；P2 只读工程，不要改 `Packages/`；
   需要展示包时继续用 `CatalogService` 的 DTO，不要把仓库 JSON/DB 行带给 UI。
+- **给 P2-E/P5-E**：素材联动是硬需求；P2-E 做核心启动绑定/优先级，P5-E 真机验
+  “打开工程 → 双击素材进该工程”，不要等 P8 再补。
 
 ---
 

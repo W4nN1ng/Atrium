@@ -1038,3 +1038,15 @@ Unity 只在 `Temp/AVCABridge/previews/` 写本次请求的 PNG；命令 ID 校�
 BridgeManager 新增请求级 AbortSignal。在排队或等待时取消，撤回该请求自己的 inbox 文件；不会取消先前的导入命令。Unity 已开始的同步 GPU 渲染无法中途抢占，Atrium 会拒绝晚到结果，不替换卡片。临时输出属于 Unity Temp，不进入素材库或 Avatar 上传资源。
 
 业务错误例如 `covers.noMesh`、`covers.missingShader`、`covers.pipelineUnsupported` 通过原有 error/exception/stackTrace 路径返回；封面窗口显示译文和可展开的有界详情，批量任务逐项记录。用户操作说明见 [UNITY-COVERS.md](UNITY-COVERS.md)，验证脚本为 `tools/verify-unity-preview.cs` 及 `tools/verify-cover-ui.cjs`。
+
+---
+
+## 14. 与 VPM/包管理的共存边界（2026-10-22）
+
+VPM 并入 Atrium 后，桥接仍是素材写入的唯一通道：
+
+- `Packages/com.avca.bridge` 是受保护包。VPM 解析器、安装事务、旧 Assets 清理和备份恢复都不能装/升/降/卸/覆盖它；仓库里出现同名包也拒绝。
+- VPM 不直接写 `Assets/`，也不直接向 inbox 投命令。素材导入继续走现有 `import_unitypackage` / `import_files` / `delete_guids` 链路。
+- Atrium 启动 Unity 工程时先绑定该工程为当前导入目标，再启动编辑器；双击素材等它就绪后导入。显式“设为导入目标”覆盖启动绑定；启动失败/工程关闭/移除清除。
+- 素材写入（导入/撤销/删除 GUID/成员导入）进行中，包事务、备份、复制、迁移和换版本都必须拒绝或等待；包事务仍要求 Unity 关闭。VPM 的工程锁与桥接导入队列不能各自为政。
+- 旧 Assets 清理只按包清单声明的 GUID/路径白名单；与 `import_log` 已知资产、桥接包或未知文件重叠时保留并报告，不做整目录扫荡。

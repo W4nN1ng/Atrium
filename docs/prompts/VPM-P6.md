@@ -140,8 +140,9 @@ git switch -c codex/vpm-p6-project-ops origin/main
 ### 6.1 流程
 
 1. 预检：工程有效、路径合法、目标目录可写、空间足够（估算 + 10%）；
+   **素材写入进行中直接拒绝**（素材写入会改 `Assets/`，备份会复制到半成品）；
    Unity 运行中默认要求先关闭；用户坚持时给"可能复制到不一致状态"的二次确认
-   （备份是只读动作，但 Unity 可能正在写资源）。
+   （备份是只读动作，但 Unity 可能正在写资源）。必须先拿工程活动闸门的维护租约。
 2. 生成默认文件名：`<工程名>-<yyyyMMdd-HHmmss>.zip`（sanitize；冲突加 `-2`）。
 3. 目标：
    - 默认 `<dataRoot>/backups/<projectSlug>/`；
@@ -167,6 +168,8 @@ git switch -c codex/vpm-p6-project-ops origin/main
   - 备份里保留 `vpm-manifest.json`；
   - 恢复时提示"包未包含，需要重新安装"，并提供"按 manifest 补装"。
 - 不排除未知/本地包（否则用户丢东西）。
+- `Packages/com.avca.bridge` 是桥接系统包：要么随备份保留，要么恢复后由核心自动连接重新安装；
+  不能出现“备份排除了它、恢复后又没人补”的静默缺失。
 
 ### 6.3 备份记录
 
@@ -273,7 +276,8 @@ CREATE TABLE IF NOT EXISTS vpm_backup (
 3. 安装现代包到 `Packages/`（P4 事务）。
 4. 成功后，把旧 Assets 文件/目录（连同 `.meta`）移入回滚仓：
    - 双重校验：允许列表 + 在 `Assets/` 下 + 不是 `Assets` 根；
-   - 路径级优先；GUID 级只删匹配项；
+   - 路径级优先；GUID 级只删匹配项；**整目录移动前要求目录内每个文件都命中旧包声明 GUID**；
+   - 与 `import_log` 已知资产、`Packages/com.avca.bridge`、未知文件重叠 → 保留并报告；
    - 不删未匹配/不确定的内容；
    - 失败 → 保留旧文件，warning；不回滚已装好的新包。
 5. 写 manifest（P4 已做）；记录迁移 operation（kind=legacy-migration）。
@@ -338,12 +342,13 @@ tests/vpm/db-v5.spec.ts
 1. 收集器：排除规则、Library 例外、`.git`/`.atrium-tx`、symlink/junction、可选排除 VPM 包、
    未知包保留、长路径、非 UTF-8/无权限、大小统计。
 2. 备份：store/fast/normal、内容正确、可解压、hash、取消无假文件、磁盘不足、目标冲突；
+   素材写入进行中拒绝备份；Unity 运行时警告/拒绝路径；
    **>4 GiB 的 ZIP64 场景**（虚拟/稀疏文件，避免真写满盘）。
 3. 恢复：zip-slip、无效工程、目标已存在、排除包后补装、失败清理。
 4. 复制：排除规则、目标不存在、进度、取消、符号链接、失败清理。
 5. 换版本：运行中拒绝、目标未安装、备份、原子写、revision、回退。
 6. 旧式检测：package.json/legacy path/GUID/包 ID、无候选、超时/截断。
-7. 迁移：备份强制、装新包、旧文件入回滚仓、未匹配保留、失败不回滚新包、
+7. 迁移：备份强制、装新包、旧文件入回滚仓、未匹配/导入资产/桥接包保留、失败不回滚新包、
    撤销安全条件。
 8. 真 Unity：
    - 备份一个沙盒工程 → 从备份新建 → 打开；
