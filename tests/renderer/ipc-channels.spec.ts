@@ -27,13 +27,35 @@ function sources(dir: string): string[] {
   return out
 }
 
+/**
+ * handler 可能写字面量，也可能引 `IpcInvoke.Group.Name`。
+ * 两种都要认，否则“加了通道但测试说没实现”会逼着实现里重复一份字符串。
+ */
+function channelName(literal: string | undefined, group: string | undefined, key: string | undefined): string | null {
+  if (literal) return literal
+  if (!group || !key) return null
+  const table = (IpcInvoke as Record<string, Record<string, string>>)[group]
+  return table?.[key] ?? null
+}
+
+function handledChannels(text: string): string[] {
+  const out: string[] = []
+  for (const m of text.matchAll(
+    /(?:ipc|registrar\.ipc)\.handle\(\s*(?:'([^']+)'|IpcInvoke\.([A-Za-z0-9_]+)\.([A-Za-z0-9_]+))/g
+  )) {
+    const channel = channelName(m[1], m[2], m[3])
+    if (channel) out.push(channel)
+  }
+  return out
+}
+
 describe('IPC 通道白名单', () => {
   it('每个 ipc.handle(...) 的通道都在 IpcInvoke 里', () => {
     const missing: string[] = []
     for (const file of sources(path.join(ROOT, 'src/main'))) {
       const text = fs.readFileSync(file, 'utf8')
-      for (const m of text.matchAll(/(?:ipc|registrar\.ipc)\.handle\(\s*'([^']+)'/g)) {
-        if (!allowedChannels.has(m[1])) missing.push(path.relative(ROOT, file) + ' → ' + m[1])
+      for (const channel of handledChannels(text)) {
+        if (!allowedChannels.has(channel)) missing.push(path.relative(ROOT, file) + ' → ' + channel)
       }
     }
     expect(missing, '这些通道没登记进白名单，渲染进程一调就抛：\n' + missing.join('\n')).toEqual([])
@@ -60,7 +82,7 @@ describe('IPC 通道白名单', () => {
     const handled = new Set<string>()
     for (const file of sources(path.join(ROOT, 'src/main'))) {
       const text = fs.readFileSync(file, 'utf8')
-      for (const m of text.matchAll(/handle\(\s*'([^']+)'/g)) handled.add(m[1])
+      for (const channel of handledChannels(text)) handled.add(channel)
     }
     const dead = [...allowedChannels].filter((c) => !handled.has(c) && !LOCAL_ONLY.has(c))
     expect(dead, '这些通道声明了但主进程没实现：' + dead.join(', ')).toEqual([])

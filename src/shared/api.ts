@@ -40,6 +40,7 @@ import type { DirectoryProbe } from './wizardState'
 import type { ProjectConnection, UnityConnectionSnapshot, UnityTargetResolution } from './unityConnection'
 import type { CoverBatch, CoverDiscovery, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget, PackageCoverStatus, PackageCoverProgress, PackageCoverSetup } from './covers'
 import type { CoverTask, CoverTaskRequest, CoverTaskChoices, CoverTaskUndoResult } from './coverTasks'
+import type { VpmDataRootPick, VpmStatus } from './vpm/types'
 
 export interface AppInfo {
   name: string
@@ -269,6 +270,16 @@ export interface AApi {
     set<K extends keyof AppSettings>(key: K, value: AppSettings[K]): Promise<AppSettings>
     setMany(patch: Partial<AppSettings>): Promise<AppSettings>
     reset(): Promise<AppSettings>
+  }
+  /**
+   * VPM 子系统（默认关闭）。P0 只暴露状态/启用/停用/选目录；
+   * 主进程会重新校验数据根，不信任这里传的路径。
+   */
+  vpm: {
+    status(): Promise<VpmStatus>
+    enable(dataRoot: string): Promise<VpmStatus>
+    disable(): Promise<VpmStatus>
+    pickDataRoot(): Promise<VpmDataRootPick>
   }
   categories: {
     list(): Promise<CategoryConfig>

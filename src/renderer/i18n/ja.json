@@ -377,7 +377,8 @@
       "unity": "Unity",
       "integration": "連携",
       "maintenance": "メンテ",
-      "about": "情報"
+      "about": "情報",
+      "vpm": "プロジェクトとパッケージ"
     },
     "language": "表示言語",
     "libraryLocale": "ディスク上のフォルダ名の言語",
@@ -1170,6 +1171,56 @@
       "skipped": "スキップ済み",
       "cancelled": "停止済み",
       "restored": "復元済み"
+    }
+  },
+  "vpm": {
+    "title": "プロジェクトとパッケージ管理",
+    "intro": "VPM のプロジェクト／パッケージ管理の外側です。既定では無効です。確認後に Unity プロジェクトの Packages/ と vpm-manifest.json を変更し、システムドライブ以外のデータルートが必要です。",
+    "defaultOff": "既定では無効です。有効にしても、書き込みは確認後にだけ行います。",
+    "enable": "プロジェクトとパッケージ管理を有効にする",
+    "enabling": "有効化中…",
+    "disable": "無効にする",
+    "disabling": "無効化中…",
+    "disableTitle": "プロジェクトとパッケージ管理を無効にしますか？",
+    "disableBody": "スイッチを切るだけです。データルート、有効化前スナップショット、プロジェクトファイルは残ります。",
+    "disableConfirm": "無効にする",
+    "dataRoot": "データルート",
+    "dataRootHint": "キャッシュ、ロールバック保管庫、プロジェクトバックアップをここに置きます。絶対パスで、システムドライブ・素材ライブラリ・Unity プロジェクト・アプリのインストール先の外にある必要があります。",
+    "dataRootRequired": "データルートが未選択です",
+    "dataRootUnavailable": "このデータルートは現在利用できません（消失、削除、または検証失敗）。",
+    "chooseDataRoot": "フォルダーを選択",
+    "validationOk": "パスの確認に通りました。有効化時に書き込み権限を再確認します。",
+    "stepChoose": "1. データルートを選択",
+    "stepConfirm": "2. 影響を確認",
+    "risk": "Unity プロジェクトの Packages/ と vpm-manifest.json が変更されること、および確認後にだけ実行されることを理解しました。",
+    "enableTitle": "プロジェクトとパッケージ管理を有効にする",
+    "snapshot": "有効化前スナップショット",
+    "noSnapshot": "スナップショットはまだありません",
+    "appVersion": "アプリのバージョン",
+    "enabled": "有効",
+    "disabled": "無効",
+    "safeMode": "セーフモード",
+    "safeModeBody": "今回の起動はセーフモードです。プロジェクトとパッケージ管理は有効にならず、プロジェクトへの書き込みや通信も行いません。",
+    "degradedBody": "プロジェクトとパッケージ管理は縮退状態です。素材の主要機能には影響しません。",
+    "placeholder": "このバージョンにはスイッチとデータルートだけがあります。リポジトリ、テンプレート、Unity のインストール検出はまだ接続されていません。",
+    "warnings": {
+      "vpmDataRootUnc": "ネットワーク共有です。速度と可用性はネットワークに依存します。",
+      "vpmDataRootRemovable": "リムーバブルドライブです。取り外すとプロジェクトとパッケージ管理は縮退状態になります。",
+      "vpmDataRootNonNtfs": "NTFS ではないため、権限や長いパスの扱いが異なる場合があります。"
+    },
+    "errors": {
+      "vpmDisabled": "プロジェクトとパッケージ管理は無効です。",
+      "vpmSafeMode": "セーフモードがこの操作を止めました。",
+      "vpmDataRootRequired": "データルートを選択してください。",
+      "vpmDataRootInvalid": "このパスはデータルートに使えません（空、相対パス、ドライブ直下、または不正な文字）。",
+      "vpmDataRootOnSystemDrive": "データルートをシステムドライブに置くことはできません。",
+      "vpmDataRootInsideLibrary": "データルートを素材ライブラリの中に置くことはできません。",
+      "vpmDataRootInsideProject": "データルートを既存の Unity プロジェクトの中に置くことはできません。",
+      "vpmDataRootInsideApp": "データルートをアプリのインストール先の中に置くことはできません。",
+      "vpmDataRootNotWritable": "このフォルダーはファイルを作成できません。書き込み可能なフォルダーを選んでください。",
+      "vpmSnapshotFailed": "有効化前スナップショットに失敗したため、プロジェクトとパッケージ管理は有効になりませんでした。",
+      "vpmConfigRecovered": "設定ファイルが壊れていたため .corrupt-* に退避し、既定値を使っています。",
+      "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。"
     }
   }
 }

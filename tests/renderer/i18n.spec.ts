@@ -125,14 +125,14 @@ describe('i18n 三语一致', () => {
     const missing = statics.filter((k) => !base.has(k))
     expect(missing, `这些 key 没定义：${missing.join(', ')}`).toEqual([])
     for (const p of prefixes) {
-      expect(['status.', 'settings.tabs.', 'inbox.stage.'], `意外的动态前缀 ${p}`).toContain(p)
+      expect(['status.', 'settings.tabs.', 'inbox.stage.', 'vpm.errors.', 'vpm.warnings.'], `意外的动态前缀 ${p}`).toContain(p)
       expect(base.has(p.slice(0, -1)) || [...base].some((k) => k.startsWith(p)), `前缀 ${p} 下没有任何 key`).toBe(true)
     }
     // 动态拼接的那几组，逐个枚举值确认
     for (const s of ['archived', 'classified', 'pending_confirm', 'inbox']) {
       expect(base.has(`status.${s}`), `缺 status.${s}`).toBe(true)
     }
-    for (const t of ['general', 'library', 'classify', 'unity', 'integration', 'maintenance', 'about']) {
+    for (const t of ['general', 'library', 'classify', 'unity', 'vpm', 'integration', 'maintenance', 'about']) {
       expect(base.has(`settings.tabs.${t}`), `缺 settings.tabs.${t}`).toBe(true)
     }
     for (const st of [

@@ -86,6 +86,12 @@ const api: AApi = {
     setMany: (patch) => invoke('settings:set-many', patch),
     reset: () => invoke('settings:reset')
   },
+  vpm: {
+    status: () => invoke('vpm:status'),
+    enable: (dataRoot) => invoke('vpm:enable', { dataRoot }),
+    disable: () => invoke('vpm:disable'),
+    pickDataRoot: () => invoke('vpm:pick-data-root')
+  },
   categories: {
     list: () => invoke('categories:list'),
     save: (cfg) => invoke('categories:save', cfg)

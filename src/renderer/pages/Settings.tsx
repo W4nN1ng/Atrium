@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AppSettings, LocaleKey } from '../../shared/types'
 import { LOCALES, LOCALE_LABELS } from '../i18n'
@@ -14,9 +14,15 @@ import { LearnModelsPanel } from '../components/LearnModelsPanel'
 import { PasswordVaultPanel } from '../components/PasswordVaultPanel'
 import { DatabaseBackupPanel } from '../components/DatabaseBackupPanel'
 
-type TabKey = 'general' | 'library' | 'classify' | 'unity' | 'integration' | 'maintenance' | 'about'
+type TabKey = 'general' | 'library' | 'classify' | 'unity' | 'vpm' | 'integration' | 'maintenance' | 'about'
 
-const TABS: TabKey[] = ['general', 'library', 'classify', 'unity', 'integration', 'maintenance', 'about']
+const TABS: TabKey[] = ['general', 'library', 'classify', 'unity', 'vpm', 'integration', 'maintenance', 'about']
+
+/**
+ * VPM 外壳只在打开这个页签时加载。
+ * P0 里它只是一个开关；P1 起这里会挂仓库/包目录，不能让它拖慢启动。
+ */
+const VpmSettings = lazy(() => import('../vpm/VpmSettings').then((m) => ({ default: m.VpmSettings })))
 
 function ListEditor({
   items,
@@ -374,6 +380,12 @@ export function Settings(): JSX.Element {
                 {t('settings.trayRequiredNote')}
               </div>
             </>
+          ) : null}
+
+          {tab === 'vpm' ? (
+            <Suspense fallback={<div className="faint text-[11px]">{t('common.loading')}</div>}>
+              <VpmSettings />
+            </Suspense>
           ) : null}
 
           {tab === 'integration' ? (
