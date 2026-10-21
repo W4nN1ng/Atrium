@@ -144,6 +144,7 @@ export const P = {
    */
   vpm: () => path.join(root(), 'vpm'),
   vpmSettings: () => path.join(root(), 'vpm', 'settings.json'),
+  vpmDb: () => path.join(root(), 'vpm', 'vpm.db'),
   vpmBackups: () => path.join(root(), 'vpm', 'backups')
 }
 

@@ -1220,6 +1220,14 @@
       "vpmDataRootNotWritable": "这个目录无法创建文件，请换一个可写目录。",
       "vpmSnapshotFailed": "启用前快照创建失败，项目与包管理未启用。",
       "vpmConfigRecovered": "设置文件损坏，原文件已备份为 .corrupt-*，当前使用默认值。",
+      "vpmDbOpenFailed": "项目与包管理的数据库无法打开；核心素材功能不受影响。",
+      "vpmDbVersionTooNew": "项目与包管理的数据库版本高于当前程序；请升级 Atrium，不会自动重建。",
+      "vpmDbMigrationFailed": "项目与包管理的数据库升级失败；原数据已保留。",
+      "vpmDbBackupFailed": "升级前备份数据库失败，已停止升级。",
+      "vpmDbIntegrityFailed": "项目与包管理的数据库完整性检查失败。",
+      "vpmRepoInvalid": "仓库信息不完整或格式不对。",
+      "vpmRepoConflict": "已经有相同地址的仓库。",
+      "vpmRepoNotFound": "找不到这个仓库。",
       "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。"
     }
   }
