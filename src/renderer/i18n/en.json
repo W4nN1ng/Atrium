@@ -1228,6 +1228,18 @@
       "vpmRepoInvalid": "Repository information is incomplete or malformed.",
       "vpmRepoConflict": "A repository with the same address already exists.",
       "vpmRepoNotFound": "That repository could not be found.",
+      "vpmNetworkNotConsented": "Network access has not been approved; only local or cached data is available.",
+      "vpmHttpBlocked": "This address is not allowed (HTTPS only, and no credentials in the URL).",
+      "vpmHttpTimeout": "The network request timed out.",
+      "vpmHttpTooLarge": "The server response exceeded the size limit.",
+      "vpmHttpStatus": "The server returned an error status.",
+      "vpmHttpRedirect": "The redirect was unsafe or too long, so it was stopped.",
+      "vpmHttpNetwork": "The network connection failed.",
+      "vpmHttpInvalidJson": "The server did not return valid JSON.",
+      "vpmHttpAborted": "The network request was cancelled.",
+      "vpmCachePathInvalid": "The cache path is outside the data root and was rejected.",
+      "vpmCacheWriteFailed": "Writing the cache file failed.",
+      "vpmCacheHashMismatch": "The cache file failed verification; its content does not match.",
       "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected."
     }
   }

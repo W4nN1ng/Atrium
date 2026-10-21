@@ -1228,6 +1228,18 @@
       "vpmRepoInvalid": "リポジトリ情報が不足しているか、形式が正しくありません。",
       "vpmRepoConflict": "同じアドレスのリポジトリがすでにあります。",
       "vpmRepoNotFound": "そのリポジトリが見つかりません。",
+      "vpmNetworkNotConsented": "ネットワーク接続にまだ同意していないため、ローカルまたはキャッシュのデータだけを使えます。",
+      "vpmHttpBlocked": "このアドレスにはアクセスできません（HTTPS のみ、URL に認証情報は不可）。",
+      "vpmHttpTimeout": "ネットワーク リクエストがタイムアウトしました。",
+      "vpmHttpTooLarge": "サーバーの応答がサイズ上限を超えました。",
+      "vpmHttpStatus": "サーバーがエラー ステータスを返しました。",
+      "vpmHttpRedirect": "安全でない、または回数が多すぎるリダイレクトのため停止しました。",
+      "vpmHttpNetwork": "ネットワーク接続に失敗しました。",
+      "vpmHttpInvalidJson": "サーバーが有効な JSON を返しませんでした。",
+      "vpmHttpAborted": "ネットワーク リクエストはキャンセルされました。",
+      "vpmCachePathInvalid": "キャッシュ パスがデータルートの外にあるため拒否しました。",
+      "vpmCacheWriteFailed": "キャッシュ ファイルの書き込みに失敗しました。",
+      "vpmCacheHashMismatch": "キャッシュ ファイルの検証に失敗しました。内容が一致しません。",
       "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。"
     }
   }

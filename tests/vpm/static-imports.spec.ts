@@ -51,7 +51,9 @@ function violationsFor(relative: string, src: string): string[] {
     }
   }
 
-  if (file.startsWith('src/main/vpm/')) {
+  // P1-C 起网络只允许在 http 模块（单文件 http.ts 或 http/ 目录）；其他 VPM 文件一律禁止。
+  const vpmHttpModule = file === 'src/main/vpm/http.ts' || file.startsWith('src/main/vpm/http/')
+  if (file.startsWith('src/main/vpm/') && !vpmHttpModule) {
     for (const call of networkCalls(src)) out.push(`vpm-network-call:${relative}:${call}`)
   }
 
@@ -107,6 +109,15 @@ describe('VPM static import guard', () => {
     ])
     expect(violationsFor('src/main/vpm/gate.ts', 'export async function f(){ return fetch("x") }')).toEqual([
       'vpm-network-call:src/main/vpm/gate.ts:fetch('
+    ])
+  })
+
+  it('allows network code only in the http module', () => {
+    expect(
+      violationsFor('src/main/vpm/http/electron.ts', "import { net } from 'electron'; net.request({})")
+    ).toEqual([])
+    expect(violationsFor('src/main/vpm/cache/store.ts', 'export const f = () => fetch("x")')).toEqual([
+      'vpm-network-call:src/main/vpm/cache/store.ts:fetch('
     ])
   })
 
