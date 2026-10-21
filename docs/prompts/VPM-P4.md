@@ -1,5 +1,9 @@
 # VPM-P4 执行提示词：安装事务、回滚仓与包管理 UI
 
+> **执行入口（2026-10-21 起）**：本文件是 P4 阶段规格，不是一次执行的任务。
+> 请按 [`tasks/P4-*.md`](tasks/) 的任务卡逐个执行；本文件只查阅任务卡列出的章节。
+> 任务板：[`../VPM-TASKS.md`](../VPM-TASKS.md) · 共同规则：[`_COMMON.md`](_COMMON.md) · 架构：[`../VPM-ARCHITECTURE.md`](../VPM-ARCHITECTURE.md)。
+
 > 前置：P0–P3 已合并。解析器能产出只读计划；工程可读；仓库可查。
 > 必读：`AGENTS.md`、`docs/VPM-MERGE-PLAN.md`、`docs/VPM-CLEANROOM.md`、
 > `docs/VPM-PARITY.md`、`docs/VPM-ROLLBACK.md`、`docs/VPM-IMPLEMENTATION-GUIDE.md` §4、§5。

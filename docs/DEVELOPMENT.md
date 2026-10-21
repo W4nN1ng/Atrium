@@ -27,8 +27,9 @@
 > 新增独立的 `src/main/vpm/` 外壳：VPM 设置/快照放在 `%APPDATA%\A\vpm\`，默认关闭，
 > 核心 `library.db` schema 仍是 11；只有 `src/main/vpm/gate.ts` 会被核心静态 import，
 > 设置页的 VPM 面板是懒加载。P0 只做开关、数据根校验、启用前快照、安全模式与最小入口；
-> 仓库/包/事务从 P1 起才接入。规划与回退步骤见 [VPM-MERGE-PLAN.md](VPM-MERGE-PLAN.md)、
-> [VPM-ROLLBACK.md](VPM-ROLLBACK.md)，阶段提示词在 [prompts/](prompts/README.md)。
+> 仓库/包/事务从 P1 起才接入。P0 已完成并装到本机（0.9.0）；**P1 起按小任务卡开发**：
+> 架构见 [VPM-ARCHITECTURE.md](VPM-ARCHITECTURE.md)，任务板见 [VPM-TASKS.md](VPM-TASKS.md)，
+> 任务卡在 [prompts/tasks/](prompts/tasks/)，回退见 [VPM-ROLLBACK.md](VPM-ROLLBACK.md)。
 
 ## 图标
 

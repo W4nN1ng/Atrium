@@ -1,5 +1,9 @@
 # VPM-P7 执行提示词：仓库治理、本地包、VCC 导入与深链
 
+> **执行入口（2026-10-21 起）**：本文件是 P7 阶段规格，不是一次执行的任务。
+> 请按 [`tasks/P7-*.md`](tasks/) 的任务卡逐个执行；本文件只查阅任务卡列出的章节。
+> 任务板：[`../VPM-TASKS.md`](../VPM-TASKS.md) · 共同规则：[`_COMMON.md`](_COMMON.md) · 架构：[`../VPM-ARCHITECTURE.md`](../VPM-ARCHITECTURE.md)。
+
 > 前置：P1–P6 已合并；仓库/工程/装包/备份可用。
 > 必读：`AGENTS.md`、`docs/VPM-MERGE-PLAN.md`、`docs/VPM-CLEANROOM.md`、
 > `docs/VPM-PARITY.md`、`docs/VPM-IMPLEMENTATION-GUIDE.md` §1、§10、§11。
