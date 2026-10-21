@@ -135,7 +135,16 @@ export const P = {
   importBackups: () => path.join(root(), 'backups', 'import'),
   rollback: () => path.join(root(), 'backups', 'rollback'),
   trashHold: () => path.join(root(), 'backups', 'trash'),
-  logs: () => path.join(root(), 'logs')
+  logs: () => path.join(root(), 'logs'),
+  /**
+   * VPM 自己的状态目录（默认关闭）。
+   *
+   * 刻意**不**放进 library.db / 核心设置：停用或移除 VPM 时只要忽略这个目录，
+   * 核心的库、备份轮转、设置都不会被牵连。P0 只有 settings.json 和启用前快照。
+   */
+  vpm: () => path.join(root(), 'vpm'),
+  vpmSettings: () => path.join(root(), 'vpm', 'settings.json'),
+  vpmBackups: () => path.join(root(), 'vpm', 'backups')
 }
 
 export function ensureRuntimeDirs(): void {

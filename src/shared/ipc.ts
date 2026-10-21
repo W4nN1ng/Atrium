@@ -208,6 +208,16 @@ export const IpcInvoke = {
     ShellMenuInstall: 'integration:shell-menu-install',
     ShellMenuUninstall: 'integration:shell-menu-uninstall',
     WatcherState: 'integration:watcher-state'
+  },
+  /**
+   * VPM 子系统（默认关闭）。P0 只有开关/数据根/状态；仓库、包、事务在后续阶段，
+   * 通道名先集中在这里，preload 的白名单自动生成。
+   */
+  Vpm: {
+    Status: 'vpm:status',
+    Enable: 'vpm:enable',
+    Disable: 'vpm:disable',
+    PickDataRoot: 'vpm:pick-data-root'
   }
 } as const
 

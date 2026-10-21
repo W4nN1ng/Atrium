@@ -23,6 +23,13 @@
 > 现行判据在 `src/shared/cardGesture.ts`、`src/renderer/lib/useLongPress.ts`，接线用例见
 > `tests/renderer/gesture-wiring.spec.ts`，变异组 I1–I6 在 `tools/verify-red-r10.cjs`。
 
+> **⚠ 2026-10-21：VPM 合并启动（P0）**
+> 新增独立的 `src/main/vpm/` 外壳：VPM 设置/快照放在 `%APPDATA%\A\vpm\`，默认关闭，
+> 核心 `library.db` schema 仍是 11；只有 `src/main/vpm/gate.ts` 会被核心静态 import，
+> 设置页的 VPM 面板是懒加载。P0 只做开关、数据根校验、启用前快照、安全模式与最小入口；
+> 仓库/包/事务从 P1 起才接入。规划与回退步骤见 [VPM-MERGE-PLAN.md](VPM-MERGE-PLAN.md)、
+> [VPM-ROLLBACK.md](VPM-ROLLBACK.md)，阶段提示词在 [prompts/](prompts/README.md)。
+
 ## 图标
 
 `python tools/make_icon.py`（默认出 **v4「斜顶」**）→ `build/icon.png` + `build/icon.ico`（16/24/32/48/64/128/256 七档）
@@ -559,9 +566,12 @@ powershell -File tools/shot.ps1 -ProcName electron -Nudge -Out out.png   # 截�
 ```
 src/
   main/         主进程：db / ipc / ingest / library / security / services / project / unpack / lib
+    vpm/        VPM 外壳（默认关闭，独立设置/数据根；P0 只有 gate/config）
   preload/      contextBridge 白名单，window.a 是唯一入口
   renderer/     React：pages / components / stores / i18n / lib
+    vpm/        VPM 设置面板（懒加载）
   shared/       主进程与渲染进程共享的类型、IPC 通道名、设置默认值、ULID、展示名清洗(naming.ts)
+    vpm/        VPM 纯逻辑：错误码、数据根校验、设置/状态类型
 resources/
   lexicon/categories.json   外置分类表（15 一级 / 94 二级，三语）
   bin/                      解压后端二进制（7z.exe + 7z.dll，带 RAR）

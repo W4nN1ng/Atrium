@@ -377,7 +377,8 @@
       "unity": "Unity",
       "integration": "Integration",
       "maintenance": "Maintenance",
-      "about": "About"
+      "about": "About",
+      "vpm": "Projects & Packages"
     },
     "language": "UI language",
     "libraryLocale": "Language of on-disk folder names",
@@ -1170,6 +1171,56 @@
       "skipped": "Skipped",
       "cancelled": "Stopped",
       "restored": "Restored"
+    }
+  },
+  "vpm": {
+    "title": "Projects & Packages",
+    "intro": "This is the shell for VPM project and package management. It is off by default. After you confirm, it can change Packages/ and vpm-manifest.json in Unity projects, and it needs a data root outside the system drive.",
+    "defaultOff": "Off by default. Even when enabled, writes happen only after you confirm.",
+    "enable": "Enable project & package management",
+    "enabling": "Enabling…",
+    "disable": "Turn off",
+    "disabling": "Turning off…",
+    "disableTitle": "Turn off project & package management?",
+    "disableBody": "This only turns off the switch. The data root, pre-enable snapshot, and project files stay in place.",
+    "disableConfirm": "Turn off",
+    "dataRoot": "Data root",
+    "dataRootHint": "Cache, rollback vault, and project backups live here. It must be an absolute path outside the system drive, the library, Unity projects, and the app install directory.",
+    "dataRootRequired": "No data root selected",
+    "dataRootUnavailable": "This data root is not available (missing, removed, or failed validation).",
+    "chooseDataRoot": "Choose folder",
+    "validationOk": "Path check passed. Write access is verified again when you enable.",
+    "stepChoose": "1. Choose a data root",
+    "stepConfirm": "2. Confirm the impact",
+    "risk": "I understand it changes Packages/ and vpm-manifest.json in Unity projects, and only after I confirm.",
+    "enableTitle": "Enable project & package management",
+    "snapshot": "Pre-enable snapshot",
+    "noSnapshot": "No snapshot yet",
+    "appVersion": "App version",
+    "enabled": "Enabled",
+    "disabled": "Off",
+    "safeMode": "Safe mode",
+    "safeModeBody": "This launch is in safe mode: project & package management stays off, and no project writes or network calls run.",
+    "degradedBody": "Project & package management is degraded. Core asset features are unaffected.",
+    "placeholder": "This version only includes the switch and data root; repositories, templates, and Unity installs are not connected yet.",
+    "warnings": {
+      "vpmDataRootUnc": "This is a network share; speed and availability depend on the network.",
+      "vpmDataRootRemovable": "This is a removable drive; unplugging it puts project & package management into a degraded state.",
+      "vpmDataRootNonNtfs": "This volume is not NTFS; permissions and long-path behavior may differ."
+    },
+    "errors": {
+      "vpmDisabled": "Project & package management is off.",
+      "vpmSafeMode": "Safe mode blocked this action.",
+      "vpmDataRootRequired": "Choose a data root.",
+      "vpmDataRootInvalid": "This path cannot be a data root (empty, relative, a drive root, or contains invalid characters).",
+      "vpmDataRootOnSystemDrive": "The data root cannot be on the system drive.",
+      "vpmDataRootInsideLibrary": "The data root cannot be inside the asset library.",
+      "vpmDataRootInsideProject": "The data root cannot be inside an existing Unity project.",
+      "vpmDataRootInsideApp": "The data root cannot be inside the app install directory.",
+      "vpmDataRootNotWritable": "This folder cannot create files. Choose a writable folder.",
+      "vpmSnapshotFailed": "The pre-enable snapshot failed, so project & package management was not enabled.",
+      "vpmConfigRecovered": "The settings file was corrupt. It was backed up as .corrupt-* and defaults are in use.",
+      "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected."
     }
   }
 }

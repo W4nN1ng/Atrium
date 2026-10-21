@@ -377,7 +377,8 @@
       "unity": "Unity",
       "integration": "集成",
       "maintenance": "维护",
-      "about": "关于"
+      "about": "关于",
+      "vpm": "项目与包"
     },
     "language": "界面语言",
     "libraryLocale": "物理目录名语言",
@@ -1170,6 +1171,56 @@
       "skipped": "已跳过",
       "cancelled": "已停止",
       "restored": "已恢复"
+    }
+  },
+  "vpm": {
+    "title": "项目与包管理",
+    "intro": "这是 VPM 项目/包管理的外壳，默认关闭。它会在你确认后改动 Unity 工程的 Packages/ 与 vpm-manifest.json，并需要放在非系统盘的数据根。",
+    "defaultOff": "默认关闭；开启后也只在你明确确认时执行写操作。",
+    "enable": "启用项目与包管理",
+    "enabling": "正在启用…",
+    "disable": "停用",
+    "disabling": "正在停用…",
+    "disableTitle": "停用项目与包管理？",
+    "disableBody": "只会关闭开关；数据根、启用前快照和工程文件都会保留。",
+    "disableConfirm": "停用",
+    "dataRoot": "数据根",
+    "dataRootHint": "缓存、回滚仓和工程备份会放在这里。必须是绝对路径，不能是系统盘、素材库、Unity 工程或应用安装目录。",
+    "dataRootRequired": "尚未选择数据根",
+    "dataRootUnavailable": "这个数据根当前不可用（目录不存在、被移除或校验未通过）。",
+    "chooseDataRoot": "选择文件夹",
+    "validationOk": "路径检查通过；启用时还会验证写入权限。",
+    "stepChoose": "1. 选择数据根",
+    "stepConfirm": "2. 确认影响",
+    "risk": "我了解它会改动 Unity 工程的 Packages/ 与 vpm-manifest.json，且只在我确认后执行。",
+    "enableTitle": "启用项目与包管理",
+    "snapshot": "启用前快照",
+    "noSnapshot": "尚无快照",
+    "appVersion": "应用版本",
+    "enabled": "已启用",
+    "disabled": "已关闭",
+    "safeMode": "安全模式",
+    "safeModeBody": "本次启动处于安全模式：不会启用项目与包管理，也不会执行任何写工程或联网动作。",
+    "degradedBody": "项目与包管理处于降级状态；核心素材功能不受影响。",
+    "placeholder": "当前版本只包含开关与数据根；仓库、模板与 Unity 安装尚未接入。",
+    "warnings": {
+      "vpmDataRootUnc": "这是网络共享路径，速度和可用性取决于网络。",
+      "vpmDataRootRemovable": "这是可移动盘，拔出后项目与包管理会进入降级状态。",
+      "vpmDataRootNonNtfs": "该磁盘不是 NTFS，权限与长路径行为可能不同。"
+    },
+    "errors": {
+      "vpmDisabled": "项目与包管理当前是关闭的。",
+      "vpmSafeMode": "安全模式阻止了这次操作。",
+      "vpmDataRootRequired": "请选择一个数据根。",
+      "vpmDataRootInvalid": "这个路径不能作为数据根（空、相对路径、盘符根或含非法字符）。",
+      "vpmDataRootOnSystemDrive": "数据根不能放在系统盘。",
+      "vpmDataRootInsideLibrary": "数据根不能放在素材库里面。",
+      "vpmDataRootInsideProject": "数据根不能放在现有 Unity 工程里面。",
+      "vpmDataRootInsideApp": "数据根不能放在应用安装目录里面。",
+      "vpmDataRootNotWritable": "这个目录无法创建文件，请换一个可写目录。",
+      "vpmSnapshotFailed": "启用前快照创建失败，项目与包管理未启用。",
+      "vpmConfigRecovered": "设置文件损坏，原文件已备份为 .corrupt-*，当前使用默认值。",
+      "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。"
     }
   }
 }

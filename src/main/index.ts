@@ -23,12 +23,14 @@ import { startProjectWatcher, type ProjectApi } from './project/api'
 import { UnityConnections } from './project/connections'
 import { installBridge } from './bridge/installer'
 import { closeDatabase, getDb, openDatabase } from './db'
+import { listProjects } from './db/repos/unity'
 import { bridgeTemplateRoot, ensureRuntimeDirs, initAppPaths, P } from './services/paths'
 import { installThumbProtocol, registerThumbSchemePrivileges } from './services/thumb-protocol'
 import { backfillThumbs } from './library/thumbs'
 import { getSettings, onSettingsChanged } from './services/settings'
 import { createMainWindow, getMainWindow, markQuitting, showMiniDropAtCursor, wakeForProject } from './window'
 import { createTray, destroyTray, refreshTray } from './tray'
+import { disposeVpm, getVpmStatus, registerVpmGateIpc } from './vpm/gate'
 
 const APP_USER_MODEL_ID = 'com.avca.a-manager'
 
@@ -94,6 +96,20 @@ function bootstrap(): void {
   registerAssets(registrar)
   registerStubs(registrar)
   registerIntegration(registrar, () => folderWatcher)
+  registerVpmGateIpc({
+    ipc: registrar.ipc,
+    getDb,
+    getLibraryRoot: () => getSettings().libraryRoot,
+    getKnownProjectPaths: () => {
+      const paths = new Set(detectedProjects.map((project) => project.path))
+      try {
+        for (const project of listProjects(getDb())) paths.add(project.path)
+      } catch {
+        /* 数据库还没打开时只用已发现列表 */
+      }
+      return [...paths]
+    }
+  })
 
   async function ingestFromPaths(list: string[]): Promise<void> {
     if (!ingestApi) {
@@ -123,6 +139,20 @@ function bootstrap(): void {
     } catch (e) {
       log.error('数据库打开失败：' + (e instanceof Error ? e.message : String(e)))
       throw e
+    }
+
+    /**
+     * VPM 外壳（P0）：只读状态，不加载仓库/HTTP/事务。
+     * 配置坏了 gate 会退默认值，绝不能让主窗口起不来。
+     */
+    const vpmStatus = getVpmStatus()
+    log.info(
+      `VPM 状态：enabled=${vpmStatus.enabled} safeMode=${vpmStatus.safeMode}` +
+        ` degraded=${vpmStatus.degraded} dataRootValid=${vpmStatus.dataRootValid}` +
+        (vpmStatus.configRecovered ? ' configRecovered=true' : '')
+    )
+    if (vpmStatus.enabled && !vpmStatus.safeMode) {
+      log.info('VPM 已启用（P0 只有外壳，仓库/包/事务尚未加载）')
     }
 
     ingestApi = startIngest(registrar)
@@ -316,6 +346,7 @@ function bootstrap(): void {
     connections?.dispose()
     covers?.dispose()
     bridge?.dispose()
+    disposeVpm()
     destroyTray()
     closeDatabase()
     log.info('已退出')
