@@ -11,6 +11,8 @@
 ## 当前
 
 - `version.ts`：P1-D 的目录排序用最小 SemVer 比较；P3-A 会补严格解析/范围。
+- `project.ts`：P2-B 的工程快照纯逻辑（ProjectVersion、vpm-manifest、Packages、
+  legacy 报告、指纹）；文件读取通过 `ProjectReaderPort` 注入，不 import `node:fs`。
 
 ## 规则
 

@@ -49,7 +49,7 @@
 | P1-D | 仓库服务、官方/curated 与来源合并 | P1-B/P1-C | `reposService`、`catalog`、种子仓库 | C1/C2/C8/C10/C14/B15 | done |
 | P1-E | 只读包目录 UI、IPC 与三语 | P1-D | 仓库区、包抽屉、联网开关、IPC | B1/B2/B3/B13/B14 | done |
 | P2-A | Unity 编辑器发现与手动添加 | P1-B | `unity/editors`、vpm.db v2、Hub 配置 | D1/D2/D3/D4/F4 | done |
-| P2-B | 工程读取纯逻辑与 legacy 报告 | P1-A | `shared/vpm/domain/project.ts`、manifest 读取、fixtures | A1/A3/B17/A22 | todo |
+| P2-B | 工程读取纯逻辑与 legacy 报告 | P1-A | `shared/vpm/domain/project.ts`、manifest 读取、fixtures | A1/A3/B17/A22 | done |
 | P2-C | 工程台账 v2、VCC 工程与核心整合 | P2-A/P2-B | `projects/ledger`、vpm.db v2、只读 VCC 工程 | A1/A2/A3/A18/A23/B28/F1 | todo |
 | P2-D | 只读工程页 UI 与 IPC | P2-C | 工程列表/详情、打开文件夹、运行状态 | A1/A2/A3/A14/A18/A20/B17/B28 | todo |
 | P2-E | 当前工程与导入目标联动（核心） | P2-D | 目标绑定/优先级、工程页目标徽标、测试 | K1/K3/K6 | todo |
@@ -88,9 +88,9 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A 已完成，下一个执行任务是 **P2-B**
-> （工程读取纯逻辑与 legacy 报告）；P2-B 可与 P2-C 的准备工作并行，但 P2-C 仍要等 P2-B。
-> 开工前先读 §12 的 P1-A…P2-A 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B 已完成，下一个执行任务是 **P2-C**
+> （工程台账 v2、VCC 工程与核心整合）；P2-C 直接用 P2-A 已建的 v2 工程表，不要再加迁移。
+> 开工前先读 §12 的 P1-A…P2-B 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -425,6 +425,29 @@ Task: P?-?
 - **给 P2-B/P2-C**：工程表 v2 已建好，P2-C 不要再加迁移；工程读取继续只读。
 - **给 P5-D**：版本匹配用 `UnityInstall.version`/`versionWithRevision`；
   `source`/`missing`/`archInferred` 仅供展示/筛选，不要启动 Unity 去校验。
+
+### P2-B（2026-10-22，done）
+
+- **公开 API/契约**：`shared/vpm/domain/project.ts` 导出 `ProjectReaderPort`、
+  `readProjectSnapshot(port, path, options?)`、`normalizeProjectPath/projectKeyOf/projectSlugOf`、
+  `parseProjectVersion`、`parseVpmManifest`、`parseProjectPackageJson`、快照/legacy 类型；
+  `domain/hash.ts` 是纯 TS SHA-256（不 import `node:crypto`）。
+- **行为**：ProjectVersion 必须存在且合法；vpm-manifest 缺失视为空、坏 JSON 只给
+  `vpmManifestInvalid` 并继续读 Packages；未知字段保存在 `manifest.data`。
+  Packages 直接子目录读 `package.json`，状态覆盖 installed/missing/unlisted/mismatch/protected；
+  legacy 扫描 Assets 深度 ≤4，忽略 Library/Temp/Logs/obj/.git/node_modules/隐藏目录和符号链接，
+  只报告不迁移。指纹覆盖版本、manifest、productGUID、包 `package.json`。
+- **边界**：领域层不 import `node:fs`/`node:crypto`/Electron；fs 读取由 P2-C 的 adapter 实现
+  `ProjectReaderPort`。路径比较按 Windows 大小写不敏感，projectSlug 稳定。
+- **错误/警告码**：新增 `vpmProjectInvalid/ManifestInvalid/ProjectPackagesUnreadable/
+  ProjectAccessDenied` 与 4 个工程警告码，三语齐全。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **170 passed / 9 skipped files（179）**、**2224 passed / 19 skipped tests（2243）**；
+  定向 project/errors/architecture 26 条全绿。
+- **未验证**：真实 fs adapter/工程目录（P2-C）；真 Unity 工程；GUID 级 legacy 扫描（P6）；
+  大工程耗时（纯逻辑有条目/深度上限，但未做真机计时）。
+- **给 P2-C**：实现 `ProjectReaderPort` 时用 realpath + 只读；直接调用 `readProjectSnapshot`，
+  不要把 fs/DB 行传到渲染层；`manifest.data` 只用于事务保留未知字段。
 
 ---
 

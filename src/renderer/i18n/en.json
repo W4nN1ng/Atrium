@@ -1279,7 +1279,11 @@
     "warnings": {
       "vpmDataRootUnc": "This is a network share; speed and availability depend on the network.",
       "vpmDataRootRemovable": "This is a removable drive; unplugging it puts project & package management into a degraded state.",
-      "vpmDataRootNonNtfs": "This volume is not NTFS; permissions and long-path behavior may differ."
+      "vpmDataRootNonNtfs": "This volume is not NTFS; permissions and long-path behavior may differ.",
+      "vpmProjectSymlinkSkipped": "A symbolic link or junction was found in this project and was skipped.",
+      "vpmProjectDuplicatePackage": "Duplicate package folders were found; only the first one is kept and flagged.",
+      "vpmProjectScanTruncated": "The project scan reached its limit; these are partial results.",
+      "vpmProjectPackageInvalid": "A package.json is invalid; that package was skipped."
     },
     "errors": {
       "vpmDisabled": "Project & package management is off.",
@@ -1301,6 +1305,10 @@
       "vpmRepoInvalid": "Repository information is incomplete or malformed.",
       "vpmRepoConflict": "A repository with the same address already exists.",
       "vpmRepoNotFound": "That repository could not be found.",
+      "vpmProjectInvalid": "This is not a valid Unity project, or its version file is damaged.",
+      "vpmManifestInvalid": "vpm-manifest.json could not be parsed; the rest of the project can still be read.",
+      "vpmProjectPackagesUnreadable": "The Packages folder could not be read; the project can still be opened.",
+      "vpmProjectAccessDenied": "Atrium is not allowed to read part of this project.",
       "vpmUnityNotFound": "That Unity editor path was not found.",
       "vpmUnityInvalid": "That path is not a valid Unity editor (Unity.exe is required).",
       "vpmUnityAccessDenied": "Atrium is not allowed to read that Unity editor path.",

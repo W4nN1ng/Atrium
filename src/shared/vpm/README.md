@@ -25,7 +25,10 @@ P1 起（见 `docs/VPM-ARCHITECTURE.md` §4）：
 
 - `domain/version.ts`：P1-D 的最小 SemVer 比较（P3-A 会补严格解析/范围）。
 - `domain/repo.ts`：仓库 JSON 解析/归一、包名/版本/URL/hash 防御、headers 剥离。
-- 后续：`domain/range|unityVersion|packageId|manifest|project|template|plan|resolver|unitypackage`
+- `domain/hash.ts`：纯 TS SHA-256（工程指纹/短名；不 import `node:crypto`）。
+- `domain/project.ts`：P2-B 的工程快照纯逻辑（ProjectVersion、vpm-manifest、Packages、
+  legacy 报告、指纹）；文件读取由 `ProjectReaderPort` 注入。
+- 后续：`domain/range|unityVersion|packageId|manifest|template|plan|resolver|unitypackage`
 - `dto/`：IPC 请求/响应形状，不包含数据库行。
 
 ## 数据 / 写入
@@ -41,7 +44,8 @@ P1 起（见 `docs/VPM-ARCHITECTURE.md` §4）：
 ## 测试入口
 
 - `tests/vpm/data-root.spec.ts`、`tests/vpm/errors-i18n.spec.ts`
-- `tests/vpm/domain/repo.spec.ts`、`tests/vpm/domain/version.spec.ts`
+- `tests/vpm/domain/repo.spec.ts`、`tests/vpm/domain/version.spec.ts`、
+  `tests/vpm/domain/project.spec.ts`
 - 运行：`npm test`（会先切到 Node ABI）
 
 ## 谁依赖我 / 我依赖谁

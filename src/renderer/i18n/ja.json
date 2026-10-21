@@ -1279,7 +1279,11 @@
     "warnings": {
       "vpmDataRootUnc": "ネットワーク共有です。速度と可用性はネットワークに依存します。",
       "vpmDataRootRemovable": "リムーバブルドライブです。取り外すとプロジェクトとパッケージ管理は縮退状態になります。",
-      "vpmDataRootNonNtfs": "NTFS ではないため、権限や長いパスの扱いが異なる場合があります。"
+      "vpmDataRootNonNtfs": "NTFS ではないため、権限や長いパスの扱いが異なる場合があります。",
+      "vpmProjectSymlinkSkipped": "プロジェクト内のシンボリックリンクまたはジャンクションをスキップしました。",
+      "vpmProjectDuplicatePackage": "重複したパッケージフォルダーがあり、最初の 1 件だけを残して警告しました。",
+      "vpmProjectScanTruncated": "プロジェクトのスキャンが上限に達したため、結果は一部です。",
+      "vpmProjectPackageInvalid": "無効な package.json があったため、そのパッケージをスキップしました。"
     },
     "errors": {
       "vpmDisabled": "プロジェクトとパッケージ管理は無効です。",
@@ -1301,6 +1305,10 @@
       "vpmRepoInvalid": "リポジトリ情報が不足しているか、形式が正しくありません。",
       "vpmRepoConflict": "同じアドレスのリポジトリがすでにあります。",
       "vpmRepoNotFound": "そのリポジトリが見つかりません。",
+      "vpmProjectInvalid": "有効な Unity プロジェクトではないか、バージョンファイルが壊れています。",
+      "vpmManifestInvalid": "vpm-manifest.json を解析できません。プロジェクトの他の部分は読み取れます。",
+      "vpmProjectPackagesUnreadable": "Packages フォルダーを読み取れません。プロジェクトは開けます。",
+      "vpmProjectAccessDenied": "このプロジェクトの一部を読み取る権限がありません。",
       "vpmUnityNotFound": "Unity エディターのパスが見つかりません。",
       "vpmUnityInvalid": "このパスは有効な Unity エディターではありません（Unity.exe が必要です）。",
       "vpmUnityAccessDenied": "この Unity エディターのパスを読み取る権限がありません。",
