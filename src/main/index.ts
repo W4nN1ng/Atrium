@@ -19,11 +19,11 @@ import { parseIngestArgs } from './ingest/args'
 import { startFolderWatcher, type FolderWatcher } from './services/watcher'
 import { assetIndex, rebuildIndexChunked, setCategoryConfig } from './search'
 import { loadCategories } from './services/categories'
-import { startProjectWatcher, type ProjectApi } from './project/api'
+import { readVccManifest, startProjectWatcher, type ProjectApi } from './project/api'
 import { UnityConnections } from './project/connections'
 import { installBridge } from './bridge/installer'
 import { closeDatabase, getDb, openDatabase } from './db'
-import { listProjects } from './db/repos/unity'
+import { listProjects, toProjectInfo, upsertProject } from './db/repos/unity'
 import { bridgeTemplateRoot, ensureRuntimeDirs, initAppPaths, P } from './services/paths'
 import { installThumbProtocol, registerThumbSchemePrivileges } from './services/thumb-protocol'
 import { backfillThumbs } from './library/thumbs'
@@ -109,6 +109,32 @@ function bootstrap(): void {
         /* 数据库还没打开时只用已发现列表 */
       }
       return [...paths]
+    },
+    getCoreProjects: () => {
+      const byId = new Map<string, ProjectInfo>()
+      try {
+        for (const row of listProjects(getDb())) byId.set(row.id, toProjectInfo(row))
+      } catch {
+        /* 数据库未就绪时只用已发现列表 */
+      }
+      for (const project of detectedProjects) byId.set(project.id, project)
+      return [...byId.values()]
+    },
+    registerCoreProject: (input) => {
+      const db = getDb()
+      const existing = listProjects(db).find(
+        (project) => project.path.toLowerCase() === input.path.toLowerCase()
+      )
+      const row = upsertProject(db, {
+        path: existing?.path ?? input.path,
+        name: input.name,
+        unityVersion: input.unityVersion
+      })
+      return toProjectInfo(row)
+    },
+    readVccProjects: () => {
+      const manifest = readVccManifest()
+      return { paths: manifest.projects, error: manifest.error }
     }
   })
 

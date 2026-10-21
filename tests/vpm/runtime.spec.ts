@@ -54,6 +54,44 @@ describe('VPM composition root', () => {
     expect(repos.every((repo) => repo.lastFetchAt === null)).toBe(true)
   })
 
+  it('exposes project ledger merging through injected core/VCC ports', async () => {
+    runtime = await initVpm({
+      dataRoot,
+      userAgent: 'Atrium/test',
+      isNetworkAllowed: () => false,
+      coreProjects: {
+        list: () => [
+          {
+            id: 'core-1',
+            path: 'C:\\Projects\\CoreOnly',
+            name: 'CoreOnly',
+            unityVersion: '2022.3.22f1',
+            running: true,
+            detectedBy: ['bridge'],
+            bridgeVersion: '1.2.0'
+          }
+        ]
+      },
+      vccProjects: { read: () => ({ paths: [], error: null }) }
+    })
+
+    expect(runtime.projects.list()).toEqual([
+      expect.objectContaining({
+        coreId: 'core-1',
+        name: 'CoreOnly',
+        running: true,
+        detectedBy: ['bridge'],
+        linked: true,
+        ledger: null
+      })
+    ])
+    expect(runtime.projects.importVcc()).toMatchObject({
+      imported: 0,
+      skipped: 0,
+      sourceError: null
+    })
+  })
+
   it('can reopen after dispose and keeps the schema valid', async () => {
     runtime = await initVpm({
       dataRoot,

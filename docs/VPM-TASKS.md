@@ -50,7 +50,7 @@
 | P1-E | 只读包目录 UI、IPC 与三语 | P1-D | 仓库区、包抽屉、联网开关、IPC | B1/B2/B3/B13/B14 | done |
 | P2-A | Unity 编辑器发现与手动添加 | P1-B | `unity/editors`、vpm.db v2、Hub 配置 | D1/D2/D3/D4/F4 | done |
 | P2-B | 工程读取纯逻辑与 legacy 报告 | P1-A | `shared/vpm/domain/project.ts`、manifest 读取、fixtures | A1/A3/B17/A22 | done |
-| P2-C | 工程台账 v2、VCC 工程与核心整合 | P2-A/P2-B | `projects/ledger`、vpm.db v2、只读 VCC 工程 | A1/A2/A3/A18/A23/B28/F1 | todo |
+| P2-C | 工程台账 v2、VCC 工程与核心整合 | P2-A/P2-B | `projects/ledger`、vpm.db v2、只读 VCC 工程 | A1/A2/A3/A18/A23/B28/F1 | done |
 | P2-D | 只读工程页 UI 与 IPC | P2-C | 工程列表/详情、打开文件夹、运行状态 | A1/A2/A3/A14/A18/A20/B17/B28 | todo |
 | P2-E | 当前工程与导入目标联动（核心） | P2-D | 目标绑定/优先级、工程页目标徽标、测试 | K1/K3/K6 | todo |
 | P3-A | 版本、范围、Unity 兼容纯逻辑 | P1-B | `domain/version|range|unityVersion|packageId` | B10/B12/B16 | todo |
@@ -88,9 +88,9 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B 已完成，下一个执行任务是 **P2-C**
-> （工程台账 v2、VCC 工程与核心整合）；P2-C 直接用 P2-A 已建的 v2 工程表，不要再加迁移。
-> 开工前先读 §12 的 P1-A…P2-B 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C 已完成，下一个执行任务是 **P2-D**
+> （只读工程页 UI 与 IPC）；P2-D 用 P2-C 的 `ProjectsService` 映射 DTO，不要另起台账。
+> 开工前先读 §12 的 P1-A…P2-C 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -448,6 +448,27 @@ Task: P?-?
   大工程耗时（纯逻辑有条目/深度上限，但未做真机计时）。
 - **给 P2-C**：实现 `ProjectReaderPort` 时用 realpath + 只读；直接调用 `readProjectSnapshot`，
   不要把 fs/DB 行传到渲染层；`manifest.data` 只用于事务保留未知字段。
+
+### P2-C（2026-10-22，done）
+
+- **公开 API/契约**：`src/main/vpm/projects/` 导出 `ProjectFsReader`、`ProjectLedgerStore`、
+  `ProjectsService`、`ProjectCorePort`/`VccProjectSource` 与工程台账类型；
+  `VpmRuntime.projects`；gate 增加 `getCoreProjects/registerCoreProject/readVccProjects` 只读端口。
+- **台账**：`upsertSnapshot/get/list/getByPath/remove` 写 `vpm_project*`；核心路径/运行状态
+  仍是列表真相，台账只做快照缓存；`list()` 返回核心有/台账无、台账有/核心无（`linked=false`）
+  两种状态；`remove()` 只删台账，不删盘/核心工程/导入历史。
+- **VCC**：通过注入的 `VccProjectSource` 只读 `userProjects`；路径去重、坏路径记错误、
+  不中断其他工程；没有写 VCC 的路径。
+- **fs reader**：realpath 根、根内路径校验、拒绝符号链接/绝对路径逃逸；8 MiB 读取上限。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **172 passed / 9 skipped files（181）**、**2233 passed / 19 skipped tests（2252）**；
+  定向 projects/runtime/architecture 24 条全绿。
+  覆盖添加/刷新/移除、核心/台账合并、running/detectedBy、VCC 去重/坏路径/只读、
+  ledger 字段保留、路径逃逸、缺失工程保留台账。
+- **未验证**：真实 VCC userProjects 导入（只读测试用注入 source）；真实工程/真 Unity；
+  P2-D 的 IPC/UI；超大工程扫描耗时。
+- **给 P2-D**：只映射 `ProjectsService.list()` 为 DTO，不要在渲染层另存台账；
+  移除按钮只删 VPM 台账；当前导入目标仍由核心 `UnityConnections` 管（P2-E）。
 
 ---
 

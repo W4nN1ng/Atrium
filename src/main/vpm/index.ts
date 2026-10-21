@@ -5,6 +5,13 @@ import { createElectronHttpTransport, createVpmHttpClient, type VpmHttpPort } fr
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
 import {
+  ProjectLedgerStore,
+  ProjectsService,
+  type ProjectCorePort,
+  type VccProjectSource
+} from './projects'
+import type { ProjectReaderPort } from '../../shared/vpm/domain/project'
+import {
   UnityEditorService,
   UnityInstallStore,
   type UnityDiscoveryOptions
@@ -20,6 +27,12 @@ export interface InitVpmOptions {
   fetchConcurrency?: number
   /** 测试/沙盒可注入 Hub/安装根；生产默认读当前用户的 Unity Hub。 */
   unityDiscovery?: UnityDiscoveryOptions
+  /** 核心工程发现/运行的只读端口；由主进程注入，VPM 不直接 import 核心。 */
+  coreProjects?: ProjectCorePort
+  /** VCC userProjects 的只读来源；由主进程注入。 */
+  vccProjects?: VccProjectSource
+  /** 测试可替换 fs reader；默认使用 ProjectFsReader。 */
+  projectReader?: (projectPath: string) => ProjectReaderPort
 }
 
 export interface VpmRuntime {
@@ -29,6 +42,7 @@ export interface VpmRuntime {
   repos: ReposService
   catalog: CatalogService
   unity: UnityEditorService
+  projects: ProjectsService
   dispose(): void
 }
 
@@ -65,6 +79,12 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       new UnityInstallStore(db, options.now),
       options.unityDiscovery
     )
+    const projects = new ProjectsService({
+      ledger: new ProjectLedgerStore(db, options.now),
+      core: options.coreProjects,
+      vcc: options.vccProjects,
+      reader: options.projectReader
+    })
     await repos.seedIfEmpty()
 
     let disposed = false
@@ -75,6 +95,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       repos,
       catalog,
       unity,
+      projects,
       dispose(): void {
         if (disposed) return
         disposed = true
