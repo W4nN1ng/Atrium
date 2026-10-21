@@ -1,4 +1,13 @@
 import type { VpmErrorCode } from '../errors'
+export type {
+  VpmProjectDetailDto,
+  VpmProjectLegacyDto,
+  VpmProjectLegacyMatch,
+  VpmProjectPackageDto,
+  VpmProjectPackageState,
+  VpmProjectSummaryDto,
+  VpmProjectWarningDto
+} from './project'
 
 export interface VpmRepoDto {
   id: string

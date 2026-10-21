@@ -125,7 +125,19 @@ describe('i18n 三语一致', () => {
     const missing = statics.filter((k) => !base.has(k))
     expect(missing, `这些 key 没定义：${missing.join(', ')}`).toEqual([])
     for (const p of prefixes) {
-      expect(['status.', 'settings.tabs.', 'inbox.stage.', 'vpm.errors.', 'vpm.warnings.'], `意外的动态前缀 ${p}`).toContain(p)
+      expect(
+        [
+          'status.',
+          'settings.tabs.',
+          'inbox.stage.',
+          'vpm.errors.',
+          'vpm.warnings.',
+          'vpm.projects.state.',
+          'vpm.projects.match.',
+          'vpm.projects.confidence.'
+        ],
+        `意外的动态前缀 ${p}`
+      ).toContain(p)
       expect(base.has(p.slice(0, -1)) || [...base].some((k) => k.startsWith(p)), `前缀 ${p} 下没有任何 key`).toBe(true)
     }
     // 动态拼接的那几组，逐个枚举值确认

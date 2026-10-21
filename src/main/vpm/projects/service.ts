@@ -147,6 +147,22 @@ export class ProjectsService {
     return this.list().find((item) => item.projectKey === projectKey) ?? null
   }
 
+  /**
+   * 详情：优先读一次当前工程（只读），但不写台账。
+   * 路径失效/读取失败时仍返回台账，让界面能解释"工程不在了"。
+   */
+  detail(projectKey: string): { item: ProjectListItem; snapshot: ProjectSnapshot | null } | null {
+    const item = this.get(projectKey)
+    if (!item?.ledger) return null
+    let snapshot: ProjectSnapshot | null = null
+    try {
+      snapshot = this.scan(item.path)
+    } catch {
+      snapshot = null
+    }
+    return { item, snapshot }
+  }
+
   scan(projectPath: string): ProjectSnapshot {
     const reader = this.deps.reader
       ? this.deps.reader(projectPath)

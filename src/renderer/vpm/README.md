@@ -17,7 +17,9 @@ VPM 在渲染层的界面与数据访问：设置页的“项目与包”面板�
 当前（P0）：
 
 - `VpmSettings.tsx`：设置页懒加载的 VPM 面板。
-- `api.ts`：`vpmApi.status/enable/disable/pickDataRoot`，只做类型化转发。
+- `api.ts`：唯一的 `window.a.vpm` 包装；P0 开关 + P1 仓库/目录 + P2 工程台账。
+- `components/projects/VpmProjectsSection.tsx` + `hooks/useProjects.ts`：工程页懒加载的
+  只读台账区（列表/详情/添加/移除/重扫/打开文件夹）。
 
 P1 起（按 `docs/VPM-ARCHITECTURE.md` §4/§11）：
 
@@ -45,6 +47,6 @@ P1 起（按 `docs/VPM-ARCHITECTURE.md` §4/§11）：
 
 ## 谁依赖我 / 我依赖谁
 
-- 被 `Settings.tsx` 通过 `lazy(() => import(...))` 加载；不进入首屏 chunk。
+- 被 `Settings.tsx` / `Project.tsx` 通过 `lazy(() => import(...))` 加载；不进入首屏 chunk。
 - 依赖：`src/shared/vpm` 的类型/错误码、`renderer/components/ui`、`renderer/lib/msg`。
 - 不依赖 `src/main/**`。

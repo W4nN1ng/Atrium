@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { initI18n } from '../../src/renderer/i18n'
-import { cleanText, isHttpLink, repoErrorLabel, repoHost } from '../../src/renderer/vpm/lib/view'
+import { cleanText, isHttpLink, repoErrorLabel, repoHost, vpmCodeLabel } from '../../src/renderer/vpm/lib/view'
 
 const ROOT = path.resolve(__dirname, '../..')
 
@@ -31,6 +31,9 @@ describe('VPM renderer helpers', () => {
     expect(repoErrorLabel('vpmHttpTimeout')).toBe('网络请求超时。')
     expect(repoErrorLabel('vpmFutureUnknownCode')).toBe('vpmFutureUnknownCode')
     expect(repoErrorLabel(null)).toBe('')
+    expect(vpmCodeLabel('vpmProjectInvalid')).toBe('这不是有效的 Unity 工程，或工程版本文件损坏。')
+    expect(vpmCodeLabel('vpmProjectScanTruncated')).toContain('扫描达到上限')
+    expect(vpmCodeLabel('vpmFutureUnknownCode')).toBe('vpmFutureUnknownCode')
   })
 
   it('keeps the UI on the API wrapper and exposes no install action', () => {
@@ -38,7 +41,9 @@ describe('VPM renderer helpers', () => {
       'src/renderer/vpm/VpmWorkspace.tsx',
       'src/renderer/vpm/hooks/useVpmRepos.ts',
       'src/renderer/vpm/components/ReposPanel.tsx',
-      'src/renderer/vpm/components/CatalogDialog.tsx'
+      'src/renderer/vpm/components/CatalogDialog.tsx',
+      'src/renderer/vpm/hooks/useProjects.ts',
+      'src/renderer/vpm/components/projects/VpmProjectsSection.tsx'
     ]
     for (const file of files) {
       const text = fs.readFileSync(path.join(ROOT, file), 'utf8')
@@ -51,5 +56,15 @@ describe('VPM renderer helpers', () => {
     expect(catalog).not.toMatch(/\b(installPackage|repoInstall|vpmInstall)\b/)
     const settings = fs.readFileSync(path.join(ROOT, 'src/renderer/vpm/VpmSettings.tsx'), 'utf8')
     expect(settings).toContain('VpmWorkspace')
+
+    const projectHook = fs.readFileSync(path.join(ROOT, 'src/renderer/vpm/hooks/useProjects.ts'), 'utf8')
+    expect(projectHook).toContain('vpmApi.projectDetail')
+    expect(projectHook).toContain('vpmApi.projectAdd')
+    expect(projectHook).toContain('vpmApi.projectRemove')
+    const projectPanel = fs.readFileSync(
+      path.join(ROOT, 'src/renderer/vpm/components/projects/VpmProjectsSection.tsx'),
+      'utf8'
+    )
+    expect(projectPanel).not.toMatch(/\b(installPackage|vpmInstall|upgradePackage|uninstallPackage)\b/)
   })
 })

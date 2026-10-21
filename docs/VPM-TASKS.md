@@ -51,7 +51,7 @@
 | P2-A | Unity 编辑器发现与手动添加 | P1-B | `unity/editors`、vpm.db v2、Hub 配置 | D1/D2/D3/D4/F4 | done |
 | P2-B | 工程读取纯逻辑与 legacy 报告 | P1-A | `shared/vpm/domain/project.ts`、manifest 读取、fixtures | A1/A3/B17/A22 | done |
 | P2-C | 工程台账 v2、VCC 工程与核心整合 | P2-A/P2-B | `projects/ledger`、vpm.db v2、只读 VCC 工程 | A1/A2/A3/A18/A23/B28/F1 | done |
-| P2-D | 只读工程页 UI 与 IPC | P2-C | 工程列表/详情、打开文件夹、运行状态 | A1/A2/A3/A14/A18/A20/B17/B28 | todo |
+| P2-D | 只读工程页 UI 与 IPC | P2-C | 工程列表/详情、打开文件夹、运行状态 | A1/A2/A3/A14/A18/A20/B17/B28 | done |
 | P2-E | 当前工程与导入目标联动（核心） | P2-D | 目标绑定/优先级、工程页目标徽标、测试 | K1/K3/K6 | todo |
 | P3-A | 版本、范围、Unity 兼容纯逻辑 | P1-B | `domain/version|range|unityVersion|packageId` | B10/B12/B16 | todo |
 | P3-B | 解析器引擎、锁定与冲突 | P3-A/P1-D | `domain/resolver.ts`、候选/队列/冲突 | B10/B11/B12/B16/B22/K5 | todo |
@@ -88,9 +88,9 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C 已完成，下一个执行任务是 **P2-D**
-> （只读工程页 UI 与 IPC）；P2-D 用 P2-C 的 `ProjectsService` 映射 DTO，不要另起台账。
-> 开工前先读 §12 的 P1-A…P2-C 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D 已完成，下一个执行任务是 **P2-E**
+> （当前工程与导入目标联动）；P2-E 只做核心目标状态/优先级，不改工程文件。
+> 开工前先读 §12 的 P1-A…P2-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -469,6 +469,32 @@ Task: P?-?
   P2-D 的 IPC/UI；超大工程扫描耗时。
 - **给 P2-D**：只映射 `ProjectsService.list()` 为 DTO，不要在渲染层另存台账；
   移除按钮只删 VPM 台账；当前导入目标仍由核心 `UnityConnections` 管（P2-E）。
+
+### P2-D（2026-10-22，done）
+
+- **公开 API/契约**：`IpcInvoke.Vpm` 新增 ProjectsList/ProjectDetail/ProjectAdd/
+  ProjectRemove/ProjectRescan/ProjectOpenFolder；`shared/vpm/dto/project` 定义 summary/detail/
+  package/warning/legacy DTO；`renderer/vpm/api.ts` 增加同名包装和目录选择。
+- **主进程**：`ipc/projects.ts` 只接受台账 `projectKey`（打开文件夹不接受任意路径）；
+  `ProjectDetail` 现场只读扫描，`ProjectRescan` 才更新缓存；`ProjectAdd` 走 P2-C
+  `addExisting`（含核心 `upsertProject`）；`ProjectRemove` 只删 VPM 台账。
+- **UI**：现有 Project 页懒加载 `VpmProjectsSection`；搜索、添加已有工程、列表
+  （运行状态/Unity 版本/包数/legacy 数/unlinked）、详情（概览/包状态/warnings/legacy）；
+  打开文件夹、重新扫描、从台账移除；无安装/升级/卸载入口。
+- **警告**：主进程把 missing/mismatch 包补成 `vpmProjectMissingPackage/
+  vpmProjectVersionMismatch`；三语补齐。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **173 passed / 9 skipped files（182）**、**2238 passed / 19 skipped tests（2257）**；
+  定向 IPC/渲染/i18n/架构 41 条全绿。
+  沙盒 packaged 0.9.0 实机：Project 页出现“项目与包”；添加 `DemoProject` 后写入台账，
+  列表显示 5 包/4 legacy；详情显示 protected/missing/unlisted/mismatch、两条包警告、
+  legacy 候选；100%/125% 截图正常。
+- **未验证**：移除确认/打开文件夹未在沙盒真点（IPC/服务有测试）；真 Unity 工程；
+  编辑器匹配 UI（P5-D）；超大工程/长列表性能。
+- **截图**：`docs/screenshots/vpm-p2d-projects.png`、`vpm-p2d-detail.png`、
+  `vpm-p2d-add.png`、`vpm-p2d-projects-125.png`。
+- **给 P2-E**：目标状态只看核心 `UnityConnections`；VPM 台账不保存当前目标；
+  工程页可显示目标徽标，但不要复制一份当前工程。
 
 ---
 

@@ -48,6 +48,8 @@ import type {
   VpmCatalogVersionDto,
   VpmNetworkStatus,
   VpmOperationStart,
+  VpmProjectDetailDto,
+  VpmProjectSummaryDto,
   VpmRepoDto
 } from './vpm/dto'
 
@@ -299,6 +301,12 @@ export interface AApi {
     catalogQuery(query: VpmCatalogQuery): Promise<VpmCatalogPage>
     packageDetail(name: string): Promise<VpmCatalogPackageDetail | null>
     packageVersions(name: string): Promise<VpmCatalogVersionDto[]>
+    projectsList(): Promise<VpmProjectSummaryDto[]>
+    projectDetail(projectKey: string): Promise<VpmProjectDetailDto>
+    projectAdd(input: { path: string }): Promise<VpmProjectDetailDto>
+    projectRemove(projectKey: string): Promise<{ ok: boolean }>
+    projectRescan(projectKey: string): Promise<VpmProjectDetailDto>
+    projectOpenFolder(projectKey: string): Promise<{ ok: boolean }>
   }
   categories: {
     list(): Promise<CategoryConfig>

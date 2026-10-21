@@ -100,7 +100,13 @@ const api: AApi = {
     networkConsent: (allow) => invoke('vpm:network-consent', { allow }),
     catalogQuery: (query) => invoke('vpm:catalog-query', query),
     packageDetail: (name) => invoke('vpm:package-detail', name),
-    packageVersions: (name) => invoke('vpm:package-versions', name)
+    packageVersions: (name) => invoke('vpm:package-versions', name),
+    projectsList: () => invoke('vpm:projects-list'),
+    projectDetail: (projectKey) => invoke('vpm:project-detail', projectKey),
+    projectAdd: (input) => invoke('vpm:project-add', input),
+    projectRemove: (projectKey) => invoke('vpm:project-remove', projectKey),
+    projectRescan: (projectKey) => invoke('vpm:project-rescan', projectKey),
+    projectOpenFolder: (projectKey) => invoke('vpm:project-open-folder', projectKey)
   },
   categories: {
     list: () => invoke('categories:list'),
