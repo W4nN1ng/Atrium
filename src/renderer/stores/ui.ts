@@ -198,7 +198,7 @@ export interface BatchImportState {
   running: boolean
   outcome: BatchOutcome | null
   /**
-   * 被跳过的卡数（多个成员的容器、没有可导包的卡）。
+   * 被跳过的卡数（有多个候选、需要先选成员的卡，以及没有可导包的卡）。
    * **必须显示出来**：勾了 5 张、实际导 3 张而不说，等于替用户做了决定还瞒着。
    */
   skipped: number
@@ -438,6 +438,14 @@ interface UiState {
    * 绝不静默什么都不做。
    */
   importAsset(assetId: string | null, opts?: { packagePath?: string }): Promise<void>
+  /**
+   * 2026-10-21 交互简化 · 合集卡的双击入口。
+   *
+   * “双击 = 导入这张卡”，而合集这张卡的实体是里面的包：开成员面板并把包全部预勾，
+   * 由用户按“抽取并检查”确认。**绝不直接调 importCommit** —— 全预勾是显式默认值，
+   * 不是静默替用户决定。
+   */
+  importWhole(assetId: string): Promise<void>
   /** 用户在冲突对话框里做的选择 */
   resolveImportConflict(choice: 'cancel' | 'continue' | 'continue-with-backup'): Promise<void>
   /** 撤销上一次导入 */
@@ -529,8 +537,11 @@ interface UiState {
   /**
    * R4 ② · 把当前选中的**几张卡**一起导（规格 §8-4「多选 5 个 → 串行执行 → 进度可见」）。
    * 每张卡各挑一个可直导的包；要先选成员的卡不替他挑，跳过并计入 `skipped`。
+   *
+   * 2026-10-21：可显式传 `ids`。双击多选里的一张卡时，第一下 click 已经把选区收敛成单张，
+   * 只剩第二下 dblclick 时再读 `selection` 就晚了 —— 调用方把点击前快照传进来。
    */
-  importSelected(): Promise<void>
+  importSelected(ids?: string[]): Promise<void>
   /** 这一批的三选一（一次决定覆盖这一批 N 个包） */
   decideBatchPlan(choice: 'cancel' | 'continue' | 'continue-with-backup'): Promise<void>
   /** 下一批 */
@@ -1478,7 +1489,7 @@ export const useUi = create<UiState>((set, get) => {
          * 3. 找包。
          *  - 磁盘上就有的 `.unitypackage` → 老路（预扫描 → 冲突 → 导）
          *  - 压缩包成员 → 先 `importPlan`（抽取 + 预扫描），确认后再 `importCommit`
-         *  - 多个成员的容器 → **不替用户挑**，让他进容器内部视图勾（那是 M5-B ⑥ 的选择面板）
+         *  - 一张卡有多个候选（多个成员 / 多个散装包）→ **不替用户挑**，打开成员面板让他勾
          */
         let packagePath = opts?.packagePath ?? null
         if (!packagePath) {
@@ -1504,7 +1515,7 @@ export const useUi = create<UiState>((set, get) => {
           const choice = cardImportChoice(found.packages)
           if (choice.kind === 'needs-choice') {
             /**
-             * 多个成员的容器**不替用户挑**：打开选择面板，让他勾。
+             * 这张卡不止一个候选（多个成员、或多个散装包）→ **不替用户挑**：打开成员面板。
              * 以前这里是"取第一个 + 一句实话"，等于 A 悄悄替他选了一个包往工程里灌。
              */
             await get().openMemberPicker(assetId, target.id)
@@ -1553,23 +1564,15 @@ export const useUi = create<UiState>((set, get) => {
             return
           }
           /**
-           * 一个素材里有多个**散装**包时取第一个并说明，不静默挑一个。
-           * 打包成批的选择面板属于 M5-B ⑥。
+           * 2026-10-21：`cardImportChoice` 现在只要 `packages.length > 1` 就判 needs-choice，
+           * 所以走到这里时**只有一个候选**，不存在“先导第一个、其余靠提示”的口径了。
+           * 下面的 null 守卫保留：它是防前端状态错乱的最后一道，不是正常分支。
            */
           packagePath = found.packages[0].path
           if (!packagePath) {
-            /**
-             * 走到这里说明上面 `needExtract` 那条分支没接住"路径为 null 的成员" ——
-             * 那是个 bug，不是用户能造成的状态。宁可在这里停下说一句实话，
-             * 也不要把 null 当路径传下去（那边会以"找不到这个 .unitypackage"报回来，
-             * 而那时已经没人记得是哪儿不对了）。
-             */
             get().toast('bad', t('library.noImportablePackage'))
             reset()
             return
-          }
-          if (found.packages.length > 1) {
-            get().toast('info', t('library.multiplePackages', { count: found.packages.length }))
           }
         }
 
@@ -1606,6 +1609,19 @@ export const useUi = create<UiState>((set, get) => {
         get().toast('bad', e instanceof Error ? e.message : String(e))
         reset()
       }
+    },
+
+    async importWhole(assetId) {
+      /**
+       * 只走成员面板这一条路：
+       * 1) `openMemberPicker` 自己解析/选择导入目标、拉清单；
+       * 2) 目标被取消或清单失败时，面板不会 open，这里直接收手；
+       * 3) 清单回来后再全预勾 —— 顺序反了会勾到空数组。
+       */
+      await get().openMemberPicker(assetId)
+      const p = get().memberPicker
+      if (!p.open || p.loading) return
+      get().pickAllMembers()
     },
 
     async resolveImportConflict(choice) {
@@ -2344,10 +2360,10 @@ export const useUi = create<UiState>((set, get) => {
      *  3. 一次只规划一批：后面的批次还没抽，磁盘上不会同时躺着几十份副本
      *     （M5-B 那条"先把 87 个全抽出来再问用户"的教训）。
      */
-    async importSelected() {
+    async importSelected(idsArg) {
       const t = i18next.t.bind(i18next)
       const s = get()
-      const ids = Array.from(new Set(s.selection))
+      const ids = Array.from(new Set(idsArg ?? s.selection))
       if (!ids.length) return
       if (s.memberPicker.open || s.batchImport.open || s.backfill.open || s.importFlow.busy) {
         get().toast('info', t('library.batchBusy'))

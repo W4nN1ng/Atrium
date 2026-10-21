@@ -191,6 +191,24 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
   }
+  /*
+   * 2026-10-21 · 长按合集卡的 1 秒进度条。
+   * 动画时长由组件内联写成 LONG_PRESS_MS（1000ms），这里只放关键帧与定位。
+   */
+  .card-hold-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    transform-origin: left center;
+    background: var(--accent);
+    animation-name: hold-fill;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+    pointer-events: none;
+    z-index: 5;
+  }
 
   .label {
     @apply block text-[11px] uppercase tracking-wide;
@@ -211,5 +229,22 @@
   }
   .switch-on .switch-knob {
     margin-left: 18px;
+  }
+}
+
+@keyframes hold-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hold-bar {
+    animation: none;
+    transform: scaleX(1);
+    opacity: 0.7;
   }
 }

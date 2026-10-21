@@ -377,18 +377,38 @@ export function Sidebar(): JSX.Element {
 
 export function StatusBar({ dropActive }: { dropActive: boolean }): JSX.Element {
   const { t } = useTranslation()
+  const nav = useUi((s) => s.nav)
   const stats = useUi((s) => s.stats)
   const paths = useUi((s) => s.paths)
   const settings = useUi((s) => s.settings)
   const total = useUi((s) => s.total)
   const locale = settings.language as LocaleKey
+  /**
+   * 2026-10-21 · 导入按钮移除后，状态栏是“手势怎么用”的常驻说明。
+   * 容器内部和素材网格的下一手动作不同，所以按页面给不同文案；
+   * 其他页面不硬塞手势提示。
+   */
+  const libraryView =
+    nav === 'all' ||
+    nav === 'recent' ||
+    nav === 'bundles' ||
+    nav === 'favorites' ||
+    nav.startsWith('cat:') ||
+    nav.startsWith('col:')
+  const hint = dropActive
+    ? t('library.dropHint')
+    : nav.startsWith('bundle:')
+      ? t('library.bundleGestureHint')
+      : libraryView
+        ? t('library.gestureHint')
+        : t('library.emptyHint')
 
   return (
     <footer
       className="flex h-[26px] shrink-0 items-center gap-3 border-t px-3 text-[11px]"
       style={{ borderColor: 'var(--line)', background: 'var(--panel)', color: 'var(--muted)' }}
     >
-      <span>{dropActive ? t('library.dropHint') : t('library.emptyHint')}</span>
+      <span>{hint}</span>
       <span className="faint">·</span>
       <span className="truncate" style={{ maxWidth: 360 }}>
         {t('settings.libraryRoot')}:{' '}

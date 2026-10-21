@@ -105,13 +105,9 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
   const config = useUi((s) => s.categories)
   const toast = useUi((s) => s.toast)
   const openMemberPicker = useUi((s) => s.openMemberPicker)
-  /** 第 10 轮 B：容器里每一行也是素材卡，那颗「导入」必须走和外面网格同一条路 */
+  /** 2026-10-21：行内导入按钮已移除；双击行仍是导入入口（和外面网格同一条链） */
   const importAsset = useUi((s) => s.importAsset)
-  const importTargetName = useUi((s) => s.connection.projects.find((p) => p.projectId === s.connection.targetProjectId)?.name)
-  const importBusy = useUi((s) => s.importFlow.busy || s.targetPicker.open)
   const openDetail = useUi((s) => s.openDetail)
-  const pickAllMembers = useUi((s) => s.pickAllMembers)
-  const settings = useUi((s) => s.settings)
   const setNav = useUi((s) => s.setNav)
   const refreshMeta = useUi((s) => s.refreshMeta)
   const [view, setView] = useState<BundleView | null>(null)
@@ -297,21 +293,10 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
           <CoverEditor assetId={b.id} name={b.name} />
           {picked.length ? <CoverBatch assetIds={picked} /> : null}
           {/*
-            第 10 轮 Q3 甲：这颗以前是 `disabled` + 一句"Unity 导入在 M5 交付"。
-            现在它**开面板并把包全预勾上** —— 不静默替他导 22 个包，也不再是颗假按钮。
-            （预勾要在 `openMemberPicker` 拉完清单之后做，所以这里是 async 串起来。）
+            2026-10-21 · 「整包导入 Unity」按钮已移除。
+            整包入口改到外面网格的双击合集卡：成员面板 + 全部预勾（见 AssetGrid / ui.ts:importWhole）。
+            这里保留 Enter 打开成员面板，给已经在合集内部的人用。
           */}
-          <Button
-            disabled={busy}
-            onClick={() => {
-              void (async () => {
-                await openMemberPicker(bundleId)
-                pickAllMembers()
-              })()
-            }}
-          >
-            {t('library.bundleImportWhole')}
-          </Button>
           <Button disabled={busy} onClick={() => void dissolve()}>
             {t('library.bundleDissolve')}
           </Button>
@@ -383,18 +368,23 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
                 className="flex items-center gap-2 border-b px-3 py-1.5 text-[12px]"
                 style={{ borderColor: 'var(--line)' }}
                 /**
-                 * 第 10 轮 Q1 甲：**和外面那张网格一模一样** —— 先开详情，再按设置里的
-                 * 「双击行为」决定要不要导（判据在 `shared/memberPick.ts:cardImportChoice`：
-                 * 单个包直接导、多个包弹成员面板，不替他挑）。
-                 * 以前这里是一句过期的 `toast('bad','Unity 导入在 M5 交付')`。
+                 * 2026-10-21：**和外面那张网格一模一样** —— 双击就是导入。
+                 * 判据仍走 `shared/memberPick.ts:cardImportChoice`：单个包直接导、多个包弹成员面板。
+                 * 「双击行为」设置已删除，不再有 preview/reveal 两条岔路。
                  */
                 onDoubleClick={() => {
                   void openDetail(r.id)
-                  if (settings.doubleClickAction === 'import') void importAsset(r.id)
-                  else if (settings.doubleClickAction === 'reveal') toast('info', t('library.revealHint'))
+                  void importAsset(r.id)
                 }}
               >
-                <input type="checkbox" checked={picked.includes(r.id)} onChange={(e) => toggle(r.id, e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={picked.includes(r.id)}
+                  /* 双击复选框是“改勾选”，不许冒泡成行双击导入 */
+                  onDoubleClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onChange={(e) => toggle(r.id, e.target.checked)}
+                />
                 <span className="min-w-0 flex-1 truncate" title={r.rawName}>
                   {r.label}
                 </span>
@@ -410,10 +400,7 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
                 <span className="w-[70px] shrink-0 text-right text-[11px] tabular-nums" style={{ color: 'var(--muted)' }}>
                   {humanBytes(r.sizeBytes, locale)}
                 </span>
-                {/* 第 10 轮 B：这颗以前是 disabled 的占位，现在和双击同一条路（多个包会弹面板） */}
-                <Button className="shrink-0" disabled={importBusy} onClick={() => void importAsset(r.id)} title={t('library.importToUnityHint')}>
-                  {importTargetName ? t('library.importToProject', { name: importTargetName }) : t('common.import')}
-                </Button>
+                {/* 2026-10-21：常驻导入按钮已移除；这一行仍然双击导入（见上面的 onDoubleClick） */}
               </div>
             ))}
           </div>
@@ -480,20 +467,10 @@ export function BundleDetail({ bundleId }: { bundleId: string }): JSX.Element {
             {t('library.bundleExtract')}
           </Button>
           {/*
-            M5-B ⑥：这里以前是个 disabled 的占位按钮（"批量选择在 M5-B 交付"）。
-            现在真的能用了：打开成员选择面板，让他勾要导哪几个 ——
-            **不替他挑**（面板里预勾只按名字匹配，而且会写明依据）。
+            2026-10-21 · 「选包导入 Unity」按钮已移除。
+            这里仍保留键盘路径：勾了行按 Enter = 打开成员面板（见上面的 keydown effect），
+            面板里预勾按名字匹配、写明依据，不替他挑。
           */}
-          <Button
-            onClick={() => {
-              if (!picked.length) {
-                toast('info', t('library.memberAllHint'))
-              }
-              void openMemberPicker(bundleId)
-            }}
-          >
-            {t('library.bundleImportMembers')}
-          </Button>
         </div>
       </div>
       <div className="shrink-0 px-3 py-1 text-[10px]" style={{ color: 'var(--faint)' }}>

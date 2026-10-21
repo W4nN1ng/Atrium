@@ -341,17 +341,6 @@ export function Settings(): JSX.Element {
                   pickDirectory
                 />
               </Field>
-              <Field label={t('settings.doubleClick')}>
-                <Select
-                  value={draft.doubleClickAction}
-                  onChange={(v) => void patch({ doubleClickAction: v })}
-                  options={[
-                    { value: 'import', label: t('settings.dcImport') },
-                    { value: 'preview', label: t('settings.dcPreview') },
-                    { value: 'reveal', label: t('settings.dcReveal') }
-                  ]}
-                />
-              </Field>
               <Field label={t('settings.confirmBeforeImport')} inline>
                 <Switch checked={draft.confirmBeforeImport} onChange={(v) => void patch({ confirmBeforeImport: v })} />
               </Field>

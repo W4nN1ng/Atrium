@@ -55,43 +55,44 @@ describe('A · 容器视图能滚', () => {
   })
 })
 
-describe('B · 容器里那四颗"Unity 导入在 M5 交付"的假按钮', () => {
+describe('B · 容器里的导入入口（2026-10-21 起改为手势）', () => {
   it('整个组件里不再出现那句占位文案的 key', () => {
     expect(bd).not.toContain('bundleImportSoon')
   })
 
-  it('⭐ 行内导入调用 importAsset，只在已有任务或目标选择时禁用', () => {
-    /**
-     * ⚠ 别按注释定位 —— `stripComments` 会把 JSX 的 `{/* … *\/}` 一起剥掉，
-     * 第一版拿注释当锚点，slice 出来是空串，断言"包含 onClick"当场红（红得毫无信息量）。
-     */
-    const at = bd.indexOf('onClick={() => void importAsset(r.id)}')
-    expect(at, '行内那颗没接 importAsset').toBeGreaterThan(-1)
-    const tag = bd.slice(bd.lastIndexOf('<Button', at), at)
-    expect(tag).toContain('disabled={importBusy}')
-    const busy = bd.match(/const importBusy = useUi\(\(s\) => ([^\n]+)/)?.[1]
-    expect(busy, '没有目标时必须仍可点击，让主进程解析或选择工程').toBe('s.importFlow.busy || s.targetPicker.open)')
-    expect(bd.slice(at, at + 320)).toContain("t('common.import')")
-    expect(bd.slice(at, at + 320)).toContain("t('library.importToProject', { name: importTargetName })")
+  it('⭐ 常驻导入按钮全部消失：行内、顶部整包、底部选包都不许再渲染', () => {
+    expect(bd).not.toContain("t('library.bundleImportWhole')")
+    expect(bd).not.toContain("t('library.bundleImportMembers')")
+    expect(bd).not.toContain("t('library.importToProject'")
+    expect(bd).not.toContain('importBusy')
+    expect(bd).not.toContain('importTargetName')
   })
 
-  it('⭐ 行双击吃设置里的「双击行为」，和外面网格同一套（Q1 甲）', () => {
+  it('⭐ 行双击固定导入（不再读已删除的「双击行为」设置）', () => {
     const at = bd.indexOf('onDoubleClick=')
-    const body = bd.slice(at, at + 320)
-    expect(body).toContain('settings.doubleClickAction')
-    expect(body).toContain("importAsset(r.id)")
-    /** 先开详情再按设置走 —— 外面那张网格就是这个顺序（AssetGrid 的 onDoubleClick） */
-    expect(body.indexOf('openDetail(r.id)')).toBeLessThan(body.indexOf('doubleClickAction'))
+    expect(at, '行双击没了？').toBeGreaterThan(-1)
+    const body = bd.slice(at, at + 220)
+    expect(body).toContain('importAsset(r.id)')
+    expect(body).toContain('openDetail(r.id)')
+    expect(bd).not.toContain('settings.doubleClickAction')
+    expect(bd).not.toContain('doubleClickAction')
   })
 
-  it('顶部那颗「整包导入 Unity」不再是假的：开面板 + 全预勾（Q3 甲）', () => {
-    const at = bd.indexOf('{t(\'library.bundleImportWhole\')}')
-    expect(at, '整包那颗没了？').toBeGreaterThan(-1)
-    const body = bd.slice(Math.max(0, at - 700), at)
-    expect(body).toContain('openMemberPicker(bundleId)')
+  it('行内复选框双击不许冒泡成行双击导入', () => {
+    const at = bd.indexOf('checked={picked.includes(r.id)}')
+    expect(at).toBeGreaterThan(-1)
+    expect(bd.slice(at, at + 260)).toContain('onDoubleClick={(e) => e.stopPropagation()}')
+    expect(bd.slice(at, at + 260)).toContain('onPointerDown={(e) => e.stopPropagation()}')
+  })
+
+  it('整包能力搬到网格双击合集：开面板 + 全预勾（顺序不能反）', () => {
+    const store = stripComments(read('src/renderer/stores/ui.ts'))
+    const at = store.indexOf('async importWhole(assetId)')
+    expect(at, 'importWhole 没了？').toBeGreaterThan(-1)
+    const body = store.slice(at, at + 420)
+    expect(body).toContain('openMemberPicker(assetId)')
     expect(body).toContain('pickAllMembers()')
-    /** 顺序：预勾必须发生在清单拉回来之后 */
-    expect(body.indexOf('pickAllMembers()')).toBeGreaterThan(body.indexOf('openMemberPicker(bundleId)'))
+    expect(body.indexOf('pickAllMembers()')).toBeGreaterThan(body.indexOf('openMemberPicker(assetId)'))
   })
 
   it('勾了成员按 Enter 有真动作（开面板），不是弹一句过期话', () => {

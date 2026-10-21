@@ -931,7 +931,6 @@ export interface AppSettings {
   bridgeAutoInstall: boolean
   confirmBeforeImport: boolean
   backupOverwritten: boolean
-  doubleClickAction: 'import' | 'preview' | 'reveal'
   autoSwitchBehavior: 'always' | 'when_matched' | 'never'
   /** 集成 */
   watchedFolders: string[]

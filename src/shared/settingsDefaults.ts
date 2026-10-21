@@ -46,7 +46,6 @@ export const DEFAULTS: AppSettings = {
   bridgeAutoInstall: false,
   confirmBeforeImport: true,
   backupOverwritten: true,
-  doubleClickAction: 'import',
   autoSwitchBehavior: 'when_matched',
 
   watchedFolders: [],

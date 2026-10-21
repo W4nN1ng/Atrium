@@ -110,14 +110,36 @@ export function App(): JSX.Element {
       }
       if (e.key === 'Delete') void trashSelected()
       if (e.key === 'Enter') {
-        const sel = useUi.getState().selection
+        /** 焦点在按钮/链接/下拉上时，Enter 是“按那个控件”，不是全局导入（输入框由上面的 typing 闸兜住） */
+        if (target && (target.tagName === 'BUTTON' || target.tagName === 'A' || target.tagName === 'SELECT')) return
+        /** 容器内部有自己的 Enter（打开成员面板），这里不许再抢一次 */
+        if (nav.startsWith('bundle:')) return
+        const st = useUi.getState()
+        const sel = st.selection
         /**
-         * Enter = 导入选中项（规格 §容器内部视图 的约定，这里推广到主列表）。
-         * R4 ② 之后多选走批量那条路 —— 以前 `sel.length` 是 3 也照样只导 `sel[0]`，
-         * 框了三张卡按回车、只进去一张，而界面什么也没说。
+         * 2026-10-21：
+         * - Shift+Enter = 打开选中的合集（长按是鼠标专属，键盘必须有等价入口）；
+         * - Enter = 导入选中项；选 1 张合集时和双击合集同一条路（成员面板 + 全预勾）；
+         * - 多选仍走批量，语义不变。
          */
-        if (sel.length > 1) void useUi.getState().importSelected()
-        else if (sel.length === 1) void useUi.getState().importAsset(sel[0])
+        if (e.shiftKey) {
+          if (sel.length === 1) {
+            const card = st.cards.find((c) => c.id === sel[0])
+            if (card?.isBundle) {
+              e.preventDefault()
+              setNav('bundle:' + sel[0])
+            }
+          }
+          return
+        }
+        if (!sel.length) return
+        e.preventDefault()
+        if (sel.length > 1) void st.importSelected()
+        else {
+          const card = st.cards.find((c) => c.id === sel[0])
+          if (card?.isBundle) void st.importWhole(sel[0])
+          else void st.importAsset(sel[0])
+        }
       }
       if (e.key >= '1' && e.key <= '9' && (e.ctrlKey || e.metaKey)) {
         const list = useUi.getState().collections

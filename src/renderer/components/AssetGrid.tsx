@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AssetCard, CategoryConfig } from '../../shared/types'
+import { LONG_PRESS_MS } from '../../shared/cardGesture'
 import { dimChips } from '../../shared/variantDims'
 import { useUi } from '../stores/ui'
+import { useLongPress } from '../lib/useLongPress'
 import { MergeSuggestBar } from './MergeSuggestBar'
 import { Modal } from './ui'
 import { fileUrl } from '../lib/format'
@@ -50,6 +52,8 @@ function Cover({ card }: { card: AssetCard }): JSX.Element {
         alt=""
         className="h-full w-full object-cover"
         loading="lazy"
+        /* 长按封面时不许浏览器先起一个原生图片拖拽，否则 pointerleave/移动取消都会失真 */
+        draggable={false}
         onError={() => setBroken(true)}
       />
     )
@@ -71,48 +75,63 @@ function AssetCardView({ card }: { card: AssetCard }): JSX.Element {
   const toggle = useUi((s) => s.toggleSelect)
   const openDetail = useUi((s) => s.openDetail)
   const setNav = useUi((s) => s.setNav)
-  const settings = useUi((s) => s.settings)
   const selected = selection.includes(card.id)
   const focused = detailId === card.id
   /** dims 的三条判据（单值维度不显示 / 容器卡不重复数版本 / 超出要写"+N"）全在纯函数里 */
   const dimSet = dimChips(card.dims ?? [], { isBundle: card.isBundle, unitCount: card.unitCount })
+  /**
+   * 2026-10-21 · 双击的第一下 click 会把多选收敛成单张，第二下甚至会清空。
+   * 所以在**第一次 click（detail===1）**时就把点击前的选区存下来，双击时用它还原。
+   * 不能在 dblclick 里现读 selection —— 那时已经晚了。
+   */
+  const pressSelection = useRef<string[]>([])
+  /** 长按只对合集卡生效；普通卡连进度条都不该出现 */
+  const longPress = useLongPress({
+    enabled: card.isBundle,
+    onFire: () => setNav('bundle:' + card.id)
+  })
 
   return (
     <div
       className={`card ${selected ? 'card-selected' : ''}`}
+      onDragStart={(e) => e.preventDefault()}
       onClick={(e) => {
+        if (e.detail === 1) pressSelection.current = useUi.getState().selection
         toggle(card.id, e.ctrlKey || e.metaKey || e.shiftKey)
         void openDetail(card.id)
       }}
-      onDoubleClick={() => {
-        /** 合集点进去是二级列表（子项 + 版本），不是单素材详情（改动单 §3） */
+      onDoubleClick={(e) => {
+        /** 修饰键是在改选区，不是要导 —— 不在这种时候写工程 */
+        if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
+        /**
+         * 双击 = 导入这张卡（2026-10-21 用户裁定）。
+         * 合集这张卡的实体是里面的包：开成员面板 + 全预勾，用户确认后才导。
+         */
         if (card.isBundle) {
-          setNav('bundle:' + card.id)
+          void useUi.getState().importWhole(card.id)
+          return
+        }
+        const snap = pressSelection.current
+        if (snap.length > 1 && snap.includes(card.id)) {
+          /** 多选里双击其中一张：把选区还原成点击前那批，再走原有批量链路 */
+          useUi.setState({ selection: snap })
+          void useUi.getState().importSelected(snap)
           return
         }
         void openDetail(card.id)
-        /**
-         * M5-A：双击普通素材卡按设置里的「双击行为」走。
-         * `import` 现在是**真的导入**（预扫描 → 有冲突就弹确认 → 导入），
-         * 不再是那句"Unity 导入在 M5 交付"。
-         */
-        if (settings.doubleClickAction === 'import') {
-          void useUi.getState().importAsset(card.id)
-        } else if (settings.doubleClickAction === 'reveal') {
-          /**
-           * ⚠ `AssetCard` 不带磁盘路径（只给界面看的字段），所以这里查不到。
-           * 详情面板里那个「打开所在文件夹」拿的是 `DetailInfo.asset`，那条路是对的。
-           * 卡片的 reveal 要么给 AssetCard 补字段、要么多跑一次 IPC ——
-           * 后者是"双击打开文件夹"这个设置项该处理的事，不属于 M5-A 的导入链路，
-           * 所以这里**如实说一句**，不假装做到了。
-           */
-          useUi.getState().toast('info', t('library.revealHint'))
-        }
+        void useUi.getState().importAsset(card.id)
       }}
-      title={card.rawName}
+      title={card.isBundle ? `${card.rawName}\n${t('library.bundleTitleHint')}` : card.rawName}
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden">
+      <div className="relative aspect-[4/3] w-full overflow-hidden" {...longPress.handlers}>
         <Cover card={card} />
+        {longPress.pressing ? (
+          <span
+            className="card-hold-bar"
+            style={{ animationDuration: `${LONG_PRESS_MS}ms` }}
+            aria-hidden
+          />
+        ) : null}
         {card.isBundle ? (
           /**
            * §B6：容器卡要**一眼看出是文件夹**，不是普通素材。
@@ -208,7 +227,14 @@ function AssetRowView({ card }: { card: AssetCard }): JSX.Element {
   const toggle = useUi((s) => s.toggleSelect)
   const openDetail = useUi((s) => s.openDetail)
   const detailId = useUi((s) => s.detailId)
+  const setNav = useUi((s) => s.setNav)
   const selected = selection.includes(card.id)
+  /** 列表行与网格卡共用同一套手势；第一下 click 前存快照，供双击多选导入还原 */
+  const pressSelection = useRef<string[]>([])
+  const longPress = useLongPress({
+    enabled: card.isBundle,
+    onFire: () => setNav('bundle:' + card.id)
+  })
   /** 列表行的"变体"列：份数 + 各维度分列（判据同 `dimChips`） */
   const rowDims: string[] = []
   if (card.variantCount > 1) rowDims.push(t('library.variants', { count: card.variantCount }))
@@ -217,17 +243,46 @@ function AssetRowView({ card }: { card: AssetCard }): JSX.Element {
   if (rowDimSet.more) rowDims.push('+' + rowDimSet.more)
   return (
     <div
-      className={`flex cursor-pointer items-center gap-3 border-b px-3 py-1.5 ${detailId === card.id ? '' : ''}`}
+      className={`relative flex cursor-pointer items-center gap-3 border-b px-3 py-1.5 ${detailId === card.id ? '' : ''}`}
       style={{
         borderColor: 'var(--line)',
         background: selected ? 'var(--accent-soft)' : 'transparent'
       }}
+      onDragStart={(e) => e.preventDefault()}
+      {...longPress.handlers}
       onClick={(e) => {
+        if (e.detail === 1) pressSelection.current = useUi.getState().selection
         toggle(card.id, e.ctrlKey || e.metaKey || e.shiftKey)
         void openDetail(card.id)
       }}
+      onDoubleClick={(e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
+        if (card.isBundle) {
+          void useUi.getState().importWhole(card.id)
+          return
+        }
+        const snap = pressSelection.current
+        if (snap.length > 1 && snap.includes(card.id)) {
+          useUi.setState({ selection: snap })
+          void useUi.getState().importSelected(snap)
+          return
+        }
+        void openDetail(card.id)
+        void useUi.getState().importAsset(card.id)
+      }}
+      title={card.isBundle ? `${card.rawName}\n${t('library.bundleTitleHint')}` : card.rawName}
     >
+      {longPress.pressing ? (
+        <span
+          className="card-hold-bar"
+          style={{ animationDuration: `${LONG_PRESS_MS}ms` }}
+          aria-hidden
+        />
+      ) : null}
       <StatusDot status={card.status} />
+      {card.isBundle ? (
+        <span className="chip chip-accent shrink-0">{t('library.bundle')}</span>
+      ) : null}
       <span className="w-[280px] truncate text-[13px]">{card.name}</span>
       <span className="w-[150px] truncate text-[11px]" style={{ color: 'var(--muted)' }}>
         {card.categoryLabel}
@@ -260,11 +315,6 @@ export function AssetGrid(): JSX.Element {
   const selection = useUi((s) => s.selection)
   const trashSelected = useUi((s) => s.trashSelected)
   const undoLast = useUi((s) => s.undoLast)
-  /** R4 ② · 框选几张卡一起导（规格 §8-4） */
-  const importSelected = useUi((s) => s.importSelected)
-  const importTargetName = useUi((s) => s.connection.projects.find((p) => p.projectId === s.connection.targetProjectId)?.name)
-  /** 面板开着 / 正在导的时候不许再开一批（一次只跑一件事，两批并行会把撤销顺序搅乱） */
-  const batchBusy = useUi((s) => s.batchImport.open || s.memberPicker.open || s.importFlow.busy || s.targetPicker.open)
   const collections = useUi((s) => s.collections)
   const addToCollection = useUi((s) => s.addToCollection)
   const [busyCollection, setBusyCollection] = useState(false)
@@ -287,6 +337,12 @@ export function AssetGrid(): JSX.Element {
         </button>
         {selection.length ? (
           <span className="chip chip-accent">{t('library.selected', { count: selection.length })}</span>
+        ) : null}
+        {/* 多选没有工具栏批量按钮了：唯一鼠标入口是双击其中一张，所以必须就地说出来 */}
+        {selection.length > 1 ? (
+          <span className="text-[11px]" style={{ color: 'var(--faint)' }}>
+            {t('library.batchGestureHint', { count: selection.length })}
+          </span>
         ) : null}
         <div className="ml-auto flex items-center gap-2">
           <CoverTaskButton assetIds={selection} filter={currentCoverTaskFilter({ nav, search, view })} />
@@ -311,22 +367,6 @@ export function AssetGrid(): JSX.Element {
                 </option>
               ))}
             </select>
-          ) : null}
-          {/*
-            多选批量导入（R4 ②，规格 §8-4）。
-            只在选了两张以上时出现：单张卡走双击/Enter 那条老路，
-            这里再摆一个按钮就是两个入口两套说法。
-          */}
-          {selection.length > 1 ? (
-            <button
-              type="button"
-              className="btn btn-accent px-2 py-0.5"
-              disabled={batchBusy}
-              onClick={() => void importSelected()}
-              title={t('library.batchImportHint')}
-            >
-              {importTargetName ? t('library.batchImportToProject', { count: selection.length, name: importTargetName }) : t('library.batchImport', { count: selection.length })}
-            </button>
           ) : null}
           <button type="button" className="btn px-2 py-0.5" onClick={() => void undoLast()} title="Ctrl+Z">
             {t('common.undo')}
