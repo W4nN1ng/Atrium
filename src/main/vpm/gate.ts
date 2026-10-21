@@ -11,6 +11,8 @@ import { P } from '../services/paths'
 import { validateVpmDataRoot } from '../../shared/vpm/dataRoot'
 import { VpmError, type VpmErrorCode } from '../../shared/vpm/errors'
 import { IpcInvoke } from '../../shared/ipc'
+import { registerVpmIpc } from './ipc'
+import type { VpmRuntime } from './index'
 import {
   VPM_SETTINGS_SCHEMA_VERSION,
   type VpmDataRootContext,
@@ -23,7 +25,7 @@ import {
 } from '../../shared/vpm/types'
 import {
   defaultVpmSettings,
-  readNetworkConsent,
+  isNetworkEnabled,
   readVpmSettings,
   writeVpmSettings
 } from './config'
@@ -35,20 +37,19 @@ export interface VpmGateDeps {
   getKnownProjectPaths(): string[]
   appVersion?(): string
   appInstallDirs?(): string[]
+  /** 主进程事件广播；P1-E 的刷新进度用。 */
+  broadcast?(event: string, payload?: unknown): void
   /** 测试可关掉动态运行时加载；生产默认开启。 */
   enableRuntime?: boolean
 }
 
-interface VpmRuntimeHandle {
-  dispose(): void
-}
-
 let deps: VpmGateDeps | null = null
 let configRecovered = false
-let runtime: VpmRuntimeHandle | null = null
+let runtime: VpmRuntime | null = null
 let runtimePromise: Promise<void> | null = null
 let runtimeCode: VpmErrorCode | null = null
 let runtimeGeneration = 0
+let ipcController: { dispose(): void } | null = null
 
 export function isSafeMode(
   argv: readonly string[] = process.argv,
@@ -179,13 +180,7 @@ async function ensureRuntime(): Promise<void> {
       const handle = await initVpm({
         dataRoot: status.dataRoot as string,
         userAgent: `Atrium/${status.appVersion || '0.0.0'}`,
-        isNetworkAllowed: () => {
-          try {
-            return readNetworkConsent() !== null
-          } catch {
-            return false
-          }
-        }
+        isNetworkAllowed: () => isNetworkEnabled()
       })
       if (generation !== runtimeGeneration) {
         handle.dispose()
@@ -436,8 +431,15 @@ export async function pickDataRoot(): Promise<VpmDataRootPick> {
 }
 
 export function registerVpmGateIpc(next: VpmGateDeps): void {
+  ipcController?.dispose()
   deps = next
   const { ipc } = next
+
+  ipcController = registerVpmIpc({
+    ipc,
+    broadcast: next.broadcast,
+    getRuntime: () => runtime
+  })
 
   ipc.handle(IpcInvoke.Vpm.Status, () => getVpmStatus())
   ipc.handle(IpcInvoke.Vpm.Enable, (input: unknown) => enableVpm(input as VpmEnableInput))
@@ -447,11 +449,15 @@ export function registerVpmGateIpc(next: VpmGateDeps): void {
 
 export function disposeVpm(): void {
   disposeRuntime()
+  ipcController?.dispose()
+  ipcController = null
 }
 
 /** 只给测试用：清掉模块级 deps/恢复标记，避免测试文件互相污染。 */
 export function resetVpmGateForTest(): void {
   disposeRuntime()
+  ipcController?.dispose()
+  ipcController = null
   deps = null
   configRecovered = false
 }

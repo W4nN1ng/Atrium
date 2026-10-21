@@ -217,7 +217,17 @@ export const IpcInvoke = {
     Status: 'vpm:status',
     Enable: 'vpm:enable',
     Disable: 'vpm:disable',
-    PickDataRoot: 'vpm:pick-data-root'
+    PickDataRoot: 'vpm:pick-data-root',
+    ReposList: 'vpm:repos-list',
+    RepoAdd: 'vpm:repo-add',
+    RepoRemove: 'vpm:repo-remove',
+    RepoRefresh: 'vpm:repo-refresh',
+    RepoRefreshAll: 'vpm:repo-refresh-all',
+    NetworkConsent: 'vpm:network-consent',
+    NetworkStatus: 'vpm:network-status',
+    CatalogQuery: 'vpm:catalog-query',
+    PackageDetail: 'vpm:package-detail',
+    PackageVersions: 'vpm:package-versions'
   }
 } as const
 
@@ -255,7 +265,9 @@ export const IpcEvent = {
   ProjectFirstSeen: 'project:first-seen',
   AutoSwitch: 'unity:auto-switch',
   SettingsChanged: 'settings:changed',
-  Toast: 'ui:toast'
+  Toast: 'ui:toast',
+  VpmRepoProgress: 'vpm:repo-progress',
+  VpmRepoDone: 'vpm:repo-done'
 } as const
 
 /** 渲染进程允许订阅的事件通道 */

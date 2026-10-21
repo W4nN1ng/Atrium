@@ -160,7 +160,9 @@ export class ReposService {
     return promise
   }
 
-  async refreshAll(): Promise<RepoRefreshResult[]> {
+  async refreshAll(
+    onResult?: (result: RepoRefreshResult, index: number) => void
+  ): Promise<RepoRefreshResult[]> {
     const repos = this.store.listRepos().filter((repo) => repo.enabled)
     const results: RepoRefreshResult[] = new Array(repos.length)
     let next = 0
@@ -179,6 +181,11 @@ export class ReposService {
             packageCount: current.packageCount,
             errorCode: errorCodeOf(error)
           }
+        }
+        try {
+          onResult?.(results[index], index)
+        } catch {
+          /* 进度回调失败不能影响刷新本身 */
         }
       }
     }

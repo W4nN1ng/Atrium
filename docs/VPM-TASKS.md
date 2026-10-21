@@ -45,9 +45,9 @@
 |---|---|---|---|---|---|
 | P1-A | 模块边界、依赖方向与架构闸门 | P0 | 模块 README、依赖规则、`architecture.spec.ts`、renderer API 包装 | I4/I6/I7/I8 | done |
 | P1-B | `vpm.db` v1、迁移器与仓储 | P1-A | `db/`、`repos/`、v1 表、迁移/备份 | C8/C14/I7 | done |
-| P1-C | HTTP、缓存与联网同意 | P1-A | `http/`、`cache/`、同意门、fake 测试 | C8/C9/C10/G2/I6 | done |
+| P1-C | HTTP、缓存与联网开关 | P1-A | `http/`、`cache/`、联网开关、fake 测试 | C8/C9/C10/G2/I6 | done |
 | P1-D | 仓库服务、官方/curated 与来源合并 | P1-B/P1-C | `reposService`、`catalog`、种子仓库 | C1/C2/C8/C10/C14/B15 | done |
-| P1-E | 只读包目录 UI、IPC 与三语 | P1-D | 仓库区、包抽屉、同意模态、IPC | B1/B2/B3/B13/B14 | todo |
+| P1-E | 只读包目录 UI、IPC 与三语 | P1-D | 仓库区、包抽屉、联网开关、IPC | B1/B2/B3/B13/B14 | done |
 | P2-A | Unity 编辑器发现与手动添加 | P1-B | `unity/editors`、vpm.db v2、Hub 配置 | D1/D2/D3/D4/F4 | todo |
 | P2-B | 工程读取纯逻辑与 legacy 报告 | P1-A | `shared/vpm/domain/project.ts`、manifest 读取、fixtures | A1/A3/B17/A22 | todo |
 | P2-C | 工程台账 v2、VCC 工程与核心整合 | P2-A/P2-B | `projects/ledger`、vpm.db v2、只读 VCC 工程 | A1/A2/A3/A18/A23/F1 | todo |
@@ -85,8 +85,8 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D 已完成，下一个执行任务是 **P1-E**（只读包目录 UI、IPC 与三语）。
-> P1-E 开工前先读 §12 的 P1-A…P1-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E 已完成，下一个执行任务是 **P2-A**（Unity 编辑器发现与手动添加）。
+> P2-A 开工前先读 §12 的 P1-A…P1-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 
 ---
 
@@ -292,7 +292,7 @@ Task: P?-?
   “没验，不算通过”），不是 P1-B 引入；定向 VPM 测试 32 条全绿。
 - **未验证**：P1-B 尚未接到门面/组合根，所以应用启用 VPM 时还不会创建 `vpm.db`；
   这条接线在 P1-D。没有真实仓库 JSON/HTTP 参与（P1-C/P1-D）。仅 Windows x64。
-- **给 P1-C**：网络唯一入口必须放 `src/main/vpm/http(_)`；未同意时不得建立连接；
+- **给 P1-C**：网络唯一入口必须放 `src/main/vpm/http(_)`；联网关闭时不得建立连接；
   测试用本地 fake，不要打公网；缓存路径只能从已验证的数据根派生，不能落 C。
   新的 HTTP 错误码先登记 `shared/vpm/errors.ts` 和三语 i18n，再写实现。
 
@@ -301,10 +301,11 @@ Task: P?-?
 - **公开 API/契约**：`http/` 导出 `VpmHttpPort`、`createVpmHttpClient`、
   `createElectronHttpTransport`、`DEFAULT_VPM_HTTP_LIMITS` 和纯 policy 函数；
   `cache/` 导出 `VpmCacheStore`；`config.ts` 新增
-  `readNetworkConsent/grantNetworkConsent/revokeNetworkConsent`。没有新增 IPC/UI。
-- **同意门**：`createVpmHttpClient` 的 `isNetworkAllowed` 默认 false；未同意直接抛
-  `vpmNetworkNotConsented`，不调用 transport、不建连接。P1-D 接
-  `() => readNetworkConsent() !== null`。
+  `readNetworkConsent/grantNetworkConsent/revokeNetworkConsent`；P1-E 追加 `isNetworkEnabled/setNetworkEnabled`。没有新增 IPC/UI。
+- **联网门（P1-E 后语义）**：`createVpmHttpClient` 的 `isNetworkAllowed` 默认 false；
+  回调为 false 时直接抛 `vpmNetworkNotConsented`，不调用 transport、不建连接。
+  P1-D 接的是 `() => readNetworkConsent() !== null`；P1-E 改为
+  `() => isNetworkEnabled()`，设置默认开启，由仓库区开关关闭。
 - **网络策略**：HTTPS-only、拒绝 userinfo、最多 5 跳逐跳校验、跨源自定义头停止、
   JSON 16 MiB / 下载 4 GiB、连接 15s / 空闲 60s / 总 30 分钟、可 Abort；
   UA/条件头/无 Cookie；证书校验开启。Electron 适配器用 `net.request` +
@@ -319,14 +320,14 @@ Task: P?-?
   **161 passed / 9 skipped files（170）**、**2156 passed / 20 skipped tests（2176）**；
   定向 VPM/HTTP/cache/config/架构测试 56 条全绿。
   覆盖 200/304/3xx、逐跳降级/跨源/上限、超时/取消、JSON 超限/坏 JSON、
-  下载 hash/大小/部分文件清理、缓存路径逃逸/损坏/清理、未同意零请求、无 Cookie。
+  下载 hash/大小/部分文件清理、缓存路径逃逸/损坏/清理、联网关闭零请求、无 Cookie。
   其中 1 条既有 `bridge/lockfile` PowerShell 冷启动用例本轮因机器满载超时跳过（测试自报
   “没验，不算通过”），不是 P1-C 引入。
 - **未验证**：真实公网/系统代理/TLS 连接没有打（按任务要求用 fake transport + mock
-  Electron net）；真实仓库 JSON 与 UI 同意弹窗在 P1-D/P1-E。仅 Windows x64。
+  Electron net）；真实仓库 JSON 与仓库/目录 UI 在 P1-D/P1-E。仅 Windows x64。
 - **给 P1-D**：组合根创建 `VpmCacheStore({dataRoot})` 与
   `createVpmHttpClient({ transport: createElectronHttpTransport(),
-  isNetworkAllowed: () => readNetworkConsent() !== null, userAgent: 'Atrium/<version>' })`；
+  isNetworkAllowed: () => isNetworkEnabled(), userAgent: 'Atrium/<version>' })`；
   刷新仓库必须走 `getJson` 条件请求，304 保留旧行；下载走 `downloadToFile` + cache commit；
   不要在别处 import `electron.net` 或写 fetch。
 
@@ -341,20 +342,52 @@ Task: P?-?
   - gate：新增 `startVpmRuntime()`、`VpmGateDeps.enableRuntime`、`VpmStatus.degradedCode`；
     app ready/enable 时动态加载 runtime，失败只降级。
 - **数据/行为**：仓库 URL 归一/去重；刷新条件请求，304 保留包行；失败保留旧包行并记错误；
-  official/curated 仅在同意且仓库表为空时种子（排序 0/1，不自动刷新）；同名包跨仓库合并，
+  official/curated 仅在联网可用且仓库表为空时种子（排序 0/1，不自动刷新）；同名包跨仓库合并，
   同版本不同 hash 标冲突。
 - **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
   **166 passed / 9 skipped files（175）**、**2188 passed / 19 skipped tests（2207）**；
   定向 VPM/仓库/目录/运行时/架构测试 59 条全绿。
 - **沙盒实测**：packaged 0.9.0 在启用 VPM 的沙盒启动，日志出现“VPM 运行时已加载”；
-  创建 `vpm.db`（user_version=1，两张表）；无同意时仓库 0 个；写入同意后重启，
+  创建 `vpm.db`（user_version=1，两张表）；当时联网仍为关闭，因此仓库 0 个；手动打开后重启，
   种子 official/curated 两个仓库，`last_fetch_at` 仍为空，证明没有自动联网。
+  （P1-E 起默认联网 + 首次打开自动刷新，见下。）
 - **未验证**：没有对真实 VCC/官方仓库执行刷新（网络在本轮仍只经过 fake/mock）；
   IPC/UI 在 P1-E；仅 Windows x64。
 - **给 P1-E**：runtime 目前由 gate 私有持有。P1-E 应在 `src/main/vpm/index.ts` 里加
   IPC 注册函数（由 gate 初始化成功后调用），不要把 runtime 服务暴露给核心其他文件；
   同意后要调用 `runtime.repos.seedIfEmpty()` 再刷新；UI 只通过 `renderer/vpm/api.ts`；
   `VpmStatus.degradedCode` 已可显示具体原因。
+
+### P1-E（2026-10-21，done）
+
+- **产品裁定**：2026-10-21 用户要求 **默认联网**；不再弹首次联网同意模态。
+  仓库区提供默认开启的“联网”开关，关闭后 HTTP fail closed、只读缓存。
+- **公开 API/契约**：新增 10 个 IPC 通道与 `shared/vpm/dto`：
+  ReposList/RepoAdd/RepoRemove/RepoRefresh/RepoRefreshAll/NetworkConsent/NetworkStatus/
+  CatalogQuery/PackageDetail/PackageVersions；`registerVpmIpc` 由 gate 注册一次，
+  通过 `getRuntime()` 取当前 runtime，未就绪返回 `vpmRuntimeNotReady`。
+  刷新返回 `operationId`，事件 `vpm:repo-progress`/`vpm:repo-done` 节流 ≥100ms。
+- **设置**：`VpmSettingsFile.networkEnabled` 默认 true；旧文件缺字段按 true 读。
+  `NetworkConsent` 语义改为“切换联网开关”；开启时补首次联网时间并 `seedIfEmpty`。
+  `reposService.README`/IPC/HTTP 文档同步；P1-C 的联网门保留为关闭时 fail closed。
+- **UI**：`VpmWorkspace` + `ReposPanel` + `CatalogDialog` + `useVpmRepos`；设置页仍一个入口。
+  - 仓库区：名称/host/包数/上次成功/错误、联网开关、添加/刷新/移除、刷新全部；
+  - 首次打开时若仓库从未成功刷新，自动刷新一次（本次沙盒 294+93 个包）；
+  - 包目录：搜索、全部筛选（已安装/可更新禁用并说明）、详情、来源、版本/yanked/hidden/
+    conflict、changelog/docs 外链确认；无安装按钮；
+  - 关闭联网/离线时显示“仅缓存模式”，目录仍可读缓存。
+- **截图**：`docs/screenshots/vpm-p1e-default-online.png`、`vpm-p1e-catalog-real.png`、
+  `vpm-p1e-package-detail.png`、`vpm-p1e-network-off.png`、`vpm-p1e-add-repo.png`、
+  `vpm-p1e-repo-error.png`。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **168 passed / 9 skipped files（177）**、**2203 passed / 19 skipped tests（2222）**；
+  定向 IPC/API/UI 架构/i18n/config 测试 53 条全绿。
+  沙盒 fresh profile：启用 VPM 后无联网询问、开关默认开、自动种子并刷新
+  official/curated（294/93 个包）；打开包目录/详情正常；开关关闭后显示仅缓存、
+  再开启恢复；官方仓库真实 HTTPS 刷新已验证。
+- **未验证**：其他平台；键盘/焦点细节在 P8 收口；包安装/解析仍在 P3/P4。
+- **给 P2-A**：runtime/IPC 的注册方式可复用；P2 只读工程，不要改 `Packages/`；
+  需要展示包时继续用 `CatalogService` 的 DTO，不要把仓库 JSON/DB 行带给 UI。
 
 ---
 

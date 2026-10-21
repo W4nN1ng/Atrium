@@ -25,7 +25,7 @@ P1-B/P1-C 当前已落地：
 
 - `db/`：`openVpmDb/closeVpmDb`、只前进迁移、迁移前备份/校验；见 `db/README.md`。
 - `repos/`：`RepoStore` 的仓库 CRUD、包索引替换与目录查询；见 `repos/README.md`。
-- `http/`：唯一网络入口、HTTPS/重定向/限额/超时、同意门；见 `http/README.md`。
+- `http/`：唯一网络入口、HTTPS/重定向/限额/超时、联网开关；见 `http/README.md`。
 - `cache/`：临时文件、包缓存、原子提交/校验/清理；见 `cache/README.md`。
 
 P1-D 当前已落地：
@@ -34,12 +34,13 @@ P1-D 当前已落地：
   需要时种子 official/curated；不注册 IPC。
 - `reposService.ts`：仓库增删/刷新/种子/错误隔离；见 `reposService.README.md`。
 - `catalog/`：只读目录合并/搜索/冲突；见 `catalog/README.md`。
+- `ipc/`：P1 只读仓库/目录/联网开关 IPC + 刷新事件；见 `ipc/README.md`。
 - `gate.ts`：enabled 时动态加载 runtime，`startVpmRuntime()` 在 app ready 调用；
   初始化失败只置 `degraded + degradedCode`，核心继续。
 
-P1-E 起：
+P2 起：
 
-- `ipc/`、`projects/`、`resolver/`、`install/`、`vault/`、`unity/`、`backup/`、`interop/`、`log/`
+- `projects/`、`resolver/`、`install/`、`vault/`、`unity/`、`backup/`、`interop/`、`log/`
 
 每个文件夹模块必须有 `index.ts` 公开面和 README；跨模块只走公开面。
 
@@ -59,12 +60,13 @@ P1-E 起：
 - 快照失败 → 不写 `enabled:true`；不留下"已启用但没快照"。
 - 安全模式 → 只读状态，拒绝启用/写入。
 - 初始化失败 → `degraded` + `degradedCode`；核心启动不被阻塞。
-- 未同意联网 → HTTP fail closed；仓库可离线浏览，刷新记录 `vpmNetworkNotConsented`。
+- 联网关闭 → HTTP fail closed；仓库可离线浏览，刷新记录 `vpmNetworkNotConsented`。
 
 ## 测试入口
 
 - `tests/vpm/gate.spec.ts`、`config.spec.ts`、`data-root.spec.ts`、`static-imports.spec.ts`
 - `tests/vpm/runtime.spec.ts`、`repos/repos-service.spec.ts`、`catalog/*.spec.ts`
+- `tests/vpm/ipc/vpm-ipc.spec.ts`、`tests/renderer/vpm-api.spec.ts`、`tests/renderer/vpm-view.spec.ts`
 - 架构边界：`tests/vpm/architecture.spec.ts`
 - 运行：`npm test`；涉及 Electron 构建时再跑 `npm run build:dir`
 

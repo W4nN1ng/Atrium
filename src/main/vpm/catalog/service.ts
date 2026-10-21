@@ -50,6 +50,34 @@ function sources(rows: CatalogPackageRow[]): Array<{ repoId: string; repoName: s
   return [...map.values()]
 }
 
+function httpLink(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  try {
+    const url = new URL(value)
+    if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname) return null
+    if (url.username || url.password) return null
+    return url.href
+  } catch {
+    return null
+  }
+}
+
+function manifestLinks(row: CatalogPackageRow): { changelogUrl: string | null; documentationUrl: string | null } {
+  try {
+    const parsed: unknown = JSON.parse(row.manifestJson)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { changelogUrl: null, documentationUrl: null }
+    }
+    const obj = parsed as Record<string, unknown>
+    return {
+      changelogUrl: httpLink(obj.changelogUrl),
+      documentationUrl: httpLink(obj.documentationUrl)
+    }
+  } catch {
+    return { changelogUrl: null, documentationUrl: null }
+  }
+}
+
 function firstValue<T>(rows: CatalogPackageRow[], pick: (row: CatalogPackageRow) => T | null): T | null {
   for (const row of rows) {
     const value = pick(row)
@@ -127,7 +155,9 @@ function detailFor(name: string, rows: CatalogPackageRow[]): CatalogPackageDetai
     })),
     zipUrl: firstValue(group, (row) => row.zipUrl),
     zipSha256: firstValue(group, (row) => row.zipSha256),
-    zipSize: firstValue(group, (row) => row.zipSize)
+    zipSize: firstValue(group, (row) => row.zipSize),
+    changelogUrl: firstValue(group, (row) => manifestLinks(row).changelogUrl),
+    documentationUrl: firstValue(group, (row) => manifestLinks(row).documentationUrl)
   }))
   return { ...summary, versions, conflicts }
 }

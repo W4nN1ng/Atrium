@@ -31,7 +31,7 @@ git switch -c codex/vpm-p1-core-repos origin/main
 3. 建立唯一的 **HTTP 客户端**：HTTPS、重定向、超时、大小、ETag、请求头。
 4. 建立**仓库管理**：官方/curated、添加、刷新、错误隔离、离线旧数据。
 5. 建立**只读包目录**：搜索、筛选、包详情、版本、来源、Unity 兼容、yanked。
-6. 首次联网同意；无同意不请求。
+6. 默认联网；关闭联网开关后不请求。
 
 ---
 
@@ -269,20 +269,15 @@ interface VpmHttpClient {
 
 ---
 
-## 7. 联网同意
+## 7. 联网开关
 
-- 在 `vpm-settings.json` 的 `networkConsentAt`（P0 已留字段）记录同意时间。
-- 第一次需要网络时弹一次模态：
-  - 会访问：VRChat 官方/curated 仓库 + 你添加的仓库；
-  - 无遥测、无崩溃上报、无后台扫描；
-  - 缓存/回滚仓/备份在非 C 数据根；
-  - 可以拒绝；拒绝后只能看缓存/本地。
-- 同意后才：
-  - 种子官方/curated（如果仓库表为空）；
-  - 允许刷新/下载；
-  - 不做"每次启动自动刷新"；最多在打开包目录且数据过期时后台刷新一次。
-- 没有同意时，任何 `getJson/download` 调用都返回 `vpmNetworkNotConsented`；
-  加测试证明不会出站。
+- `vpm-settings.json` 新增 `networkEnabled`（默认 **true**）；旧设置文件缺字段按 true 处理。
+- **不再弹首次联网同意模态**：VPM 启用/启动即可刷新、下载。
+- 仓库区提供默认开启的“联网”开关；关闭后任何 `getJson/download` 调用都返回
+  `vpmNetworkNotConsented`，只能看缓存/本地；重新打开即可恢复。
+- 启动/启用时默认种子官方/curated（如果仓库表为空），但不自动高频刷新；
+  打开包目录/用户点刷新时再请求。
+- 无遥测、无崩溃上报、无后台扫描；缓存/回滚仓/备份仍在非 C 数据根。
 
 ---
 
@@ -295,7 +290,7 @@ interface VpmHttpClient {
   - 归一 URL（去 fragment；保留 query）；
   - 去重（同 URL 大小写/尾斜杠归一后）；
   - 插入后尝试刷新；失败保留条目 + 错误码；
-  - 不自动启用未同意网络。
+  - 不自动启用已关闭的联网。
 - `refreshRepo(id)` / `refreshAll()`：
   - 条件请求；解析；事务替换包行；更新 etag/last_modified/last_success；
   - 304 只更新时间，不动包；
@@ -305,7 +300,7 @@ interface VpmHttpClient {
 - 官方/curated：
   - URL：`https://packages.vrchat.com/official?download`、
     `https://packages.vrchat.com/curated?download`；
-  - 首次同意且仓库表为空时加入；名称可由 JSON 覆盖；
+  - 默认加入（如果仓库表为空）；名称可由 JSON 覆盖；
   - 顺序：official 0、curated 1；用户仓库往后。
 - 同名包/版本多源：
   - 目录显示来源；
@@ -351,8 +346,8 @@ CatalogQuery, PackageDetail, PackageVersions
   - 详情侧栏：描述、版本列表、changelog/docs 链接（点击前确认外链）、来源；
     外部描述按纯文本渲染（不执行 HTML/Markdown 脚本），清洗控制字符；
   - 不提供安装按钮（P1 明确显示"安装将在下一阶段"或隐藏）。
-- 联网同意模态；拒绝后看到"仅缓存模式"。
-- 首次空状态：一个主按钮"添加仓库"或"使用官方仓库"（需同意）。
+- 仓库区默认开启的联网开关；关闭后看到"仅缓存模式"。
+- 首次空状态：一个主按钮"添加仓库"或"使用官方仓库"；默认联网，无需同意弹窗。
 - 所有文案三语；主进程只给 code。
 - 不新增顶级导航；设置页签保持轻量。
 
@@ -372,7 +367,7 @@ tests/vpm/repo.spec.ts
 tests/vpm/db-v1.spec.ts
 tests/vpm/http-policy.spec.ts
 tests/vpm/repos-service.spec.ts
-tests/vpm/network-consent.spec.ts
+tests/vpm/network-config.spec.ts
 tests/vpm/catalog.spec.ts
 tests/vpm/static-imports.spec.ts
 ```
@@ -385,10 +380,10 @@ tests/vpm/static-imports.spec.ts
 4. manifest：对象值、裸字符串兼容、未知字段保留、BOM、坏 JSON、稳定序列化。
 5. 仓库：正常/缺字段/坏版本跳过/yanked 字符串/超大/重复/包名非法。
 6. DB：建库、迁移、重启、reopen；user_version 高于代码 → 拒绝；刷新失败保留旧行。
-7. HTTP：HTTP 拒绝、重定向降级、超时、大小、304、自定义头不泄漏、无同意拒绝。
+7. HTTP：HTTP 拒绝、重定向降级、超时、大小、304、自定义头不泄漏、联网关闭拒绝。
 8. 仓库：添加/刷新/删除/多源/hash 冲突/一个坏仓库不影响另一个。
 9. 目录：搜索/筛选/版本详情/来源/隐藏/yanked。
-10. 核心 `library.db` 不变；无 C 缓存；无未同意网络。
+10. 核心 `library.db` 不变；无 C 缓存；联网关闭时零出站。
 11. 静态导入：核心不加载 `vpm/http`、`vpm/db`。
 
 安全用例：
@@ -406,7 +401,7 @@ tests/vpm/static-imports.spec.ts
 
 - 用沙盒 `AVCA_APP_HOME` 和非 C 数据根。
 - 启用 VPM，拒绝联网 → 目录为空/仅缓存，确认无请求。
-- 同意联网 → 官方/curated 出现；刷新；看包列表/详情。
+- 默认联网 → 官方/curated 出现；刷新；看包列表/详情；关闭开关后只读缓存。
 - 断网/改错 URL → 旧数据仍在，错误可见。
 - 添加一个非法 URL/HTTP URL → 拒绝。
 - 重启 → 仓库/缓存数据还在；没有自动刷新风暴。
@@ -437,7 +432,7 @@ tests/vpm/static-imports.spec.ts
 - [ ] `vpm.db` v1 独立、可迁移、可拒绝高版本。
 - [ ] HTTP 唯一入口，策略测试可红。
 - [ ] 仓库管理 + 只读包目录可用。
-- [ ] 联网同意生效，无同意零请求。
+- [ ] 联网开关生效，关闭时零请求。
 - [ ] 官方/curated 可添加；离线旧数据可用。
 - [ ] `library.db` schema 未动。
 - [ ] 全量测试/类型/构建通过；截图/净室/回退证据齐全。

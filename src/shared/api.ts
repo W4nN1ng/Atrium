@@ -41,6 +41,15 @@ import type { ProjectConnection, UnityConnectionSnapshot, UnityTargetResolution 
 import type { CoverBatch, CoverDiscovery, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget, PackageCoverStatus, PackageCoverProgress, PackageCoverSetup } from './covers'
 import type { CoverTask, CoverTaskRequest, CoverTaskChoices, CoverTaskUndoResult } from './coverTasks'
 import type { VpmDataRootPick, VpmStatus } from './vpm/types'
+import type {
+  VpmCatalogPage,
+  VpmCatalogPackageDetail,
+  VpmCatalogQuery,
+  VpmCatalogVersionDto,
+  VpmNetworkStatus,
+  VpmOperationStart,
+  VpmRepoDto
+} from './vpm/dto'
 
 export interface AppInfo {
   name: string
@@ -280,6 +289,16 @@ export interface AApi {
     enable(dataRoot: string): Promise<VpmStatus>
     disable(): Promise<VpmStatus>
     pickDataRoot(): Promise<VpmDataRootPick>
+    reposList(): Promise<VpmRepoDto[]>
+    repoAdd(input: { url: string; name?: string }): Promise<VpmRepoDto>
+    repoRemove(id: string): Promise<{ ok: boolean }>
+    repoRefresh(id: string): Promise<VpmOperationStart>
+    repoRefreshAll(): Promise<VpmOperationStart>
+    networkStatus(): Promise<VpmNetworkStatus>
+    networkConsent(allow: boolean): Promise<VpmNetworkStatus>
+    catalogQuery(query: VpmCatalogQuery): Promise<VpmCatalogPage>
+    packageDetail(name: string): Promise<VpmCatalogPackageDetail | null>
+    packageVersions(name: string): Promise<VpmCatalogVersionDto[]>
   }
   categories: {
     list(): Promise<CategoryConfig>

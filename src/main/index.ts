@@ -100,6 +100,7 @@ function bootstrap(): void {
     ipc: registrar.ipc,
     getDb,
     getLibraryRoot: () => getSettings().libraryRoot,
+    broadcast: registrar.broadcast,
     getKnownProjectPaths: () => {
       const paths = new Set(detectedProjects.map((project) => project.path))
       try {

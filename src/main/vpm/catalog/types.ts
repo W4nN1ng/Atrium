@@ -21,6 +21,8 @@ export interface CatalogVersionDto {
   zipUrl: string | null
   zipSha256: string | null
   zipSize: number | null
+  changelogUrl: string | null
+  documentationUrl: string | null
 }
 
 export interface CatalogConflictDto {

@@ -90,7 +90,17 @@ const api: AApi = {
     status: () => invoke('vpm:status'),
     enable: (dataRoot) => invoke('vpm:enable', { dataRoot }),
     disable: () => invoke('vpm:disable'),
-    pickDataRoot: () => invoke('vpm:pick-data-root')
+    pickDataRoot: () => invoke('vpm:pick-data-root'),
+    reposList: () => invoke('vpm:repos-list'),
+    repoAdd: (input) => invoke('vpm:repo-add', input),
+    repoRemove: (id) => invoke('vpm:repo-remove', id),
+    repoRefresh: (id) => invoke('vpm:repo-refresh', id),
+    repoRefreshAll: () => invoke('vpm:repo-refresh-all'),
+    networkStatus: () => invoke('vpm:network-status'),
+    networkConsent: (allow) => invoke('vpm:network-consent', { allow }),
+    catalogQuery: (query) => invoke('vpm:catalog-query', query),
+    packageDetail: (name) => invoke('vpm:package-detail', name),
+    packageVersions: (name) => invoke('vpm:package-versions', name)
   },
   categories: {
     list: () => invoke('categories:list'),

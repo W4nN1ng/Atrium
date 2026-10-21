@@ -37,6 +37,7 @@ export const VPM_ERROR_CODES = [
   'vpmCachePathInvalid',
   'vpmCacheWriteFailed',
   'vpmCacheHashMismatch',
+  'vpmRuntimeNotReady',
   'vpmInternal'
 ] as const
 
