@@ -23,7 +23,10 @@ VPM 的纯类型、错误码、路径校验和（P1 起）纯领域逻辑。这�
 
 P1 起（见 `docs/VPM-ARCHITECTURE.md` §4）：
 
-- `domain/version.ts`：P1-D 的最小 SemVer 比较（P3-A 会补严格解析/范围）。
+- `domain/version.ts`：严格 SemVer 2.0 解析/比较（目录排序保留宽容降级）。
+- `domain/range.ts`：VPM 版本范围解析/匹配。
+- `domain/unityVersion.ts`：Unity 版本解析/比较/最低版本兼容。
+- `domain/packageId.ts`：VPM 包名归一/Windows 安全校验。
 - `domain/repo.ts`：仓库 JSON 解析/归一、包名/版本/URL/hash 防御、headers 剥离。
 - `domain/hash.ts`：纯 TS SHA-256（工程指纹/短名；不 import `node:crypto`）。
 - `domain/project.ts`：P2-B 的工程快照纯逻辑（ProjectVersion、vpm-manifest、Packages、
@@ -46,7 +49,8 @@ P1 起（见 `docs/VPM-ARCHITECTURE.md` §4）：
 
 - `tests/vpm/data-root.spec.ts`、`tests/vpm/errors-i18n.spec.ts`
 - `tests/vpm/domain/repo.spec.ts`、`tests/vpm/domain/version.spec.ts`、
-  `tests/vpm/domain/project.spec.ts`
+  `tests/vpm/domain/range.spec.ts`、`tests/vpm/domain/unity-version.spec.ts`、
+  `tests/vpm/domain/package-id.spec.ts`、`tests/vpm/domain/project.spec.ts`
 - 运行：`npm test`（会先切到 Node ABI）
 
 ## 谁依赖我 / 我依赖谁

@@ -10,9 +10,21 @@
 
 ## 当前
 
-- `version.ts`：P1-D 的目录排序用最小 SemVer 比较；P3-A 会补严格解析/范围。
+- `version.ts`：P3-A 严格 SemVer 2.0 解析/比较；`compareVpmVersions` 保留对历史
+  部分版本的宽容降级，供目录排序使用。
+- `range.ts`：精确、`^ ~ >= <= > <`、部分版本/`x/*`、`||`、连字符范围；
+  非法语法抛 `vpmRangeInvalid`。
+- `unityVersion.ts`：`YYYY.MINOR.PATCH[abfp]N[cN]` 解析/比较、部分版本和最低版本兼容；
+  中国版后缀只保留显示，兼容按基础版本。
+- `packageId.ts`：VPM 包名归一/校验；拒绝路径分隔符、`..`、尾点/空格、Windows 保留名。
 - `project.ts`：P2-B 的工程快照纯逻辑（ProjectVersion、vpm-manifest、Packages、
   legacy 报告、指纹）；文件读取通过 `ProjectReaderPort` 注入，不 import `node:fs`。
+
+## 不支持的范围写法
+
+`~>`、`!=`、逗号分隔、括号组合、`||` 空分支、部分版本带预发布后缀都不接受；
+遇到时抛 `vpmRangeInvalid`，不猜测语义。预发布默认遵循 SemVer 范围规则，
+解析器可以显式传 `includePrerelease`。
 
 ## 规则
 
