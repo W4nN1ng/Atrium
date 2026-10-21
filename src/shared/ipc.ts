@@ -233,7 +233,9 @@ export const IpcInvoke = {
     ProjectAdd: 'vpm:project-add',
     ProjectRemove: 'vpm:project-remove',
     ProjectRescan: 'vpm:project-rescan',
-    ProjectOpenFolder: 'vpm:project-open-folder'
+    ProjectOpenFolder: 'vpm:project-open-folder',
+    PlanResolve: 'vpm:plan-resolve',
+    PlanExplain: 'vpm:plan-explain'
   }
 } as const
 

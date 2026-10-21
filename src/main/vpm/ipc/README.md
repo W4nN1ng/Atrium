@@ -50,6 +50,14 @@ P1 的只读仓库/目录 IPC：参数校验、DTO 映射、刷新操作/事件�
   `ProjectRescan` 才更新缓存；`ProjectRemove` 只删 VPM 台账，不删盘/核心工程。
 - 打开文件夹只接受台账里已有的 `projectKey`，不接受任意路径。
 
+## P3-D 计划预览
+
+- `PlanResolve`：只接受 `projectKey` + 可选 `preset:'upgradeAll'`/requests/allowPrerelease；
+  主进程重新读取工程、manifest、目录并生成 `ChangePlan`，返回 `planId`。
+- `PlanExplain`：按 `planId` 返回（可按包名过滤的）changes/conflicts/missing/warnings；
+  计划缓存仅内存 10 分钟，不持久化。
+- 计划不写工程、不下载；P3 的 UI 应用按钮始终禁用。
+
 ## 测试入口
 
 - `tests/vpm/ipc/vpm-ipc.spec.ts`

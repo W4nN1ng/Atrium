@@ -21,6 +21,7 @@ import { isNetworkEnabled, readNetworkConsent, setNetworkEnabled } from '../conf
 import type { VpmRuntime } from '../index'
 import type { RepoDto, RepoRefreshResult } from '../reposService'
 import { registerProjectIpc } from './projects'
+import { registerPlanIpc } from './plan'
 
 export interface VpmIpcOptions {
   ipc: IpcApi
@@ -322,6 +323,7 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
   })
 
   registerProjectIpc({ ipc, getRuntime: options.getRuntime })
+  registerPlanIpc({ ipc, getRuntime: options.getRuntime })
 
   return {
     dispose(): void {

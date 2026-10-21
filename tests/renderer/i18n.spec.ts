@@ -134,7 +134,12 @@ describe('i18n 三语一致', () => {
           'vpm.warnings.',
           'vpm.projects.state.',
           'vpm.projects.match.',
-          'vpm.projects.confidence.'
+          'vpm.projects.confidence.',
+          'vpm.plan.action.',
+          'vpm.plan.reason.',
+          'vpm.plan.conflict.',
+          'vpm.plan.risk.',
+          'vpm.plan.warn.'
         ],
         `意外的动态前缀 ${p}`
       ).toContain(p)

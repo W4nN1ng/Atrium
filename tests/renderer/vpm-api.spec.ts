@@ -5,6 +5,8 @@ import type {
   VpmCatalogPackageDetail,
   VpmNetworkStatus,
   VpmOperationStart,
+  VpmPlanDto,
+  VpmPlanExplainDto,
   VpmProjectDetailDto,
   VpmProjectSummaryDto,
   VpmRepoDoneEvent,
@@ -47,6 +49,24 @@ const projectDetail = {
   warnings: [],
   legacy: { readOnly: true, truncated: false, candidates: [] }
 } satisfies VpmProjectDetailDto
+const plan = {
+  planId: 'plan-1',
+  projectKey: projectSummary.projectKey,
+  planHash: 'b'.repeat(64),
+  changes: [],
+  conflicts: [],
+  missing: [],
+  warnings: []
+} as unknown as VpmPlanDto
+const explain = {
+  planId: 'plan-1',
+  name: null,
+  planHash: 'b'.repeat(64),
+  changes: [],
+  conflicts: [],
+  missing: [],
+  warnings: []
+} satisfies VpmPlanExplainDto
 
 let vpm: Record<string, ReturnType<typeof vi.fn>>
 let listeners: Map<string, (payload: unknown) => void>
@@ -85,7 +105,9 @@ beforeEach(() => {
     projectAdd: vi.fn(async () => projectDetail),
     projectRemove: vi.fn(async () => ({ ok: true })),
     projectRescan: vi.fn(async () => projectDetail),
-    projectOpenFolder: vi.fn(async () => ({ ok: true }))
+    projectOpenFolder: vi.fn(async () => ({ ok: true })),
+    planResolve: vi.fn(async () => plan),
+    planExplain: vi.fn(async () => explain)
   }
   ;(globalThis as { window?: unknown }).window = {
     a: { vpm, on, system: { openExternal, pickDirectory } }
@@ -126,6 +148,8 @@ describe('renderer/vpm/api', () => {
     await expect(vpmApi.projectRemove(projectSummary.projectKey)).resolves.toEqual({ ok: true })
     await expect(vpmApi.projectRescan(projectSummary.projectKey)).resolves.toBe(projectDetail)
     await expect(vpmApi.projectOpenFolder(projectSummary.projectKey)).resolves.toEqual({ ok: true })
+    await expect(vpmApi.planResolve({ projectKey: projectSummary.projectKey, preset: 'upgradeAll' })).resolves.toBe(plan)
+    await expect(vpmApi.planExplain('plan-1', 'com.example.foo')).resolves.toBe(explain)
     await expect(vpmApi.pickProjectDirectory('选工程')).resolves.toBe('C:\\Projects\\Demo')
     await expect(vpmApi.openExternal('https://example.test/docs')).resolves.toBeUndefined()
 

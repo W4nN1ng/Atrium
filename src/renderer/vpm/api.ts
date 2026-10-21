@@ -6,6 +6,9 @@ import type {
   VpmCatalogVersionDto,
   VpmNetworkStatus,
   VpmOperationStart,
+  VpmPlanDto,
+  VpmPlanExplainDto,
+  VpmPlanResolveInput,
   VpmProjectDetailDto,
   VpmProjectSummaryDto,
   VpmRepoDoneEvent,
@@ -81,6 +84,12 @@ export const vpmApi = {
   },
   projectOpenFolder(projectKey: string): Promise<{ ok: boolean }> {
     return window.a.vpm.projectOpenFolder(projectKey)
+  },
+  planResolve(input: VpmPlanResolveInput): Promise<VpmPlanDto> {
+    return window.a.vpm.planResolve(input)
+  },
+  planExplain(planId: string, name?: string): Promise<VpmPlanExplainDto> {
+    return window.a.vpm.planExplain(planId, name)
   },
   pickProjectDirectory(title: string): Promise<string | null> {
     return window.a.system.pickDirectory({ title })

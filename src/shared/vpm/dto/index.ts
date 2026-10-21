@@ -1,5 +1,10 @@
 import type { VpmErrorCode } from '../errors'
 export type {
+  VpmPlanDto,
+  VpmPlanExplainDto,
+  VpmPlanResolveInput
+} from './plan'
+export type {
   VpmProjectDetailDto,
   VpmProjectLegacyDto,
   VpmProjectLegacyMatch,

@@ -56,7 +56,7 @@
 | P3-A | 版本、范围、Unity 兼容纯逻辑 | P1-B | `domain/version|range|unityVersion|packageId` | B10/B12/B16 | done |
 | P3-B | 解析器引擎、锁定与冲突 | P3-A/P1-D | `domain/resolver.ts`、候选/队列/冲突 | B10/B11/B12/B16/B22/K5 | done |
 | P3-C | 变更计划、卸载、升级全部与解释 | P3-B | `domain/plan.ts`、mark-and-sweep、upgradeAll | B5/B7/B8/B9/B11/B27 | done |
-| P3-D | 解析测试矩阵与只读计划 UI/IPC | P3-C/P2-D | 冲突矩阵、计划预览、解释面板 | B9/B11/B27/I9 | todo |
+| P3-D | 解析测试矩阵与只读计划 UI/IPC | P3-C/P2-D | 冲突矩阵、计划预览、解释面板 | B9/B11/B27/I9 | done |
 | P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | todo |
 | P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | todo |
 | P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | todo |
@@ -88,9 +88,9 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B、P3-C 已完成，
-> 下一个执行任务是 **P3-D**（解析测试矩阵与只读计划 UI/IPC）。
-> 开工前先读 §12 的 P1-A…P3-C 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B、P3-C、P3-D 已完成，
+> 下一个执行任务是 **P4-A**（vpm.db v3、journal 与操作状态机）；P3 计划预览全程只读。
+> 开工前先读 §12 的 P1-A…P3-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -583,6 +583,26 @@ Task: P?-?
   计划未做；性能基准在 P3-D/P8。
 - **给 P3-D**：直接消费 `ChangePlan`，只读展示 changes/conflicts/missing/downloads/disk；
   应用按钮不可用；不要重新解析或复制语义。
+
+### P3-D（2026-10-22，done）
+
+- **公开 API/契约**：新增 `PlanResolve/PlanExplain` IPC 与 `VpmPlanResolveInput/VpmPlanDto/
+  VpmPlanExplainDto`；`PlanService` 从工程快照 + `CatalogService.resolverCatalog()` 组装计划，
+  内存缓存 10 分钟；`VpmRuntime.plans`。
+- **UI**：工程详情新增“查看变更”；`VpmPlanSheet` 支持升级全部、按包名/范围预览安装、
+  允许预发布；展示动作分组/from→to/原因/requiredBy/冲突/缺失/警告/下载/磁盘；
+  “应用更改”始终禁用并说明后续阶段；无任何写盘/下载。
+- **矩阵**：新增 resolver-matrix/plan-matrix 表驱动用例；冲突必须有来源/版本解释。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **182 passed / 9 skipped files（191）**、**2342 passed / 19 skipped tests（2361）**；
+  定向 plan-service/plan-matrix/resolver-matrix/IPC/renderer/i18n 56 条全绿。
+  沙盒 packaged 0.9.0 实机打开 DemoProject 计划：显示升级 base 3.6.1→3.7.0、keep avatars、
+  缺失 com.missing.pkg、unlisted 警告；plan 被阻断，应用按钮禁用；截图
+  `docs/screenshots/vpm-p3d-plan.png`。
+- **未验证**：应用计划/事务/planId 重新校验（P4）；UI 移除/安装执行；120%/深链路滚动；
+  真实 locked 快照长期对比。
+- **给 P4-A**：只接受 planId + manifestHashBefore 重新校验，不信任渲染层 Plan 内容；
+  计划缓存过期/工程变化必须拒绝。
 
 ---
 

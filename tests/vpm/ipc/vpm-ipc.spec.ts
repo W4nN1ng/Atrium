@@ -7,7 +7,12 @@ import { readNetworkConsent } from '../../../src/main/vpm/config'
 import { registerVpmIpc } from '../../../src/main/vpm/ipc'
 import type { VpmRuntime } from '../../../src/main/vpm'
 import type { RepoDto, RepoRefreshResult } from '../../../src/main/vpm/reposService'
-import type { VpmNetworkStatus, VpmOperationStart } from '../../../src/shared/vpm/dto'
+import type {
+  VpmNetworkStatus,
+  VpmOperationStart,
+  VpmPlanDto,
+  VpmPlanExplainDto
+} from '../../../src/shared/vpm/dto'
 import type { CatalogPage, CatalogPackageDetail } from '../../../src/main/vpm/catalog'
 import type { ProjectListItem, ProjectPackageRow } from '../../../src/main/vpm/projects'
 import { setAppPathsForTest } from '../../../src/main/services/paths'
@@ -92,6 +97,25 @@ const projectPackage: ProjectPackageRow = {
   updatedAt: 20
 }
 
+const planDto = {
+  planId: 'plan-1',
+  projectKey: 'c:\\projects\\demo',
+  planHash: 'b'.repeat(64),
+  changes: [],
+  conflicts: [],
+  missing: [],
+  warnings: []
+} as unknown as VpmPlanDto
+const planExplain = {
+  planId: 'plan-1',
+  name: null,
+  planHash: 'b'.repeat(64),
+  changes: [],
+  conflicts: [],
+  missing: [],
+  warnings: []
+} as VpmPlanExplainDto
+
 const projectItem: ProjectListItem = {
   projectKey: 'c:\\projects\\demo',
   coreId: 'core-1',
@@ -152,6 +176,10 @@ function fakeRuntime(): VpmRuntime {
       addExisting: vi.fn(() => ({ ledger: projectItem.ledger, snapshot: null })),
       refresh: vi.fn(() => ({ ledger: projectItem.ledger, snapshot: null })),
       remove: vi.fn(() => true)
+    },
+    plans: {
+      resolve: vi.fn(() => planDto),
+      explain: vi.fn(() => planExplain)
     }
   }
   return fake as unknown as VpmRuntime
@@ -208,7 +236,9 @@ describe('VPM P1 IPC', () => {
         IpcInvoke.Vpm.ProjectAdd,
         IpcInvoke.Vpm.ProjectRemove,
         IpcInvoke.Vpm.ProjectRescan,
-        IpcInvoke.Vpm.ProjectOpenFolder
+        IpcInvoke.Vpm.ProjectOpenFolder,
+        IpcInvoke.Vpm.PlanResolve,
+        IpcInvoke.Vpm.PlanExplain
       ].sort()
     )
   })
@@ -309,6 +339,26 @@ describe('VPM P1 IPC', () => {
     })
     await expect(call(IpcInvoke.Vpm.ProjectOpenFolder, '' as never)).rejects.toMatchObject({
       code: 'vpmProjectInvalid'
+    })
+  })
+
+  it('validates and forwards plan resolve/explain requests', async () => {
+    expect(await handler(IpcInvoke.Vpm.PlanResolve)({
+      projectKey: projectItem.projectKey,
+      preset: 'upgradeAll'
+    } as never)).toMatchObject({ planId: 'plan-1' })
+    expect(await handler(IpcInvoke.Vpm.PlanExplain)('plan-1' as never, 'com.example.foo' as never)).toMatchObject({
+      planId: 'plan-1'
+    })
+    await expect(call(IpcInvoke.Vpm.PlanResolve, { projectKey: '' } as never)).rejects.toMatchObject({
+      code: 'vpmProjectInvalid'
+    })
+    await expect(call(IpcInvoke.Vpm.PlanResolve, {
+      projectKey: projectItem.projectKey,
+      preset: 'other'
+    } as never)).rejects.toMatchObject({ code: 'vpmResolutionFailed' })
+    await expect(call(IpcInvoke.Vpm.PlanExplain, '' as never)).rejects.toMatchObject({
+      code: 'vpmPlanNotFound'
     })
   })
 
