@@ -502,9 +502,12 @@ export function resolveVpmDependencies(input: ResolverInput): ResolveResult {
     if (exactVersion && !exact) return { reason: 'rangeConflict' }
     if (exact) return exact.yanked ? { reason: 'noCandidate' } : exact
     if (forceReinstall.has(name)) {
-      const installed = unityOk.find((candidate) => candidate.source === 'installed')
-      if (installed) return installed
-      if (lockedCandidate) return lockedCandidate
+      const installedVersion = input.installed?.find((item) => normalizeName(item.name) === name)?.version
+      const same = installedVersion
+        ? unityOk.find((candidate) => candidate.version === installedVersion)
+        : lockedCandidate
+      if (same) return same
+      return { reason: 'noCandidate' }
     }
     if (!forceHighest.has(name) && lockedCandidate) return lockedCandidate
 

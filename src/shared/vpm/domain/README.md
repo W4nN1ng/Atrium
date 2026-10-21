@@ -20,7 +20,9 @@
 - `project.ts`：P2-B 的工程快照纯逻辑（ProjectVersion、vpm-manifest、Packages、
   legacy 报告、指纹）；文件读取通过 `ProjectReaderPort` 注入，不 import `node:fs`。
 - `resolver.ts`：P3-B 的确定性贪心解析器（约束表 + 工作队列 + 局部修复）；
-  不做全局回溯，输出 selected/requirements/conflicts/missing/unused，计划由 P3-C 生成。
+  不做全局回溯，输出 selected/requirements/conflicts/missing/unused。
+- `plan.ts`：P3-C 的只读 `ChangePlan`：装/升/降/重装/卸载/保持、mark-and-sweep、
+  upgradeAll 展开、downloads/disk、冲突解释和稳定 planHash；不执行、不写盘。
 
 ### 解析器语义
 
@@ -31,6 +33,8 @@
 - 找不到版本时 `blocked=true`，保留 requirements 与来源，不猜测、不回溯；
 - 预发布默认遵循 SemVer；`allowPrerelease` 只影响候选策略，不改变范围解析。
 - `unused` 只列已安装但不再可达的包；unlisted 单独列出，永不自动移除。
+- `ChangePlan` 的 remove 只来自 resolver.unused，且排除 protected/legacy/unlisted；
+  远端动作缺 URL/hash 会 blocked 且不产生 download；planHash 只由计划内容决定。
 
 ## 不支持的范围写法
 
