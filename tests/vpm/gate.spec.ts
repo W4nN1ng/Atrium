@@ -61,7 +61,8 @@ beforeEach(() => {
     getDb: () => db,
     getLibraryRoot: () => libraryRoot,
     getKnownProjectPaths: () => knownProjects,
-    appInstallDirs: () => [path.join(root, 'app')]
+    appInstallDirs: () => [path.join(root, 'app')],
+    enableRuntime: false
   })
 })
 
@@ -85,6 +86,7 @@ describe('VPM gate (P0)', () => {
       enabled: false,
       safeMode: false,
       degraded: false,
+      degradedCode: null,
       dataRoot: null,
       dataRootValid: false,
       networkConsentAt: null,
@@ -221,5 +223,24 @@ describe('VPM gate (P0)', () => {
     await expect(Promise.resolve(enableHandler({ dataRoot: '' } as never))).rejects.toMatchObject({
       code: 'vpmDataRootRequired'
     })
+  })
+
+  it('loads the runtime on enable in production mode', async () => {
+    registerVpmGateIpc({
+      ipc: {
+        handle(channel, fn) {
+          handlers.set(channel, fn as unknown as (...args: never[]) => unknown)
+        }
+      },
+      getDb: () => db,
+      getLibraryRoot: () => libraryRoot,
+      getKnownProjectPaths: () => knownProjects,
+      appInstallDirs: () => [path.join(root, 'app')],
+      enableRuntime: true
+    })
+
+    const status = await enableVpm({ dataRoot: dataRoot() })
+    expect(status).toMatchObject({ enabled: true, degraded: false, degradedCode: null })
+    expect(fs.existsSync(P.vpmDb())).toBe(true)
   })
 })

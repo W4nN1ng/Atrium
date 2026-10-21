@@ -30,7 +30,7 @@ import { backfillThumbs } from './library/thumbs'
 import { getSettings, onSettingsChanged } from './services/settings'
 import { createMainWindow, getMainWindow, markQuitting, showMiniDropAtCursor, wakeForProject } from './window'
 import { createTray, destroyTray, refreshTray } from './tray'
-import { disposeVpm, getVpmStatus, registerVpmGateIpc } from './vpm/gate'
+import { disposeVpm, getVpmStatus, registerVpmGateIpc, startVpmRuntime } from './vpm/gate'
 
 const APP_USER_MODEL_ID = 'com.avca.a-manager'
 
@@ -142,8 +142,8 @@ function bootstrap(): void {
     }
 
     /**
-     * VPM 外壳（P0）：只读状态，不加载仓库/HTTP/事务。
-     * 配置坏了 gate 会退默认值，绝不能让主窗口起不来。
+     * VPM：disabled/safe mode 只读状态；enabled 时由 gate 动态加载运行时，
+     * 打开 vpm.db、组装仓库/HTTP/缓存/目录服务。配置坏了也绝不能让主窗口起不来。
      */
     const vpmStatus = getVpmStatus()
     log.info(
@@ -152,7 +152,8 @@ function bootstrap(): void {
         (vpmStatus.configRecovered ? ' configRecovered=true' : '')
     )
     if (vpmStatus.enabled && !vpmStatus.safeMode) {
-      log.info('VPM 已启用（P0 只有外壳，仓库/包/事务尚未加载）')
+      log.info('VPM 已启用，运行时初始化中（不阻塞主窗口）')
+      void startVpmRuntime()
     }
 
     ingestApi = startIngest(registrar)
