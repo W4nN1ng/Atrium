@@ -508,18 +508,26 @@ export function VpmProjectsSection({
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <Button onClick={() => void openFromRow(item.projectKey)} disabled={projects.busy}>
-                  {item.running ? t('vpm.projects.opened') : t('vpm.projects.open')}
-                </Button>
-                {runningCount > 1 && item.running && item.coreId ? (
-                  <Button
-                    variant="ghost"
-                    disabled={item.coreId === targetProjectId}
-                    onClick={() => setUnityTarget(item.coreId as string)}
-                  >
-                    {t('vpm.projects.setTarget')}
-                  </Button>
+                {/*
+                 * R21：多开时才出现这一列「设为导入目标」。
+                 * 给它固定宽度（没在跑的行留空），这样「打开」在所有行里对齐。
+                 */}
+                {runningCount > 1 ? (
+                  <span className="flex w-[104px] shrink-0 justify-end">
+                    {item.running && item.coreId ? (
+                      <Button
+                        variant="ghost"
+                        disabled={item.coreId === targetProjectId}
+                        onClick={() => setUnityTarget(item.coreId as string)}
+                      >
+                        {t('vpm.projects.setTarget')}
+                      </Button>
+                    ) : null}
+                  </span>
                 ) : null}
+                <Button onClick={() => void openFromRow(item.projectKey)} disabled={projects.busy}>
+                  {t('vpm.projects.open')}
+                </Button>
                 <Button variant="ghost" onClick={() => void openDetail(item.projectKey)}>
                   {t('vpm.projects.manage')}
                 </Button>

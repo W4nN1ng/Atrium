@@ -19,7 +19,7 @@ function project(name: string, path: string, hasLedger: boolean) {
     path,
     name,
     unityVersion: '2022.3.22f1',
-    running: name === '22',
+    running: name === '22' || name === 'Lime',
     detectedBy: [],
     bridgeVersion: null,
     busyReason: null,
