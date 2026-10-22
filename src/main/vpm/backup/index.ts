@@ -18,3 +18,6 @@ export type {
   RestoreBackupInput,
   RestoreBackupResult
 } from './service'
+
+export { ProjectCopyService } from './copy'
+export type { CopyProjectInput, CopyProjectResult, ProjectCopyDeps } from './copy'

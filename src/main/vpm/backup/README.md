@@ -8,7 +8,9 @@
 - **备份服务**（P6-B，`service.ts`）：拿维护租约 → 收集 → 写 zip → sha256 → 读回验证 →
   写 `vpm_backup`；从备份新建（目标必须不存在）。
 
-复制/迁移（P6-C）、UI（P6-D）不在这里。
+- **复制工程**（P6-C，`copy.ts`）：复用收集器，先复制到 `.atrium-copy-<op>` 再 rename。
+
+迁移、UI（P6-D）不在这里。
 
 ## 不负责什么
 
@@ -85,3 +87,11 @@ runtime.backup.reveal(record.id)
 - `store` = 不压缩、`fast` = zlib 1、`normal` = zlib 6（yazl 的 `compressionLevel`，**真三档**）。
 - 条目路径必须 `/` 分隔、相对工程根；保留空 `Assets/` 目录。
 - `safeZipPath()`：拒绝绝对路径/盘符/`..`/反斜杠/控制字符/超长。
+
+## 复制工程（`copy.ts`，P6-C）
+
+- 目标必须不存在；目标不能在源工程内（防递归）；Unity 运行中拒绝。
+- 拿 `copy` 维护租约；复用 `collectProjectFiles`（同一套排除规则）。
+- 先复制到 `<parent>/.atrium-copy-<op>`，成功才 rename；失败改名成
+  `.atrium-copy-failed-<op>` **保留现场**，不永久删。
+- 取消：`vpmCollectCancelled`，目标目录不会出现。

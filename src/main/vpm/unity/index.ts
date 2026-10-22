@@ -44,3 +44,15 @@ export type {
   LaunchUnityResult,
   UnityLaunchDeps
 } from './launch'
+
+export {
+  UnityVersionService,
+  readProjectVersionFile,
+  renderProjectVersionFile
+} from './version'
+export type {
+  ChangeUnityVersionInput,
+  ChangeUnityVersionResult,
+  ProjectVersionFile,
+  UnityVersionDeps
+} from './version'

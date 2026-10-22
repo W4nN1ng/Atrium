@@ -90,7 +90,7 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P6-B 也已完成（ZIP 备份/记录/从备份新建）；下一个可执行的卡是 **P6-C**（复制与换版本）。
+> P6-C 也已完成（复制与换版本）；下一个可执行的卡是 **P6-D**（备份/复制/换版本 UI 与真机）。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1076,6 +1076,22 @@ Task: P?-?
   上跑过；`revealPath` 没有在 Electron 里点过；从备份新建后的"补装依赖"没有真机跑过。
 - **给 P6-C**：复制可以直接复用 `collectProjectFiles` + `copyTreeWithDigest`；
   换版本前记得先 `backup.create` 再动工程（P6-D 的 UI 会要求）。
+
+### P6-C（2026-10-22，done）
+
+- **新增**：`backup/copy.ts`（`ProjectCopyService.copy`）、`unity/version.ts`
+  （`UnityVersionService.change`、`readProjectVersionFile`、`renderProjectVersionFile`）。
+  `VpmRuntime` 新增 `copy` / `version`。
+- **复制**：目标必须不存在、不能在源工程内、Unity 运行中拒绝；拿 `copy` 租约；
+  复用收集器；先复制到 `.atrium-copy-<op>` 再 rename；失败改名保留现场；取消不留目标。
+- **换版本**：Unity 运行中拒绝；目标编辑器必须已安装（不自动装）；默认先 `backup.create`；
+  原子写 `ProjectVersion.txt`；写失败恢复旧内容并抛 `vpmUnityVersionChangeFailed`；
+  返回 `downgrade` 与 `backupSkipped` 供 UI 警告。
+- **新错误码**：`vpmCopyConflict` / `vpmCopyFailed` / `vpmUnityVersionChangeFailed`（三语）。
+- **已验证**：typecheck exit 0；`tests/vpm/backup/copy.spec.ts` 9 条（复制内容/排除/非空/
+  源内/运行中/取消、版本文件读写、备份调用、跳过备份、运行中/未安装/非法版本拒绝、
+  写失败恢复）。
+- **未验证**：真 Unity 换版本后能否打开（需要 GUI）；复制 GB 级工程；时间戳保留（没做）。
 
 ---
 
