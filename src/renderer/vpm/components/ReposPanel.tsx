@@ -395,10 +395,12 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[12px] font-medium">{repo.name}</span>
+                      <span className="text-[14px] font-semibold">{repo.name}</span>
                       <Badge>{t('vpm.repos.packages', { count: repo.packageCount })}</Badge>
                     </div>
-                    <div className="faint mt-1 break-all text-[11px]">{repoHost(repo.url)}</div>
+                    <div className="mt-1 break-all text-[12px]" style={{ color: 'var(--faint)' }}>
+                      {repoHost(repo.url)}
+                    </div>
                     <div className="faint mt-1 text-[11px]">
                       {lastSuccess
                         ? t('vpm.repos.lastSuccess', { time: lastSuccess })

@@ -122,7 +122,49 @@ void i18n.use(initReactI18next).init({
 function App(): JSX.Element {
   return (
     <div className="min-h-screen p-6" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-      <div className="mx-auto grid max-w-[1180px] gap-6 lg:grid-cols-2">
+      <div className="mx-auto max-w-[1180px] space-y-6">
+        <div className="rounded border p-4" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-[15px] font-medium">项目</span>
+            <span className="badge">3</span>
+          </div>
+          {[
+            { name: '22', path: 'E:////AtriumProject////22', version: '2022.3.22f1', running: true },
+            { name: '33', path: 'E:////AtriumProject////33', version: '2022.3.22f1', running: false },
+            { name: 'shinano-Little Candy', path: 'E:////ALCOMProjects////shinano-Little Candy', version: '2022.3.22f1', running: false }
+          ].map((item) => (
+            <div
+              key={item.name}
+              className="flex min-h-[56px] items-center gap-3 border-b px-3 py-3 text-[13px] last:border-b-0"
+              style={{ borderColor: 'var(--line)' }}
+            >
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ background: item.running ? 'var(--ok)' : 'var(--faint)' }}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-[17px] font-semibold">{item.name}</span>
+                  <span className="text-[12px]" style={{ color: 'var(--muted)' }}>
+                    {item.version}
+                  </span>
+                </div>
+                <div className="truncate text-[12px]" style={{ color: 'var(--faint)' }}>
+                  {item.path}
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button className="btn">{item.running ? '已打开' : '打开'}</button>
+                <button className="btn btn-ghost">管理</button>
+                <span className="cursor-pointer px-1.5 text-[14px]" style={{ color: 'var(--muted)' }}>
+                  ⋯
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mx-auto mt-6 grid max-w-[1180px] gap-6 lg:grid-cols-2">
         <div className="rounded border p-4" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
           <ReposPanel
             repos={repos}

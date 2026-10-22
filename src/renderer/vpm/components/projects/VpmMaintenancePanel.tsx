@@ -216,7 +216,7 @@ export function VpmMaintenancePanel({
   return (
     <section className="space-y-2" data-vpm-maintenance>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[12px] font-medium">{t('vpm.maintenance.title')}</span>
+        <span className="text-[14px] font-semibold">{t('vpm.maintenance.title')}</span>
         <Badge>{t('vpm.maintenance.backupCount', { count: backups.filter((item) => item.status === 'ok').length })}</Badge>
       </div>
 

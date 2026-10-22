@@ -249,7 +249,7 @@ export function VpmPackagesPanel({
   return (
     <section className="space-y-2" data-vpm-packages>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[12px] font-medium">{t('vpm.packages.title')}</span>
+        <span className="text-[14px] font-semibold">{t('vpm.packages.title')}</span>
         <Badge>{t('vpm.packages.installedCount', { count: rows.filter((row) => row.installedVersion).length })}</Badge>
         <Badge tone={updates > 0 ? 'ok' : 'default'}>
           {t('vpm.packages.updatesCount', { count: updates })}
@@ -365,7 +365,7 @@ export function VpmPackagesPanel({
 
       <section className="pt-1">
         <div className="mb-1 flex items-center gap-2">
-          <span className="text-[12px] font-medium">{t('vpm.packages.history.title')}</span>
+          <span className="text-[14px] font-semibold">{t('vpm.packages.history.title')}</span>
           {ops.historyLoading ? <span className="faint text-[10px]">{t('vpm.packages.history.loading')}</span> : null}
           <Button variant="ghost" className="ml-auto" onClick={() => void ops.reloadHistory()}>
             {t('vpm.packages.history.refresh')}

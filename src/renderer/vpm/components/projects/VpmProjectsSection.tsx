@@ -149,14 +149,14 @@ function DetailBody({
   const { t } = useTranslation()
   const [advancedOpen, setAdvancedOpen] = useState(false)
   return (
-    <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1 text-[12px]" data-vpm-project-detail>
+    <div className="max-h-[76vh] space-y-4 overflow-y-auto pr-1 text-[13px]" data-vpm-project-detail>
       {/* 头部只放名字、版本、运行点；路径/哈希这些排障信息在下面的"高级"里 */}
       <div className="flex flex-wrap items-center gap-2">
         <span
           className="h-2.5 w-2.5 shrink-0 rounded-full"
           style={{ background: detail.running ? 'var(--ok)' : 'var(--faint)' }}
         />
-        <span className="text-[16px] font-medium">{cleanText(detail.name, 200)}</span>
+        {/* 名字只在弹窗标题里出现一次（R10） */}
         {detail.unityVersion ? <Badge>{detail.unityVersion}</Badge> : null}
         {!detail.linked ? <Badge tone="warn">{t('vpm.projects.unlinkedShort')}</Badge> : null}
         <details className="relative ml-auto">
@@ -398,11 +398,11 @@ export function VpmProjectsSection({
       ) : null}
 
       {filtered.length ? (
-        <div className="mt-2 max-h-[32vh] overflow-y-auto rounded border" style={{ borderColor: 'var(--line)' }}>
+        <div className="mt-2 max-h-[46vh] overflow-y-auto rounded border" style={{ borderColor: 'var(--line)' }}>
           {filtered.map((item) => (
             <div
               key={item.projectKey}
-              className="flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0"
+              className="flex min-h-[56px] items-center gap-3 border-b px-3 py-3 text-[13px] last:border-b-0"
               style={{ borderColor: 'var(--line)' }}
               data-vpm-project={item.projectKey}
             >
@@ -413,9 +413,11 @@ export function VpmProjectsSection({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-[14px] font-medium">{cleanText(item.name, 200)}</span>
+                  <span className="truncate text-[17px] font-semibold">{cleanText(item.name, 200)}</span>
                   {item.unityVersion ? (
-                    <span className="faint text-[11px]">{item.unityVersion}</span>
+                    <span className="text-[12px]" style={{ color: 'var(--muted)' }}>
+                      {item.unityVersion}
+                    </span>
                   ) : null}
                   {(() => {
                     const badge = targetBadge(item, targetProjectId, targetPending)
@@ -432,7 +434,9 @@ export function VpmProjectsSection({
                     <Badge tone="warn">{t('vpm.projects.legacyCount', { count: item.legacyCount })}</Badge>
                   ) : null}
                 </div>
-                <div className="faint truncate text-[11px]">{cleanText(item.path, 1000)}</div>
+                <div className="truncate text-[12px]" style={{ color: 'var(--faint)' }}>
+                  {cleanText(item.path, 1000)}
+                </div>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 <Button onClick={() => void openFromRow(item.projectKey)} disabled={projects.busy}>
@@ -538,7 +542,7 @@ export function VpmProjectsSection({
             setRemoveTarget(null)
           }
         }}
-        width={820}
+        width={1080}
         title={detail ? cleanText(detail.name, 120) : t('vpm.projects.detailTitle')}
         footer={
           <>
