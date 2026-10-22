@@ -9,6 +9,13 @@ export {
 export { OperationStore } from './state'
 export { RecoveryService } from './recovery'
 export type { RecoveryServiceOptions } from './recovery'
+export { DEFAULT_ARCHIVE_LIMITS, extractPackageZip } from './archive'
+export type {
+  ArchiveLimits,
+  ExtractPackageZipInput,
+  ExtractedPackage,
+  PreparedPackage
+} from './archive'
 export type {
   ActiveOperationStatus,
   BeginStepInput,

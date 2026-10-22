@@ -39,6 +39,8 @@ describe('VPM composition root', () => {
     expect(runtime.repos.listRepos()).toEqual([])
     expect(runtime.catalog.query()).toMatchObject({ items: [], total: 0 })
     expect(runtime.unity.list()).toEqual([])
+    expect(runtime.cacheEntries.list()).toEqual([])
+    expect(runtime.packageCache.usage()).toMatchObject({ bytes: 0, files: 0 })
   })
 
   it('seeds official/curated only when consent is already granted', async () => {

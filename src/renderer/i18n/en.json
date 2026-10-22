@@ -1489,6 +1489,15 @@
       "vpmCachePathInvalid": "The cache path is outside the data root and was rejected.",
       "vpmCacheWriteFailed": "Writing the cache file failed.",
       "vpmCacheHashMismatch": "The cache file failed verification; its content does not match.",
+      "vpmCacheHashMissing": "This package has no SHA-256, so it cannot be downloaded or installed.",
+      "vpmCacheQuotaExceeded": "The cache is over its quota. Clean the cache or raise the quota first.",
+      "vpmCacheNoSpace": "The cache volume is out of space. Free some space and try again.",
+      "vpmArchiveInvalid": "The archive is damaged or its format is not supported.",
+      "vpmArchiveUnsafePath": "The archive contains an unsafe path (absolute, .., reserved name or duplicate) and was rejected.",
+      "vpmArchiveSymlink": "The archive contains a symbolic or hard link and was rejected.",
+      "vpmArchiveBomb": "The archive has suspicious entry or expanded sizes, possibly a zip bomb, and was rejected.",
+      "vpmArchivePackageInvalid": "No unique package.json was found after extraction, or the name/version does not match the plan.",
+      "vpmArchiveWriteFailed": "Writing the extracted files failed; the temporary folder was kept.",
       "vpmRuntimeNotReady": "The project & package runtime is not ready yet. Try again shortly, or re-enable it.",
       "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected."
     }

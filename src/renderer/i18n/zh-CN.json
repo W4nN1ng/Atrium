@@ -1489,6 +1489,15 @@
       "vpmCachePathInvalid": "缓存路径不在数据根内，已拒绝。",
       "vpmCacheWriteFailed": "缓存文件写入失败。",
       "vpmCacheHashMismatch": "缓存文件校验失败，内容不匹配。",
+      "vpmCacheHashMissing": "这个包没有 SHA-256，不能下载或安装。",
+      "vpmCacheQuotaExceeded": "缓存超过配额，请先清理缓存或调大配额。",
+      "vpmCacheNoSpace": "缓存所在磁盘空间不足，请清理磁盘后重试。",
+      "vpmArchiveInvalid": "压缩包损坏或格式不受支持。",
+      "vpmArchiveUnsafePath": "压缩包里有不安全的路径（绝对路径、..、保留名或重复路径），已拒绝。",
+      "vpmArchiveSymlink": "压缩包里包含符号链接或硬链接，已拒绝。",
+      "vpmArchiveBomb": "压缩包条目或展开大小异常，可能是压缩炸弹，已拒绝。",
+      "vpmArchivePackageInvalid": "解压后找不到唯一的 package.json，或包名/版本与计划不一致。",
+      "vpmArchiveWriteFailed": "解压写入失败，临时目录已保留。",
       "vpmRuntimeNotReady": "项目与包管理的运行时还没有就绪；请稍后重试，或重新启用。",
       "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。"
     }
