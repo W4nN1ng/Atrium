@@ -122,6 +122,7 @@ const api: AApi = {
     projectAdd: (input) => invoke('vpm:project-add', input),
     projectRemove: (projectKey) => invoke('vpm:project-remove', projectKey),
     projectTrash: (projectKey) => invoke('vpm:project-trash', projectKey),
+    projectsEnsureLedgers: () => invoke('vpm:projects-ensure-ledgers'),
     projectRescan: (projectKey) => invoke('vpm:project-rescan', projectKey),
     projectOpenFolder: (projectKey) => invoke('vpm:project-open-folder', projectKey),
     planResolve: (input) => invoke('vpm:plan-resolve', input),

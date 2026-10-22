@@ -1367,9 +1367,9 @@
       },
       "openFolder": "打开文件夹",
       "rescan": "重新扫描",
-      "remove": "从台账移除",
-      "removeTitle": "从台账移除工程？",
-      "removeBody": "只移除 Atrium 的工程台账记录，不删除磁盘上的工程文件、核心工程或导入历史。",
+      "remove": "删除项目",
+      "removeTitle": "删除项目",
+      "removeBody": "整个工程文件夹会移到回收站，可以从回收站还原。",
       "removeDone": "已从台账移除",
       "actionsLater": "启动 Unity 和包管理留到后续阶段。",
       "running": "运行中",
@@ -1395,9 +1395,7 @@
       "scanAdd": "添加所选（{{count}}）",
       "scanAlready": "已添加",
       "scanAdding": "正在添加…",
-      "scanning": "正在扫描…",
-      "removeFiles": "同时删除工程文件夹",
-      "removeFilesHint": "整个文件夹会移到回收站，随时可以还原。"
+      "scanning": "正在扫描…"
     },
     "plan": {
       "title": "变更计划（只读）",

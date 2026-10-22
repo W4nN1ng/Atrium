@@ -227,6 +227,26 @@ export function registerProjectIpc(options: ProjectIpcOptions): void {
    * 删除工程（R16）：先把整个文件夹移进**回收站**，再从台账移除。
    * 不提供永久删除——用户随时能从回收站还原。
    */
+  /**
+   * R18：给"在核心表里、但还没有 VPM 台账"的老工程补建台账。
+   * 这些工程是早先接桥时进的，列表以前按 hasLedger 过滤所以看不见。
+   */
+  ipc.handle(IpcInvoke.Vpm.ProjectsEnsureLedgers, () => {
+    const runtime = requireRuntime()
+    let created = 0
+    const failed: string[] = []
+    for (const item of runtime.projects.list()) {
+      if (item.ledger) continue
+      try {
+        runtime.projects.addExisting(item.path)
+        created += 1
+      } catch {
+        failed.push(item.path)
+      }
+    }
+    return { created, failed }
+  })
+
   ipc.handle(IpcInvoke.Vpm.ProjectTrash, async (key: unknown) => {
     const projectKey = requireKey(key)
     const runtime = requireRuntime()

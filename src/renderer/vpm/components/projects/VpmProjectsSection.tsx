@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { VpmProjectDetailDto, VpmProjectSummaryDto } from '../../../../shared/vpm/dto'
 import { Badge, Button, Field, MenuButton, Modal } from '../../../components/ui'
@@ -251,10 +251,22 @@ export function VpmProjectsSection({
   const [scanning, setScanning] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<VpmProjectSummaryDto | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
-  const [removeFiles, setRemoveFiles] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [planProjectKey, setPlanProjectKey] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+
+  // R18：进页面时给"核心表里有、VPM 台账没有"的老工程补建台账，然后刷新列表。
+  const ensured = useRef(false)
+  useEffect(() => {
+    if (ensured.current || !projects.status?.enabled) return
+    ensured.current = true
+    void vpmApi
+      .projectsEnsureLedgers()
+      .then((result) => {
+        if (result.created > 0) void projects.refresh()
+      })
+      .catch(() => undefined)
+  }, [projects.status?.enabled, projects.refresh])
 
   useEffect(() => {
     if (!projects.notice) return
@@ -275,7 +287,9 @@ export function VpmProjectsSection({
     )
   }
 
-  const visible = projects.items.filter((item) => item.hasLedger)
+  // R18：不再按 hasLedger 过滤——R11 之后这一页是唯一的工程列表，
+  // 早先接桥进核心表的老工程也要显示（它们的台账会在打开页面时自动补建）。
+  const visible = projects.items
   const filtered = visible.filter((item) => {
     const text = query.trim().toLowerCase()
     return !text || item.name.toLowerCase().includes(text) || item.path.toLowerCase().includes(text)
@@ -378,10 +392,8 @@ export function VpmProjectsSection({
     if (!removeTarget) return
     setRemoveError(null)
     try {
-      // 勾了"连文件夹一起删"就移进回收站（可还原），否则只从台账移除。
-      const ok = removeFiles
-        ? (await vpmApi.projectTrash(removeTarget.projectKey)).ok
-        : await projects.remove(removeTarget.projectKey)
+      // R17：删除就是删除——整个工程文件夹进回收站（可还原），没有"只移除台账"。
+      const ok = (await vpmApi.projectTrash(removeTarget.projectKey)).ok
       if (ok) {
         setRemoveTarget(null)
         setActionError(null)
@@ -504,7 +516,6 @@ export function VpmProjectsSection({
                       danger: true,
                       onSelect: () => {
                         setRemoveError(null)
-                        setRemoveFiles(false)
                         setRemoveTarget(item)
                       }
                     }
@@ -632,28 +643,37 @@ export function VpmProjectsSection({
       <Modal
         open={removeTarget !== null}
         onOpenChange={(open) => {
-      if (!open && !projects.busy) setRemoveTarget(null)
+          if (!open && !projects.busy) setRemoveTarget(null)
         }}
         title={t('vpm.projects.removeTitle')}
         footer={
-      <>
-        <Button onClick={() => setRemoveTarget(null)} disabled={projects.busy}>
-          {t('common.cancel')}
-        </Button>
-        <Button onClick={() => void confirmRemove()} disabled={projects.busy}>
-          {t('vpm.projects.remove')}
-        </Button>
-      </>
+          <>
+            <Button onClick={() => setRemoveTarget(null)} disabled={projects.busy}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={() => void confirmRemove()} disabled={projects.busy}>
+              {t('vpm.projects.remove')}
+            </Button>
+          </>
         }
       >
         <div className="text-[12px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-      <div>{t('vpm.projects.removeBody')}</div>
-      {removeTarget ? <div className="mt-2 break-all font-mono text-[11px]">{cleanText(removeTarget.name, 200)}</div> : null}
-      {removeError ? (
-        <div className="mt-2 rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
-          {removeError}
-        </div>
-      ) : null}
+          <div>
+            {t('vpm.projects.removeBody')}
+            {removeTarget ? (
+              <span className="mt-2 block break-all font-mono text-[11px]" style={{ color: 'var(--text)' }}>
+                {cleanText(removeTarget.name, 200)} · {cleanText(removeTarget.path, 300)}
+              </span>
+            ) : null}
+          </div>
+          {removeError ? (
+            <div
+              className="mt-2 rounded border px-2 py-1.5 text-[11px]"
+              style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}
+            >
+              {removeError}
+            </div>
+          ) : null}
         </div>
       </Modal>
 
@@ -706,7 +726,6 @@ export function VpmProjectsSection({
                 }}
                 onRemove={() => {
                   setRemoveError(null)
-                  setRemoveFiles(false)
                   setRemoveTarget(detail)
                 }}
               />

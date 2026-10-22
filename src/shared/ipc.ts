@@ -235,6 +235,7 @@ export const IpcInvoke = {
     ProjectCopy: 'vpm:project-copy',
     ProjectVersionChange: 'vpm:project-version-change',
     ProjectMigrate: 'vpm:project-migrate',
+    ProjectsEnsureLedgers: 'vpm:projects-ensure-ledgers',
     ProjectTrash: 'vpm:project-trash',
     ProjectParentCheck: 'vpm:project-parent-check',
     ProjectScanRoot: 'vpm:project-scan-root',

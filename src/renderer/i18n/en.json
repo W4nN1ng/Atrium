@@ -1367,9 +1367,9 @@
       },
       "openFolder": "Open folder",
       "rescan": "Rescan",
-      "remove": "Remove from ledger",
-      "removeTitle": "Remove this project from the ledger?",
-      "removeBody": "This removes only Atrium's project ledger entry. It does not delete project files, the core project, or import history.",
+      "remove": "Delete project",
+      "removeTitle": "Delete project",
+      "removeBody": "The whole project folder goes to the Recycle Bin and can be restored.",
       "removeDone": "Removed from ledger",
       "actionsLater": "Launching Unity and package management arrive in a later stage.",
       "running": "Running",
@@ -1395,9 +1395,7 @@
       "scanAdd": "Add selected ({{count}})",
       "scanAlready": "Already added",
       "scanAdding": "Adding…",
-      "scanning": "Scanning…",
-      "removeFiles": "Also delete the project folder",
-      "removeFilesHint": "The folder goes to the Recycle Bin and can be restored."
+      "scanning": "Scanning…"
     },
     "plan": {
       "title": "Change plan (read-only)",

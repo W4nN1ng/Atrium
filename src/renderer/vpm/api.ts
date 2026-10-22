@@ -158,6 +158,9 @@ export const vpmApi = {
   projectAdd(input: { path: string }): Promise<VpmProjectDetailDto> {
     return window.a.vpm.projectAdd(input)
   },
+  projectsEnsureLedgers(): Promise<{ created: number; failed: string[] }> {
+    return window.a.vpm.projectsEnsureLedgers()
+  },
   projectTrash(projectKey: string): Promise<{ ok: boolean }> {
     return window.a.vpm.projectTrash(projectKey)
   },

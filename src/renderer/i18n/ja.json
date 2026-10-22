@@ -1367,9 +1367,9 @@
       },
       "openFolder": "フォルダーを開く",
       "rescan": "再スキャン",
-      "remove": "台帳から削除",
-      "removeTitle": "このプロジェクトを台帳から削除しますか？",
-      "removeBody": "Atrium のプロジェクト台帳の記録だけを削除します。ディスク上のプロジェクト、コアのプロジェクト、インポート履歴は削除しません。",
+      "remove": "プロジェクトを削除",
+      "removeTitle": "プロジェクトを削除",
+      "removeBody": "プロジェクトフォルダー全体がゴミ箱に移動します（復元できます）。",
       "removeDone": "台帳から削除しました",
       "actionsLater": "Unity の起動とパッケージ管理は後の段階で提供します。",
       "running": "実行中",
@@ -1395,9 +1395,7 @@
       "scanAdd": "選択を追加（{{count}}）",
       "scanAlready": "追加済み",
       "scanAdding": "追加中…",
-      "scanning": "スキャン中…",
-      "removeFiles": "プロジェクトフォルダーも削除",
-      "removeFilesHint": "フォルダーはゴミ箱に移動するので復元できます。"
+      "scanning": "スキャン中…"
     },
     "plan": {
       "title": "変更計画（読み取り専用）",
