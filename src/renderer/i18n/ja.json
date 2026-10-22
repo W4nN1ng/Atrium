@@ -39,7 +39,7 @@
     "favorites": "お気に入り",
     "collections": "コレクション",
     "categories": "分類",
-    "project": "現在のプロジェクト",
+    "project": "プロジェクト",
     "settings": "設定",
     "newCollection": "新規コレクション",
     "collectionName": "コレクション名",
@@ -1385,7 +1385,10 @@
       "open": "開く",
       "opened": "起動中",
       "manage": "管理",
-      "advanced": "詳細"
+      "advanced": "詳細",
+      "disabledTitle": "プロジェクト機能は無効です",
+      "disabledHint": "「設定 → プロジェクトとパッケージ」で有効にしてデータルートを選んでください。",
+      "importHistory": "インポート履歴"
     },
     "plan": {
       "title": "変更計画（読み取り専用）",
@@ -1576,7 +1579,8 @@
       "vpmUnityPackageConflict": "プロジェクトに同名ファイルがあるため上書きしませんでした（{{path}}）。",
       "vpmUnityPackageTooLarge": "パッケージが大きすぎるかエントリが多すぎます（{{limit}}）。",
       "vpmUnityPackageFailed": "展開の途中で失敗し、ロールバックしました（{{moved}} ファイル）。",
-      "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。"
+      "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。",
+      "vpmUnityAlreadyRunning": "プロジェクト「{{name}}」が Unity で開いています。先に閉じてから開いてください。"
     },
     "packages": {
       "title": "インストール済みパッケージ",

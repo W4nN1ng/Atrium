@@ -2,6 +2,7 @@ import { spawn as nodeSpawn, type ChildProcess } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { projectKeyOf } from '../../../shared/vpm/domain/project'
 import { parseUnityVersion, unityVersionBase } from '../../../shared/vpm/domain/unityVersion'
 import log from 'electron-log'
 import { VpmError } from '../../../shared/vpm/errors'
@@ -68,6 +69,8 @@ export interface UnityLaunchDeps {
   exists?: (target: string) => boolean
   /** 许可 IPC 通道名；默认 `LicenseClient-<当前用户名>`（和 Hub 用的一致）。 */
   licenseChannel?: string
+  /** 当前在跑的工程（任意一个）；用来做"同时只开一个工程"的拒绝（R12）。 */
+  runningProject?: () => { name: string; path: string } | null
 }
 
 /**
@@ -80,7 +83,13 @@ export interface UnityLaunchDeps {
 export function isElevated(): boolean {
   try {
     const { execFileSync } = require('node:child_process') as typeof import('node:child_process')
-    const output = execFileSync('whoami', ['/groups'], { encoding: 'utf8', windowsHide: true })
+    const output = execFileSync('whoami', ['/groups'], {
+      encoding: 'utf8',
+      windowsHide: true,
+      // 这个探测是"尽力而为"：Windows 的 whoami.exe 和 Git 的 GNU whoami 参数不同，
+      // 失败就当非管理员，不要往 stderr 吐错误。
+      stdio: ['ignore', 'pipe', 'ignore']
+    })
     // S-1-16-12288 = High Mandatory Level（管理员）
     return output.includes('S-1-16-12288')
   } catch {
@@ -220,6 +229,15 @@ export class UnityLaunchService {
         pid: null,
         verified: true
       }
+    }
+
+    /**
+     * R12：同时只允许一个工程开着。
+     * 别的工程在跑就**直接拒绝**（不做"切换导入目标"），并带上它的名字让人知道关哪个。
+     */
+    const other = this.deps.runningProject?.() ?? null
+    if (other && projectKeyOf(other.path) !== projectKeyOf(projectPath)) {
+      throw new VpmError('vpmUnityAlreadyRunning', { name: other.name })
     }
 
     // 先绑定再启动：绑定立即生效，双击素材会等这个工程起来。

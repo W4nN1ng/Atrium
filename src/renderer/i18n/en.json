@@ -39,7 +39,7 @@
     "favorites": "Favorites",
     "collections": "Collections",
     "categories": "Categories",
-    "project": "Current project",
+    "project": "Projects",
     "settings": "Settings",
     "newCollection": "New collection",
     "collectionName": "Collection name",
@@ -1385,7 +1385,10 @@
       "open": "Open",
       "opened": "Open",
       "manage": "Manage",
-      "advanced": "Advanced"
+      "advanced": "Advanced",
+      "disabledTitle": "Projects are disabled",
+      "disabledHint": "Enable it under Settings → Projects & packages and pick a data root.",
+      "importHistory": "Import history"
     },
     "plan": {
       "title": "Change plan (read-only)",
@@ -1576,7 +1579,8 @@
       "vpmUnityPackageConflict": "The project already has this file; nothing was overwritten ({{path}}).",
       "vpmUnityPackageTooLarge": "The package is too large or has too many entries ({{limit}}).",
       "vpmUnityPackageFailed": "Extraction failed midway and was rolled back ({{moved}} files).",
-      "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected."
+      "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected.",
+      "vpmUnityAlreadyRunning": "Project \"{{name}}\" is already open in Unity. Close it first, then open this one."
     },
     "packages": {
       "title": "Installed packages",

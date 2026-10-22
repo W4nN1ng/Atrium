@@ -220,6 +220,15 @@ async function ensureRuntime(): Promise<void> {
         legacyGuard: gateDeps.legacyGuard,
         revealPath: (target: string) => shell.showItemInFolder(target),
         // 启动前判断"这个工程是不是已经在跑"：不接这个端口的话，每点一次都会再拉起一个 Unity。
+        // R12：同时只开一个工程——别的工程在跑就直接拒绝启动。
+        runningProject: () => {
+          try {
+            const running = (gateDeps.getCoreProjects?.() ?? []).find((project) => project.running)
+            return running ? { name: running.name, path: running.path } : null
+          } catch {
+            return null
+          }
+        },
         isProjectActive: (projectPath: string) => {
           try {
             const key = projectKeyOf(projectPath)

@@ -39,7 +39,7 @@
     "favorites": "收藏",
     "collections": "集合",
     "categories": "分类",
-    "project": "当前工程",
+    "project": "项目",
     "settings": "设置",
     "newCollection": "新建集合",
     "collectionName": "集合名称",
@@ -1385,7 +1385,10 @@
       "open": "打开",
       "opened": "已打开",
       "manage": "管理",
-      "advanced": "高级"
+      "advanced": "高级",
+      "disabledTitle": "项目功能未启用",
+      "disabledHint": "在「设置 → 项目与包」里启用并选好数据根，这里就会显示项目列表。",
+      "importHistory": "导入历史"
     },
     "plan": {
       "title": "变更计划（只读）",
@@ -1576,7 +1579,8 @@
       "vpmUnityPackageConflict": "工程里已经有这个文件，未覆盖（{{path}}）。",
       "vpmUnityPackageTooLarge": "包太大或条目太多，已拒绝（{{limit}}）。",
       "vpmUnityPackageFailed": "解包中途失败，已经回滚（已搬 {{moved}} 个文件）。",
-      "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。"
+      "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。",
+      "vpmUnityAlreadyRunning": "已经有工程「{{name}}」在 Unity 里运行。请先关闭它，再打开这个工程。"
     },
     "packages": {
       "title": "已安装的包",

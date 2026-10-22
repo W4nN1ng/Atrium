@@ -256,10 +256,13 @@ function MenuItem({
 
 export function VpmProjectsSection({
   targetProjectId = null,
-  targetPending = false
+  targetPending = false,
+  onOpenHistory
 }: {
   targetProjectId?: string | null
   targetPending?: boolean
+  /** 打开该工程的素材导入历史（R11：入口从行内按钮挪进 ⋯）。 */
+  onOpenHistory?: (coreId: string) => void
 }): JSX.Element | null {
   const { t } = useTranslation()
   const projects = useVpmProjects()
@@ -280,7 +283,17 @@ export function VpmProjectsSection({
   }, [projects.notice, projects.dismissNotice])
 
   if (projects.statusLoading || !projects.status) return null
-  if (!projects.status.enabled || projects.status.safeMode || projects.status.degraded) return null
+  if (!projects.status.enabled || projects.status.safeMode || projects.status.degraded) {
+    // R11：这一页现在只有项目列表，停用时不能整页空白。
+    return (
+      <div className="rounded border px-3 py-6 text-center" style={{ borderColor: 'var(--line)' }}>
+        <div className="text-[14px]">{t('vpm.projects.disabledTitle')}</div>
+        <p className="mt-1 text-[12px]" style={{ color: 'var(--muted)' }}>
+          {t('vpm.projects.disabledHint')}
+        </p>
+      </div>
+    )
+  }
 
   const visible = projects.items.filter((item) => item.hasLedger)
   const filtered = visible.filter((item) => {
@@ -357,11 +370,7 @@ export function VpmProjectsSection({
   const detail = projects.detail
 
   return (
-    <section
-      className="shrink-0 border-t px-3 py-3"
-      style={{ borderColor: 'var(--line)' }}
-      data-vpm-projects
-    >
+    <section className="space-y-2" data-vpm-projects>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[15px] font-medium">{t('vpm.projects.title')}</span>
         <Badge>{visible.length}</Badge>
@@ -456,6 +465,11 @@ export function VpmProjectsSection({
                     className="absolute right-0 z-10 mt-1 w-[180px] rounded border p-1 shadow-lg"
                     style={{ borderColor: 'var(--line-2)', background: 'var(--panel)' }}
                   >
+                    {onOpenHistory && item.coreId ? (
+                      <MenuItem onClick={() => onOpenHistory(item.coreId as string)}>
+                        {t('vpm.projects.importHistory')}
+                      </MenuItem>
+                    ) : null}
                     <MenuItem onClick={() => void rescan(item.projectKey)}>
                       {t('vpm.projects.rescan')}
                     </MenuItem>

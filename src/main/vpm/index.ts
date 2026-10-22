@@ -66,6 +66,8 @@ export interface InitVpmOptions {
   projectActivity?: ProjectActivityPort
   /** 旧 Assets 清理的保护集合（`import_log` 已知资产）；P4-F 注入。 */
   legacyGuard?: LegacyGuardPort
+  /** 当前在跑的工程（任意一个）；R12 用它拒绝"同时开两个工程"。 */
+  runningProject?: () => { name: string; path: string } | null
   /** 包缓存配额；默认 20 GiB。P8 再接到设置/用量 UI。 */
   cacheQuotaBytes?: number
   /** 打开备份所在位置（Electron shell），由 gate 注入。 */

@@ -274,3 +274,40 @@ describe('licensing args and verification', () => {
     expect(clear).toHaveBeenCalledWith(projectPath)
   })
 })
+
+describe('single instance policy (R12)', () => {
+  it('refuses to launch another project while one is running', async () => {
+    const exe = touchExe(path.join(root, 'editor', 'Unity.exe'))
+    const spawn = vi.fn(
+      (_command: string, _args: readonly string[], _options: Record<string, unknown>) =>
+        fakeChild()
+    )
+    const bind = vi.fn()
+    const service = new UnityLaunchService({
+      installs: () => [install({ path: exe })],
+      spawn,
+      exists: () => true,
+      runningProject: () => ({ name: 'Other', path: path.join(root, 'other-project') })
+    })
+
+    await expect(
+      service.launch({ projectPath, bindTarget: bind })
+    ).rejects.toMatchObject({ code: 'vpmUnityAlreadyRunning' })
+    expect(spawn).not.toHaveBeenCalled()
+    // 拒绝时不能改导入目标
+    expect(bind).not.toHaveBeenCalled()
+  })
+
+  it('allows launching when the running project is the same one', async () => {
+    const exe = touchExe(path.join(root, 'editor', 'Unity.exe'))
+    const service = new UnityLaunchService({
+      installs: () => [install({ path: exe })],
+      spawn: () => fakeChild(),
+      exists: () => true,
+      runningProject: () => ({ name: 'Demo', path: projectPath })
+    })
+
+    const result = await service.launch({ projectPath })
+    expect(result.status).toBe('launched')
+  })
+})
