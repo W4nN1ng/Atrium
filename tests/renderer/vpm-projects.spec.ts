@@ -20,7 +20,7 @@ describe('VPM project page wiring', () => {
     expect(page).not.toMatch(/from '\.\.\/vpm\//)
   })
 
-  it('keeps the project panel read-only: detail/add/remove/rescan/open folder, no install actions', () => {
+  it('keeps the project panel focused: open/manage/⋯ with no install actions', () => {
     const panel = read('src/renderer/vpm/components/projects/VpmProjectsSection.tsx')
     const hook = read('src/renderer/vpm/hooks/useProjects.ts')
     expect(hook).toContain('vpmApi.projectDetail')
@@ -30,11 +30,15 @@ describe('VPM project page wiring', () => {
       expect(panel, action).toContain(`projects.${action}`)
     }
     expect(panel).toContain('projects.add')
-    expect(panel).toContain('vpm.projects.readOnly')
     expect(panel).toContain('vpm.projects.removeBody')
-    expect(panel).toContain('vpm.projects.legacyHint')
     expect(panel).not.toMatch(/\b(installPackage|vpmInstall|upgradePackage|uninstallPackage)\b/)
     expect(panel).toContain('vpm.projects.openFolder')
+    // R3/R8：行内只留「打开 / 管理 / ⋯」，其余进菜单；详情 footer 只留两个按钮
+    expect(panel).toContain('vpm.projects.open')
+    expect(panel).toContain('vpm.projects.manage')
+    expect(panel).not.toContain('vpm.projects.readOnly')
+    expect(panel).not.toContain('vpm.projects.legacyHint')
+    expect(panel).toContain('vpm.projects.advanced')
   })
 
   it('exposes the project API through the renderer wrapper only', () => {

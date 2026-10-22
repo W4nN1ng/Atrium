@@ -133,30 +133,87 @@ function LaunchControl({
 
 function DetailBody({
   detail,
-  onChanged
+  onChanged,
+  onOpenFolder,
+  onRescan,
+  onPreview,
+  onRemove
 }: {
   detail: VpmProjectDetailDto
   onChanged: () => void
+  onOpenFolder: () => void
+  onRescan: () => void
+  onPreview: () => void
+  onRemove: () => void
 }): JSX.Element {
   const { t } = useTranslation()
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   return (
-    <div className="max-h-[62vh] space-y-4 overflow-y-auto pr-1 text-[12px]" data-vpm-project-detail>
+    <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1 text-[12px]" data-vpm-project-detail>
+      {/* 头部只放名字、版本、运行点；路径/哈希这些排障信息在下面的"高级"里 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
+          style={{ background: detail.running ? 'var(--ok)' : 'var(--faint)' }}
+        />
+        <span className="text-[16px] font-medium">{cleanText(detail.name, 200)}</span>
+        {detail.unityVersion ? <Badge>{detail.unityVersion}</Badge> : null}
+        {!detail.linked ? <Badge tone="warn">{t('vpm.projects.unlinkedShort')}</Badge> : null}
+        <details className="relative ml-auto">
+          <summary className="cursor-pointer select-none px-2 py-1 text-[14px]" style={{ color: 'var(--muted)' }}>
+            ⋯
+          </summary>
+          <div
+            className="absolute right-0 z-10 mt-1 w-[200px] rounded border p-1 shadow-lg"
+            style={{ borderColor: 'var(--line-2)', background: 'var(--panel)' }}
+          >
+            <MenuItem onClick={onOpenFolder}>{t('vpm.projects.openFolder')}</MenuItem>
+            <MenuItem onClick={onRescan}>{t('vpm.projects.rescan')}</MenuItem>
+            <MenuItem onClick={onPreview}>{t('vpm.plan.preview')}</MenuItem>
+            <MenuItem onClick={onRemove} danger>
+              {t('vpm.projects.remove')}
+            </MenuItem>
+          </div>
+        </details>
+      </div>
+
       {!detail.linked ? (
         <div className="rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}>
           {t('vpm.projects.notLinked')}
         </div>
       ) : null}
 
-      <section>
-        <div className="mb-2 text-[12px] font-medium">{t('vpm.projects.overview')}</div>
-        <div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 text-[11px]">
+      {detail.warnings.length ? (
+        <div className="space-y-1.5">
+          {detail.warnings.map((warning, index) => (
+            <div
+              key={`${warning.code}-${index}`}
+              className="rounded border px-3 py-2 text-[11px]"
+              style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}
+            >
+              {vpmCodeLabel(warning.code)}
+              {warning.path ? (
+                <span className="faint ml-2 break-all font-mono">{cleanText(warning.path, 400)}</span>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <VpmPackagesPanel projectKey={detail.projectKey} detail={detail} onChanged={onChanged} />
+
+      <VpmMaintenancePanel projectKey={detail.projectKey} detail={detail} onChanged={onChanged} />
+
+      <details
+        open={advancedOpen}
+        onToggle={(event) => setAdvancedOpen((event.target as HTMLDetailsElement).open)}
+      >
+        <summary className="cursor-pointer select-none text-[12px]" style={{ color: 'var(--muted)' }}>
+          {t('vpm.projects.advanced')}
+        </summary>
+        <div className="mt-2 grid grid-cols-[96px_1fr] gap-x-3 gap-y-1.5 text-[11px]">
           <span className="faint">{t('vpm.projects.path')}</span>
           <span className="break-all font-mono">{cleanText(detail.path, 1000)}</span>
-          <span className="faint">{t('vpm.projects.unityVersion')}</span>
-          <span>
-            {detail.unityVersion ?? t('vpm.projects.notRecorded')}
-            {detail.unityRevision ? ` · ${t('vpm.projects.revision')} ${detail.unityRevision}` : ''}
-          </span>
           <span className="faint">{t('vpm.projects.editor')}</span>
           <span className="break-all font-mono">
             {detail.unityExePath ? cleanText(detail.unityExePath, 1000) : t('vpm.projects.notRecorded')}
@@ -170,74 +227,30 @@ function DetailBody({
           </span>
           <span className="faint">{t('vpm.projects.lastScan')}</span>
           <span>{formatTimestamp(detail.lastScanAt) || t('vpm.projects.notRecorded')}</span>
-          <span className="faint">{t('vpm.projects.stateLabel')}</span>
-          <span>
-            {detail.running ? t('vpm.projects.running') : t('vpm.projects.notRunning')}
-            {detail.running && detail.detectedBy.length ? ` · ${detail.detectedBy.join('+')}` : ''}
-          </span>
         </div>
-      </section>
-
-      <VpmPackagesPanel projectKey={detail.projectKey} detail={detail} onChanged={onChanged} />
-
-      <VpmMaintenancePanel projectKey={detail.projectKey} detail={detail} onChanged={onChanged} />
-
-      <section>
-        <div className="mb-2 text-[12px] font-medium">{t('vpm.projects.warnings')}</div>
-        {detail.warnings.length ? (
-          <div className="space-y-1.5">
-            {detail.warnings.map((warning, index) => (
-              <div
-                key={`${warning.code}-${index}`}
-                className="rounded border px-3 py-2 text-[11px]"
-                style={{ borderColor: 'var(--line)' }}
-              >
-                <div>{vpmCodeLabel(warning.code)}</div>
-                {warning.path ? <div className="faint mt-1 break-all font-mono">{cleanText(warning.path, 1000)}</div> : null}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="faint text-[11px]">{t('vpm.projects.noWarnings')}</p>
-        )}
-      </section>
-
-      <section>
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px] font-medium">
-          {t('vpm.projects.legacy')}
-          {detail.legacyCount ? <Badge tone="warn">{t('vpm.projects.legacyCount', { count: detail.legacyCount })}</Badge> : null}
-        </div>
-        <p className="faint mb-2 text-[11px] leading-relaxed">{t('vpm.projects.legacyHint')}</p>
-        {detail.legacy.candidates.length ? (
-          <div className="rounded border" style={{ borderColor: 'var(--line)' }}>
-            {detail.legacy.candidates.map((candidate, index) => (
-              <div
-                key={`${candidate.match}-${candidate.relativePath ?? candidate.name ?? index}`}
-                className="border-b px-3 py-2 last:border-b-0"
-                style={{ borderColor: 'var(--line)' }}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-[160px] flex-1 break-all font-mono text-[11px]">
-                    {cleanText(candidate.name ?? candidate.relativePath ?? '—', 400)}
-                  </span>
-                  <Badge>{t(`vpm.projects.match.${candidate.match}`)}</Badge>
-                  <span className="faint text-[10px]">
-                    {t('vpm.projects.legacyConfidence')} · {t(`vpm.projects.confidence.${candidate.confidence}`)}
-                  </span>
-                </div>
-                {candidate.relativePath ? (
-                  <div className="faint mt-1 break-all font-mono text-[10px]">{cleanText(candidate.relativePath, 600)}</div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="faint text-[11px]">{t('vpm.projects.legacyNone')}</p>
-        )}
-      </section>
-
-      <p className="faint text-[11px] leading-relaxed">{t('vpm.projects.actionsLater')}</p>
+      </details>
     </div>
+  )
+}
+
+function MenuItem({
+  children,
+  onClick,
+  danger
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  danger?: boolean
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      className="block w-full rounded px-2 py-1.5 text-left text-[12px] hover:bg-[color:var(--raise)]"
+      style={danger ? { color: 'var(--bad)' } : undefined}
+      onClick={onClick}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -301,6 +314,16 @@ export function VpmProjectsSection({
     }
   }
 
+  const openFromRow = async (key: string): Promise<void> => {
+    setActionError(null)
+    try {
+      await vpmApi.projectLaunch({ projectKey: key })
+      await projects.refresh()
+    } catch (cause) {
+      setActionError(errorText(cause))
+    }
+  }
+
   const openDetail = async (key: string): Promise<void> => {
     setActionError(null)
     await projects.select(key)
@@ -340,9 +363,8 @@ export function VpmProjectsSection({
       data-vpm-projects
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[13px] font-medium">{t('vpm.projects.title')}</span>
+        <span className="text-[15px] font-medium">{t('vpm.projects.title')}</span>
         <Badge>{visible.length}</Badge>
-        <Badge>{t('vpm.projects.readOnly')}</Badge>
         <div className="ml-auto flex gap-2">
           <Button variant="accent" onClick={() => setCreateOpen(true)} disabled={projects.busy}>
             {t('vpm.create.title')}
@@ -355,8 +377,6 @@ export function VpmProjectsSection({
           </Button>
         </div>
       </div>
-      <p className="faint mt-1 text-[11px] leading-relaxed">{t('vpm.projects.intro')}</p>
-
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <input
           className="input min-w-[220px] flex-1"
@@ -382,20 +402,21 @@ export function VpmProjectsSection({
           {filtered.map((item) => (
             <div
               key={item.projectKey}
-              className="flex flex-wrap items-center gap-2 border-b px-3 py-2 last:border-b-0"
+              className="flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0"
               style={{ borderColor: 'var(--line)' }}
               data-vpm-project={item.projectKey}
             >
               <span
-                className="h-2 w-2 shrink-0 rounded-full"
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ background: item.running ? 'var(--ok)' : 'var(--faint)' }}
+                title={item.running ? t('vpm.projects.running') : undefined}
               />
-              <div className="min-w-[160px] flex-1">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-[12px]">{cleanText(item.name, 200)}</span>
-                  <Badge tone={item.running ? 'ok' : 'default'}>
-                    {item.running ? t('vpm.projects.running') : t('vpm.projects.notRunning')}
-                  </Badge>
+                  <span className="truncate text-[14px] font-medium">{cleanText(item.name, 200)}</span>
+                  {item.unityVersion ? (
+                    <span className="faint text-[11px]">{item.unityVersion}</span>
+                  ) : null}
                   {(() => {
                     const badge = targetBadge(item, targetProjectId, targetPending)
                     if (!badge) return null
@@ -411,14 +432,43 @@ export function VpmProjectsSection({
                     <Badge tone="warn">{t('vpm.projects.legacyCount', { count: item.legacyCount })}</Badge>
                   ) : null}
                 </div>
-                <div className="faint truncate text-[10px]">{cleanText(item.path, 1000)}</div>
+                <div className="faint truncate text-[11px]">{cleanText(item.path, 1000)}</div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {item.unityVersion ? <Badge>{item.unityVersion}</Badge> : null}
-                <span className="faint text-[10px]">{t('vpm.projects.packageCount', { count: item.packageCount })}</span>
-                <Button variant="ghost" onClick={() => void openDetail(item.projectKey)}>
-                  {t('vpm.projects.details')}
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button onClick={() => void openFromRow(item.projectKey)} disabled={projects.busy}>
+                  {item.running ? t('vpm.projects.opened') : t('vpm.projects.open')}
                 </Button>
+                <Button variant="ghost" onClick={() => void openDetail(item.projectKey)}>
+                  {t('vpm.projects.manage')}
+                </Button>
+                <details className="relative">
+                  <summary
+                    className="cursor-pointer select-none px-1.5 text-[14px]"
+                    style={{ color: 'var(--muted)' }}
+                  >
+                    ⋯
+                  </summary>
+                  <div
+                    className="absolute right-0 z-10 mt-1 w-[180px] rounded border p-1 shadow-lg"
+                    style={{ borderColor: 'var(--line-2)', background: 'var(--panel)' }}
+                  >
+                    <MenuItem onClick={() => void rescan(item.projectKey)}>
+                      {t('vpm.projects.rescan')}
+                    </MenuItem>
+                    <MenuItem onClick={() => void projects.openFolder(item.projectKey)}>
+                      {t('vpm.projects.openFolder')}
+                    </MenuItem>
+                    <MenuItem
+                      danger
+                      onClick={() => {
+                        setRemoveError(null)
+                        setRemoveTarget(item)
+                      }}
+                    >
+                      {t('vpm.projects.remove')}
+                    </MenuItem>
+                  </div>
+                </details>
               </div>
             </div>
           ))}
@@ -488,49 +538,19 @@ export function VpmProjectsSection({
             setRemoveTarget(null)
           }
         }}
-        title={t('vpm.projects.detailTitle')}
+        width={820}
+        title={detail ? cleanText(detail.name, 120) : t('vpm.projects.detailTitle')}
         footer={
-          detail ? (
-            <>
-              <Button onClick={() => projects.closeDetail()}>{t('vpm.projects.close')}</Button>
-              <Button variant="ghost" onClick={() => void projects.openFolder(detail.projectKey)}>
-                {t('vpm.projects.openFolder')}
-              </Button>
-              <Button variant="ghost" onClick={() => void rescan(detail.projectKey)} disabled={projects.busy}>
-                {t('vpm.projects.rescan')}
-              </Button>
+          <>
+            {detail ? (
               <LaunchControl
                 projectKey={detail.projectKey}
                 running={detail.running}
                 onError={(message) => setActionError(message)}
               />
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setPlanProjectKey(detail.projectKey)
-                  projects.closeDetail()
-                  setActionError(null)
-                  setRemoveTarget(null)
-                }}
-              >
-                {t('vpm.plan.preview')}
-              </Button>
-              <button
-                type="button"
-                className="btn"
-                style={{ color: 'var(--bad)' }}
-                disabled={projects.busy}
-                onClick={() => {
-                  setRemoveError(null)
-                  setRemoveTarget(detail)
-                }}
-              >
-                {t('vpm.projects.remove')}
-              </button>
-            </>
-          ) : (
+            ) : null}
             <Button onClick={() => projects.closeDetail()}>{t('vpm.projects.close')}</Button>
-          )
+          </>
         }
       >
         <div className="space-y-3 text-[12px]">
@@ -547,6 +567,18 @@ export function VpmProjectsSection({
                 detail={detail}
                 onChanged={() => {
                   void projects.select(detail.projectKey)
+                }}
+                onOpenFolder={() => void projects.openFolder(detail.projectKey)}
+                onRescan={() => void rescan(detail.projectKey)}
+                onPreview={() => {
+                  setPlanProjectKey(detail.projectKey)
+                  projects.closeDetail()
+                  setActionError(null)
+                  setRemoveTarget(null)
+                }}
+                onRemove={() => {
+                  setRemoveError(null)
+                  setRemoveTarget(detail)
                 }}
               />
             </>

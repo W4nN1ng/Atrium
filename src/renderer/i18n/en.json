@@ -1381,7 +1381,11 @@
       "alreadyRunning": "Unity already running; set as import target",
       "editorAuto": "Auto (by project version)",
       "launchTimeout": "Unity started but did not connect within 60s: it is probably stuck on a sign-in/license dialog, or the bridge is not installed in this project. Check the Unity window.",
-      "launchUnverified": "Unity did not open this project (no response in 45s). Check whether a Unity window or a sign-in/license dialog is on screen; if not, open the project once from Unity Hub."
+      "launchUnverified": "Unity did not open this project (no response in 45s). Check whether a Unity window or a sign-in/license dialog is on screen; if not, open the project once from Unity Hub.",
+      "open": "Open",
+      "opened": "Open",
+      "manage": "Manage",
+      "advanced": "Advanced"
     },
     "plan": {
       "title": "Change plan (read-only)",

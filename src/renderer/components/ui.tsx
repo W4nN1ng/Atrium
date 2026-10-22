@@ -147,25 +147,32 @@ export function Modal({
   onOpenChange,
   title,
   children,
-  footer
+  footer,
+  width = 680
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   title: string
   children: ReactNode
   footer?: ReactNode
+  /** 内容多的弹窗（工程详情）给更宽的框；默认 680。 */
+  width?: number
 }): ReactNode {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,.55)' }} />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-50 w-[min(680px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-lg border p-4 shadow-panel"
-          style={{ background: 'var(--panel)', borderColor: 'var(--line-2)' }}
+          className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-lg border p-4 shadow-panel"
+          style={{
+            width: `min(${width}px, 92vw)`,
+            background: 'var(--panel)',
+            borderColor: 'var(--line-2)'
+          }}
         >
           <Dialog.Title className="mb-3 text-[14px] font-medium">{title}</Dialog.Title>
           <Dialog.Description asChild>{children}</Dialog.Description>
-          {footer ? <div className="mt-4 flex justify-end gap-2">{footer}</div> : null}
+          {footer ? <div className="mt-4 flex flex-wrap justify-end gap-2">{footer}</div> : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
