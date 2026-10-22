@@ -348,6 +348,22 @@ function isConstraint(error: unknown): boolean {
 }
 
 /**
+ * 跨进程写锁争用。
+ *
+ * `busy_timeout` 只覆盖"等锁"；两个连接都先读后写（deferred → write upgrade）时，
+ * SQLite 会立刻返回 SQLITE_BUSY 以避免死锁。这种情况重试一次通常就够：
+ * 对手要么已经提交（这时 `findActive` 会给出 vpmProjectBusy），要么已回滚。
+ */
+function isBusy(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const code = (error as { code?: unknown }).code
+  return (
+    typeof code === 'string' &&
+    (code.startsWith('SQLITE_BUSY') || code.startsWith('SQLITE_LOCKED'))
+  )
+}
+
+/**
  * `vpm_operation` / `vpm_operation_step` / `vpm_operation_file` 的唯一 SQL 入口。
  *
  * 这里是 P4-A 的合同例外：操作状态机必须和 journal 双写在同一事务里，
@@ -531,10 +547,32 @@ export class OperationStore {
       }
       this.journals.create(project.path, journal)
     })
-    write()
+    this.runWrite(write, project.key)
     const saved = this.get(id)
     if (!saved) throw operationError('id')
     return saved
+  }
+
+  /**
+   * 执行一次写事务。
+   *
+   * 跨进程写锁争用（deferred 事务升级成写事务时 SQLite 会立刻返回 SQLITE_BUSY）
+   * 重试一次；仍失败就按 `vpmProjectBusy` 报——调用方只需要知道"这个工程现在忙"，
+   * 不需要认识 SQLite 的错误码。
+   */
+  private runWrite(write: () => void, projectKey: string): void {
+    let last: unknown = null
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        write()
+        return
+      } catch (error) {
+        last = error
+        if (!isBusy(error)) throw error
+      }
+    }
+    if (isBusy(last)) throw new VpmError('vpmProjectBusy', { projectKey })
+    throw last
   }
 
   transition(id: string, to: OperationStatus, options: TransitionOptions = {}): OperationRecord {

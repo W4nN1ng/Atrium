@@ -62,6 +62,7 @@ export interface PlanHandle {
 export class TxHarness {
   readonly root: string
   readonly dataRoot: string
+  readonly dbFile: string
   readonly db: VpmDb
   readonly operations: OperationStore
   readonly vault: VaultStore
@@ -69,9 +70,10 @@ export class TxHarness {
   private readonly zips = new Map<string, { file: string; sha256: string; size: number; url: string }>()
   private clock = 1_000
 
-  private constructor(root: string, db: VpmDb) {
+  private constructor(root: string, db: VpmDb, dbFile: string) {
     this.root = root
     this.dataRoot = path.join(root, 'data')
+    this.dbFile = dbFile
     this.db = db
     this.operations = new OperationStore(db, () => ++this.clock)
     this.vault = new VaultStore({ dataRoot: this.dataRoot })
@@ -80,11 +82,12 @@ export class TxHarness {
   static async create(): Promise<TxHarness> {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'atrium-vpm-p4d-'))
     fs.mkdirSync(path.join(root, 'data'))
+    const dbFile = path.join(root, 'vpm.db')
     const db = await openVpmDb({
-      file: path.join(root, 'vpm.db'),
+      file: dbFile,
       backupsDir: path.join(root, 'backups')
     })
-    return new TxHarness(root, db)
+    return new TxHarness(root, db, dbFile)
   }
 
   now(): number {

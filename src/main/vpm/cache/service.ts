@@ -291,6 +291,18 @@ export class PackageCacheService {
         throw new VpmError('vpmCacheHashMismatch')
       }
 
+      // 并发淘汰可能在 verifyFile 的异步窗口里删掉我们刚落盘的文件：
+      // 绝不为一个不存在的文件写行（否则会留下"有行没文件"的孤儿记录）。
+      if (!fs.existsSync(verified.path)) {
+        this.entries.remove(sha)
+        throw new VpmError('vpmCacheQuotaExceeded')
+      }
+      this.entries.upsert({
+        sha256: sha,
+        size: verified.size,
+        path: verified.path,
+        sourceHost: hostOf(result.finalUrl)
+      })
       this.evictTo(this.quotaBytes, sha)
       if (this.usage().bytes > this.quotaBytes) {
         // 单个包比配额还大：不留下一个永远超配额的缓存。
@@ -299,12 +311,6 @@ export class PackageCacheService {
         throw new VpmError('vpmCacheQuotaExceeded')
       }
 
-      this.entries.upsert({
-        sha256: sha,
-        size: verified.size,
-        path: verified.path,
-        sourceHost: hostOf(result.finalUrl)
-      })
       return { sha256: sha, size: verified.size, path: verified.path, reused: false }
     }
 
@@ -328,6 +334,7 @@ export class PackageCacheService {
     }
   }
 
+  /** 按 LRU 淘汰到目标字节数；`protectSha` 是本次调用自己的包，绝不淘汰。 */
   private evictTo(targetBytes: number, protectSha: string | null): VpmCacheEviction[] {
     const entries = new Map(this.entries.list().map((entry) => [entry.sha256, entry]))
     const files = this.store.listPackages()

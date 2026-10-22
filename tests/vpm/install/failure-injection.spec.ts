@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { VpmError } from '../../../src/shared/vpm/errors'
@@ -273,6 +274,55 @@ describe('transaction invariants under injected failures', () => {
 
     expect(result.status).toBe('rolled_back')
     expect(h.manifestText(project)).toBe(before)
+  })
+
+  it('rolls back when the manifest cannot be replaced (read-only file → real EPERM)', async () => {
+    const { manifest, catalog } = installed('com.example.a')
+    const handle = h.makePlan(project, {
+      manifest,
+      installed: [{ name: 'com.example.a', version: '1.0.0' }],
+      catalog: [catalog],
+      requests: [{ kind: 'upgrade', name: 'com.example.a', version: '2.0.0' }]
+    })
+    const before = h.manifestText(project)
+    const manifestFile = h.manifestPath(project)
+    fs.chmodSync(manifestFile, 0o444)
+    try {
+      const result = await h.apply(project, handle.planId, { renameRetries: 1 })
+      expect(result.status).toBe('rolled_back')
+      expect(result.errorCode).toBe('vpmTransactionFailed')
+      expect(h.manifestText(project)).toBe(before)
+      expect(h.installedVersion(project, 'com.example.a')).toBe('1.0.0')
+    } finally {
+      fs.chmodSync(manifestFile, 0o666)
+    }
+  })
+
+  it('retries and then rolls back when the package folder is held by another process (real EBUSY)', async () => {
+    const { manifest, catalog } = installed('com.example.a')
+    const handle = h.makePlan(project, {
+      manifest,
+      installed: [{ name: 'com.example.a', version: '1.0.0' }],
+      catalog: [catalog],
+      requests: [{ kind: 'upgrade', name: 'com.example.a', version: '2.0.0' }]
+    })
+    // Windows 上"目录是另一个进程的 CWD"会让 rename 返回 EBUSY —— 真实占用，不是注入。
+    const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 15000)'], {
+      cwd: h.packageDir(project, 'com.example.a'),
+      stdio: 'ignore'
+    })
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      const result = await h.apply(project, handle.planId, { renameRetries: 2 })
+      expect(result.status).toBe('failed')
+      expect(result.errorCode).toBe('vpmTransactionFailed')
+      expect(h.installedVersion(project, 'com.example.a')).toBe('1.0.0')
+      expect(h.manifestText(project)).toBe(handle.manifestText)
+    } finally {
+      child.kill()
+      await new Promise((resolve) => child.once('exit', resolve))
+      await new Promise((resolve) => setTimeout(resolve, 200))
+    }
   })
 
   it('does not delete the transaction scene when rollback fails', async () => {
