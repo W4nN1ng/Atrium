@@ -1513,7 +1513,113 @@
       "vpmRollbackFailed": "回滚没有完全成功，工程需要人工确认；现场已保留，未删除任何文件。",
       "vpmVaultUnavailable": "回滚仓不可用（无法创建或写入）；没有回滚仓就不改工程。",
       "vpmVaultArchiveFailed": "旧文件没能归档到回滚仓；它们仍在工程的临时事务区，可稍后重试。",
+      "vpmUndoUnsafe": "撤销不安全：工程在这次操作之后被改过、或它不是最后一次操作（{{reason}}）。",
+      "vpmCancelTooLate": "这次操作已经过了提交点，取消来不及了；它会继续跑完。",
       "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。"
+    },
+    "packages": {
+      "title": "已安装的包",
+      "installedCount": "已装 {{count}} 个",
+      "updatesCount": "可更新 {{count}} 个",
+      "upgradeAll": "升级全部（最新）",
+      "lockedHint": "Unity 正在运行或已有操作在进行，暂时不能改包",
+      "unityRunning": "Unity 正在运行这个工程。关闭 Unity 之后才能装包或卸载包。",
+      "search": "搜索包名",
+      "filter": {
+        "label": "筛选软件包",
+        "all": "全部",
+        "installed": "已安装",
+        "updates": "可更新",
+        "conflicts": "有冲突"
+      },
+      "col": {
+        "name": "包名",
+        "version": "已安装版本",
+        "latest": "最新版本",
+        "status": "状态"
+      },
+      "empty": "没有匹配的包。",
+      "system": "系统包",
+      "systemHint": "由 Atrium 桥接安装器维护，不能在这里升级、降级或卸载。",
+      "updateAvailable": "有更新",
+      "conflict": "多源冲突",
+      "current": "（当前）",
+      "reinstall": "重装",
+      "remove": "移除",
+      "removeTitle": "移除这个包？",
+      "removeBody": "包目录会先移到工程的临时事务区，成功后归档到回滚仓；不会永久删除。",
+      "cart": {
+        "summary": "已选 {{count}} 项变更",
+        "clear": "清空",
+        "view": "查看更改"
+      },
+      "planHint": "下面是要写进工程的变化；确认后才会开始下载和替换文件。",
+      "apply": {
+        "ackFirst": "先勾选上面的风险确认",
+        "risk": "我知道这次操作会修改工程文件（Packages/ 与 vpm-manifest.json）。包可能带编辑器脚本，打开 Unity 后会执行。",
+        "confirm": "确认应用",
+        "noChanges": "这个计划没有任何变更。"
+      },
+      "run": {
+        "title": "正在应用变更",
+        "resultTitle": "操作结果",
+        "running": "进行中",
+        "starting": "正在准备…",
+        "hint": "下载与解压阶段可以取消；提交点（manifest 写入）之后不能取消。",
+        "cancel": "取消",
+        "cancelling": "正在取消…",
+        "close": "关闭",
+        "undo": "撤销这次操作",
+        "installed": "已安装",
+        "removed": "已移除",
+        "rolledBack": "已经回滚，工程回到操作前的状态。",
+        "needsAttention": "操作没有完全收尾，需要人工确认；现场已保留，没有删除任何文件。",
+        "vaultPending": "旧文件还在工程的事务区，尚未归档到回滚仓；可以稍后重试归档。",
+        "status": {
+          "planned": "已计划",
+          "preflight": "预检中",
+          "applying": "执行中",
+          "committed": "已完成",
+          "failed": "失败",
+          "rolled_back": "已回滚",
+          "needs_attention": "需要处理"
+        }
+      },
+      "step": {
+        "prepare": "准备事务区",
+        "download": "下载包",
+        "extract": "解压与校验",
+        "move-out": "移出旧包",
+        "move-in": "换入新包",
+        "manifest": "写入 manifest",
+        "legacy": "清理旧 Assets",
+        "vault": "归档到回滚仓",
+        "cleanup": "清理临时区",
+        "rollback": "回滚"
+      },
+      "history": {
+        "title": "最近操作",
+        "loading": "读取中…",
+        "refresh": "刷新",
+        "empty": "还没有操作记录。",
+        "changes": "{{count}} 项变更",
+        "undo": "撤销"
+      },
+      "undoBlocked": {
+        "notCommitted": "只有成功的操作可以撤销",
+        "notLatest": "不是最后一次操作",
+        "projectChanged": "工程在那之后被改过",
+        "unityRunning": "Unity 正在运行",
+        "busy": "有操作正在进行",
+        "noReverse": "没有可撤销的变更",
+        "unsupported": "不能撤销"
+      },
+      "kind": {
+        "install": "安装",
+        "remove": "卸载",
+        "upgrade": "升级",
+        "undo": "撤销"
+      }
     }
   }
 }

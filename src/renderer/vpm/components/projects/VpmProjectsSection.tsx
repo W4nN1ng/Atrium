@@ -6,6 +6,7 @@ import { errorText } from '../../../lib/msg'
 import { cleanText, formatTimestamp, vpmCodeLabel } from '../../lib/view'
 import { useVpmProjects } from '../../hooks/useProjects'
 import { VpmPlanSheet } from '../plan/VpmPlanSheet'
+import { VpmPackagesPanel } from '../packages/VpmPackagesPanel'
 
 function shortHash(value: string | null): string {
   if (!value) return ''
@@ -20,7 +21,13 @@ function stateTone(state: string): 'default' | 'accent' | 'ok' | 'warn' | 'bad' 
   return 'default'
 }
 
-function DetailBody({ detail }: { detail: VpmProjectDetailDto }): JSX.Element {
+function DetailBody({
+  detail,
+  onChanged
+}: {
+  detail: VpmProjectDetailDto
+  onChanged: () => void
+}): JSX.Element {
   const { t } = useTranslation()
   return (
     <div className="max-h-[62vh] space-y-4 overflow-y-auto pr-1 text-[12px]" data-vpm-project-detail>
@@ -61,34 +68,7 @@ function DetailBody({ detail }: { detail: VpmProjectDetailDto }): JSX.Element {
         </div>
       </section>
 
-      <section>
-        <div className="mb-2 flex items-center gap-2 text-[12px] font-medium">
-          {t('vpm.projects.packages')}
-          <Badge>{t('vpm.projects.packageCount', { count: detail.packageCount })}</Badge>
-        </div>
-        {detail.packages.length ? (
-          <div className="rounded border" style={{ borderColor: 'var(--line)' }}>
-            {detail.packages.map((pkg) => (
-              <div
-                key={pkg.name}
-                className="flex flex-wrap items-center gap-2 border-b px-3 py-2 last:border-b-0"
-                style={{ borderColor: 'var(--line)' }}
-              >
-                <span className="min-w-[180px] flex-1 break-all font-mono text-[11px]">
-                  {cleanText(pkg.name, 214)}
-                </span>
-                <span className="faint font-mono text-[11px]">{pkg.version ?? '—'}</span>
-                <Badge tone={stateTone(pkg.state)}>
-                  {t(`vpm.projects.state.${pkg.state}`)}
-                </Badge>
-                <span className="faint text-[10px]">{cleanText(pkg.source, 80)}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="faint text-[11px]">{t('vpm.projects.noPackages')}</p>
-        )}
-      </section>
+      <VpmPackagesPanel projectKey={detail.projectKey} detail={detail} onChanged={onChanged} />
 
       <section>
         <div className="mb-2 text-[12px] font-medium">{t('vpm.projects.warnings')}</div>
@@ -438,7 +418,12 @@ export function VpmProjectsSection({
                   {actionError}
                 </div>
               ) : null}
-              <DetailBody detail={detail} />
+              <DetailBody
+                detail={detail}
+                onChanged={() => {
+                  void projects.select(detail.projectKey)
+                }}
+              />
             </>
           ) : (
             <p className="faint">{projects.error ?? t('vpm.projects.noMatch')}</p>

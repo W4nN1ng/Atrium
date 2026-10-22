@@ -12,6 +12,7 @@ import {
 import { PlanService } from './planService'
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
+import { UndoService } from './undoService'
 import { VaultStore } from './vault'
 import {
   ProjectLedgerStore,
@@ -70,6 +71,7 @@ export interface VpmRuntime {
   recovery: RecoveryService
   vault: VaultStore
   transactions: InstallTransactionService
+  undo: UndoService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -147,6 +149,13 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
         }
       }
     })
+    const undo = new UndoService({
+      operations,
+      plans,
+      projects,
+      transactions,
+      activity: options.projectActivity
+    })
     // 启动先处理崩溃现场：能证明安全的自动回滚/补完归档，判不了的落 needs_attention。
     await recovery.scanAndApply()
     await repos.seedIfEmpty()
@@ -167,6 +176,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       recovery,
       vault,
       transactions,
+      undo,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return

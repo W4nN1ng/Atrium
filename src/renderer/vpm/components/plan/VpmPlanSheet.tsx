@@ -71,7 +71,7 @@ function ChangeRow({ change }: { change: ChangePlanChange }): JSX.Element {
   )
 }
 
-function PlanBody({ plan }: { plan: VpmPlanDto }): JSX.Element {
+export function PlanBody({ plan }: { plan: VpmPlanDto }): JSX.Element {
   const { t } = useTranslation()
   const groups = ACTION_ORDER
     .map((action) => ({ action, rows: plan.changes.filter((change) => change.action === action) }))

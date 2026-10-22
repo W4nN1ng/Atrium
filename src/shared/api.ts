@@ -47,10 +47,15 @@ import type {
   VpmCatalogQuery,
   VpmCatalogVersionDto,
   VpmNetworkStatus,
+  VpmOperationCancelResult,
+  VpmOperationDto,
   VpmOperationStart,
+  VpmOperationStartInput,
+  VpmOperationSummaryDto,
   VpmPlanDto,
   VpmPlanExplainDto,
   VpmPlanResolveInput,
+  VpmProjectCatalogDto,
   VpmProjectDetailDto,
   VpmProjectSummaryDto,
   VpmRepoDto
@@ -312,6 +317,15 @@ export interface AApi {
     projectOpenFolder(projectKey: string): Promise<{ ok: boolean }>
     planResolve(input: VpmPlanResolveInput): Promise<VpmPlanDto>
     planExplain(planId: string, name?: string): Promise<VpmPlanExplainDto>
+    /** 应用计划：只传 planId，主进程重新校验后执行。 */
+    planApply(input: VpmOperationStartInput): Promise<VpmOperationDto>
+    operationStatus(operationId: string): Promise<VpmOperationDto>
+    operationCancel(operationId: string): Promise<VpmOperationCancelResult>
+    operationHistory(projectKey: string): Promise<VpmOperationSummaryDto[]>
+    /** 撤销指定操作：只允许最后一次、且工程未变。 */
+    operationUndo(operationId: string): Promise<VpmOperationDto>
+    /** 工程里每个已装包在仓库里的可选版本（用于版本下拉/最新版本）。 */
+    projectCatalog(projectKey: string): Promise<VpmProjectCatalogDto>
   }
   categories: {
     list(): Promise<CategoryConfig>

@@ -238,6 +238,12 @@ describe('VPM P1 IPC', () => {
         IpcInvoke.Vpm.ProjectRescan,
         IpcInvoke.Vpm.ProjectOpenFolder,
         IpcInvoke.Vpm.PlanResolve,
+        IpcInvoke.Vpm.PlanApply,
+        IpcInvoke.Vpm.OperationStatus,
+        IpcInvoke.Vpm.OperationCancel,
+        IpcInvoke.Vpm.OperationHistory,
+        IpcInvoke.Vpm.OperationUndo,
+        IpcInvoke.Vpm.ProjectCatalog,
         IpcInvoke.Vpm.PlanExplain
       ].sort()
     )

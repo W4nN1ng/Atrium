@@ -26,11 +26,22 @@ P1 的只读仓库/目录 IPC：参数校验、DTO 映射、刷新操作/事件�
 - `vpm:package-detail` `name` → detail | null
 - `vpm:package-versions` `name` → versions[]
 
+- `vpm:plan-apply` `{projectKey, planId}` → `VpmOperationDto`（**不接受计划内容**）
+- `vpm:operation-status` `operationId` → `VpmOperationDto`（进度事件丢了也能恢复）
+- `vpm:operation-cancel` `operationId` → `{ok, tooLate}`（提交点之后返回 `tooLate`）
+- `vpm:operation-history` `projectKey` → `VpmOperationSummaryDto[]`（含 `canUndo`/原因）
+- `vpm:operation-undo` `operationId` → `VpmOperationDto`（反向计划走同一事务，`kind='undo'`）
+- `vpm:project-catalog` `projectKey` → `{packages:[{name, latestVersion, versions[]}], truncated}`
+  （版本下拉/最新版本用；受保护包不返回）
+
 事件：
 
 - `vpm:repo-progress`：`{operationId, phase:'start'|'repo', repoId?, repoIds?, result?}`；
   按 ≥100ms 节流，`start/done` 立即发。
 - `vpm:repo-done`：`{operationId, results[]}`；UI 收到后重新拉 `repos-list`。
+- `vpm:operation-started`：`{operationId, projectKey}`；让界面在 invoke 返回前就能显示进度/取消。
+- `vpm:operation-progress`：`{operationId, projectKey, step, phase, index, total}`；事务每步发一次。
+- `vpm:operation-done`：`{operationId, projectKey, status, errorCode}`。
 
 刷新操作返回 `operationId` 后异步执行；单仓库并发去重，`refresh-all` 同时只跑一个。
 事件可能早于 invoke 返回，UI 以 `operationId` 去重；拉取式 `repos-list` 是最终事实。

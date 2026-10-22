@@ -1513,7 +1513,113 @@
       "vpmRollbackFailed": "Rollback did not fully succeed; the project needs a manual check. Nothing was deleted.",
       "vpmVaultUnavailable": "The vault is unavailable (cannot create or write). Without a vault the project is not changed.",
       "vpmVaultArchiveFailed": "Old files could not be archived to the vault. They are still in the project transaction folder; retry later.",
+      "vpmUndoUnsafe": "Undo is not safe: the project changed after that operation, or it is not the latest one ({{reason}}).",
+      "vpmCancelTooLate": "This operation already passed the commit point, so it cannot be cancelled; it will finish.",
       "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected."
+    },
+    "packages": {
+      "title": "Installed packages",
+      "installedCount": "{{count}} installed",
+      "updatesCount": "{{count}} updatable",
+      "upgradeAll": "Upgrade all (latest)",
+      "lockedHint": "Unity is running or another operation is in progress; packages are locked",
+      "unityRunning": "Unity is running this project. Close Unity before installing or removing packages.",
+      "search": "Search package name",
+      "filter": {
+        "label": "Filter packages",
+        "all": "All",
+        "installed": "Installed",
+        "updates": "Updatable",
+        "conflicts": "Conflicts"
+      },
+      "col": {
+        "name": "Package",
+        "version": "Installed version",
+        "latest": "Latest",
+        "status": "Status"
+      },
+      "empty": "No matching packages.",
+      "system": "System package",
+      "systemHint": "Maintained by the Atrium bridge installer; it cannot be upgraded, downgraded or removed here.",
+      "updateAvailable": "Update",
+      "conflict": "Multi-source conflict",
+      "current": "(current)",
+      "reinstall": "Reinstall",
+      "remove": "Remove",
+      "removeTitle": "Remove this package?",
+      "removeBody": "The package folder is moved into the project transaction area first, then archived to the vault. Nothing is deleted permanently.",
+      "cart": {
+        "summary": "{{count}} change(s) selected",
+        "clear": "Clear",
+        "view": "Review changes"
+      },
+      "planHint": "These are the changes that will be written to the project. Downloads and file swaps start only after you confirm.",
+      "apply": {
+        "ackFirst": "Tick the risk acknowledgement first",
+        "risk": "I understand this modifies project files (Packages/ and vpm-manifest.json). Packages may ship editor scripts that run when Unity opens the project.",
+        "confirm": "Apply for real",
+        "noChanges": "This plan has no changes."
+      },
+      "run": {
+        "title": "Applying changes",
+        "resultTitle": "Operation result",
+        "running": "Running",
+        "starting": "Preparing…",
+        "hint": "You can cancel during download/extract; after the commit point (manifest written) cancellation is too late.",
+        "cancel": "Cancel",
+        "cancelling": "Cancelling…",
+        "close": "Close",
+        "undo": "Undo this operation",
+        "installed": "Installed",
+        "removed": "Removed",
+        "rolledBack": "Rolled back; the project is back to its previous state.",
+        "needsAttention": "The operation did not finish cleanly and needs a manual check. Nothing was deleted.",
+        "vaultPending": "Old files are still in the project transaction area and were not archived to the vault yet.",
+        "status": {
+          "planned": "Planned",
+          "preflight": "Preflight",
+          "applying": "Applying",
+          "committed": "Done",
+          "failed": "Failed",
+          "rolled_back": "Rolled back",
+          "needs_attention": "Needs attention"
+        }
+      },
+      "step": {
+        "prepare": "Prepare transaction area",
+        "download": "Download",
+        "extract": "Extract and verify",
+        "move-out": "Move old package out",
+        "move-in": "Move new package in",
+        "manifest": "Write manifest",
+        "legacy": "Clean legacy Assets",
+        "vault": "Archive to vault",
+        "cleanup": "Clean temporary area",
+        "rollback": "Roll back"
+      },
+      "history": {
+        "title": "Recent operations",
+        "loading": "Loading…",
+        "refresh": "Refresh",
+        "empty": "No operations yet.",
+        "changes": "{{count}} change(s)",
+        "undo": "Undo"
+      },
+      "undoBlocked": {
+        "notCommitted": "Only successful operations can be undone",
+        "notLatest": "Not the latest operation",
+        "projectChanged": "The project changed afterwards",
+        "unityRunning": "Unity is running",
+        "busy": "Another operation is in progress",
+        "noReverse": "Nothing to undo",
+        "unsupported": "Cannot undo"
+      },
+      "kind": {
+        "install": "Install",
+        "remove": "Remove",
+        "upgrade": "Upgrade",
+        "undo": "Undo"
+      }
     }
   }
 }

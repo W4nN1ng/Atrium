@@ -1513,7 +1513,113 @@
       "vpmRollbackFailed": "ロールバックが完全には成功しませんでした。プロジェクトの確認が必要です。ファイルは削除していません。",
       "vpmVaultUnavailable": "ロールバック保管庫が使用できません（作成または書き込み不可）。ロールバック保管庫がない場合はプロジェクトを変更しません。",
       "vpmVaultArchiveFailed": "旧ファイルをロールバック保管庫へアーカイブできませんでした。プロジェクトの一時領域に残っているため、後で再試行できます。",
+      "vpmUndoUnsafe": "取り消しは安全ではありません。操作後にプロジェクトが変更されたか、最新の操作ではありません（{{reason}}）。",
+      "vpmCancelTooLate": "この操作はコミットポイントを過ぎているため、キャンセルできません。最後まで実行されます。",
       "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。"
+    },
+    "packages": {
+      "title": "インストール済みパッケージ",
+      "installedCount": "{{count}} 個インストール済み",
+      "updatesCount": "{{count}} 個更新可能",
+      "upgradeAll": "すべて最新へ",
+      "lockedHint": "Unity が実行中か、別の操作が進行中です",
+      "unityRunning": "Unity がこのプロジェクトを開いています。パッケージを変更する前に閉じてください。",
+      "search": "パッケージ名を検索",
+      "filter": {
+        "label": "パッケージを絞り込む",
+        "all": "すべて",
+        "installed": "インストール済み",
+        "updates": "更新可能",
+        "conflicts": "競合あり"
+      },
+      "col": {
+        "name": "パッケージ",
+        "version": "インストール版",
+        "latest": "最新",
+        "status": "状態"
+      },
+      "empty": "該当するパッケージはありません。",
+      "system": "システムパッケージ",
+      "systemHint": "Atrium のブリッジインストーラーが管理しています。ここから更新・ダウングレード・削除はできません。",
+      "updateAvailable": "更新あり",
+      "conflict": "複数ソースの競合",
+      "current": "（現在）",
+      "reinstall": "再インストール",
+      "remove": "削除",
+      "removeTitle": "このパッケージを削除しますか？",
+      "removeBody": "パッケージフォルダーはまずプロジェクトの一時領域へ移され、成功後にロールバック保管庫へアーカイブされます。完全削除はしません。",
+      "cart": {
+        "summary": "{{count}} 件の変更を選択中",
+        "clear": "クリア",
+        "view": "変更を確認"
+      },
+      "planHint": "プロジェクトに書き込まれる変更です。確認後にダウンロードとファイルの入れ替えが始まります。",
+      "apply": {
+        "ackFirst": "先にリスク確認にチェックしてください",
+        "risk": "この操作がプロジェクトのファイル（Packages/ と vpm-manifest.json）を変更することを理解しています。パッケージにエディタースクリプトが含まれる場合、Unity で開いたときに実行されます。",
+        "confirm": "本当に適用",
+        "noChanges": "この計画には変更がありません。"
+      },
+      "run": {
+        "title": "変更を適用中",
+        "resultTitle": "操作の結果",
+        "running": "実行中",
+        "starting": "準備中…",
+        "hint": "ダウンロードと展開の間はキャンセルできます。コミットポイント（manifest 書き込み）以降はキャンセルできません。",
+        "cancel": "キャンセル",
+        "cancelling": "キャンセル中…",
+        "close": "閉じる",
+        "undo": "この操作を取り消す",
+        "installed": "インストール",
+        "removed": "削除",
+        "rolledBack": "ロールバック済みで、プロジェクトは操作前の状態に戻りました。",
+        "needsAttention": "操作が完全には終わっていません。確認が必要です。ファイルは削除していません。",
+        "vaultPending": "古いファイルはまだプロジェクトの一時領域にあり、保管庫へアーカイブされていません。",
+        "status": {
+          "planned": "計画済み",
+          "preflight": "プリフライト",
+          "applying": "適用中",
+          "committed": "完了",
+          "failed": "失敗",
+          "rolled_back": "ロールバック済み",
+          "needs_attention": "要対応"
+        }
+      },
+      "step": {
+        "prepare": "一時領域を準備",
+        "download": "ダウンロード",
+        "extract": "展開と検証",
+        "move-out": "旧パッケージを移動",
+        "move-in": "新パッケージを配置",
+        "manifest": "manifest を書き込み",
+        "legacy": "旧 Assets を整理",
+        "vault": "保管庫へアーカイブ",
+        "cleanup": "一時領域を掃除",
+        "rollback": "ロールバック"
+      },
+      "history": {
+        "title": "最近の操作",
+        "loading": "読み込み中…",
+        "refresh": "更新",
+        "empty": "操作履歴はまだありません。",
+        "changes": "{{count}} 件の変更",
+        "undo": "取り消す"
+      },
+      "undoBlocked": {
+        "notCommitted": "成功した操作だけ取り消せます",
+        "notLatest": "最新の操作ではありません",
+        "projectChanged": "その後プロジェクトが変更されました",
+        "unityRunning": "Unity が実行中です",
+        "busy": "別の操作が進行中です",
+        "noReverse": "取り消す変更がありません",
+        "unsupported": "取り消せません"
+      },
+      "kind": {
+        "install": "インストール",
+        "remove": "削除",
+        "upgrade": "更新",
+        "undo": "取り消し"
+      }
     }
   }
 }

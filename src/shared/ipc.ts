@@ -235,7 +235,13 @@ export const IpcInvoke = {
     ProjectRescan: 'vpm:project-rescan',
     ProjectOpenFolder: 'vpm:project-open-folder',
     PlanResolve: 'vpm:plan-resolve',
-    PlanExplain: 'vpm:plan-explain'
+    PlanExplain: 'vpm:plan-explain',
+    PlanApply: 'vpm:plan-apply',
+    OperationStatus: 'vpm:operation-status',
+    OperationCancel: 'vpm:operation-cancel',
+    OperationHistory: 'vpm:operation-history',
+    OperationUndo: 'vpm:operation-undo',
+    ProjectCatalog: 'vpm:project-catalog'
   }
 } as const
 
@@ -275,7 +281,10 @@ export const IpcEvent = {
   SettingsChanged: 'settings:changed',
   Toast: 'ui:toast',
   VpmRepoProgress: 'vpm:repo-progress',
-  VpmRepoDone: 'vpm:repo-done'
+  VpmRepoDone: 'vpm:repo-done',
+  VpmOperationStarted: 'vpm:operation-started',
+  VpmOperationProgress: 'vpm:operation-progress',
+  VpmOperationDone: 'vpm:operation-done'
 } as const
 
 /** 渲染进程允许订阅的事件通道 */

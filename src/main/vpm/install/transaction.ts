@@ -156,6 +156,10 @@ export interface ApplyPlanInput {
   planId: string
   signal?: AbortSignal
   onProgress?: (progress: TransactionProgress) => void
+  /** 操作行建好后立刻回调（用于登记取消句柄/推送事件）。 */
+  onStarted?: (operationId: string) => void
+  /** 覆盖操作类型；撤销时传 'undo'，其余按计划推导。 */
+  kind?: OperationKind
 }
 
 export interface TransactionProgress {
@@ -350,13 +354,15 @@ export class InstallTransactionService {
     const operation = this.operations.create({
       projectKey: input.projectKey,
       projectPath: loaded.projectPath,
-      kind: kindOf(plan),
+      kind: input.kind ?? kindOf(plan),
       plan,
       planHash: plan.planHash,
       projectFingerprint: loaded.snapshot.fingerprint,
       manifestBeforeHash: plan.manifestHashBefore || null,
       summary: summarize(plan)
     })
+
+    input.onStarted?.(operation.id)
 
     const context: TxContext = {
       op: operation,

@@ -5,10 +5,17 @@ import type {
   VpmCatalogQuery,
   VpmCatalogVersionDto,
   VpmNetworkStatus,
+  VpmOperationCancelResult,
+  VpmOperationDoneEvent,
+  VpmOperationDto,
+  VpmOperationProgressEvent,
   VpmOperationStart,
+  VpmOperationStartInput,
+  VpmOperationSummaryDto,
   VpmPlanDto,
   VpmPlanExplainDto,
   VpmPlanResolveInput,
+  VpmProjectCatalogDto,
   VpmProjectDetailDto,
   VpmProjectSummaryDto,
   VpmRepoDoneEvent,
@@ -91,6 +98,24 @@ export const vpmApi = {
   planExplain(planId: string, name?: string): Promise<VpmPlanExplainDto> {
     return window.a.vpm.planExplain(planId, name)
   },
+  planApply(input: VpmOperationStartInput): Promise<VpmOperationDto> {
+    return window.a.vpm.planApply(input)
+  },
+  operationStatus(operationId: string): Promise<VpmOperationDto> {
+    return window.a.vpm.operationStatus(operationId)
+  },
+  operationCancel(operationId: string): Promise<VpmOperationCancelResult> {
+    return window.a.vpm.operationCancel(operationId)
+  },
+  operationHistory(projectKey: string): Promise<VpmOperationSummaryDto[]> {
+    return window.a.vpm.operationHistory(projectKey)
+  },
+  operationUndo(operationId: string): Promise<VpmOperationDto> {
+    return window.a.vpm.operationUndo(operationId)
+  },
+  projectCatalog(projectKey: string): Promise<VpmProjectCatalogDto> {
+    return window.a.vpm.projectCatalog(projectKey)
+  },
   pickProjectDirectory(title: string): Promise<string | null> {
     return window.a.system.pickDirectory({ title })
   },
@@ -99,6 +124,21 @@ export const vpmApi = {
   },
   onRepoDone(callback: (event: VpmRepoDoneEvent) => void): () => void {
     return window.a.on('vpm:repo-done', (payload) => callback(payload as VpmRepoDoneEvent))
+  },
+  onOperationStarted(
+    callback: (event: { operationId: string; projectKey: string }) => void
+  ): () => void {
+    return window.a.on('vpm:operation-started', (payload) =>
+      callback(payload as { operationId: string; projectKey: string })
+    )
+  },
+  onOperationProgress(callback: (event: VpmOperationProgressEvent) => void): () => void {
+    return window.a.on('vpm:operation-progress', (payload) =>
+      callback(payload as VpmOperationProgressEvent)
+    )
+  },
+  onOperationDone(callback: (event: VpmOperationDoneEvent) => void): () => void {
+    return window.a.on('vpm:operation-done', (payload) => callback(payload as VpmOperationDoneEvent))
   },
   openExternal(url: string): Promise<void> {
     return window.a.system.openExternal(url)

@@ -108,7 +108,13 @@ const api: AApi = {
     projectRescan: (projectKey) => invoke('vpm:project-rescan', projectKey),
     projectOpenFolder: (projectKey) => invoke('vpm:project-open-folder', projectKey),
     planResolve: (input) => invoke('vpm:plan-resolve', input),
-    planExplain: (planId, name) => invoke('vpm:plan-explain', planId, name)
+    planExplain: (planId, name) => invoke('vpm:plan-explain', planId, name),
+    planApply: (input) => invoke('vpm:plan-apply', input),
+    operationStatus: (operationId) => invoke('vpm:operation-status', operationId),
+    operationCancel: (operationId) => invoke('vpm:operation-cancel', operationId),
+    operationHistory: (projectKey) => invoke('vpm:operation-history', projectKey),
+    operationUndo: (operationId) => invoke('vpm:operation-undo', operationId),
+    projectCatalog: (projectKey) => invoke('vpm:project-catalog', projectKey)
   },
   categories: {
     list: () => invoke('categories:list'),

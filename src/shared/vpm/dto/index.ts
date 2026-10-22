@@ -128,3 +128,19 @@ export interface VpmCatalogPage {
   limit: number
   offset: number
 }
+
+export type {
+  VpmOperationCancelResult,
+  VpmOperationDto,
+  VpmOperationKind,
+  VpmOperationProgressEvent,
+  VpmOperationDoneEvent,
+  VpmOperationStartInput,
+  VpmOperationStatus,
+  VpmOperationSummaryDto,
+  VpmOperationWarningDto,
+  VpmPackageCatalogInfoDto,
+  VpmPackageVersionOptionDto,
+  VpmProjectCatalogDto,
+  VpmUndoBlockedReason
+} from './install'

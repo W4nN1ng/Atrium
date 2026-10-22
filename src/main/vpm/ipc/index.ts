@@ -22,6 +22,7 @@ import type { VpmRuntime } from '../index'
 import type { RepoDto, RepoRefreshResult } from '../reposService'
 import { registerProjectIpc } from './projects'
 import { registerPlanIpc } from './plan'
+import { registerInstallIpc } from './install'
 
 export interface VpmIpcOptions {
   ipc: IpcApi
@@ -324,6 +325,11 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
 
   registerProjectIpc({ ipc, getRuntime: options.getRuntime })
   registerPlanIpc({ ipc, getRuntime: options.getRuntime })
+  registerInstallIpc({
+    ipc,
+    getRuntime: options.getRuntime,
+    broadcast: options.broadcast
+  })
 
   return {
     dispose(): void {

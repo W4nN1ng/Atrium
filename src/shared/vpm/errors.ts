@@ -54,6 +54,8 @@ export const VPM_ERROR_CODES = [
   'vpmJournalInvalid',
   'vpmJournalWriteFailed',
   'vpmRecoveryRequired',
+  'vpmUndoUnsafe',
+  'vpmCancelTooLate',
   'vpmUnityNotFound',
   'vpmUnityInvalid',
   'vpmUnityAccessDenied',
