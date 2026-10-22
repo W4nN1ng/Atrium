@@ -70,6 +70,24 @@ export interface UnityLaunchDeps {
   licenseChannel?: string
 }
 
+/**
+ * 当前进程是不是以管理员身份运行。
+ *
+ * 实测（2026-10-22）：管理员权限启动 Atrium 时，Unity 会继承管理员权限，
+ * 而 Unity 的许可客户端是 Hub 用普通权限起的 → `LicensingClient has failed validation`
+ * → Unity 卡在许可阶段（进程在、无窗口、不写 Editor.log）。这种失败必须能一眼看出来。
+ */
+export function isElevated(): boolean {
+  try {
+    const { execFileSync } = require('node:child_process') as typeof import('node:child_process')
+    const output = execFileSync('whoami', ['/groups'], { encoding: 'utf8', windowsHide: true })
+    // S-1-16-12288 = High Mandatory Level（管理员）
+    return output.includes('S-1-16-12288')
+  } catch {
+    return false
+  }
+}
+
 /** `LicenseClient-<用户名>` 里的用户名（和 Hub 用的同一个）。 */
 function userName(): string {
   try {
@@ -286,7 +304,13 @@ export class UnityLaunchService {
 
     // 启动是"发出去"了，但工程有没有真的打开要验证：等 Temp/UnityLockfile。
     const verified = await this.verifyStarted(projectPath)
-    log.info(`[launch] verified=${verified} pid=${child?.pid ?? 'n/a'}`)
+    log.info(`[launch] verified=${verified} pid=${child?.pid ?? 'n/a'} elevated=${isElevated()}`)
+    if (!verified && isElevated()) {
+      log.warn(
+        '[launch] Atrium 以管理员身份运行：Unity 会继承管理员权限，许可客户端握手失败，' +
+          '所以窗口起不来。请用普通权限重新启动 Atrium。'
+      )
+    }
     if (!verified) {
       // 没打开就不要留着导入目标，否则双击素材会投到一个不存在的工程。
       input.clearTarget?.(projectPath)
