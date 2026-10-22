@@ -1,4 +1,4 @@
-import { shell } from 'electron'
+import { app, shell } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { PROTECTED_PROJECT_PACKAGE } from '../../../shared/vpm/domain/project'
@@ -255,7 +255,11 @@ export function registerProjectIpc(options: ProjectIpcOptions): void {
     const item = runtime.projects.get(projectKey)
     if (!item) throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
     if (!runtime.trashPath) throw new VpmError('vpmInternal')
-    let mode: 'recycle' | 'atrium' = 'recycle'
+    // 文件夹已经不在了（被手动删/挪走）：没什么可回收的，直接清台账。
+    if (!fs.existsSync(item.path)) {
+      return { ok: runtime.projects.remove(projectKey), mode: 'missing' as const }
+    }
+    let mode: 'recycle' | 'atrium' | 'missing' = 'recycle'
     try {
       await runtime.trashPath(item.path)
     } catch {
@@ -264,15 +268,21 @@ export function registerProjectIpc(options: ProjectIpcOptions): void {
        * （实测 E: 盘报 "Failed to parse path"）。这时退到 **Atrium 自己的回收站**：
        * 把整个文件夹挪到 `<数据根>/trash/<时间>-<名字>`，同样可恢复、不永久删。
        */
+      // 放到 C 盘的 Atrium 目录（系统回收站不可用的盘上，这里是唯一能"可恢复删除"的地方）。
       const dest = path.join(
-        runtime.dataRoot,
+        app.getPath('appData'),
+        'Atrium',
         'trash',
         `${Date.now()}-${path.basename(item.path)}`
       )
       fs.mkdirSync(path.dirname(dest), { recursive: true })
       try {
         fs.renameSync(item.path, dest)
-      } catch {
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          // 挪的过程中发现已经不在了：同样只清台账。
+          return { ok: runtime.projects.remove(projectKey), mode: 'missing' as const }
+        }
         fs.cpSync(item.path, dest, { recursive: true })
         fs.rmSync(item.path, { recursive: true, force: true })
       }

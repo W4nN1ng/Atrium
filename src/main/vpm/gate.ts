@@ -8,7 +8,7 @@ import type { Db } from '../db'
 import { createDatabaseBackup } from '../db/backup'
 import type { IpcApi } from '../ipc/types'
 import { P } from '../services/paths'
-import { validateVpmDataRoot } from '../../shared/vpm/dataRoot'
+import { normalizeVpmDataRoot, validateVpmDataRoot } from '../../shared/vpm/dataRoot'
 import { VpmError, type VpmErrorCode } from '../../shared/vpm/errors'
 import { IpcInvoke } from '../../shared/ipc'
 import { registerVpmIpc } from './ipc'
@@ -268,7 +268,54 @@ async function ensureRuntime(): Promise<void> {
 /** 应用启动/启用后调用；disabled/safe mode 不加载重模块。 */
 export async function startVpmRuntime(): Promise<void> {
   if (!deps || deps.enableRuntime === false) return
+  await ensureAutoEnabled()
   await ensureRuntime()
+}
+
+/** R19：默认数据根——`%APPDATA%\Atrium`（不再问用户，也不允许改）。 */
+export function defaultVpmDataRoot(): string {
+  return path.join(app.getPath('appData'), 'Atrium')
+}
+
+/**
+ * R19：启动时如果没启用，就**自己启用**（固定 `%APPDATA%\Atrium`）。
+ * 如果老的数据根里已经有 `vpm.db`，先复制过来（旧的不删，可回滚）。
+ */
+async function ensureAutoEnabled(): Promise<void> {
+  if (isSafeMode()) return
+  const status = getVpmStatus()
+  if (status.enabled && status.dataRootValid) return
+
+  const target = defaultVpmDataRoot()
+  let previousRoot: string | null = null
+  try {
+    previousRoot = readVpmSettings().settings.dataRoot
+  } catch {
+    previousRoot = null
+  }
+
+  if (previousRoot && previousRoot.toLowerCase() !== target.toLowerCase()) {
+    try {
+      const oldDb = path.join(previousRoot, 'vpm.db')
+      const newDb = path.join(target, 'vpm.db')
+      if (fs.existsSync(oldDb) && !fs.existsSync(newDb)) {
+        fs.mkdirSync(target, { recursive: true })
+        for (const suffix of ['', '-wal', '-shm']) {
+          if (fs.existsSync(oldDb + suffix)) fs.copyFileSync(oldDb + suffix, newDb + suffix)
+        }
+        log.info(`VPM 数据库已迁移到系统盘：${oldDb} → ${newDb}`)
+      }
+    } catch (error) {
+      log.warn('VPM 数据库迁移失败（继续用新库）：' + String(error))
+    }
+  }
+
+  try {
+    await enableVpm({ dataRoot: target, systemDefault: true })
+    log.info(`VPM 已自动启用：dataRoot=${target}`)
+  } catch (error) {
+    log.warn('VPM 自动启用失败：' + (error instanceof Error ? error.message : String(error)))
+  }
 }
 
 /**
@@ -398,7 +445,11 @@ export async function enableVpm(input: VpmEnableInput): Promise<VpmStatus> {
     throw new VpmError('vpmDataRootRequired')
   }
 
-  const evaluated = validateVpmDataRoot(input.dataRoot, context())
+  // R19：系统默认根（%APPDATA%\Atrium）只放索引/密钥，体积很小，
+  // 所以跳过"必须非系统盘"那条规则；用户自己选的目录仍然按原规则校验。
+  const evaluated = input.systemDefault
+    ? { ok: true as const, normalized: normalizeVpmDataRoot(input.dataRoot, process.platform) }
+    : validateVpmDataRoot(input.dataRoot, context())
   if (!evaluated.ok) throw new VpmError(evaluated.code, evaluated.params)
 
   ensureWritableDataRoot(evaluated.normalized)

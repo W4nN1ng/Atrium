@@ -69,6 +69,8 @@ export interface VpmDataRootPick {
 
 export interface VpmEnableInput {
   dataRoot: string
+  /** R19：用系统默认数据根（`%APPDATA%\Atrium`）自动启用，跳过"必须非系统盘"那条规则。 */
+  systemDefault?: boolean
 }
 
 export interface VpmReadResult {

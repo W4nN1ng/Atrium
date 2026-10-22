@@ -135,26 +135,8 @@ export function VpmSettings(): JSX.Element {
         </div>
       ) : null}
 
-      {status && !status.enabled ? (
-        <div className="rounded border p-3" style={{ borderColor: 'var(--line)' }}>
-          <div className="label mb-1.5">{t('vpm.dataRoot')}</div>
-          <p className="mb-2 text-[11px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-            {t('vpm.dataRootHint')}
-          </p>
-          <p className="mb-3 text-[11px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-            {t('vpm.defaultOff')}
-          </p>
-          <Button variant="accent" onClick={openEnable} disabled={status.safeMode}>
-            {t('vpm.enable')}
-          </Button>
-        </div>
-      ) : null}
-
       {status?.enabled ? (
         <div>
-          <Field label={t('vpm.dataRoot')} hint={status.dataRootValid ? undefined : t('vpm.dataRootUnavailable')}>
-            <span className="break-all font-mono text-[11px]">{status.dataRoot ?? t('vpm.dataRootRequired')}</span>
-          </Field>
           <Field label={t('vpm.snapshot')}>
             {status.rollbackSnapshot ? (
               <div className="text-[11px]">
@@ -170,11 +152,6 @@ export function VpmSettings(): JSX.Element {
           <Field label={t('vpm.appVersion')}>
             <span className="faint text-[11px]">{status.appVersion || '—'}</span>
           </Field>
-          <div className="mt-2 flex items-center gap-2">
-            <Button onClick={() => setDisableOpen(true)} disabled={busy}>
-              {t('vpm.disable')}
-            </Button>
-          </div>
           {!status.safeMode && !status.degraded ? <VpmWorkspace enabled={status.enabled} /> : null}
         </div>
       ) : null}
