@@ -107,7 +107,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P6-D | 旧式迁移、备份/迁移 UI 与真机 | P2-B/P6-C | `backup/migrate`、迁移向导、UI | B18/E8/K4/K5 | todo |
 | P7-A | 仓库治理：编辑/启停/排序/导入导出 | P1-E | 仓库编辑、拖拽排序、lists | C3/C4/C5/C6/C13 | todo |
 | P7-B | 请求头、密钥存储与测试连接 | P7-A/P4-B | `SecretStore`、safeStorage、脱敏 | C7/C15 | todo |
-| P7-C | 本地用户包目录 | P7-B/P4-C | `localPackages`、信任/扫描、local 源 | C11 | todo |
+| P7-C | 本地用户包目录 | P7-B/P4-C | `catalog/local` 扫描已完成，信任表/UI 待做 | C11 | in_progress |
 | P7-D | VCC 只读导入与模板导入导出 | P2-C/P5-A | `interop/vcc`、settings 读取、模板互操作 | C12/F2/F3/F4/F5/F8/A9/A10 | todo |
 | P7-E | 深链、单实例与互操作 UI | P7-C/P7-D | `atrium://`、`vcc://` 确认、集成 UI | F7/H4/C3–C7 | todo |
 | P8-A | UI 收口、按钮纪律与组件边界 | P4-E/P5-D/P6-D/P7-E | 逐屏检查、组件拆分、文案 | I1/I2/A20/B24 | todo |
