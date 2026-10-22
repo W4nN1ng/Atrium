@@ -65,7 +65,7 @@
 | P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | done |
 | P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | done |
 | P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | todo |
-| P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | todo |
+| P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | done |
 | P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10/K1 | todo |
 | P5-E | 启动即绑定目标与双击素材真机验收 | P5-D/P4-F/P2-E | 启动绑定、双击导入真机、多实例回归 | K1/K2/K3/K6 | todo |
 | P6-A | 文件收集器、排除规则与取消 | P2-B | `backup/collector`、排除表、进度/取消 | E1/E3/E4 | todo |
@@ -90,7 +90,7 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P5-B 也已完成（新建工程与最近路径）；下一个可执行的卡是 **P5-C**（unitypackage 读取与模板附件）。
+> P5-C 也已完成（unitypackage 解包与模板附件）；下一个可执行的卡是 **P5-D**（启动 Unity、工程/模板 UI 与真机）。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -953,6 +953,31 @@ Task: P?-?
   要改就得重建表，收益不大；依赖安装本身有 `install` 操作记录）。
 - **给 P5-C**：实现 `TemplateAttachmentPort` 后传给 `ProjectCreateService`，
   带附件的模板就能直接建；解包目标就是临时工程的 `Assets/`。
+
+### P5-C（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/shared/vpm/domain/unitypackage.ts`（纯逻辑）：`normalizeUnityPathname` /
+    `planUnityPackage` / `isValidGuid`，常量 `UNITYPACKAGE_MAX_ENTRIES=100000`、
+    `UNITYPACKAGE_MAX_BYTES=2 GiB`、`UNITYPACKAGE_MAX_PATH=260`。
+  - 新增 `src/main/vpm/unity/unitypackage.ts`：`extractUnityPackage`、
+    `createTemplateAttachmentPort`（P5-B 的 `TemplateAttachmentPort` 实现）。
+  - 新错误码：`vpmUnityPackageInvalid` / `Unsafe` / `Conflict` / `TooLarge` / `Failed`（三语）。
+  - `initVpm` 现在把附件端口注入 `ProjectCreateService`——带附件的模板可以直接建工程了。
+- **规则**：只接受 `<32位guid>/<pathname|asset|asset.meta|preview.png>`；`pathname` 必须在
+  `Assets/` 下（拒绝绝对路径/盘符/`..`/反斜杠/控制字符/保留名/结尾点空格/≥260）；
+  同一目标大小写不敏感去重；**只搬 asset 与 asset.meta，绝不生成/补写 `.meta`**；
+  缺 meta 只给 `missingMeta` 警告。
+- **安全**：两段式（临时目录 → 校验 → 搬入），冲突/逃逸/超限时工程一个字节都没动；
+  中途 IO 失败回滚已搬文件与本次建的空目录；条目/字节限额超了不写盘。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/domain/unitypackage.spec.ts` 7 条 +
+  `tests/vpm/unity/unitypackage.spec.ts` 10 条全绿。覆盖：路径归一拒绝矩阵、
+  计划去重/缺 meta/无效 guid、真实 tar.gz 的字节级 meta 保真、preview 忽略、
+  冲突整体拒绝与 skip、路径逃逸、坏包、条目限额、"不写 meta" 源码守卫、附件端口。
+- **未验证**：**没有在真 Unity 里看过导入结果**（P5-D 验证）；符号链接条目只在过滤层拒绝，
+  没有构造真实符号链接包（Windows 建链接要权限）；没有用超大真实包压过。
+- **给 P5-D**：`extractUnityPackage` 可直接用于"把 unitypackage 导进已有工程"；
+  真机要确认 Unity 能识别搬进去的 `.meta`（字节原样，理论上是同一份）。
 
 ---
 
