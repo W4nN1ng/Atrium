@@ -193,6 +193,44 @@ export function VpmPackagesPanel({
   const safeCart = useMemo(() => sanitizeCart(cart, rows), [cart, rows])
   const cartSize = safeCart.size
   const locked = detail.running || ops.run?.running === true
+  // P7-C：从本地信任目录装包（不下载，直接拷贝）
+  const [localOpen, setLocalOpen] = useState(false)
+  const [localList, setLocalList] = useState<Array<{ name: string; version: string; unity: string | null }>>([])
+  const [localBusy, setLocalBusy] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
+
+  const openLocal = async (): Promise<void> => {
+    setLocalError(null)
+    setLocalOpen(true)
+    try {
+      const list = await vpmApi.localScan()
+      // 同名只留最高版本
+      const byName = new Map<string, { name: string; version: string; unity: string | null }>()
+      for (const pkg of list) {
+        const current = byName.get(pkg.name)
+        if (!current || pkg.version.localeCompare(current.version, 'en', { numeric: true }) > 0) {
+          byName.set(pkg.name, { name: pkg.name, version: pkg.version, unity: pkg.unity })
+        }
+      }
+      setLocalList([...byName.values()].sort((a, b) => a.name.localeCompare(b.name)))
+    } catch (cause) {
+      setLocalError(errorText(cause))
+    }
+  }
+
+  const installLocal = async (name: string): Promise<void> => {
+    setLocalBusy(true)
+    setLocalError(null)
+    try {
+      await vpmApi.localInstall({ projectKey: detail.projectKey, packageName: name })
+      setLocalOpen(false)
+      onChanged()
+    } catch (cause) {
+      setLocalError(errorText(cause))
+    } finally {
+      setLocalBusy(false)
+    }
+  }
 
   // 操作结束后刷新工程快照，并清掉已提交的变更单。
   useEffect(() => {
@@ -255,6 +293,9 @@ export function VpmPackagesPanel({
           {t('vpm.packages.updatesCount', { count: updates })}
         </Badge>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button variant="ghost" disabled={locked} onClick={() => void openLocal()}>
+            {t('vpm.local.install')}
+          </Button>
           <Button
             variant="accent"
             disabled={locked}
@@ -453,6 +494,54 @@ export function VpmPackagesPanel({
         onCancel={ops.cancel}
         onUndo={undo}
       />
+
+      <Modal
+        open={localOpen}
+        onOpenChange={(open) => {
+          if (!localBusy) setLocalOpen(open)
+        }}
+        title={t('vpm.local.installTitle')}
+        footer={
+          <Button onClick={() => setLocalOpen(false)} disabled={localBusy}>
+            {t('common.close')}
+          </Button>
+        }
+      >
+        <div className="space-y-2 text-[12px]">
+          <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
+            {t('vpm.local.installHint')}
+          </p>
+          {localList.length === 0 ? (
+            <p style={{ color: 'var(--faint)' }}>{t('vpm.local.empty')}</p>
+          ) : (
+            <div className="rounded border" style={{ borderColor: 'var(--line)' }}>
+              {localList.map((pkg) => (
+                <div
+                  key={pkg.name}
+                  className="flex items-center gap-2 border-b px-3 py-2 last:border-b-0"
+                  style={{ borderColor: 'var(--line)' }}
+                >
+                  <span className="min-w-0 flex-1 truncate font-mono">{pkg.name}</span>
+                  <span style={{ color: 'var(--muted)' }}>{pkg.version}</span>
+                  {pkg.unity ? <Badge>{`Unity ${pkg.unity}`}</Badge> : null}
+                  <Button disabled={localBusy} onClick={() => void installLocal(pkg.name)}>
+                    {t('vpm.local.installOne')}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          {localError ? (
+            <div
+              className="rounded border px-2 py-1.5 text-[11px]"
+              style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}
+            >
+              {localError}
+            </div>
+          ) : null}
+        </div>
+      </Modal>
+
     </section>
   )
 }

@@ -230,6 +230,13 @@ export const vpmApi = {
   localScan(): Promise<Array<{ name: string; version: string; path: string; unity: string | null; rootId: string }>> {
     return window.a.vpm.localScan()
   },
+  localInstall(input: { projectKey: string; packageName: string }): Promise<{
+    name: string
+    version: string
+    installedAt: string
+  }> {
+    return window.a.vpm.localInstall(input)
+  },
   templateList(): Promise<VpmTemplateDto[]> {
     return window.a.vpm.templateList()
   },

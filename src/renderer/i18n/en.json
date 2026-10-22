@@ -1797,7 +1797,11 @@
       "hint": "Only folders you add are scanned; removing one just forgets it, files stay.",
       "empty": "No local package folders yet.",
       "count": "{{count}} package(s)",
-      "remove": "Remove"
+      "remove": "Remove",
+      "install": "Install local",
+      "installTitle": "Install from local folder",
+      "installHint": "From the folders trusted under Settings → Local packages; copied into Packages/, no download.",
+      "installOne": "Install"
     }
   }
 }

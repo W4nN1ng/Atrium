@@ -142,6 +142,7 @@ const api: AApi = {
     localAdd: (input) => invoke('vpm:local-add', input),
     localRemove: (id) => invoke('vpm:local-remove', id),
     localScan: () => invoke('vpm:local-scan'),
+    localInstall: (input) => invoke('vpm:local-install', input),
     templateList: () => invoke('vpm:template-list'),
     templateFavorite: (input) => invoke('vpm:template-favorite', input),
     templateRecent: () => invoke('vpm:template-recent')

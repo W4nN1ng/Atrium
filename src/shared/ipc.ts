@@ -269,6 +269,7 @@ export const IpcInvoke = {
     LocalAdd: 'vpm:local-add',
     LocalRemove: 'vpm:local-remove',
     LocalScan: 'vpm:local-scan',
+    LocalInstall: 'vpm:local-install',
     TemplateList: 'vpm:template-list',
     TemplateFavorite: 'vpm:template-favorite',
     TemplateRecent: 'vpm:template-recent'

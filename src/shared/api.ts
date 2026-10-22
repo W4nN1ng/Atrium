@@ -393,6 +393,11 @@ export interface AApi {
     localScan(): Promise<
       Array<{ name: string; version: string; path: string; unity: string | null; rootId: string }>
     >
+    localInstall(input: { projectKey: string; packageName: string }): Promise<{
+      name: string
+      version: string
+      installedAt: string
+    }>
     templateList(): Promise<VpmTemplateDto[]>
     templateFavorite(input: { id: string; favorite: boolean }): Promise<VpmTemplateDto>
     templateRecent(): Promise<VpmRecentLocationDto[]>

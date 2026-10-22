@@ -1797,7 +1797,11 @@
       "hint": "只有你添加的目录才会被扫描；移除只取消信任，不删文件。",
       "empty": "还没有添加本地包目录。",
       "count": "{{count}} 个包",
-      "remove": "移除"
+      "remove": "移除",
+      "install": "从本地装包",
+      "installTitle": "从本地装包",
+      "installHint": "来自「设置 → 本地包目录」里信任的文件夹；直接拷贝进 Packages/，不下载。",
+      "installOne": "安装"
     }
   }
 }

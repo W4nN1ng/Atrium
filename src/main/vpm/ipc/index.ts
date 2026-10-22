@@ -384,6 +384,19 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
     return { ok: requireRuntime().local.remove(id.trim()) }
   })
   ipc.handle(IpcInvoke.Vpm.LocalScan, () => requireRuntime().local.scanAll())
+  ipc.handle(IpcInvoke.Vpm.LocalInstall, (input: unknown) => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'input' })
+    }
+    const raw = input as { projectKey?: unknown; packageName?: unknown }
+    if (typeof raw.projectKey !== 'string' || typeof raw.packageName !== 'string') {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'input' })
+    }
+    return requireRuntime().localInstall.install({
+      projectKey: raw.projectKey,
+      packageName: raw.packageName
+    })
+  })
 
   ipc.handle(IpcInvoke.Vpm.CatalogQuery, (query: unknown) => {
     if (!query || typeof query !== 'object' || Array.isArray(query)) {

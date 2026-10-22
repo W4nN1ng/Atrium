@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { ProjectBackupService, ProjectCopyService, ProjectMigrateService } from './backup'
-import { CatalogService, LocalPackageStore } from './catalog'
+import { CatalogService, LocalInstallService, LocalPackageStore } from './catalog'
 import { CacheEntryStore, PackageCacheService, VpmCacheStore } from './cache'
 import { closeVpmDb, openVpmDb, type VpmDb } from './db'
 import { createElectronHttpTransport, createVpmHttpClient, type VpmHttpPort } from './http'
@@ -84,6 +84,7 @@ export interface VpmRuntime {
   /** VPM 数据根（vpm.db / 缓存 / 备份 / secrets 都在这下面）。 */
   dataRoot: string
   local: LocalPackageStore
+  localInstall: LocalInstallService
   store: RepoStore
   http: VpmHttpPort
   cache: VpmCacheStore
@@ -156,6 +157,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       concurrency: options.fetchConcurrency,
       secrets
     })
+    const localStore = new LocalPackageStore(db)
     const catalog = new CatalogService(store)
     const unity = new UnityEditorService(
       new UnityInstallStore(db, options.now),
@@ -303,7 +305,8 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
     let disposed = false
     runtime = {
       dataRoot: options.dataRoot,
-      local: new LocalPackageStore(db),
+      local: localStore,
+      localInstall: new LocalInstallService({ projects, local: localStore, activity: options.projectActivity }),
       store,
       http,
       cache,

@@ -16,3 +16,6 @@ export {
   scanLocalPackages
 } from './local'
 export type { LocalPackage, LocalPackageIssue, LocalRoot, LocalScanResult } from './local'
+
+export { LocalInstallService } from './localInstall'
+export type { LocalInstallDeps, LocalInstallInput, LocalInstallResult } from './localInstall'
