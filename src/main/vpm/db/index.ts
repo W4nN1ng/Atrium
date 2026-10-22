@@ -67,7 +67,11 @@ function assertNoHalfMigratedDb(db: VpmDb): void {
     'vpm_repo_package',
     'vpm_unity_install',
     'vpm_project',
-    'vpm_project_package'
+    'vpm_project_package',
+    'vpm_operation',
+    'vpm_operation_step',
+    'vpm_operation_file',
+    'vpm_cache_entry'
   ]
   if (vpmTables.some((name) => present.has(name))) {
     // user_version=0 却有 VPM 表：来源不明，绝不覆盖/重建。

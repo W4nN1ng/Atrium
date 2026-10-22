@@ -42,6 +42,14 @@ P1-D 当前已落地：
 - `gate.ts`：enabled 时动态加载 runtime，`startVpmRuntime()` 在 app ready 调用；
   初始化失败只置 `degraded + degradedCode`，核心继续。
 
+P4-A 当前已落地：
+
+- `install/`：`vpm.db` v3 的操作/步骤/文件记录，合法状态迁移、单工程活动互斥、
+  `.atrium-tx/<op>/journal.json` 原子双写、幂等步骤、启动恢复判定骨架；见
+  `install/README.md`。P4-A 不下载、不写工程；恢复只落 `committed/needs_attention`。
+- `index.ts`：`VpmRuntime.operations/recovery` 暴露给 P4-C/P4-D；启动时先
+  `recovery.scanAndApply()`，再种子仓库。
+
 P2 起：
 
 - `projects/`、`resolver/`、`install/`、`vault/`、`unity/`、`backup/`、`interop/`、`log/`
@@ -73,6 +81,7 @@ P2 起：
 - `tests/vpm/ipc/vpm-ipc.spec.ts`、`tests/renderer/vpm-api.spec.ts`、`tests/renderer/vpm-view.spec.ts`
 - `tests/vpm/unity/editors.spec.ts`、`tests/vpm/db/migrate.spec.ts`
 - `tests/vpm/projects/reader.spec.ts`、`tests/vpm/projects/service.spec.ts`
+- `tests/vpm/install/journal.spec.ts`、`tests/vpm/runtime.spec.ts`（P4-A 状态机/恢复接线）
 - 架构边界：`tests/vpm/architecture.spec.ts`
 - 运行：`npm test`；涉及 Electron 构建时再跑 `npm run build:dir`
 

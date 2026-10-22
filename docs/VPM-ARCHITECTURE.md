@@ -313,6 +313,10 @@ export interface InstallOperation {
 - 崩溃恢复在 VPM 初始化时扫描未完成操作；只处理能证明安全的操作。
 - 事务服务是唯一能改 `Packages/` 和 manifest 的模块。
 - 例外：`Packages/com.avca.bridge` 由核心桥接安装器写入；它必须出现在事务/清理的受保护集合里。
+- P4-A 落实：`vpm_operation`/`vpm_operation_step`/`vpm_operation_file` + 工程内
+  `.atrium-tx/<op>/journal.json`。同一工程 `planned/preflight/applying` 最多一条；
+  `needs_attention` 未恢复前拒绝新操作。提交点是 journal 的 `manifest_written`：
+  未写 manifest 不能 `committed`，写了之后不能 `failed/rolled_back`。
 
 ### 6.4.1 工程联动端口（core 提供，gate 注入）
 
@@ -499,7 +503,8 @@ idle → fetching → ready
 2. `shared/vpm/domain` 不 import `electron`、`node:fs`、`better-sqlite3`、`main/**`、`renderer/**`；
 3. `main/vpm` 不 import `renderer/**`；
 4. 网络调用只在 `main/vpm/http/`（测试除外）；
-5. SQL 只在 `main/vpm/db/`、`main/vpm/repos/`；
+5. SQL 只在 `main/vpm/db/`、`main/vpm/repos/`、`main/vpm/install/state.ts`
+   （P4-A 例外：操作状态机必须和 journal 双写在同一个事务里）；
 6. 渲染进程静态 import `renderer/vpm/**` 只允许 `Settings.tsx` / `Project.tsx` 的 `lazy(() => import(...))`；
 7. `renderer/vpm` 的 `window.a` 只在 `api.ts`；
 8. 事务/备份/版本服务之外不得写工程文件（用路径/函数白名单检查，允许误报白名单但要有注释）；

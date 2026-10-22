@@ -2,6 +2,7 @@ import { CatalogService } from './catalog'
 import { VpmCacheStore } from './cache'
 import { closeVpmDb, openVpmDb, type VpmDb } from './db'
 import { createElectronHttpTransport, createVpmHttpClient, type VpmHttpPort } from './http'
+import { OperationStore, RecoveryService } from './install'
 import { PlanService } from './planService'
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
@@ -37,6 +38,8 @@ export interface InitVpmOptions {
   projectReader?: (projectPath: string) => ProjectReaderPort
   /** 核心导入目标/启动绑定；P5-D 启动工程前调用。 */
   projectLinkage?: ProjectLinkagePort
+  /** 恢复扫描用：工程是否正在 Unity 中/导入中；默认未知=false。P4-F 接入。 */
+  isProjectActive?: (projectPath: string) => boolean
 }
 
 export interface VpmRuntime {
@@ -48,6 +51,8 @@ export interface VpmRuntime {
   unity: UnityEditorService
   projects: ProjectsService
   plans: PlanService
+  operations: OperationStore
+  recovery: RecoveryService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -92,6 +97,13 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       reader: options.projectReader
     })
     const plans = new PlanService({ projects, catalog, now: options.now })
+    const operations = new OperationStore(db, options.now)
+    const recovery = new RecoveryService({
+      operations,
+      isProjectActive: options.isProjectActive
+    })
+    // 启动先处理崩溃现场：P4-A 只做判定/保守落状态，不碰工程文件。
+    recovery.scanAndApply()
     await repos.seedIfEmpty()
 
     let disposed = false
@@ -104,6 +116,8 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       unity,
       projects,
       plans,
+      operations,
+      recovery,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return
