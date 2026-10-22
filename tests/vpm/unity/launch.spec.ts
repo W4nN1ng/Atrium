@@ -142,7 +142,11 @@ describe('launch', () => {
         return fakeChild()
       }
     )
-    const service = new UnityLaunchService({ installs: () => [install({ path: exe })], spawn })
+    const service = new UnityLaunchService({
+      installs: () => [install({ path: exe })],
+      spawn,
+      exists: () => true
+    })
 
     const result = await service.launch({
       projectPath,
@@ -163,7 +167,8 @@ describe('launch', () => {
     const service = new UnityLaunchService({
       installs: () => [install({ path: touchExe(path.join(root, 'editor', 'Unity.exe')) })],
       isRunning: () => true,
-      spawn
+      spawn,
+      exists: () => true
     })
     const bind = vi.fn()
     const result = await service.launch({ projectPath, bindTarget: bind })
@@ -179,7 +184,8 @@ describe('launch', () => {
       installs: () => [install({ path: touchExe(path.join(root, 'editor', 'Unity.exe')) })],
       spawn: () => {
         throw new Error('spawn exploded')
-      }
+      },
+      exists: () => true
     })
     expect(
       await codeOf(service.launch({ projectPath, bindTarget: () => undefined, clearTarget: clear }))
@@ -195,5 +201,77 @@ describe('launch', () => {
     expect(await codeOf(service.launch({ projectPath: path.join(root, 'missing') }))).toBe(
       'vpmProjectInvalid'
     )
+  })
+})
+
+describe('hub launch and verification', () => {
+  it('prefers the unityhub:// protocol when Hub is available', async () => {
+    const exe = touchExe(path.join(root, 'editor', 'Unity.exe'))
+    const opened: string[] = []
+    const spawn = vi.fn(
+      (_command: string, _args: readonly string[], _options: Record<string, unknown>) =>
+        fakeChild()
+    )
+    const service = new UnityLaunchService({
+      installs: () => [install({ path: exe })],
+      spawn,
+      openExternal: (url) => {
+        opened.push(url)
+      },
+      hubPath: () => 'C:////Program Files\\Unity Hub\\Unity Hub.exe',
+      exists: () => true
+    })
+
+    const result = await service.launch({ projectPath })
+
+    expect(spawn).not.toHaveBeenCalled()
+    expect(opened).toHaveLength(1)
+    expect(opened[0].startsWith('unityhub://2022.3.22f1/')).toBe(true)
+    expect(opened[0]).toContain(projectPath.replace(/\\/g, '/'))
+    expect(result).toMatchObject({ status: 'launched', viaHub: true, verified: true })
+  })
+
+  it('falls back to the exe when custom args are present', async () => {
+    const exe = touchExe(path.join(root, 'editor', 'Unity.exe'))
+    const spawn = vi.fn(
+      (_command: string, _args: readonly string[], _options: Record<string, unknown>) =>
+        fakeChild()
+    )
+    const opened: string[] = []
+    const service = new UnityLaunchService({
+      installs: () => [install({ path: exe })],
+      spawn,
+      openExternal: (url) => {
+        opened.push(url)
+      },
+      hubPath: () => 'hub.exe',
+      exists: () => true
+    })
+
+    const result = await service.launch({ projectPath, extraArgs: ['-batchmode'] })
+    expect(opened).toEqual([])
+    expect(spawn).toHaveBeenCalledTimes(1)
+    expect(result).toMatchObject({ status: 'launched', viaHub: false })
+  })
+
+  it('reports unverified and clears the binding when the project never opens', async () => {
+    const exe = touchExe(path.join(root, 'editor', 'Unity.exe'))
+    const clear = vi.fn()
+    const service = new UnityLaunchService({
+      installs: () => [install({ path: exe })],
+      spawn: () => fakeChild(),
+      exists: () => false,
+      verifyTimeoutMs: 20,
+      verifyIntervalMs: 5,
+      sleep: async () => undefined
+    })
+
+    const result = await service.launch({
+      projectPath,
+      bindTarget: () => undefined,
+      clearTarget: clear
+    })
+    expect(result).toMatchObject({ status: 'unverified', verified: false })
+    expect(clear).toHaveBeenCalledWith(projectPath)
   })
 })

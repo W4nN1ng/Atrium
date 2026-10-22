@@ -150,7 +150,9 @@ export function registerUnityIpc(options: UnityIpcOptions): void {
       exePath: result.exePath,
       version: result.version,
       args: result.args,
-      pid: result.pid
+      pid: result.pid,
+      viaHub: result.viaHub,
+      verified: result.verified
     }
   })
 

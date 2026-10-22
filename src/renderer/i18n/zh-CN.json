@@ -1380,7 +1380,8 @@
       "launched": "已启动，正在连接…",
       "alreadyRunning": "Unity 已在运行，已设为导入目标",
       "editorAuto": "自动（按工程版本）",
-      "launchTimeout": "Unity 已经启动，但 60 秒内没连上：多半卡在登录/许可证对话框，或者这个工程还没装桥接。先看一下 Unity 窗口。"
+      "launchTimeout": "Unity 已经启动，但 60 秒内没连上：多半卡在登录/许可证对话框，或者这个工程还没装桥接。先看一下 Unity 窗口。",
+      "launchUnverified": "Unity 没有打开这个工程（45 秒没有反应）。先看一眼屏幕有没有 Unity 窗口或登录/许可证对话框；如果没有，去 Unity Hub 里手动打开这个工程一次。"
     },
     "plan": {
       "title": "变更计划（只读）",

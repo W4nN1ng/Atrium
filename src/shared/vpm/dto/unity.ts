@@ -12,11 +12,16 @@ export interface VpmUnityInstallDto {
 }
 
 export interface VpmLaunchResultDto {
-  status: 'launched' | 'alreadyRunning'
+  /** `unverified` = 启动命令发出去了，但 45 秒内没看到工程被打开。 */
+  status: 'launched' | 'alreadyRunning' | 'unverified'
   exePath: string
   version: string | null
   args: string[]
   pid: number | null
+  /** 走的是 Unity Hub 协议。 */
+  viaHub: boolean
+  /** 看到 `Temp/UnityLockfile` = 工程真的被打开了。 */
+  verified: boolean
 }
 
 export interface VpmCreateProjectInput {

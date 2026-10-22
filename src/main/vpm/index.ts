@@ -72,6 +72,8 @@ export interface InitVpmOptions {
   revealPath?: (target: string) => void
   /** Electron safeStorage（P7-B）；不传就用内存实现（测试/无 Electron）。 */
   secretStorage?: SafeStorageLike
+  /** 打开外部协议（`unityhub://`）；gate 注入 `shell.openExternal`。 */
+  openExternal?: (url: string) => void | Promise<void>
 }
 
 export interface VpmRuntime {
@@ -220,6 +222,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
     })
     const launch = new UnityLaunchService({
       installs: () => unity.list(),
+      ...(options.openExternal ? { openExternal: options.openExternal } : {}),
       projectExePath: (projectPath: string) => {
         try {
           return projects.get(projectKeyOf(projectPath))?.ledger?.unityExePath ?? null

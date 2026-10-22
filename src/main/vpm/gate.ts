@@ -217,7 +217,9 @@ async function ensureRuntime(): Promise<void> {
         projectLinkage: gateDeps.projectLinkage,
         projectActivity: gateDeps.projectActivity,
         legacyGuard: gateDeps.legacyGuard,
-        revealPath: (target: string) => shell.showItemInFolder(target)
+        revealPath: (target: string) => shell.showItemInFolder(target),
+        // R1：Unity 启动优先走 Hub 协议（直接跑 Unity.exe 会卡在创建窗口之前）
+        openExternal: (url: string) => shell.openExternal(url)
       })
       if (generation !== runtimeGeneration) {
         handle.dispose()

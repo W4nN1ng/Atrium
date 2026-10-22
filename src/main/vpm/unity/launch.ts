@@ -14,7 +14,10 @@ import type { UnityInstall } from './editors'
  * - **先 `bindLaunchTarget` 再 spawn**：绑定立即生效，双击素材时能等它启动/连接；
  * - 启动失败/取消必须 `clearLaunchTarget`，不留旧目标；
  * - 已在运行 → 不重复启动，返回 `alreadyRunning`，但仍把该工程设为导入目标；
- * - 缺失编辑器**不自动换版本**，直接报 `vpmUnityNotFound`。
+ * - 缺失编辑器**不自动换版本**，直接报 `vpmUnityNotFound`；
+ * - **优先用 Unity Hub 协议启动**（`unityhub://<版本>/<路径>`）：直接跑 `Unity.exe -projectPath`
+ *   在 2022.3 上会卡在创建窗口之前（实测：进程在、没有窗口、工程里连 Temp 都没有）；
+ * - 启动后**必须验证**：轮询 `Temp/UnityLockfile`，超时返回 `unverified` 并清掉绑定。
  */
 
 const MAX_EXTRA_ARGS = 64
@@ -34,12 +37,18 @@ export interface LaunchUnityInput {
 
 export type LaunchEditorSource = 'explicit' | 'project' | 'version'
 
+export type LaunchStatus = 'launched' | 'alreadyRunning' | 'unverified'
+
 export interface LaunchUnityResult {
-  status: 'launched' | 'alreadyRunning'
+  status: LaunchStatus
   exePath: string
   version: string | null
   args: string[]
   pid: number | null
+  /** 走的是 Unity Hub 协议（而不是直接 spawn exe）。 */
+  viaHub: boolean
+  /** 看到 `Temp/UnityLockfile` 出现 = 工程真的被打开了。 */
+  verified: boolean
 }
 
 export interface UnityLaunchDeps {
@@ -51,7 +60,45 @@ export interface UnityLaunchDeps {
   isRunning?: (projectPath: string) => boolean
   /** 测试可替换；生产用 `node:child_process.spawn`。 */
   spawn?: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess
+  /** 打开 `unityhub://` 协议（gate 注入 `shell.openExternal`）；不传就退回直接跑 exe。 */
+  openExternal?: (url: string) => void | Promise<void>
+  /** Hub 可执行文件路径；不传就按默认位置探测。 */
+  hubPath?: () => string | null
+  /** 验证超时与轮询间隔（默认 45s / 800ms）。 */
+  verifyTimeoutMs?: number
+  verifyIntervalMs?: number
+  sleep?: (ms: number) => Promise<void>
+  exists?: (target: string) => boolean
 }
+
+/** Unity Hub 的常见安装位置。 */
+export function findUnityHub(): string | null {
+  const candidates = [
+    process.env.ProgramFiles ? path.join(process.env.ProgramFiles, 'Unity Hub', 'Unity Hub.exe') : null,
+    process.env['ProgramFiles(x86)']
+      ? path.join(process.env['ProgramFiles(x86)'], 'Unity Hub', 'Unity Hub.exe')
+      : null,
+    process.env.LOCALAPPDATA
+      ? path.join(process.env.LOCALAPPDATA, 'Programs', 'Unity Hub', 'Unity Hub.exe')
+      : null
+  ].filter((item): item is string => !!item)
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) return candidate
+    } catch {
+      /* 读不到就试下一个 */
+    }
+  }
+  return null
+}
+
+/** `unityhub://2022.3.22f1/E:/projects/Demo` */
+export function hubProjectUrl(version: string, projectPath: string): string {
+  const normalized = projectPath.replace(/\\/g, '/')
+  return `unityhub://${encodeURIComponent(version)}/${encodeURI(normalized).replace(/#/g, '%23')}`
+}
+
+const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
 function isFile(target: string): boolean {
   try {
@@ -156,12 +203,12 @@ export class UnityLaunchService {
     if (!stat.isDirectory() || stat.isSymbolicLink()) {
       throw new VpmError('vpmProjectInvalid', { field: 'path' })
     }
-    if (!readVersionFile(projectPath)) {
-      throw new VpmError('vpmProjectInvalid', { field: 'version' })
-    }
+    const projectVersion = readVersionFile(projectPath)
+    if (!projectVersion) throw new VpmError('vpmProjectInvalid', { field: 'version' })
 
     const { install } = this.resolveEditor(projectPath, input.editorPath)
-    const args = this.buildArgs(projectPath, input.extraArgs)
+    const extraArgs = sanitizeArgs(input.extraArgs)
+    const args = this.buildArgs(projectPath, extraArgs)
 
     // 已运行：不重复启动，但仍然把它设为导入目标。
     if (this.deps.isRunning?.(projectPath) === true) {
@@ -171,52 +218,108 @@ export class UnityLaunchService {
         exePath: install.path,
         version: install.version,
         args,
-        pid: null
+        pid: null,
+        viaHub: false,
+        verified: true
       }
     }
 
-    // 先绑定再 spawn：绑定立即生效，双击素材会等这个工程起来。
+    // 先绑定再启动：绑定立即生效，双击素材会等这个工程起来。
     input.bindTarget?.(projectPath)
-    const spawnFn: NonNullable<UnityLaunchDeps['spawn']> =
-      this.deps.spawn ??
-      (nodeSpawn as unknown as NonNullable<UnityLaunchDeps['spawn']>)
-    let child: ChildProcess
+
+    /**
+     * Hub 优先：直接 `Unity.exe -projectPath` 在 2022.3 上会卡在创建窗口之前
+     * （实测：进程在、MainWindowHandle=0、工程里连 Temp 都没有）。
+     * 有自定义参数时走不了协议，只能直接跑 exe。
+     */
+    const hub = this.deps.openExternal ? (this.deps.hubPath?.() ?? findUnityHub()) : null
+    const viaHub = !!hub && extraArgs.length === 0 && !!projectVersion
+    let child: ChildProcess | null = null
+
     try {
-      child = spawnFn(install.path, args, {
-        cwd: projectPath,
-        detached: true,
-        stdio: 'ignore',
-        windowsHide: true,
-        // 绝不让参数经过 shell
-        shell: false
-      })
+      let hubHandled = false
+      if (viaHub && this.deps.openExternal) {
+        try {
+          await this.deps.openExternal(hubProjectUrl(install.version ?? projectVersion, projectPath))
+          hubHandled = true
+        } catch {
+          // 协议没注册/Hub 被卸了：退回直接跑 exe，别让用户卡在这里。
+          hubHandled = false
+        }
+      }
+      if (!hubHandled) {
+        const spawnFn: NonNullable<UnityLaunchDeps['spawn']> =
+          this.deps.spawn ?? (nodeSpawn as unknown as NonNullable<UnityLaunchDeps['spawn']>)
+        child = spawnFn(install.path, args, {
+          cwd: projectPath,
+          detached: true,
+          stdio: 'ignore',
+          windowsHide: true,
+          // 绝不让参数经过 shell
+          shell: false
+        })
+        // spawn 失败是异步事件（比如 exe 被删），这里也要清绑定。
+        let failed = false
+        child.once('error', () => {
+          failed = true
+          input.clearTarget?.(projectPath)
+        })
+        try {
+          child.unref()
+        } catch {
+          /* unref 失败不影响启动 */
+        }
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        if (failed) throw new VpmError('vpmUnityLaunchFailed', { reason: 'spawn' })
+      }
+      if (hubHandled) child = null
     } catch (error) {
       input.clearTarget?.(projectPath)
-      throw new VpmError('vpmUnityLaunchFailed', { reason: 'spawn' }, error)
+      throw error instanceof VpmError
+        ? error
+        : new VpmError('vpmUnityLaunchFailed', { reason: viaHub ? 'hub' : 'spawn' }, error)
     }
 
-    // spawn 失败是异步事件（比如 exe 被删），这里也要清绑定。
-    let failed = false
-    child.once('error', () => {
-      failed = true
+    // 启动是"发出去"了，但工程有没有真的打开要验证：等 Temp/UnityLockfile。
+    const verified = await this.verifyStarted(projectPath)
+    if (!verified) {
+      // 没打开就不要留着导入目标，否则双击素材会投到一个不存在的工程。
       input.clearTarget?.(projectPath)
-    })
-    try {
-      child.unref()
-    } catch {
-      /* unref 失败不影响启动 */
+      return {
+        status: 'unverified',
+        exePath: install.path,
+        version: install.version,
+        args,
+        pid: child?.pid ?? null,
+        viaHub,
+        verified: false
+      }
     }
-    // 给 error 事件一个微任务的机会；同步失败就不报成功。
-    await new Promise<void>((resolve) => setImmediate(resolve))
-    if (failed) throw new VpmError('vpmUnityLaunchFailed', { reason: 'spawn' })
 
     return {
       status: 'launched',
       exePath: install.path,
       version: install.version,
       args,
-      pid: child.pid ?? null
+      pid: child?.pid ?? null,
+      viaHub,
+      verified: true
     }
+  }
+
+  /** 轮询 `Temp/UnityLockfile`：它出现 = Unity 真的在打开这个工程。 */
+  private async verifyStarted(projectPath: string): Promise<boolean> {
+    const exists = this.deps.exists ?? ((target: string) => fs.existsSync(target))
+    const sleep = this.deps.sleep ?? defaultSleep
+    const timeout = this.deps.verifyTimeoutMs ?? 45_000
+    const interval = this.deps.verifyIntervalMs ?? 800
+    const lockfile = path.join(projectPath, 'Temp', 'UnityLockfile')
+    const deadline = Date.now() + timeout
+    while (Date.now() < deadline) {
+      if (exists(lockfile)) return true
+      await sleep(interval)
+    }
+    return exists(lockfile)
   }
 }
 

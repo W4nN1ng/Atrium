@@ -88,6 +88,11 @@ function LaunchControl({
       })
       if (result.status === 'alreadyRunning') {
         setNotice(t('vpm.projects.alreadyRunning'))
+      } else if (result.status === 'unverified') {
+        // 命令发出去了，但 45 秒没看到工程被打开：不要再装作"正在连接"。
+        setWaiting(false)
+        setNotice(null)
+        onError(t('vpm.projects.launchUnverified'))
       } else {
         setNotice(t('vpm.projects.launching'))
         setWaiting(true)
