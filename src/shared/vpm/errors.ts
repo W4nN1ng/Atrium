@@ -61,6 +61,7 @@ export const VPM_ERROR_CODES = [
   'vpmTemplateWriteFailed',
   'vpmCreateRejected',
   'vpmCreateFailed',
+  'vpmCollectCancelled',
   'vpmUnityPackageInvalid',
   'vpmUnityPackageUnsafe',
   'vpmUnityPackageConflict',

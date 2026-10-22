@@ -1527,6 +1527,7 @@
       "vpmTemplateWriteFailed": "写入模板失败，请检查数据根是否可写。",
       "vpmCreateRejected": "不能在这个位置新建工程：{{reason}}。",
       "vpmCreateFailed": "新建工程失败（现场已保留，编号 {{opId}}）。",
+      "vpmCollectCancelled": "收集工程文件时被取消，没有继续遍历。",
       "vpmUnityPackageInvalid": "这个 unitypackage 读不出来或结构不对。",
       "vpmUnityPackageUnsafe": "包里有不安全的路径，已拒绝解包（{{path}}）。",
       "vpmUnityPackageConflict": "工程里已经有这个文件，未覆盖（{{path}}）。",

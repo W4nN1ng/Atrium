@@ -1527,6 +1527,7 @@
       "vpmTemplateWriteFailed": "Failed to write the template; check that the data root is writable.",
       "vpmCreateRejected": "Cannot create a project here: {{reason}}.",
       "vpmCreateFailed": "Failed to create the project (the scene is kept, id {{opId}}).",
+      "vpmCollectCancelled": "Collecting project files was cancelled; traversal stopped.",
       "vpmUnityPackageInvalid": "This unitypackage cannot be read or is malformed.",
       "vpmUnityPackageUnsafe": "The package contains an unsafe path; extraction was refused ({{path}}).",
       "vpmUnityPackageConflict": "The project already has this file; nothing was overwritten ({{path}}).",
