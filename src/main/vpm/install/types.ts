@@ -223,6 +223,7 @@ export type RecoveryReason =
   | 'journal_invalid'
   | 'journal_mismatch'
   | 'project_missing'
+  | 'project_changed'
   | 'unity_running'
 
 export interface RecoveryDecision {

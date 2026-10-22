@@ -79,7 +79,70 @@ export interface InstallTransactionOptions {
   now?: () => number
   protectedPackages?: readonly string[]
   maxLegacyEntries?: number
+  /** **测试专用**失败注入点；生产组合根不传。 */
+  hooks?: TransactionHooks
 }
+
+/**
+ * 事务的固定注入点。每个点都可以"抛错"来模拟该步骤失败。
+ *
+ * 这是**测试专用**的依赖注入（构造参数），不是生产环境变量开关：
+ * 组合根不传 `hooks`，运行时不存在任何开关能让用户触发这些点。
+ */
+export const TRANSACTION_HOOK_POINTS = [
+  'prepare:before',
+  'prepare:after',
+  'download:before',
+  'download:after',
+  'extract:before',
+  'extract:after',
+  'move-out:before',
+  'move-out:item:before',
+  'move-out:item:after',
+  'move-out:after',
+  'move-in:before',
+  'move-in:item:before',
+  'move-in:item:after',
+  'move-in:after',
+  'manifest:before',
+  'manifest:after-write',
+  'manifest:after-rename',
+  'manifest:after-commit-point',
+  'legacy:before',
+  'legacy:after',
+  'vault:before',
+  'vault:after',
+  'cleanup:before',
+  'cleanup:after'
+] as const
+
+export type TransactionHookPoint = (typeof TRANSACTION_HOOK_POINTS)[number]
+
+export interface TransactionHookContext {
+  operationId: string
+  projectPath: string
+  step: string
+  /** 当前条目（包名/路径），没有条目级语义时为 null。 */
+  item: string | null
+}
+
+export interface TransactionHooks {
+  onPoint?(point: TransactionHookPoint, context: TransactionHookContext): void | Promise<void>
+  /**
+   * hook 抛错时模拟"进程直接死掉"：不回滚、不改操作状态、不写 journal。
+   * 用来验证启动恢复，而不是验证事务自身的失败处理。
+   */
+  crashOnError?: boolean
+}
+
+/** hook 抛出的错误包一层，避免和真实 IO 错误混淆。 */
+class HookFailure extends Error {
+  constructor(readonly inner: unknown) {
+    super('injected failure')
+    this.name = 'HookFailure'
+  }
+}
+
 
 export interface TransactionWarning {
   code: VpmErrorCode | VpmWarningCode
@@ -230,6 +293,13 @@ export class InstallTransactionService {
   private readonly now: () => number
   private readonly protectedPackages: readonly string[]
   private readonly maxLegacyEntries?: number
+  private readonly hooks?: TransactionHooks
+  /**
+   * 进程内工程锁：同一工程同时只允许一个 `apply()`。
+   * DB 的部分唯一索引是跨进程的真相，这里是第一道闸——避免两个调用都走到写 journal。
+   * 崩溃时进程一起死，锁随进程消失；DB 行留给启动恢复处理。
+   */
+  private readonly activeProjects = new Set<string>()
 
   constructor(options: InstallTransactionOptions) {
     this.operations = options.operations
@@ -248,6 +318,7 @@ export class InstallTransactionService {
     this.now = options.now ?? Date.now
     this.protectedPackages = options.protectedPackages ?? [PROTECTED_PACKAGE_ID]
     this.maxLegacyEntries = options.maxLegacyEntries
+    this.hooks = options.hooks
   }
 
   async apply(input: ApplyPlanInput): Promise<ApplyPlanResult> {
@@ -259,6 +330,23 @@ export class InstallTransactionService {
     const loaded = this.projects.load(input.projectKey)
     if (!loaded) throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
 
+    const lockKey = input.projectKey
+    if (this.activeProjects.has(lockKey)) {
+      throw new VpmError('vpmProjectBusy', { projectKey: lockKey })
+    }
+    this.activeProjects.add(lockKey)
+    try {
+      return await this.runApply(input, plan, loaded)
+    } finally {
+      this.activeProjects.delete(lockKey)
+    }
+  }
+
+  private async runApply(
+    input: ApplyPlanInput,
+    plan: ChangePlan,
+    loaded: { projectPath: string; snapshot: ProjectSnapshot }
+  ): Promise<ApplyPlanResult> {
     const operation = this.operations.create({
       projectKey: input.projectKey,
       projectPath: loaded.projectPath,
@@ -312,7 +400,9 @@ export class InstallTransactionService {
       const committed = this.operations.transition(operation.id, 'committed')
       return this.result(context, committed.status, null, null)
     } catch (error) {
-      return await this.fail(context, error)
+      // 模拟进程死亡：不写状态、不回滚，现场留给启动恢复。
+      if (error instanceof HookFailure && this.hooks?.crashOnError) throw error.inner
+      return await this.fail(context, error instanceof HookFailure ? error.inner : error)
     }
   }
 
@@ -341,6 +431,7 @@ export class InstallTransactionService {
 
     await this.runStep(context, 'prepare', 1, async () => {
       this.assertNotAborted(input)
+      await this.point(context, 'prepare:before', 'prepare')
       const manifestPath = path.join(context.projectPath, MANIFEST_RELATIVE_PATH)
       const stat = lstatOrNull(manifestPath)
       if (!stat || !stat.isFile() || stat.isSymbolicLink()) {
@@ -351,10 +442,12 @@ export class InstallTransactionService {
         throw new VpmError('vpmProjectChanged', { field: 'manifest' })
       }
       writeFileAtomic(layout.manifestOriginal, original)
+      await this.point(context, 'prepare:after', 'prepare')
       return { changes: changes.length, installs: installs.length, removals: removals.length }
     })
 
     await this.runStep(context, 'download', 2, async () => {
+      await this.point(context, 'download:before', 'download')
       for (const download of context.plan.downloads) {
         this.assertNotAborted(input)
         const name = normalizePackageId(download.name)
@@ -369,10 +462,12 @@ export class InstallTransactionService {
         }
         context.cached.set(name, { path: cached.path, sha256: cached.sha256, size: cached.size })
       }
+      await this.point(context, 'download:after', 'download')
       return { packages: context.cached.size }
     })
 
     await this.runStep(context, 'extract', 3, async () => {
+      await this.point(context, 'extract:before', 'extract')
       for (const download of context.plan.downloads) {
         this.assertNotAborted(input)
         const name = normalizePackageId(download.name)
@@ -389,10 +484,12 @@ export class InstallTransactionService {
         })
         context.extracted.set(name, extracted)
       }
+      await this.point(context, 'extract:after', 'extract')
       return { packages: context.extracted.size }
     })
 
     await this.runStep(context, 'move-out', 4, async () => {
+      await this.point(context, 'move-out:before', 'move-out')
       for (const change of removals) {
         this.assertNotAborted(input)
         const name = normalizePackageId(change.name)
@@ -413,6 +510,7 @@ export class InstallTransactionService {
         const trashRelativePath = `packages/${name}`
         const target = path.join(layout.trash, trashRelativePath)
         if (lstatOrNull(target)) throw new VpmError('vpmTransactionFailed', { step: 'move-out' })
+        await this.point(context, 'move-out:item:before', 'move-out', name)
         this.operations.upsertFile(context.op.id, {
           path: relativePath,
           action: 'move-out',
@@ -427,11 +525,14 @@ export class InstallTransactionService {
           state: 'done'
         })
         context.movedOut.push({ name, relativePath, trashRelativePath })
+        await this.point(context, 'move-out:item:after', 'move-out', name)
       }
+      await this.point(context, 'move-out:after', 'move-out')
       return { moved: context.movedOut.length }
     })
 
     await this.runStep(context, 'move-in', 5, async () => {
+      await this.point(context, 'move-in:before', 'move-in')
       for (const change of installs) {
         this.assertNotAborted(input)
         const name = normalizePackageId(change.name)
@@ -442,6 +543,7 @@ export class InstallTransactionService {
         if (lstatOrNull(target)) {
           throw new VpmError('vpmProjectChanged', { field: relativePath })
         }
+        await this.point(context, 'move-in:item:before', 'move-in', name)
         this.operations.upsertFile(context.op.id, {
           path: relativePath,
           action: 'move-in',
@@ -454,12 +556,15 @@ export class InstallTransactionService {
           state: 'done'
         })
         context.movedIn.push({ name, relativePath })
+        await this.point(context, 'move-in:item:after', 'move-in', name)
       }
+      await this.point(context, 'move-in:after', 'move-in')
       return { moved: context.movedIn.length }
     })
 
     await this.runStep(context, 'manifest', 6, async () => {
       this.assertNotAborted(input)
+      await this.point(context, 'manifest:before', 'manifest')
       const manifestPath = path.join(context.projectPath, MANIFEST_RELATIVE_PATH)
       const currentText = fs.readFileSync(manifestPath, 'utf8')
       if (sha256Hex(currentText) !== context.plan.manifestHashBefore) {
@@ -483,10 +588,13 @@ export class InstallTransactionService {
         beforeHash: context.plan.manifestHashBefore,
         afterHash: built.hash
       })
+      await this.point(context, 'manifest:after-write', 'manifest')
       // 提交点：同卷 rename 覆盖 Packages/vpm-manifest.json。
       await this.rename(layout.manifestNew, manifestPath)
       context.manifestRenamed = true
+      await this.point(context, 'manifest:after-rename', 'manifest')
       this.markCommitPoint(context.op.id)
+      await this.point(context, 'manifest:after-commit-point', 'manifest')
       return { afterHash: built.hash, packages: context.plan.finalPackages.length }
     })
 
@@ -496,6 +604,7 @@ export class InstallTransactionService {
         .map((change) => change.name)
       if (removed.length === 0) return { skipped: true }
       try {
+        await this.point(context, 'legacy:before', 'legacy')
         const result = await cleanupLegacyAssets({
           projectPath: context.projectPath,
           trashDir: layout.trash,
@@ -533,7 +642,8 @@ export class InstallTransactionService {
         }
         return { moved: result.moved.length, skipped: result.skipped.length }
       } catch (error) {
-        // 旧 Assets 清理发生在提交点之后：失败不回滚包，只报告“旧文件还在”。
+        // 模拟进程死亡时继续往外抛；真实清理失败只报告“旧文件还在”，不回滚已提交的包。
+        if (error instanceof HookFailure && this.hooks?.crashOnError) throw error
         context.warnings.push({
           code: 'vpmLegacyCleanupFailed',
           detail: messageOf(error)
@@ -559,6 +669,7 @@ export class InstallTransactionService {
 
       this.operations.setVaultPending(context.op.id, true)
       try {
+        await this.point(context, 'vault:before', 'vault')
         const archived = await this.vault.archive({
           projectSlug: projectSlugOf(context.projectPath),
           opId: context.op.id,
@@ -578,10 +689,12 @@ export class InstallTransactionService {
             state: 'archived'
           })
         }
+        await this.point(context, 'vault:after', 'vault')
         this.operations.setVaultPending(context.op.id, false)
         return { archived: archived.entries.length, bytes: archived.bytes }
       } catch (error) {
-        // 工程已经可用；事务区保留，vault_pending=1，可重试归档。
+        // 模拟进程死亡时继续往外抛；归档失败时工程已经可用，事务区保留可重试。
+        if (error instanceof HookFailure && this.hooks?.crashOnError) throw error
         context.warnings.push({ code: 'vpmVaultArchiveFailed', detail: messageOf(error) })
         context.warnings.push({ code: 'vpmVaultPending', detail: null })
         return { failed: true }
@@ -589,16 +702,23 @@ export class InstallTransactionService {
     })
 
     await this.runStep(context, 'cleanup', 9, async () => {
-      // 只清应用自己的暂存区；journal 与 manifest.original.json 留着当证据。
       try {
-        if (lstatOrNull(layout.install)) removeTree(layout.install)
+        await this.point(context, 'cleanup:before', 'cleanup')
+        // 只清应用自己的暂存区；journal 与 manifest.original.json 留着当证据。
+        try {
+          if (lstatOrNull(layout.install)) removeTree(layout.install)
+        } catch (error) {
+          context.warnings.push({ code: 'vpmTransactionFailed', detail: messageOf(error) })
+        }
+        removeEmptyDirectory(layout.trashPackages)
+        removeEmptyDirectory(layout.trashLegacy)
+        removeEmptyDirectory(layout.trash)
+        removeEmptyDirectory(layout.rolledback)
+        await this.point(context, 'cleanup:after', 'cleanup')
       } catch (error) {
+        if (error instanceof HookFailure && this.hooks?.crashOnError) throw error
         context.warnings.push({ code: 'vpmTransactionFailed', detail: messageOf(error) })
       }
-      removeEmptyDirectory(layout.trashPackages)
-      removeEmptyDirectory(layout.trashLegacy)
-      removeEmptyDirectory(layout.trash)
-      removeEmptyDirectory(layout.rolledback)
       return { cleaned: true }
     })
   }
@@ -679,10 +799,14 @@ export class InstallTransactionService {
       this.operations.finishStep(context.op.id, step, 'done', detail)
       this.emit(context, step, index, 'done')
     } catch (error) {
-      try {
-        this.operations.finishStep(context.op.id, step, 'failed')
-      } catch {
-        /* 状态已落盘/步骤已结束：不掩盖主错误 */
+      // 模拟进程死亡时不写任何状态：真实崩溃也不会留下 finishStep。
+      const simulatedCrash = error instanceof HookFailure && this.hooks?.crashOnError === true
+      if (!simulatedCrash) {
+        try {
+          this.operations.finishStep(context.op.id, step, 'failed')
+        } catch {
+          /* 状态已落盘/步骤已结束：不掩盖主错误 */
+        }
       }
       this.emit(context, step, index, 'failed')
       throw error
@@ -706,6 +830,26 @@ export class InstallTransactionService {
       })
     } catch {
       /* UI 回调异常不能中断事务 */
+    }
+  }
+
+  /** 测试专用注入点；生产组合根不传 hooks，这里直接返回。 */
+  private async point(
+    context: TxContext,
+    point: TransactionHookPoint,
+    step: string,
+    item: string | null = null
+  ): Promise<void> {
+    if (!this.hooks?.onPoint) return
+    try {
+      await this.hooks.onPoint(point, {
+        operationId: context.op.id,
+        projectPath: context.projectPath,
+        step,
+        item
+      })
+    } catch (error) {
+      throw new HookFailure(error)
     }
   }
 

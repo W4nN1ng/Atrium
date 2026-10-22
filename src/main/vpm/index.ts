@@ -123,11 +123,12 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
     })
     const plans = new PlanService({ projects, catalog, now: options.now })
     const operations = new OperationStore(db, options.now)
+    const vault = new VaultStore({ dataRoot: options.dataRoot })
     const recovery = new RecoveryService({
       operations,
+      vault,
       isProjectActive: options.isProjectActive
     })
-    const vault = new VaultStore({ dataRoot: options.dataRoot })
     const transactions = new InstallTransactionService({
       operations,
       plans,
@@ -146,8 +147,8 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
         }
       }
     })
-    // 启动先处理崩溃现场：P4-A 只做判定/保守落状态，不碰工程文件。
-    recovery.scanAndApply()
+    // 启动先处理崩溃现场：能证明安全的自动回滚/补完归档，判不了的落 needs_attention。
+    await recovery.scanAndApply()
     await repos.seedIfEmpty()
 
     let disposed = false

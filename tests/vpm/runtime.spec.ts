@@ -6,6 +6,7 @@ import path from 'node:path'
 import { initVpm, type VpmRuntime } from '../../src/main/vpm'
 import { P, setAppPathsForTest } from '../../src/main/services/paths'
 import { projectKeyOf } from '../../src/shared/vpm/domain/project'
+import { sha256Hex } from '../../src/shared/vpm/domain/hash'
 
 let root: string
 let dataRoot: string
@@ -110,9 +111,16 @@ describe('VPM composition root', () => {
     })
   })
 
-  it('scans unfinished operations during startup and lands them in needs_attention', async () => {
+  it('rolls back an unfinished operation during startup', async () => {
     const project = path.join(root, 'project')
     fs.mkdirSync(path.join(project, 'Packages'), { recursive: true })
+    fs.mkdirSync(path.join(project, 'ProjectSettings'), { recursive: true })
+    fs.writeFileSync(
+      path.join(project, 'ProjectSettings', 'ProjectVersion.txt'),
+      'm_EditorVersion: 2022.3.22f1\n'
+    )
+    const manifestText = '{\n  "dependencies": {},\n  "locked": {}\n}'
+    fs.writeFileSync(path.join(project, 'Packages', 'vpm-manifest.json'), manifestText)
     const real = fs.realpathSync.native(project)
 
     runtime = await initVpm({
@@ -126,7 +134,7 @@ describe('VPM composition root', () => {
       kind: 'install',
       plan: { changes: [] },
       planHash: 'a'.repeat(64),
-      manifestBeforeHash: 'b'.repeat(64),
+      manifestBeforeHash: sha256Hex(manifestText),
       manifestAfterHash: 'c'.repeat(64)
     })
     runtime.operations.transition(op.id, 'preflight')
@@ -139,12 +147,15 @@ describe('VPM composition root', () => {
       userAgent: 'Atrium/test',
       isNetworkAllowed: () => false
     })
+    // 没有任何文件被移动过 → 恢复判定 failed，工程不需要人工确认就能继续用。
     expect(runtime.operations.get(op.id)).toMatchObject({
-      status: 'needs_attention',
-      errorCode: 'vpmRecoveryRequired',
-      errorDetail: 'before_commit'
+      status: 'failed',
+      errorCode: null
     })
     expect(runtime.recovery.scan()).toEqual([])
+    expect(fs.readFileSync(path.join(project, 'Packages', 'vpm-manifest.json'), 'utf8')).toBe(
+      manifestText
+    )
   })
 
   it('can reopen after dispose and keeps the schema valid', async () => {

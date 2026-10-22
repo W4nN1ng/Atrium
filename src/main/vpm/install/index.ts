@@ -15,6 +15,7 @@ export type { RecoveryServiceOptions } from './recovery'
 export { DEFAULT_ARCHIVE_LIMITS, extractPackageZip } from './archive'
 export { InstallTransactionService } from './transaction'
 export { cleanupLegacyAssets } from './legacy'
+export { TRANSACTION_HOOK_POINTS } from './transaction'
 export type {
   ApplyPlanInput,
   ApplyPlanResult,
@@ -22,6 +23,9 @@ export type {
   PackageSourcePort,
   PlanSourcePort,
   ProjectActivityPort,
+  TransactionHookContext,
+  TransactionHookPoint,
+  TransactionHooks,
   TransactionProjectPort,
   TransactionProgress,
   TransactionWarning

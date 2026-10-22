@@ -14,6 +14,7 @@ import {
   type OperationStatus
 } from '../../../src/main/vpm/install'
 import { projectKeyOf } from '../../../src/shared/vpm/domain/project'
+import { sha256Hex } from '../../../src/shared/vpm/domain/hash'
 
 const PLAN_HASH = 'a'.repeat(64)
 const BEFORE_HASH = 'b'.repeat(64)
@@ -59,6 +60,10 @@ function inputFor(
   overrides: Partial<CreateOperationInput> = {}
 ): CreateOperationInput {
   const real = fs.realpathSync.native(projectPath)
+  // 真实的 beforeHash 必须等于磁盘 manifest 的 hash：恢复判定靠这个对账。
+  const beforeHash = sha256Hex(
+    fs.readFileSync(path.join(real, 'Packages', 'vpm-manifest.json'), 'utf8')
+  )
   return {
     projectKey: projectKeyOf(real),
     projectPath: real,
@@ -66,7 +71,7 @@ function inputFor(
     plan: { changes: [{ action: 'install', name: 'com.example.a' }], roots: ['com.example.a'] },
     planHash: PLAN_HASH,
     projectFingerprint: 'manifest:test',
-    manifestBeforeHash: BEFORE_HASH,
+    manifestBeforeHash: beforeHash,
     manifestAfterHash: AFTER_HASH,
     summary: { changes: 1 },
     ...overrides
@@ -425,7 +430,7 @@ describe('operation journal and state machine', () => {
 })
 
 describe('crash recovery decisions', () => {
-  it('decides rollback before the commit point, marks needs_attention and never touches project files', async () => {
+  it('rolls back before the commit point without touching project files', async () => {
     const project = makeProject('CrashBeforeCommit')
     const marker = path.join(project, 'Packages', 'com.example.a')
     fs.mkdirSync(marker, { recursive: true })
@@ -453,30 +458,31 @@ describe('crash recovery decisions', () => {
       journalPhase: 'applying'
     })
 
-    const outcomes = recovery.apply(decisions)
+    const outcomes = await recovery.apply(decisions)
     expect(outcomes[0]).toMatchObject({
       applied: true,
-      resultStatus: 'needs_attention',
+      resultStatus: 'failed',
       errorCode: null
     })
+    // 没有任何文件被移动过 → 恢复判定为 failed（不是 needs_attention），工程可以继续用。
     expect(store.get(opId)).toMatchObject({
-      status: 'needs_attention',
-      errorCode: 'vpmRecoveryRequired',
-      errorDetail: 'before_commit'
+      status: 'failed',
+      errorCode: null
     })
     expect(fs.readFileSync(markerFile, 'utf8')).toBe(before)
     expect(fs.existsSync(journalFile(store.get(opId) as OperationRecord))).toBe(true)
     const journal = readJournal(store.get(opId) as OperationRecord)
-    expect(journal.phase).toBe('needs_attention')
+    expect(journal.phase).toBe('failed')
     expect(journal.commitPoint).toBe('before')
     expect(new Set(eventKeys(store.get(opId) as OperationRecord)).size).toBe(
       eventKeys(store.get(opId) as OperationRecord).length
     )
     expect(recovery.scan()).toEqual([])
-    expectCode('vpmRecoveryRequired', () => createOperation(project))
+    // 恢复完成后同一工程可以开新操作，不需要人工解锁。
+    expect(createOperation(project).status).toBe('planned')
   })
 
-  it('turns missing, corrupt or mismatched journals into needs_attention without inventing evidence', () => {
+  it('turns missing, corrupt or mismatched journals into needs_attention without inventing evidence', async () => {
     const missingProject = makeProject('MissingJournal')
     const missing = createOperation(missingProject)
     applyBeforeCommit(missing)
@@ -507,7 +513,7 @@ describe('crash recovery decisions', () => {
       'needs_attention'
     ])
 
-    const outcomes = recovery.apply(decisions)
+    const outcomes = await recovery.apply(decisions)
     expect(outcomes.map((item) => item.applied)).toEqual([true, true, true])
     expect(store.get(missing.id)).toMatchObject({
       status: 'needs_attention',
@@ -525,7 +531,7 @@ describe('crash recovery decisions', () => {
     expect(fs.readFileSync(corruptFile, 'utf8')).toBe('{')
   })
 
-  it('completes after the manifest commit point and waits while Unity or an import is active', () => {
+  it('completes after the manifest commit point and waits while Unity or an import is active', async () => {
     const committedProject = makeProject('AfterCommit')
     const committed = createOperation(committedProject)
     applyBeforeCommit(committed)
@@ -553,7 +559,7 @@ describe('crash recovery decisions', () => {
       reason: 'manifest_committed',
       journalPhase: 'applying'
     })
-    const waitingOutcomes = waiting.apply(waitingDecisions)
+    const waitingOutcomes = await waiting.apply(waitingDecisions)
     expect(waitingOutcomes.find((item) => item.decision.operationId === active.id)).toMatchObject({
       applied: false,
       resultStatus: 'applying'
@@ -571,8 +577,8 @@ describe('crash recovery decisions', () => {
       action: 'rollback',
       reason: 'before_commit'
     })
-    afterClose.apply(decisions)
-    expect(store.get(active.id)?.status).toBe('needs_attention')
+    await afterClose.apply(decisions)
+    expect(store.get(active.id)?.status).toBe('failed')
   })
 })
 

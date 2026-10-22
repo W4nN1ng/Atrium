@@ -1,13 +1,12 @@
 # src/main/vpm/install
 
 > 本模块分四块，独立演进：**journal/状态机**（P4-A）、**ZIP 安全解压**（P4-B）、
-> **预检/旧 Assets 清理/安装事务**（P4-C），以及后续的失败注入与恢复（P4-D）。
+> **预检/旧 Assets 清理/安装事务**（P4-C）、**失败注入、崩溃恢复与并发**（P4-D）。
 
 ## 职责
 
 **P4-A —— 事务持久化地基**：`vpm_operation` / `vpm_operation_step` / `vpm_operation_file`
 的操作状态机、工程内 `.atrium-tx/<op>/journal.json` 的原子读写，以及启动恢复扫描的判定骨架。
-只做“记录、判定、保守落状态”。
 
 **P4-B —— `archive.ts`**：把已校验/缓存的包 zip **安全解压**到调用方给出的同卷新建目录，
 并校验解压结果确实是合法 VPM 包。
@@ -16,6 +15,10 @@
 预检拒绝矩阵 → 暂存 → 旧包入事务区 → 新包换入 → **manifest 最后原子写**（提交点）→
 旧 Assets 路径级清理 → 回滚仓归档 → 清理临时区。失败按 journal 反向恢复，
 无法证明安全时进 `needs_attention`。
+
+**P4-D —— `recovery.ts` 的真实恢复 + 事务的失败注入/工程锁**：启动时按 journal 与磁盘
+manifest 对账，能证明安全的自动回滚或补完归档，判不了的落 `needs_attention`；
+事务提供**测试专用**注入点覆盖每一步，并用进程内锁 + DB 唯一索引挡住同工程并发。
 
 ## 不负责什么
 
@@ -39,11 +42,14 @@
   - `setManifestHashes/markCommitPoint/setLegacyPaths/setVaultPending/commitPoint`。
 - `OperationJournalStore`：`pathFor/exists/inspect/read/create/write`；`inspect` 区分
   `ok/missing/invalid`，恢复扫描用它，不抛异常。
-- `RecoveryService`：`scan/apply/scanAndApply`。P4-A 的 `apply` 只把安全判定落成
-  `committed` 或 `needs_attention`，不碰文件；真实回滚留给 P4-D。
+- `RecoveryService`：`scan()`（只读判定）/ `apply(decisions)`（**async**，会动文件）/
+  `scanAndApply()`（**async**）。判定见「恢复语义」一节；P4-D 起会真的回滚/补完归档。
 - `transactionLayout(projectPath, opId)` / `ensureTransactionLayout(...)`：
   `.atrium-tx/<op>/{install,trash,trash/packages,trash/legacy,rolledback}` 与
   `manifest.original.json` / `vpm-manifest.new.json` / `journal.json` 的唯一路径来源。
+- `TRANSACTION_HOOK_POINTS` / `TransactionHooks`：**测试专用**失败注入点（构造参数，
+  生产组合根不传；没有环境变量开关）。`crashOnError: true` 时 hook 抛错会模拟进程死亡：
+  不写状态、不回滚、不 finishStep。
 - `evaluatePreflight(facts)`：**纯函数**拒绝矩阵，返回 `{ ok, issues, warnings, required }`。
 - `collectPreflightFacts(input)`：只读采集（工程卷/数据根空间、`Packages/<id>` 类型、
   `.atrium-tx` 可用性、回滚仓探针）。
@@ -114,6 +120,33 @@ apply(planId)
 - 回滚本身失败：`needs_attention` + `vpmRollbackFailed`，**不删现场**。
 - 旧 Assets 清理失败 / 回滚仓归档失败：工程已可用，只记 warning
   （`vpmLegacyCleanupFailed` / `vpmVaultArchiveFailed` + `vpmVaultPending`）。
+
+### 失败矩阵（P4-D，`failure-injection.spec.ts` 逐点验证）
+
+每一步都有"在这里抛错"的用例；下表是实测结果（升级场景 `1.0.0 → 2.0.0`）。
+
+| 注入点 | 操作状态 | 工程文件 | manifest | 现场 |
+|---|---|---|---|---|
+| `prepare:before` / `prepare:after` | `failed` | 未改动 | 未动 | 事务区保留 |
+| `download:before` / `download:after` | `failed` | 未改动 | 未动 | 事务区保留 |
+| `extract:before` / `extract:after` | `failed` | 未改动 | 未动 | `install/` 保留 |
+| `move-out:before` / `move-out:item:before` | `failed` | 未改动 | 未动 | 事务区保留 |
+| `move-out:item:after` / `move-out:after` | `rolled_back` | 旧包回原位 | 逐字节一致 | 事务区保留 |
+| `move-in:before` / `move-in:item:before` | `rolled_back` | 旧包回原位 | 逐字节一致 | 事务区保留 |
+| `move-in:item:after` / `move-in:after` | `rolled_back` | 新包进 `rolledback/`、旧包回原位 | 逐字节一致 | 事务区保留 |
+| `manifest:before` / `manifest:after-write` | `rolled_back` | 旧包回原位 | 逐字节一致（新 manifest 只在事务区） | 事务区保留 |
+| `manifest:after-rename` | `needs_attention` | 新包就位 | **已是新 manifest** | 不回滚，留给恢复 |
+| `manifest:after-commit-point` | `needs_attention` | 新包就位 | 已是新 manifest | 恢复后可补成 `committed` |
+| `legacy:before` | `committed` + `vpmLegacyCleanupFailed` | 包已换好，旧 Assets 未动 | 新 manifest | 事务区保留 |
+| `vault:before` / `vault:after` | `committed` + `vpmVaultArchiveFailed` + `vault_pending=1` | 包已换好 | 新 manifest | `trash` 保留，可重试归档 |
+| `cleanup:before` / `cleanup:after` | `committed` + `vpmTransactionFailed` | 包已换好 | 新 manifest | 只影响临时区清理 |
+
+补充用例：
+
+- 下载返回的 SHA-256 与计划不符 → `vpmCacheHashMismatch`，包目录不出现；
+- `legacy:before` 失败**不会**回滚已提交的包（旧 Assets 只是没清）；
+- 回滚自身失败 → `needs_attention` + `vpmRollbackFailed`，**不删现场**；
+- 提交点之前失败时 manifest 与操作前**逐字节一致**（按内容 hash 比较整棵工程树）。
 
 ### 预检拒绝矩阵
 
@@ -196,6 +229,48 @@ apply(planId)
   再 `rename` 覆盖 `Packages/vpm-manifest.json`；**不在 Packages 留临时文件**。
 - 提交前再读一次原 manifest 算 hash，与 `plan.manifestHashBefore` 不一致就中止并回滚。
 
+## 恢复语义（P4-D）
+
+`RecoveryService.scan()` 只看 `planned/preflight/applying` 的操作：
+
+| 条件 | 判定 |
+|---|---|
+| 工程目录不存在 | `needs_attention` / `project_missing` |
+| Unity 或素材导入正在用这个工程 | `wait`（不改状态、不碰文件） |
+| journal 缺失 / 损坏 / opId·工程键·kind 对不上 | `needs_attention`（对应 reason） |
+| journal `commitPoint=manifest_written` | `complete` |
+| journal 还写 `before`，但磁盘 manifest hash == `afterHash` | `complete`（rename 与 markCommitPoint 之间的崩溃窗口） |
+| 磁盘 manifest 既不是 `beforeHash` 也不是 `afterHash` | `needs_attention` / `project_changed` |
+| 其余 | `rollback` |
+
+`apply()` 的执行（P4-D 起会真的动文件）：
+
+- `complete`：关掉遗留的 `running` 步骤 → 缺提交点就先 `markCommitPoint` → `committed`
+  → 补完 vault 归档（失败保留 `vault_pending=1`，工程仍可用）。
+- `rollback`：move-in 的新包 → `rolledback/`；move-out 的旧包 → 回 `Packages/`；
+  legacy 的旧文件 → 回 `Assets/`；manifest 与 `beforeHash` 不一致时用
+  `manifest.original.json` 还原。移动了文件 → `rolled_back`，一步没动 → `failed`。
+- 回滚任一步失败 → `needs_attention` + `vpmRollbackFailed`，不删任何文件。
+- 幂等：每一步都先看磁盘现状，重复执行不会产生新的移动；已终态的操作 `apply` 返回
+  `applied: false`。
+- 恢复**不重跑** legacy 清理（那是前进操作，不是回滚）：崩溃在 legacy 之前时包已提交、
+  旧 Assets 仍留在工程里，符合"宁可留旧文件"。
+- 恢复在 `initVpm()` 里 `await recovery.scanAndApply()`，早于仓库种子与 IPC 注册。
+
+## 并发与工程锁（P4-D）
+
+- **进程内锁**：`InstallTransactionService.activeProjects` 按 `projectKey` 占位，
+  同一工程第二个 `apply()` 直接 `vpmProjectBusy`（连操作行都不建）；`finally` 释放，
+  崩溃时随进程消失。
+- **跨进程/持久锁**：`vpm_operation` 的部分唯一索引（`planned/preflight/applying`），
+  进程内锁只是第一道闸。
+- **不同工程可并行**：各自的 journal/事务区/回滚仓目录互不相交。
+- **活动闸门**：`ProjectActivityPort` 返回 `unityRunning`/`importing` 时预检拒绝；
+  端口自己抛错按"Unity 可能在用"处理（fail closed）。
+- **双击/重复应用**：同一 `planId` 第二次应用会因为 manifest 已变而 `vpmProjectChanged`，
+  不会重复安装。
+- **外部改动**：提交前再读一次 manifest 算 hash；不一致就回滚，且**不覆盖**外部写入的内容。
+
 ## 失败码（P4-C 新增）
 
 - `vpmPlanBlocked`：计划 blocked / 有冲突 / 缺依赖。
@@ -248,8 +323,14 @@ needs_attention → committed / failed / rolled_back（只能由恢复动作推�
 - journal 缺失/损坏/工程键不符 → `vpmJournalInvalid`；恢复扫描标 `needs_attention`。
 - journal 写入/rename/fsync 失败 → `vpmJournalWriteFailed`，本次 DB 事务回滚。
 - 工程路径无效/不存在 → `vpmProjectInvalid`；恢复扫描对“工程已不在”标 `needs_attention`。
-- 未到提交点 → 判定 `rollback`，P4-A 先落 `needs_attention`；已过提交点 → 判定 `complete`。
-- Unity/导入活动 → 判定 `wait`，不改状态，下次关闭后重扫。
+- 未到提交点 → 判定 `rollback` 并真的反向恢复（`rolled_back`/`failed`）；
+  已过提交点 → 判定 `complete` 并补完归档。
+- 磁盘 manifest 被外部改过（既不是 before 也不是 after）→ `needs_attention`，
+  不覆盖外部内容。
+- 恢复时回滚失败 → `needs_attention` + `vpmRollbackFailed`；归档补完失败只保留
+  `vault_pending`。
+- 同一工程并发第二个操作 → `vpmProjectBusy`（进程内锁先拦，DB 唯一索引兜底）。
+- 活动闸门抛错 → 按 `vpmUnityRunning` 拒绝（fail closed）。
 - `markCommitPoint` 连续 3 次失败 → `vpmJournalWriteFailed` → `needs_attention`
   （manifest 已 rename，不回滚）。
 - 数据库迁移/完整性失败由 `../db/` 负责；本模块不做降级重建。
@@ -266,6 +347,15 @@ needs_attention → committed / failed / rolled_back（只能由恢复动作推�
   未知字段保留、vault 归档、预检拒绝矩阵（Unity/导入/外部改动/空间/vault/并发）、
   每步失败注入（下载/解压/移入）、回滚成功与 `needs_attention`、vault 失败标
   `vault_pending`、legacy 路径级清理与保护。
+- `tests/vpm/install/failure-injection.spec.ts`（P4-D）：`TRANSACTION_HOOK_POINTS`
+  逐点注入失败，断言状态/文件树/manifest/journal/vault（见「失败矩阵」）。
+- `tests/vpm/install/recovery.spec.ts`（P4-D）：崩溃在提交点前后、rename 与
+  markCommitPoint 之间的窗口、归档补完、幂等、Unity 活动等待、外部改动、
+  journal 损坏、遗留 running 步骤收尾。
+- `tests/vpm/install/concurrency.spec.ts`（P4-D）：同工程并发被拒、不同工程并行、
+  锁在正常/崩溃恢复后释放、活动闸门拒绝、双击不重复、事务中途外部改动。
+- `tests/vpm/install/harness.ts`：三个 P4-D 用例共用的临时工程/DB/回滚仓夹具
+  （非 spec，不被收集）。
 - `tests/vpm/install/zip-fixture.ts`：恶意/正常 zip 夹具构造器（非 spec，不被收集）。
 - `tests/vpm/vault/store.spec.ts`：回滚仓路径约束、归档与校验、失败保留源目录。
 - `tests/vpm/domain/manifest.spec.ts`：manifest 构建的稳定性、未知字段保留、locked 规则。

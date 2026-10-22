@@ -87,6 +87,26 @@ export async function renameWithRetry(
   throw fsError('rename', last)
 }
 
+/**
+ * 同步版 rename 重试：给启动恢复用（恢复发生在 `initVpm()` 里，没有可让出的事件循环）。
+ * 立即重试、不睡眠；仍然失败就抛错，由恢复层落 `needs_attention`。
+ */
+export function renameSyncWithRetry(from: string, to: string, retries = 3): void {
+  const attempts = Math.max(1, Math.trunc(retries))
+  let last: unknown = null
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      fs.renameSync(from, to)
+      return
+    } catch (error) {
+      last = error
+      const code = (error as NodeJS.ErrnoException).code
+      if (!code || !RETRYABLE_RENAME_CODES.has(code) || attempt === attempts) break
+    }
+  }
+  throw fsError('rename', last)
+}
+
 /** 同目录临时文件 → fsync → rename；目录 fsync 失败不掩盖主流程（Windows 不保证）。 */
 export function writeFileAtomic(file: string, contents: string, mode = 0o600): void {
   const dir = path.dirname(file)
