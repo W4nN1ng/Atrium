@@ -271,8 +271,8 @@
     "bundleMore": "{{count}} more…",
     "bundleNoSplit": "Stored together: categories are recorded, no file inside gets moved",
     "emptyTitle": "Add your first asset",
-    "emptyHint": "Drop a ZIP, Unity package, or asset folder here, or select files below. Atrium reads the contents and suggests a category.",
-    "nextStepHint": "Add assets → confirm their category → browse All assets. Select and connect a target project when importing into Unity.",
+    "emptyHint": "Drop a ZIP, unitypackage or folder here, or use the button below.",
+    "nextStepHint": "Add → confirm → find it under All assets.",
     "assetFiles": "Asset packages",
     "allFiles": "All files"
   },
@@ -336,7 +336,7 @@
     },
     "bannerRuleMissing": "That collection is gone, so nothing was remembered (refresh the collection list and try again)",
     "bridgeAskTitle": "Found the project {{name}}",
-    "bridgeAskBody": "This project has no Atrium bridge yet. With it, Atrium can tell whether Unity is open, when it is busy, and whether an import actually landed. The bridge only goes into the project's Packages/ folder — it never touches Assets/ or your scenes.",
+    "bridgeAskBody": "This project has no Atrium bridge yet; it is required for imports.",
     "bridgeAskNote": "Always install applies to this project only. It is not the login-startup switch (Settings → General), and the install-for-every-project switch is in Settings → Unity.",
     "bridgeAskInstall": "Install",
     "bridgeAskAlways": "Always install (this project)",
@@ -1180,7 +1180,7 @@
   },
   "vpm": {
     "title": "Projects & Packages",
-    "intro": "This is the shell for VPM project and package management. It is off by default. After you confirm, it can change Packages/ and vpm-manifest.json in Unity projects, and it needs a data root outside the system drive.",
+    "intro": "VPM projects and packages.",
     "defaultOff": "Off by default. Even when enabled, writes happen only after you confirm.",
     "enable": "Enable project & package management",
     "enabling": "Enabling…",
@@ -1399,7 +1399,7 @@
       "scanAlready": "Already added",
       "scanAdding": "Adding…",
       "scanning": "Scanning…",
-      "trashFallback": "This drive does not support the system Recycle Bin, so the project was moved to Atrium’s own trash folder (data root\\trash)."
+      "trashFallback": "Moved to Atrium trash on C:; you can restore it manually."
     },
     "plan": {
       "title": "Change plan (read-only)",
@@ -1699,7 +1699,7 @@
     },
     "create": {
       "title": "New project",
-      "intro": "Pick a template, then a name and location. Dependencies are installed afterwards through the normal flow; Unity is not launched unless you click \"Open Unity\".",
+      "intro": "Pick a template, then a name and location.",
       "template": "Template",
       "loading": "Loading templates…",
       "builtin": "Built-in",
@@ -1719,7 +1719,7 @@
       "submit": "Create",
       "creating": "Creating…",
       "dependenciesFailed": "The project was created but dependencies did not finish; retry from the list.",
-      "noEditors": "No installed Unity editor was detected: you can still type a version, but add the editor to Unity Hub before opening the project.",
+      "noEditors": "No Unity editor found; type a version manually.",
       "rescan": "Rescan",
       "parentAdjusted": "\"{{name}}\" is a project, switched to its parent: {{parent}}",
       "reason": {

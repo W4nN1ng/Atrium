@@ -271,8 +271,8 @@
     "bundleMore": "还有 {{count}} 项…",
     "bundleNoSplit": "入库时保持在一起，只登记分类，不搬动里面的文件",
     "emptyTitle": "先添加一个素材试试",
-    "emptyHint": "把 ZIP、unitypackage 或素材文件夹拖到这里，也可以点击下面的按钮。Atrium 会读取内容并建议分类。",
-    "nextStepHint": "添加素材 → 确认分类 → 在「全部素材」中查看。要导入 Unity 时，再选择并连接目标工程。",
+    "emptyHint": "把 ZIP、unitypackage 或文件夹拖进来，或点下面的按钮。",
+    "nextStepHint": "添加 → 确认分类 → 在「全部素材」里看。",
     "assetFiles": "素材包",
     "allFiles": "所有文件"
   },
@@ -336,7 +336,7 @@
     },
     "bannerRuleMissing": "那个集合已经不在了，没能记住（先刷新一下集合列表再试）",
     "bridgeAskTitle": "刚发现工程「{{name}}」",
-    "bridgeAskBody": "这个工程还没装 Atrium 的桥接。装了它，Atrium 才知道 Unity 开没开、什么时候在忙、导入能不能落地。桥接只放进工程的 Packages/ 目录，不动 Assets/、不改你的场景。",
+    "bridgeAskBody": "这个工程还没装 Atrium 桥接，装了才能导入素材。",
     "bridgeAskNote": "「以后都自动安装」只对这个工程有效，不是开机自启 —— 开机自启在「设置 → 常规」里；「对所有工程都自动装」的开关在「设置 → Unity」。",
     "bridgeAskInstall": "安装",
     "bridgeAskAlways": "以后都自动安装（只这个工程）",
@@ -1180,7 +1180,7 @@
   },
   "vpm": {
     "title": "项目与包管理",
-    "intro": "这是 VPM 项目/包管理的外壳，默认关闭。它会在你确认后改动 Unity 工程的 Packages/ 与 vpm-manifest.json，并需要放在非系统盘的数据根。",
+    "intro": "VPM 项目与包管理。",
     "defaultOff": "默认关闭；开启后也只在你明确确认时执行写操作。",
     "enable": "启用项目与包管理",
     "enabling": "正在启用…",
@@ -1399,7 +1399,7 @@
       "scanAlready": "已添加",
       "scanAdding": "正在添加…",
       "scanning": "正在扫描…",
-      "trashFallback": "这个盘不支持系统回收站，工程已移到 Atrium 的回收站（<数据根>\\trash），可以手动还原。"
+      "trashFallback": "已移到 Atrium 回收站（C 盘），可手动还原。"
     },
     "plan": {
       "title": "变更计划（只读）",
@@ -1699,7 +1699,7 @@
     },
     "create": {
       "title": "新建项目",
-      "intro": "选一个模板，填名称和位置。依赖会在建完后按正常流程安装；不会自动打开 Unity，除非你点了\"打开 Unity\"。",
+      "intro": "选模板，填名称和位置。",
       "template": "模板",
       "loading": "读取模板…",
       "builtin": "内置",
@@ -1719,7 +1719,7 @@
       "submit": "创建",
       "creating": "正在创建…",
       "dependenciesFailed": "工程已创建，但依赖没装完；可以在列表里重试安装。",
-      "noEditors": "没探测到已安装的 Unity 编辑器：可以直接填版本号建工程，但打开 Unity 前要先把编辑器加进 Unity Hub。",
+      "noEditors": "没探测到 Unity 编辑器，可直接填版本号。",
       "rescan": "重新扫描",
       "parentAdjusted": "「{{name}}」是一个工程，已改用它的上级目录：{{parent}}",
       "reason": {
