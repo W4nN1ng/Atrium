@@ -1738,7 +1738,14 @@
       "migrateSelected": "選択を移行",
       "migrating": "移行中…",
       "migrateDone": "{{installed}} 件導入、{{skipped}} 件スキップ、{{failed}} 件失敗",
-      "unityRunning": "Unity 実行中: バックアップは可能ですが、複製・バージョン変更・移行は Unity を閉じてください。"
+      "unityRunning": "Unity 実行中: バックアップは可能ですが、複製・バージョン変更・移行は Unity を閉じてください。",
+      "collecting": "収集中… {{files}} ファイル",
+      "zipping": "圧縮中… {{percent}}%",
+      "backupOk": "バックアップ完了",
+      "openFolder": "フォルダーを開く",
+      "retry": "再試行",
+      "more": "その他のバックアップ（{{count}}）",
+      "less": "折りたたむ"
     }
   }
 }

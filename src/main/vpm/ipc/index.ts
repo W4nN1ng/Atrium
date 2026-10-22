@@ -388,7 +388,11 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
     broadcast: options.broadcast
   })
   registerUnityIpc({ ipc, getRuntime: options.getRuntime })
-  registerMaintenanceIpc({ ipc, getRuntime: options.getRuntime })
+  registerMaintenanceIpc({
+    ipc,
+    getRuntime: options.getRuntime,
+    ...(options.broadcast ? { broadcast: options.broadcast } : {})
+  })
 
   return {
     dispose(): void {

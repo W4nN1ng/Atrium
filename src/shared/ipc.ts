@@ -279,6 +279,8 @@ export const IpcEvent = {
   UnityConnectionChanged: 'unity:connection-changed',
   /** M5-A：一条桥接命令的进度/终态（导入大包时界面靠它显示进度） */
   UnityImportProgress: 'unity:import-progress',
+  /** 备份进度（R2）：收集与压缩两个阶段，压缩阶段带 0-100。 */
+  VpmBackupProgress: 'vpm:backup-progress',
   /**
    * R4 ①：一批里**每跑完一条**报一次（`{batchId, index, ok, status, …}`）。
    *

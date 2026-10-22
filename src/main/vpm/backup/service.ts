@@ -37,7 +37,13 @@ export interface CreateBackupInput {
   /** 排除 vpm-manifest 受管的包（默认包含）。 */
   excludeVpmPackages?: boolean
   signal?: AbortSignal
-  onProgress?: (progress: { phase: 'collect' | 'zip'; files: number; bytes: number }) => void
+  onProgress?: (progress: {
+    phase: 'collect' | 'zip'
+    files: number
+    bytes: number
+    /** 压缩阶段 0-100；收集阶段是 null（总数未知，界面上用不确定进度）。 */
+    percent: number | null
+  }) => void
   /** Unity 运行中也继续（调用方负责二次确认）。 */
   allowUnityRunning?: boolean
 }
@@ -170,7 +176,12 @@ export class ProjectBackupService {
         excludeVpmPackages: options.excludeVpmPackages,
         ...(input.signal ? { signal: input.signal } : {}),
         onProgress: (progress) =>
-          input.onProgress?.({ phase: 'collect', files: progress.files, bytes: progress.bytes })
+          input.onProgress?.({
+            phase: 'collect',
+            files: progress.files,
+            bytes: progress.bytes,
+            percent: null
+          })
       })
       if (collect.truncated) throw new VpmError('vpmBackupTooLarge', { limit: 'files' })
 
@@ -186,7 +197,15 @@ export class ProjectBackupService {
         emptyDirectories: ['Assets/'],
         ...(input.signal ? { signal: input.signal } : {}),
         onProgress: (progress) =>
-          input.onProgress?.({ phase: 'zip', files: progress.files, bytes: progress.bytesWritten })
+          input.onProgress?.({
+            phase: 'zip',
+            files: progress.files,
+            bytes: progress.bytesWritten,
+            percent:
+              progress.totalBytes > 0
+                ? Math.min(100, Math.round((progress.bytesWritten / progress.totalBytes) * 100))
+                : null
+          })
       })
 
       const digest = await hashFile(written.path)

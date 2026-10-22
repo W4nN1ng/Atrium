@@ -1738,7 +1738,14 @@
       "migrateSelected": "迁移所选",
       "migrating": "正在迁移…",
       "migrateDone": "装好 {{installed}} 个，跳过 {{skipped}} 个，失败 {{failed}} 个",
-      "unityRunning": "Unity 正在运行：备份可以继续，但复制/换版本/迁移要先关闭 Unity。"
+      "unityRunning": "Unity 正在运行：备份可以继续，但复制/换版本/迁移要先关闭 Unity。",
+      "collecting": "正在收集… {{files}} 个文件",
+      "zipping": "正在压缩… {{percent}}%",
+      "backupOk": "备份完成",
+      "openFolder": "打开所在文件夹",
+      "retry": "重试",
+      "more": "更多备份（{{count}}）",
+      "less": "收起"
     }
   }
 }

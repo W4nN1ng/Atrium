@@ -1,4 +1,4 @@
-import { IpcInvoke } from '../../../shared/ipc'
+import { IpcEvent, IpcInvoke } from '../../../shared/ipc'
 import type {
   VpmBackupDto,
   VpmCopyResultDto,
@@ -20,6 +20,7 @@ import type { TemplateListEntry } from '../templates'
 export interface UnityIpcOptions {
   ipc: IpcApi
   getRuntime: () => VpmRuntime | null
+  broadcast?: (event: string, payload?: unknown) => void
 }
 
 function requireKey(value: unknown, field = 'projectKey'): string {
@@ -250,8 +251,12 @@ export function registerMaintenanceIpc(options: UnityIpcOptions): void {
       throw new VpmError('vpmProjectInvalid', { field: 'input' })
     }
     const raw = input as Record<string, unknown>
+    const projectKey = requireKey(raw.projectKey)
     const record = await runtime().backup.create({
-      projectKey: requireKey(raw.projectKey),
+      projectKey,
+      onProgress: (progress) => {
+        options.broadcast?.(IpcEvent.VpmBackupProgress, { projectKey, ...progress })
+      },
       ...(typeof raw.excludeVpmPackages === 'boolean'
         ? { excludeVpmPackages: raw.excludeVpmPackages }
         : {}),

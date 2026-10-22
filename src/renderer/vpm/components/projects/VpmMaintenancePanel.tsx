@@ -28,6 +28,15 @@ export function VpmMaintenancePanel({
   const { t } = useTranslation()
   const [backups, setBackups] = useState<VpmBackupDto[]>([])
   const [backupBusy, setBackupBusy] = useState(false)
+  const [progress, setProgress] = useState<{
+    phase: 'collect' | 'zip'
+    files: number
+    bytes: number
+    percent: number | null
+  } | null>(null)
+  const [backupResult, setBackupResult] = useState<VpmBackupDto | null>(null)
+  const [backupError, setBackupError] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copyOpen, setCopyOpen] = useState(false)
@@ -54,18 +63,41 @@ export function VpmMaintenancePanel({
     void loadBackups()
   }, [loadBackups])
 
+  // 备份进度：主进程按阶段广播，这里只认自己这个工程。
+  useEffect(() => {
+    return window.a.on('vpm:backup-progress', (payload) => {
+      const data = payload as {
+        projectKey?: string
+        phase?: 'collect' | 'zip'
+        files?: number
+        bytes?: number
+        percent?: number | null
+      }
+      if (!data || data.projectKey !== projectKey || !data.phase) return
+      setProgress({
+        phase: data.phase,
+        files: data.files ?? 0,
+        bytes: data.bytes ?? 0,
+        percent: data.percent ?? null
+      })
+    })
+  }, [projectKey])
+
   const createBackup = async (): Promise<void> => {
     setBackupBusy(true)
-    setError(null)
+    setBackupError(null)
+    setBackupResult(null)
+    setProgress(null)
     setNotice(null)
     try {
       const record = await vpmApi.backupCreate({ projectKey, compression: 'normal' })
-      setNotice(t('vpm.maintenance.backupDone', { size: formatBytes(record.size ?? 0) }))
+      setBackupResult(record)
       await loadBackups()
     } catch (cause) {
-      setError(errorText(cause))
+      setBackupError(errorText(cause))
     } finally {
       setBackupBusy(false)
+      setProgress(null)
     }
   }
 
@@ -210,6 +242,60 @@ export function VpmMaintenancePanel({
           {t('vpm.maintenance.unityRunning')}
         </p>
       ) : null}
+      {/* 备份进度：就在按钮下方，不用滚上去找 */}
+      {backupBusy ? (
+        <div className="rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--line)' }}>
+          <div className="flex items-center justify-between gap-2">
+            <span>
+              {progress?.phase === 'zip'
+                ? t('vpm.maintenance.zipping', { percent: progress.percent ?? 0 })
+                : t('vpm.maintenance.collecting', { files: progress?.files ?? 0 })}
+            </span>
+            <span className="faint">{formatBytes(progress?.bytes ?? 0)}</span>
+          </div>
+          <div className="mt-1.5 h-1 overflow-hidden rounded" style={{ background: 'var(--line)' }}>
+            <div
+              className="h-full transition-[width]"
+              style={{
+                width: `${progress?.phase === 'zip' ? (progress.percent ?? 0) : 30}%`,
+                background: 'var(--accent)'
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {backupResult ? (
+        <div className="rounded border px-3 py-2" style={{ borderColor: 'var(--ok)' }}>
+          <div className="flex flex-wrap items-center gap-2 text-[12px]">
+            <span style={{ color: 'var(--ok)' }}>{t('vpm.maintenance.backupOk')}</span>
+            <span className="faint text-[11px]">{formatBytes(backupResult.size ?? 0)}</span>
+            <span className="faint text-[11px]">
+              {formatTimestamp(backupResult.finishedAt ?? backupResult.createdAt)}
+            </span>
+            <Button
+              variant="ghost"
+              className="ml-auto"
+              onClick={() => void reveal(backupResult.id)}
+            >
+              {t('vpm.maintenance.openFolder')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {backupError ? (
+        <div
+          className="flex flex-wrap items-center gap-2 rounded border px-3 py-2 text-[11px]"
+          style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}
+        >
+          <span>{backupError}</span>
+          <Button variant="ghost" className="ml-auto" onClick={() => void createBackup()}>
+            {t('vpm.maintenance.retry')}
+          </Button>
+        </div>
+      ) : null}
+
       {notice ? (
         <p className="text-[11px]" style={{ color: 'var(--ok)' }}>
           {notice}
@@ -223,7 +309,7 @@ export function VpmMaintenancePanel({
 
       {backups.length ? (
         <div className="rounded border" style={{ borderColor: 'var(--line)' }}>
-          {backups.slice(0, 5).map((item) => (
+          {(showAll ? backups : backups.slice(0, 3)).map((item) => (
             <div
               key={item.id}
               className="flex flex-wrap items-center gap-2 border-b px-3 py-1.5 last:border-b-0"
@@ -232,18 +318,33 @@ export function VpmMaintenancePanel({
               <Badge tone={item.status === 'ok' ? 'ok' : item.status === 'failed' ? 'bad' : 'warn'}>
                 {t(`vpm.maintenance.status.${item.status}`)}
               </Badge>
+              <button
+                type="button"
+                className="max-w-[46%] truncate text-left text-[11px] underline-offset-2 hover:underline"
+                title={item.filePath}
+                disabled={item.status !== 'ok'}
+                onClick={() => void reveal(item.id)}
+              >
+                {fileName(item.filePath)}
+              </button>
               <span className="faint text-[10px]">{formatTimestamp(item.createdAt)}</span>
               <span className="faint text-[10px]">{formatBytes(item.size ?? 0)}</span>
-              {item.errorCode ? (
-                <span className="faint font-mono text-[10px]">{item.errorCode}</span>
+              {item.status !== 'ok' && item.errorCode ? (
+                <span className="faint font-mono text-[10px]" title={item.errorCode}>
+                  {item.errorCode}
+                </span>
               ) : null}
-              <span className="ml-auto">
-                <Button variant="ghost" disabled={item.status !== 'ok'} onClick={() => void reveal(item.id)}>
-                  {t('vpm.maintenance.reveal')}
-                </Button>
-              </span>
             </div>
           ))}
+          {backups.length > 3 ? (
+            <div className="px-3 py-1.5">
+              <Button variant="ghost" onClick={() => setShowAll((current) => !current)}>
+                {showAll
+                  ? t('vpm.maintenance.less')
+                  : t('vpm.maintenance.more', { count: backups.length - 3 })}
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : (
         <p className="faint text-[11px]">{t('vpm.maintenance.noBackups')}</p>
@@ -405,6 +506,11 @@ export function VpmMaintenancePanel({
 
 function candidateKey(name: string | null, relativePath: string | null): string {
   return `${name ?? ''}\0${relativePath ?? ''}`
+}
+
+function fileName(filePath: string): string {
+  const parts = filePath.split(/[\\/]/)
+  return parts[parts.length - 1] || filePath
 }
 
 function formatBytes(value: number): string {
