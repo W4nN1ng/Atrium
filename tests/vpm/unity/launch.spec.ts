@@ -158,7 +158,8 @@ describe('launch', () => {
     expect(result).toMatchObject({ status: 'launched', exePath: exe, pid: 4242 })
     expect(result.args).toEqual(['-projectPath', projectPath])
     const options = spawn.mock.calls[0][2]
-    expect(options).toMatchObject({ detached: true, stdio: 'ignore', shell: false, windowsHide: true })
+    // windowsHide 必须是 false：true 会把 Unity 的主窗口一起隐藏（实测 MainWindowHandle=0）
+    expect(options).toMatchObject({ detached: true, stdio: 'ignore', shell: false, windowsHide: false })
     expect(options.cwd).toBe(projectPath)
   })
 

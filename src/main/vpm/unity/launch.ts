@@ -295,7 +295,12 @@ export class UnityLaunchService {
           cwd: projectPath,
           detached: true,
           stdio: 'ignore',
-          windowsHide: true,
+          /**
+           * **必须 false**。`windowsHide: true` 会给子进程传 `STARTF_USESHOWWINDOW/SW_HIDE`，
+           * Unity 是 GUI 程序，它的第一个顶层窗口会被这个标志隐藏 ——
+           * 表现就是"进程在、CPU 在跑、锁文件也有，但屏幕上什么都没有"（MainWindowHandle=0）。
+           */
+          windowsHide: false,
           // 绝不让参数经过 shell
           shell: false
         })
