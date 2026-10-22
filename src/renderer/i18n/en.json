@@ -221,7 +221,8 @@
     "importConfirmTitle": "Confirm import into Unity",
     "importConfirmAction": "Confirm import",
     "importConfirmIntro": "{{total}} files will be imported. No existing files need to be overwritten.",
-    "memberStartToProject": "Import {{count}} selected to {{name}}"
+    "memberStartToProject": "Import {{count}} selected to {{name}}",
+    "backfillEmptyHint": "No collections yet."
   },
   "inbox": {
     "title": "Assets to organize",
@@ -1759,13 +1760,13 @@
       "copy": "Copy project",
       "copying": "Copying…",
       "copyTitle": "Copy project",
-      "copyHint": "Only essential files are copied (no Library/Logs/Temp); the target must not exist.",
+      "copyHint": "Library/Logs/Temp are excluded.",
       "copyParent": "Copy to",
       "copyName": "New folder name",
       "copyDone": "Copied {{files}} files",
       "changeVersion": "Change Unity version",
       "versionTitle": "Change Unity version",
-      "versionHint": "Only ProjectVersion.txt changes; Unity upgrades assets on next open.",
+      "versionHint": "Only ProjectVersion.txt changes.",
       "versionWarning": "A backup is taken first. Downgrades may be irreversible — make sure you have your own copy.",
       "versionChanging": "Changing…",
       "versionChanged": "Changed from {{from}} to {{to}}",

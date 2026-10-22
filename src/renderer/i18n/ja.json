@@ -221,7 +221,8 @@
     "importConfirmTitle": "Unity へのインポートを確認",
     "importConfirmAction": "インポートを確認",
     "importConfirmIntro": "{{total}} 個のファイルをインポートします。上書きが必要な既存ファイルはありません。",
-    "memberStartToProject": "選択した {{count}} 件を {{name}} にインポート"
+    "memberStartToProject": "選択した {{count}} 件を {{name}} にインポート",
+    "backfillEmptyHint": "コレクションはまだありません。"
   },
   "inbox": {
     "title": "整理待ちの素材",
@@ -1759,13 +1760,13 @@
       "copy": "プロジェクトを複製",
       "copying": "複製中…",
       "copyTitle": "プロジェクトを複製",
-      "copyHint": "必要なファイルのみ（Library/Logs/Temp を除く）。保存先は存在してはいけません。",
+      "copyHint": "Library/Logs/Temp は含みません。",
       "copyParent": "複製先",
       "copyName": "新しいフォルダー名",
       "copyDone": "{{files}} ファイルを複製しました",
       "changeVersion": "Unity バージョンを変更",
       "versionTitle": "Unity バージョンを変更",
-      "versionHint": "変更するのは ProjectVersion.txt のみ。次回 Unity 起動時にアセットが更新されます。",
+      "versionHint": "ProjectVersion.txt のみ変更します。",
       "versionWarning": "変更前に自動でバックアップします。ダウングレードは元に戻せない場合があります。",
       "versionChanging": "変更中…",
       "versionChanged": "{{from}} から {{to}} に変更しました",

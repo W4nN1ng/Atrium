@@ -221,7 +221,8 @@
     "importConfirmTitle": "确认导入到 Unity",
     "importConfirmAction": "确认导入",
     "importConfirmIntro": "将导入 {{total}} 个文件。没有发现需要覆盖的已有文件。",
-    "memberStartToProject": "将选中的 {{count}} 项导入到 {{name}}"
+    "memberStartToProject": "将选中的 {{count}} 项导入到 {{name}}",
+    "backfillEmptyHint": "还没有集合。"
   },
   "inbox": {
     "title": "待整理的素材",
@@ -1759,13 +1760,13 @@
       "copy": "复制工程",
       "copying": "正在复制…",
       "copyTitle": "复制工程",
-      "copyHint": "只复制必要文件（不含 Library/Logs/Temp）；目标目录必须不存在。",
+      "copyHint": "不含 Library/Logs/Temp。",
       "copyParent": "复制到",
       "copyName": "新文件夹名",
       "copyDone": "已复制 {{files}} 个文件",
       "changeVersion": "更换 Unity 版本",
       "versionTitle": "更换 Unity 版本",
-      "versionHint": "只会改 ProjectVersion.txt；Unity 首次打开时会自己升级资源。",
+      "versionHint": "只改 ProjectVersion.txt。",
       "versionWarning": "换版本前会自动备份一次。降级可能不可逆，请确认已经在版本管理里留过底。",
       "versionChanging": "正在更换…",
       "versionChanged": "已从 {{from}} 换到 {{to}}",
