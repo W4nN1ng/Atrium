@@ -821,6 +821,18 @@ Task: P?-?
   （未提交前失败 → 恢复为 `failed`/`rolled_back`，不再一律 `needs_attention`）。
 - **备查**：详细交接见 `docs/VPM-P4D-HANDOVER.md`。
 
+### P4 未验证项验证（2026-10-22，done）
+
+- 报告：`docs/VPM-P4-VERIFICATION.md`（全部无头执行，不启动 Unity/Electron）。
+- 已验证：真实仓库下载（官方 `com.vrchat.base@3.7.0`，13.82 MiB，SHA-256 一致）、真实 zip 解压
+  （936 条目 / 32.09 MiB / 519 个 `.meta`）、`statfsSync` 真盘、长路径（248/374 字符可操作、
+  ≥260 按策略拒绝）、真实 EPERM（只读 manifest）与 EBUSY（目录被占用）、跨进程并发、
+  进程被杀后恢复、缓存配额与 `vpm_cache_entry` 一致性。
+- 顺带修了两个 bug：`SQLITE_BUSY` 泄漏成裸错误码（→ 重试一次并映射 `vpmProjectBusy`）、
+  并发淘汰在 `verifyFile` 异步窗口里留下"有行没文件"的孤儿缓存行。
+- 仍未验证：真 Unity 装包、`.atrium-tx` 是否被 Unity 忽略、Electron `net` 传输、真断电
+  （步骤写在验证报告 §10）。
+
 ---
 
 ## 13. 一句话

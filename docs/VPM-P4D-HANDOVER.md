@@ -221,6 +221,10 @@ AssertionError: expected <heap growth> to be less than 16777216
 
 ## 7. 未验证项（**照实记录**）
 
+> **2026-10-22 更新**：本节的多数条目已在 `docs/VPM-P4-VERIFICATION.md` 里用真实字节验证过
+> （真实仓库下载、真实 zip 解压、statfs、长路径、真实 EBUSY/EPERM、跨进程并发、进程被杀后恢复、
+> 缓存配额与 `vpm_cache_entry` 一致性）。仍然未验证的只有需要真 Unity / Electron 的项与真断电。
+
 1. **真 Unity 沙盒装包**：一次都没开过 Unity。P4-E 的出门条件。
 2. **真实仓库包**：没有对 VRChat 官方/curated 仓库跑过完整流程。
 3. **rename 被占用**（EBUSY/EPERM）：恢复用的是同步立即重试（3 次），没有在真实占用下验证过。

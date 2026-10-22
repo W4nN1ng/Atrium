@@ -165,6 +165,10 @@ npx vitest run tests/perf/scale.spec.ts
 
 ## 3. 未验证项（**照实记录，不许说成"已完成"**）
 
+> **2026-10-22 更新**：本节的多数条目已在 `docs/VPM-P4-VERIFICATION.md` 里用真实字节验证过
+> （真实仓库下载、真实 zip 解压、statfs、长路径、真实 EBUSY/EPERM、跨进程并发、进程被杀后恢复、
+> 缓存配额与 `vpm_cache_entry` 一致性）。仍然未验证的只有需要真 Unity / Electron 的项与真断电。
+
 > 规划 §12.2 的硬规则：未验证的写"未验证"。
 
 1. **真机下载**：所有下载用例用的是假 HTTP 端口。**没有对真实 VRChat 官方仓库做过一次真下载。**
