@@ -272,7 +272,9 @@
     "bundleNoSplit": "Stored together: categories are recorded, no file inside gets moved",
     "emptyTitle": "Add your first asset",
     "emptyHint": "Drop a ZIP, Unity package, or asset folder here, or select files below. Atrium reads the contents and suggests a category.",
-    "nextStepHint": "Add assets → confirm their category → browse All assets. Select and connect a target project when importing into Unity."
+    "nextStepHint": "Add assets → confirm their category → browse All assets. Select and connect a target project when importing into Unity.",
+    "assetFiles": "Asset packages",
+    "allFiles": "All files"
   },
   "unity": {
     "errNoProject": "No record of this project — refresh the project list first",

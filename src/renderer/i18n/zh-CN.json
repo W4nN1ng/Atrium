@@ -272,7 +272,9 @@
     "bundleNoSplit": "入库时保持在一起，只登记分类，不搬动里面的文件",
     "emptyTitle": "先添加一个素材试试",
     "emptyHint": "把 ZIP、unitypackage 或素材文件夹拖到这里，也可以点击下面的按钮。Atrium 会读取内容并建议分类。",
-    "nextStepHint": "添加素材 → 确认分类 → 在「全部素材」中查看。要导入 Unity 时，再选择并连接目标工程。"
+    "nextStepHint": "添加素材 → 确认分类 → 在「全部素材」中查看。要导入 Unity 时，再选择并连接目标工程。",
+    "assetFiles": "素材包",
+    "allFiles": "所有文件"
   },
   "unity": {
     "errNoProject": "库里没有这个工程的记录，先刷新工程列表",

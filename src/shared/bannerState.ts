@@ -123,17 +123,7 @@ export function bannerRenderState(input: BannerInput): BannerRenderState {
    * 用户原话："这个未匹配到集合是什么东西？还在这里反复跳来跳去，出现又消失，把这东西删了。"
    * 视图本来就没动，通知用户"没动"是纯噪音；真要换集合，用户会自己去点。
    */
-  return {
-    shown: false,
-    tone: 'info',
-    titleKey: 'project.bannerNoMatch',
-    titleParams: { project: e.projectName },
-    bodyKey: queryNote ? queryNote.key : null,
-    bodyParams: queryNote ? queryNote.params : null,
-    buttons: [],
-    choices: [],
-    autoHide: true
-  }
+  return { shown: false }
 }
 
 /** 横幅出现多久之后自动淡出（规格："10 秒后自动淡出"） */

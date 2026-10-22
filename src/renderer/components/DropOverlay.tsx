@@ -112,14 +112,36 @@ export function useDropZone(
         return
       }
       const paths: string[] = []
+      const seenPaths = new Set<string>()
+      const push = (p: string | null | undefined): void => {
+        if (!p || seenPaths.has(p)) return
+        seenPaths.add(p)
+        paths.push(p)
+      }
+      /**
+       * R6：**先走 `dataTransfer.items`**。
+       * 拖文件夹时 `dataTransfer.files` 在 Chromium 里经常是空的，
+       * 只有 `items[i].webkitGetAsEntry()` 才能看出这是个目录；
+       * 但拿路径还是得靠 `getAsFile()` + `pathForFile`（Electron 对目录也返回真实路径）。
+       */
+      const items = Array.from(dt.items ?? [])
+      for (const item of items) {
+        if (item.kind !== 'file') continue
+        const file = item.getAsFile()
+        if (!file) continue
+        try {
+          push(window.a.system.pathForFile(file))
+        } catch {
+          /* 非本地文件（从浏览器拖来的链接）拿不到路径 */
+        }
+      }
       const files = Array.from(dt.files ?? [])
       seen.current.files = files.length
       for (const file of files) {
         try {
-          const p = window.a.system.pathForFile(file)
-          if (p) paths.push(p)
+          push(window.a.system.pathForFile(file))
         } catch {
-          /* 非本地文件（比如从浏览器拖来的链接）拿不到路径，忽略 */
+          /* 同上 */
         }
       }
       if (!paths.length) {
