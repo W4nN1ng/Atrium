@@ -62,7 +62,7 @@
 | P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | done |
 | P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | done |
 | P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | review |
-| P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | todo |
+| P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | done |
 | P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | todo |
 | P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | todo |
 | P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | todo |
@@ -90,7 +90,7 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> 下一个可执行的卡是 **P4-F**（工程活动闸门与素材/包冲突防护）——它不依赖 P4-E 的 UI。
+> P4-F 也已完成（工程活动闸门）；下一个可执行的卡是 **P5-A**（模板格式、存储与原创内置模板）。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -867,6 +867,35 @@ Task: P?-?
 - **给 P4-F**：`ProjectActivityPort` 已经贯穿预检与撤销闸门；把真实实现注入
   `initVpm({ projectActivity })` 即可，UI 侧 `detail.running` 已经能禁用入口。
   包事务的 `importing=true` 目前只能靠预检报 `vpmProjectImporting`，P4-F 接上端口后界面可提前禁用。
+
+### P4-F（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - `shared/vpm/linkage.ts` 新增 `MaintenanceKind` / `ProjectActivitySnapshot` /
+    `MaintenanceLease` / `ProjectActivityPort` / `LegacyGuardPort`（从 `install` 迁过来，
+    `install` 仍 re-export，老引用不受影响）。
+  - `ProjectActivityPort.acquireMaintenance(path, kind)` 是**必需**方法；`LegacyGuardPort`
+    改为 `isProtected(projectPath, relativePath)` 并新增可选 `prime(projectPath)`。
+  - `import/coordinator.ts` 新增 `setImportActivityHook()`；`importUnitypackage` /
+    `rollbackImport` 用 try/finally 包住原实现（不改算法）。
+  - 新错误码沿用 `vpmProjectBusy` / `vpmProjectImporting` / `vpmUnityRunning`（带 `kind` 参数）。
+- **实现**：`src/main/project/activity.ts` 的 `ProjectActivityRegistry`（纯状态机，无 IO）+
+  `createProjectActivityPort` + `createLegacyGuard`；组合根注入 gate → `initVpm`。
+  身份是**归一化工程路径**（不是 project id），理由与细节写进 `VPM-ARCHITECTURE.md` §7.3.1。
+- **互斥规则**：一个工程同时最多一个维护租约；导入计数 >0 或 Unity 在跑时拿不到租约；
+  包事务在**预检通过后立刻**拿租约、`finally` 释放；释放幂等、只删自己那一个。
+- **保护规则**：`com.avca.bridge` 的 legacy 声明即使进了移除集合也跳过（`protectedPackage`）；
+  旧 Assets 清理按 `.meta` guid 与 `import_log` 的 created/overwritten 比对，命中即保留。
+- **已验证**：`npm run typecheck` exit 0；`tests/project/activity.spec.ts` **14 条**、
+  `tests/vpm/install/activity-gate.spec.ts` **6 条**全绿。覆盖：租约获取/重入/幂等释放/
+  异常释放、导入计数与嵌套、Unity 运行（含探针抛错 fail closed）、不同工程并行、
+  导入中拒绝安装（不写盘）、他人持租约时 `vpmProjectBusy`、成功/失败后租约都释放、
+  预检失败不残留租约、`import_log` guid 保护（created/overwritten/无 meta/prime 刷新）、
+  真实 `importUnitypackage`/`rollbackImport` 期间的 importing 上报与释放。
+- **未验证**：**真 Unity 并发**（导入进行中点安装、安装进行中双击素材）没有真机证据；
+  P6 的备份/复制/迁移还没接租约（那是 P6-D 的活）；跨进程（两个 Atrium 实例）不覆盖。
+- **给 P5-A / P6-D**：所有维护动作先 `acquireMaintenance(path, kind)`，`finally` 释放；
+  备份/复制在 `importing=true` 时必须拒绝（现在闸门已经会抛 `vpmProjectImporting`）。
 
 ---
 
