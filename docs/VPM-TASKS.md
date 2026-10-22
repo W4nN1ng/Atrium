@@ -60,7 +60,7 @@
 | P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | done |
 | P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | done |
 | P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | done |
-| P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | todo |
+| P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | done |
 | P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | todo |
 | P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | todo |
 | P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | todo |
@@ -88,10 +88,11 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C 已完成，
-> 下一个执行任务是 **P4-D**（失败注入、崩溃恢复与并发）；P4-C 已把
-> “预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault”跑通，但**还没有在真 Unity 沙盒里装过包**。
-> 开工前先读 §12 的 P1-A…P4-C 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成，
+> 下一个执行任务是 **P4-E**（包管理 UI、批量与真 Unity E2E）；P4-C/P4-D 已经把
+> “预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入，
+> 但**还没有在真 Unity 沙盒里装过包**（P4-E 的出门条件）。
+> 开工前先读 §12 的 P1-A…P4-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -769,6 +770,56 @@ Task: P?-?
   `protectedPackage` 冲突并阻断计划（P4-C 未改 P3，记录给 P3 复查；核心桥接安装器不写
   `vpm-manifest.json`，所以正常工程不会踩到）。
 - **备查**：本站的详细交接见 `docs/VPM-P4C-HANDOVER.md`。
+
+### P4-D（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - `RecoveryService.apply()` / `scanAndApply()` 改为 **async**（现在真的动文件）；
+    `scan()` 仍是同步只读判定。`initVpm()` 里 `await recovery.scanAndApply()`。
+  - `RecoveryServiceOptions` 新增 `vault`（补完归档）与 `renameRetries`。
+  - `RecoveryReason` 新增 `project_changed`。
+  - `InstallTransactionOptions` 新增 **测试专用** `hooks`；新增
+    `TRANSACTION_HOOK_POINTS`（24 个点）与类型 `TransactionHookPoint`/`TransactionHookContext`/
+    `TransactionHooks`。`crashOnError: true` 时 hook 抛错模拟进程死亡（不写状态、不 finishStep、不回滚）。
+  - `InstallTransactionService` 增加进程内工程锁（`activeProjects`），同工程第二个 `apply()`
+    直接 `vpmProjectBusy`。
+  - `fsUtil` 新增 `renameSyncWithRetry`（启动恢复用，同步、不睡眠）。
+- **恢复判定**（`scan`）：工程不存在/journal 缺失/损坏/键不符 → `needs_attention`；
+  Unity/导入活动中 → `wait`；`commitPoint=manifest_written` → `complete`；
+  **journal 还写 `before` 但磁盘 manifest hash == `afterHash` → `complete`**（P4-C 交接里那条
+  rename↔markCommitPoint 崩溃窗口）；磁盘 manifest 既非 before 也非 after → `needs_attention`
+  （`project_changed`）；其余 → `rollback`。
+- **恢复执行**（`apply`）：`complete` 关掉遗留 running 步骤 → 缺提交点先补 `markCommitPoint`
+  → `committed` → 补完 vault 归档；`rollback` 撤销 move-in（新包进 `rolledback/`）、恢复
+  move-out（trash → `Packages/`）、恢复 legacy、用 `manifest.original.json` 还原 manifest，
+  移动过文件 → `rolled_back`，一步没动 → `failed`；回滚失败 → `needs_attention` +
+  `vpmRollbackFailed`。每步先看磁盘现状，**幂等**；已终态操作 `apply` 返回 `applied:false`。
+  恢复**不重跑** legacy 清理（前进操作，不是回滚）。
+- **失败矩阵**：`TRANSACTION_HOOK_POINTS` 24 个点逐个注入，结果表在
+  `src/main/vpm/install/README.md` 的「失败矩阵（P4-D）」；提交点前失败时整棵工程树
+  与操作前**逐字节一致**（按内容 hash 比较），提交点后失败只 `needs_attention` 不回滚。
+- **并发**：同工程并发 → 一个 committed、一个 `vpmProjectBusy`（进程内锁先拦，DB 唯一索引兜底）；
+  不同工程可并行；正常/崩溃恢复后锁都会释放；活动闸门抛错按 `vpmUnityRunning` 拒绝（fail closed）；
+  同一 `planId` 第二次应用 → `vpmProjectChanged`（不重复安装）。
+- **已验证**：`npm run typecheck` exit 0；定向 `tests/vpm/install` **6 files / 103 tests 全绿**
+  （archive 8 / journal 13 / transaction 29 / failure-injection 29 / recovery 15 / concurrency 9）；
+  全量 **189 passed / 1 failed / 9 skipped files（199）**、
+  **2442 passed / 1 failed / 19 skipped tests（2462）**。唯一红的是
+  `tests/classify/unitypackage.spec.ts` 的内存/耗时阈值（这次是 heap 增长越界，单独重跑
+  21 passed），与 P4-D 代码路径零重叠，属并行 perf 噪声（P4-B/P4-C 交接已记录同一现象）。
+- **未验证**：**仍然没有在真 Unity 沙盒里装过包**；真实 NTFS 上 rename 被占用（EBUSY/EPERM）
+  的恢复路径未实测（恢复用的是同步立即重试）；跨进程并发（两个 Atrium 实例）未实测，
+  只有 DB 唯一索引兜底；恢复期间的断电/再次崩溃只做了"重复执行"幂等验证，没有做真断电；
+  长路径 >260 未实测。
+- **给 P4-E**：`runtime.transactions.apply({ projectKey, planId, onProgress })` 可以直接接 IPC；
+  `TransactionProgress` 已经给到 `step/phase/index/total`；失败结果里的 `warnings` 要原样透传
+  （`vpmLegacyCleanupSkipped`/`vpmVaultArchiveFailed` 的 detail 是诊断明细）。
+  `runtime.recovery.scan()` 给恢复 UI 用，`apply(decisions)` 是 async。
+  **不要**在渲染层判断"是否需要恢复"——判定在 `scan()`，UI 只展示和确认。
+- **已知偏差**：`RecoveryService` 的 `apply` 从同步变 async 是 P4-D 的公开 API 变更，
+  `tests/vpm/install/journal.spec.ts` 与 `tests/vpm/runtime.spec.ts` 已同步改为新语义
+  （未提交前失败 → 恢复为 `failed`/`rolled_back`，不再一律 `needs_attention`）。
+- **备查**：详细交接见 `docs/VPM-P4D-HANDOVER.md`。
 
 ---
 
