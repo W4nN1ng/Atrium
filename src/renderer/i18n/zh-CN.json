@@ -1395,7 +1395,8 @@
       "scanAdd": "添加所选（{{count}}）",
       "scanAlready": "已添加",
       "scanAdding": "正在添加…",
-      "scanning": "正在扫描…"
+      "scanning": "正在扫描…",
+      "trashFallback": "这个盘不支持系统回收站，工程已移到 Atrium 的回收站（<数据根>\\trash），可以手动还原。"
     },
     "plan": {
       "title": "变更计划（只读）",

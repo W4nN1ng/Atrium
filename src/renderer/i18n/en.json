@@ -1395,7 +1395,8 @@
       "scanAdd": "Add selected ({{count}})",
       "scanAlready": "Already added",
       "scanAdding": "Adding…",
-      "scanning": "Scanning…"
+      "scanning": "Scanning…",
+      "trashFallback": "This drive does not support the system Recycle Bin, so the project was moved to Atrium’s own trash folder (data root\\trash)."
     },
     "plan": {
       "title": "Change plan (read-only)",

@@ -1,4 +1,6 @@
 import { shell } from 'electron'
+import fs from 'node:fs'
+import path from 'node:path'
 import { PROTECTED_PROJECT_PACKAGE } from '../../../shared/vpm/domain/project'
 import { VpmError } from '../../../shared/vpm/errors'
 import { IpcInvoke } from '../../../shared/ipc'
@@ -253,8 +255,30 @@ export function registerProjectIpc(options: ProjectIpcOptions): void {
     const item = runtime.projects.get(projectKey)
     if (!item) throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
     if (!runtime.trashPath) throw new VpmError('vpmInternal')
-    await runtime.trashPath(item.path)
-    return { ok: runtime.projects.remove(projectKey) }
+    let mode: 'recycle' | 'atrium' = 'recycle'
+    try {
+      await runtime.trashPath(item.path)
+    } catch {
+      /**
+       * 有些盘（移动盘/网络盘/没有 $Recycle.Bin 的分区）上 `shell.trashItem` 会直接失败
+       * （实测 E: 盘报 "Failed to parse path"）。这时退到 **Atrium 自己的回收站**：
+       * 把整个文件夹挪到 `<数据根>/trash/<时间>-<名字>`，同样可恢复、不永久删。
+       */
+      const dest = path.join(
+        runtime.dataRoot,
+        'trash',
+        `${Date.now()}-${path.basename(item.path)}`
+      )
+      fs.mkdirSync(path.dirname(dest), { recursive: true })
+      try {
+        fs.renameSync(item.path, dest)
+      } catch {
+        fs.cpSync(item.path, dest, { recursive: true })
+        fs.rmSync(item.path, { recursive: true, force: true })
+      }
+      mode = 'atrium'
+    }
+    return { ok: runtime.projects.remove(projectKey), mode }
   })
 
   ipc.handle(IpcInvoke.Vpm.ProjectRescan, (key: unknown) => {

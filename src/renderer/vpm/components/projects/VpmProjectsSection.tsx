@@ -227,6 +227,12 @@ function DetailBody({
   )
 }
 
+/** 名字为空时用文件夹名兜底（老工程的核心记录里 name 可能是空的）。 */
+function baseNameOf(value: string): string {
+  const parts = value.split(/[\\/]/).filter(Boolean)
+  return parts[parts.length - 1] || value
+}
+
 export function VpmProjectsSection({
   targetProjectId = null,
   targetPending = false,
@@ -251,6 +257,7 @@ export function VpmProjectsSection({
   const [scanning, setScanning] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<VpmProjectSummaryDto | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
+  const [trashNote, setTrashNote] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [planProjectKey, setPlanProjectKey] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
@@ -393,7 +400,9 @@ export function VpmProjectsSection({
     setRemoveError(null)
     try {
       // R17：删除就是删除——整个工程文件夹进回收站（可还原），没有"只移除台账"。
-      const ok = (await vpmApi.projectTrash(removeTarget.projectKey)).ok
+      const result = await vpmApi.projectTrash(removeTarget.projectKey)
+      const ok = result.ok
+      if (ok && result.mode === 'atrium') setTrashNote(t('vpm.projects.trashFallback'))
       if (ok) {
         setRemoveTarget(null)
         setActionError(null)
@@ -436,6 +445,12 @@ export function VpmProjectsSection({
         ) : null}
       </div>
 
+      {trashNote ? (
+        <p className="mt-1 text-[11px]" style={{ color: 'var(--muted)' }}>
+          {trashNote}
+        </p>
+      ) : null}
+
       {projects.error ? (
         <div className="mt-2 rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
           {projects.error}
@@ -443,7 +458,7 @@ export function VpmProjectsSection({
       ) : null}
 
       {filtered.length ? (
-        <div className="mt-2 max-h-[46vh] overflow-y-auto rounded border" style={{ borderColor: 'var(--line)' }}>
+        <div className="mt-2 rounded border" style={{ borderColor: 'var(--line)' }}>
           {filtered.map((item) => (
             <div
               key={item.projectKey}
@@ -458,7 +473,9 @@ export function VpmProjectsSection({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-[17px] font-semibold">{cleanText(item.name, 200)}</span>
+                  <span className="truncate text-[17px] font-semibold">
+                    {cleanText(item.name || baseNameOf(item.path), 200)}
+                  </span>
                   {item.unityVersion ? (
                     <span className="text-[12px]" style={{ color: 'var(--muted)' }}>
                       {item.unityVersion}

@@ -79,6 +79,8 @@ export interface InitVpmOptions {
 }
 
 export interface VpmRuntime {
+  /** VPM 数据根（vpm.db / 缓存 / 备份 / secrets 都在这下面）。 */
+  dataRoot: string
   store: RepoStore
   http: VpmHttpPort
   cache: VpmCacheStore
@@ -296,6 +298,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
 
     let disposed = false
     runtime = {
+      dataRoot: options.dataRoot,
       store,
       http,
       cache,

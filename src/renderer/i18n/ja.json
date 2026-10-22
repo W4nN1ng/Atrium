@@ -1395,7 +1395,8 @@
       "scanAdd": "選択を追加（{{count}}）",
       "scanAlready": "追加済み",
       "scanAdding": "追加中…",
-      "scanning": "スキャン中…"
+      "scanning": "スキャン中…",
+      "trashFallback": "このドライブはごみ箱に対応していないため、Atrium のごみ箱（データルート\\trash）に移動しました。"
     },
     "plan": {
       "title": "変更計画（読み取り専用）",

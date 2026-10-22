@@ -161,7 +161,7 @@ export const vpmApi = {
   projectsEnsureLedgers(): Promise<{ created: number; failed: string[] }> {
     return window.a.vpm.projectsEnsureLedgers()
   },
-  projectTrash(projectKey: string): Promise<{ ok: boolean }> {
+  projectTrash(projectKey: string): Promise<{ ok: boolean; mode?: 'recycle' | 'atrium' }> {
     return window.a.vpm.projectTrash(projectKey)
   },
   projectRemove(projectKey: string): Promise<{ ok: boolean }> {
