@@ -29,7 +29,7 @@ import { readVccManifest, startProjectWatcher, type ProjectApi } from './project
 import { UnityConnections } from './project/connections'
 import { installBridge } from './bridge/installer'
 import { closeDatabase, getDb, openDatabase } from './db'
-import { listProjects, toProjectInfo, upsertProject } from './db/repos/unity'
+import { deleteProject, getProjectByPath, listProjects, toProjectInfo, upsertProject } from './db/repos/unity'
 import { bridgeTemplateRoot, ensureRuntimeDirs, initAppPaths, P } from './services/paths'
 import { installThumbProtocol, registerThumbSchemePrivileges } from './services/thumb-protocol'
 import { backfillThumbs } from './library/thumbs'
@@ -141,6 +141,16 @@ function bootstrap(): void {
       }
       for (const project of detectedProjects) byId.set(project.id, project)
       return [...byId.values()]
+    },
+    forgetCoreProject: (pathValue: string) => {
+      const target = pathValue.toLowerCase()
+      detectedProjects = detectedProjects.filter((project) => project.path.toLowerCase() !== target)
+      try {
+        const row = getProjectByPath(getDb(), pathValue)
+        if (row) deleteProject(getDb(), row.id)
+      } catch {
+        /* 数据库没就绪时只清内存 */
+      }
     },
     registerCoreProject: (input) => {
       const db = getDb()

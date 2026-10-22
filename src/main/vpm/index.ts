@@ -68,6 +68,8 @@ export interface InitVpmOptions {
   legacyGuard?: LegacyGuardPort
   /** 把目录移到回收站（Electron `shell.trashItem`）；不传就不提供"连文件夹一起删"。 */
   trashPath?: (target: string) => Promise<void>
+  /** R17：删除工程时同时清掉核心工程表里的那一行。 */
+  forgetCoreProject?: (path: string) => void
   /** 当前在跑的工程（任意一个）；R12 用它拒绝"同时开两个工程"。 */
   runningProject?: () => { name: string; path: string } | null
   /** 包缓存配额；默认 20 GiB。P8 再接到设置/用量 UI。 */
@@ -100,6 +102,7 @@ export interface VpmRuntime {
   create: ProjectCreateService
   launch: UnityLaunchService
   trashPath?: (target: string) => Promise<void>
+  forgetCoreProject?: (path: string) => void
   backup: ProjectBackupService
   secrets: SecretStore
   copy: ProjectCopyService
@@ -318,6 +321,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       create,
       launch,
       ...(options.trashPath ? { trashPath: options.trashPath } : {}),
+      ...(options.forgetCoreProject ? { forgetCoreProject: options.forgetCoreProject } : {}),
       backup,
       secrets,
       copy,

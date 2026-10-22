@@ -257,7 +257,9 @@ export function registerProjectIpc(options: ProjectIpcOptions): void {
     if (!runtime.trashPath) throw new VpmError('vpmInternal')
     // 文件夹已经不在了（被手动删/挪走）：没什么可回收的，直接清台账。
     if (!fs.existsSync(item.path)) {
-      return { ok: runtime.projects.remove(projectKey), mode: 'missing' as const }
+      runtime.projects.remove(projectKey)
+      runtime.forgetCoreProject?.(item.path)
+      return { ok: true, mode: 'missing' as const }
     }
     let mode: 'recycle' | 'atrium' | 'missing' = 'recycle'
     try {
@@ -281,14 +283,20 @@ export function registerProjectIpc(options: ProjectIpcOptions): void {
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
           // 挪的过程中发现已经不在了：同样只清台账。
-          return { ok: runtime.projects.remove(projectKey), mode: 'missing' as const }
+          runtime.projects.remove(projectKey)
+          runtime.forgetCoreProject?.(item.path)
+          return { ok: true, mode: 'missing' as const }
         }
         fs.cpSync(item.path, dest, { recursive: true })
         fs.rmSync(item.path, { recursive: true, force: true })
       }
       mode = 'atrium'
     }
-    return { ok: runtime.projects.remove(projectKey), mode }
+    runtime.projects.remove(projectKey)
+    // 关键：台账里可能本来就没有这一行（早先接桥进的是核心表），
+    // 所以必须同时把核心工程表里的那一行也删掉，列表才会真的消失。
+    runtime.forgetCoreProject?.(item.path)
+    return { ok: true, mode }
   })
 
   ipc.handle(IpcInvoke.Vpm.ProjectRescan, (key: unknown) => {

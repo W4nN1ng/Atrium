@@ -85,6 +85,11 @@ export function getProject(db: Db, id: string): ProjectRow | null {
   return row ?? null
 }
 
+/** 从核心工程表里删掉一行（用户明确删除工程时用）。 */
+export function deleteProject(db: Db, id: string): void {
+  db.prepare(`DELETE FROM project WHERE id = ?`).run(id)
+}
+
 export function setProjectRunning(db: Db, id: string, running: boolean): void {
   db.prepare(`UPDATE project SET is_running = ?, last_seen = ? WHERE id = ?`).run(
     running ? 1 : 0,

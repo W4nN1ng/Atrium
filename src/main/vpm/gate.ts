@@ -45,6 +45,8 @@ export interface VpmGateDeps {
   /** 核心工程发现/运行状态；P2-C 的台账合并用。 */
   getCoreProjects?(): CoreProjectSummary[]
   /** 添加已有工程时写核心 `project` 表（DML，不改 schema）。 */
+  /** R17：用户明确删除工程时，把核心工程表里的那一行也删掉。 */
+  forgetCoreProject?(path: string): void
   registerCoreProject?(input: CoreProjectInput): CoreProjectSummary
   /** VCC settings.json 的只读 userProjects。 */
   readVccProjects?(): VccProjectsRead
@@ -221,6 +223,7 @@ async function ensureRuntime(): Promise<void> {
         revealPath: (target: string) => shell.showItemInFolder(target),
         // 删除工程时把整个文件夹移进回收站（不是永久删）
         trashPath: (target: string) => shell.trashItem(target),
+        forgetCoreProject: (target: string) => gateDeps?.forgetCoreProject?.(target),
         // 启动前判断"这个工程是不是已经在跑"：不接这个端口的话，每点一次都会再拉起一个 Unity。
         // R12：同时只开一个工程——别的工程在跑就直接拒绝启动。
         runningProject: () => {
