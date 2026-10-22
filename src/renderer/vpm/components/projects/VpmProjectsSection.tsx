@@ -406,6 +406,9 @@ export function VpmProjectsSection({
       if (ok) {
         setRemoveTarget(null)
         setActionError(null)
+        // 主进程已经删掉了台账 + 核心表，但渲染层的列表还是旧的快照 —— 立刻重拉，
+        // 否则用户要手动点「刷新」才看到它消失。
+        await projects.refresh()
       } else {
         setRemoveError(t('vpm.projects.notLinked'))
       }

@@ -56,7 +56,8 @@ const vpm = {
     backupPath: null,
     appVersion: '0.9.0'
   }),
-  projectsList: async () => items,
+  // 返回副本：这样"主进程改了但渲染层没刷新"才会暴露出来（R18/R17 的回归点）。
+  projectsList: async () => items.map((item) => ({ ...item })),
   projectsEnsureLedgers: async () => {
     log.push('ensureLedgers')
     // 模拟补建：把没有台账的那个变成有台账
