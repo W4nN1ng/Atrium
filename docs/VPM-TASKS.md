@@ -90,7 +90,8 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P5-D 代码完成、状态 review（缺真 Unity 启动/打开验收，需要 GUI）；下一个可执行的卡是 **P5-E**（双击素材真机验收）或 **P6-A**。
+> P5-E 代码完成、状态 review（缺真 Unity 双击导入验收，脚本在
+> `docs/VERIFY-2026-10-22-VPM-MATERIAL-LINK.md`）；下一个可执行的卡是 **P6-A**。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1005,6 +1006,26 @@ Task: P?-?
   设置页的模板编辑器（新建/编辑/复制模板）没做——本卡只做了创建对话框里的模板列表/收藏。
 - **给 P5-E**：双击素材导入要依赖 P4-F 的活动闸门 + 本卡的启动绑定；
   真机验收时重点看"启动中/连接中"的徽标与"已运行也绑定目标"。
+
+### P5-E（2026-10-22，review：代码完成，缺真机验收）
+
+- **改动**：
+  - `renderer/vpm/lib/target.ts`：目标徽标纯逻辑 `targetBadge()`（非目标 → null、
+    启动/连接中 → `targetWaiting` warn、就绪 → `isTarget` accent）；
+    `VpmProjectsSection` 改用它，不再内联两个 `&&`。
+  - `docs/VERIFY-2026-10-22-VPM-MATERIAL-LINK.md`：14 步真机验收脚本
+    （单工程链路 / 多实例优先级 / 失败路径 / 回归），带结果列。
+- **不需要真机就能确认的不变量**（都有测试）：
+  - 先 `bindLaunchTarget` 再 `spawn`；spawn 失败/异步 error 都 `clearLaunchTarget`；
+  - 已运行不重复启动但仍绑定目标；没有 coreId 时不假装绑定；
+  - 目标优先级 `manualId ?? launchId` 由核心 `connections` 固定；
+  - 工程关闭/消失后 `pruneLaunchBinding()` 清绑定（核心已有）。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/unity/launch-target.spec.ts` 5 条 +
+  `tests/renderer/vpm-launch-target.spec.ts` 3 条。
+- **未验证（本卡不能算 done）**：真 Unity 2022.3.22f1 下"打开 Unity → 自动成为导入目标 →
+  双击素材导入"的完整链路；多实例真机优先级；启动中双击等待的体验。**没有截图、没有
+  `import_log` 证据**。
+- **给 P6-A**：本卡没改导入/冲突/撤销算法，也没做跨重启目标持久化（刻意不做）。
 
 ---
 
