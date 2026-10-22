@@ -21,3 +21,13 @@ export type {
 
 export { ProjectCopyService } from './copy'
 export type { CopyProjectInput, CopyProjectResult, ProjectCopyDeps } from './copy'
+
+export { ProjectMigrateService } from './migrate'
+export type {
+  MigrateCandidate,
+  MigrateInput,
+  MigrateOutcome,
+  MigrateResult,
+  MigrateSkipReason,
+  ProjectMigrateDeps
+} from './migrate'

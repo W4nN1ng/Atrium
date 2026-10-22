@@ -1,4 +1,4 @@
-import { ProjectBackupService, ProjectCopyService } from './backup'
+import { ProjectBackupService, ProjectCopyService, ProjectMigrateService } from './backup'
 import { CatalogService } from './catalog'
 import { CacheEntryStore, PackageCacheService, VpmCacheStore } from './cache'
 import { closeVpmDb, openVpmDb, type VpmDb } from './db'
@@ -87,6 +87,7 @@ export interface VpmRuntime {
   backup: ProjectBackupService
   copy: ProjectCopyService
   version: UnityVersionService
+  migrate: ProjectMigrateService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -245,6 +246,13 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       activity: options.projectActivity,
       backup: { create: (input) => backup.create(input) }
     })
+    const migrate = new ProjectMigrateService({
+      projects,
+      plans,
+      transactions,
+      backup: { create: (input) => backup.create(input) },
+      activity: options.projectActivity
+    })
     const undo = new UndoService({
       operations,
       plans,
@@ -279,6 +287,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       backup,
       copy,
       version,
+      migrate,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return

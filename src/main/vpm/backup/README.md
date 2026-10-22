@@ -95,3 +95,10 @@ runtime.backup.reveal(record.id)
 - 先复制到 `<parent>/.atrium-copy-<op>`，成功才 rename；失败改名成
   `.atrium-copy-failed-<op>` **保留现场**，不永久删。
 - 取消：`vpmCollectCancelled`，目标目录不会出现。
+
+## 旧式迁移（`migrate.ts`，P6-D）
+
+- **不做一键全自动**：只迁移用户勾选、置信度 high/medium、且仓库能解析到的包。
+- 每个包：备份（默认）→ P3 计划 → P4 事务；旧 Assets 由事务的 legacy 步骤进 vault。
+- 拒绝矩阵：Unity 运行中 / 未识别包 id / 低置信度 / 已在台账 / 仓库解析不到。
+- 一个包失败不影响其余（结果里逐条给 `status`/`errorCode`）。

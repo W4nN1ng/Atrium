@@ -90,7 +90,8 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P6-C 也已完成（复制与换版本）；下一个可执行的卡是 **P6-D**（备份/复制/换版本 UI 与真机）。
+> P6-D 服务层完成、状态 review（迁移服务 + 拒绝矩阵已做；**维护 UI 与真机未做**）。
+> 下一个可执行的卡是 **P7-A**（外部格式导入）。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1092,6 +1093,20 @@ Task: P?-?
   源内/运行中/取消、版本文件读写、备份调用、跳过备份、运行中/未安装/非法版本拒绝、
   写失败恢复）。
 - **未验证**：真 Unity 换版本后能否打开（需要 GUI）；复制 GB 级工程；时间戳保留（没做）。
+
+### P6-D（2026-10-22，review：迁移服务完成，UI 与真机未做）
+
+- **新增** `backup/migrate.ts`：`ProjectMigrateService.migrate`。
+  - 拒绝矩阵：Unity 运行中 / 未识别包 id / 低置信度 / 已在台账 / 仓库解析不到；
+  - 每个包：默认先备份 → P3 计划 → P4 事务（旧 Assets 由 legacy 步骤进 vault）；
+  - 逐条返回 `installed` / `skipped(reason)` / `failed(errorCode)`，一个失败不影响其余；
+  - 拿 `migrate` 维护租约。
+  - `VpmRuntime.migrate`。
+- **已验证**：typecheck exit 0；`tests/vpm/backup/migrate.spec.ts` 5 条（备份调用、
+  只装受信候选、低置信度/未识别/已装/仓库缺失跳过、逐条失败、运行中拒绝、跳过备份）。
+- **未做/未验证**：**备份/复制/换版本/迁移的 UI 完全没做**（服务层 `backup/copy/version/migrate`
+  都在 `runtime` 上，P6-D 的界面留给后续）；**真 Unity 迁移验证没做**；
+  Unity 2022 特例检测只靠现有 legacy 报告，没有单独的"未验证"标注。
 
 ---
 
