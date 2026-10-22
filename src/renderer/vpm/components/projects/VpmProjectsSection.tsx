@@ -32,9 +32,11 @@ function stateTone(state: string): 'default' | 'accent' | 'ok' | 'warn' | 'bad' 
  */
 function LaunchControl({
   projectKey,
+  running,
   onError
 }: {
   projectKey: string
+  running: boolean
   onError: (message: string | null) => void
 }): JSX.Element {
   const { t } = useTranslation()
@@ -42,6 +44,7 @@ function LaunchControl({
   const [editorPath, setEditorPath] = useState('')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [waiting, setWaiting] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -56,6 +59,24 @@ function LaunchControl({
     }
   }, [])
 
+  /**
+   * 启动后最多等 60 秒：Unity 起来但没连上（登录/许可证对话框、桥接没装）时
+   * 不能一直显示"正在连接"，要给一句能照着做的话。
+   */
+  useEffect(() => {
+    if (!waiting) return
+    if (running) {
+      setWaiting(false)
+      setNotice(t('vpm.projects.launched'))
+      return
+    }
+    const timer = setTimeout(() => {
+      setWaiting(false)
+      setNotice(t('vpm.projects.launchTimeout'))
+    }, 60_000)
+    return () => clearTimeout(timer)
+  }, [waiting, running, t])
+
   const launch = async (): Promise<void> => {
     setBusy(true)
     setNotice(null)
@@ -65,7 +86,12 @@ function LaunchControl({
         projectKey,
         ...(editorPath ? { editorPath } : {})
       })
-      setNotice(result.status === 'alreadyRunning' ? t('vpm.projects.alreadyRunning') : t('vpm.projects.launched'))
+      if (result.status === 'alreadyRunning') {
+        setNotice(t('vpm.projects.alreadyRunning'))
+      } else {
+        setNotice(t('vpm.projects.launching'))
+        setWaiting(true)
+      }
     } catch (cause) {
       onError(errorText(cause))
     } finally {
@@ -470,6 +496,7 @@ export function VpmProjectsSection({
               </Button>
               <LaunchControl
                 projectKey={detail.projectKey}
+                running={detail.running}
                 onError={(message) => setActionError(message)}
               />
               <Button
