@@ -90,7 +90,7 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P5-A 也已完成（模板格式/存储/内置模板）；下一个可执行的卡是 **P5-B**（新建工程、校验与最近路径）。
+> P5-B 也已完成（新建工程与最近路径）；下一个可执行的卡是 **P5-C**（unitypackage 读取与模板附件）。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -924,6 +924,35 @@ Task: P?-?
   没有 UI 目视。
 - **给 P5-B**：用 `runtime.templates.get(id)` 拿合并后的清单（`dependencies`/`unitypackages`），
   附件从 `filesDir(id)` 读；建完工程后用 `markUsed(id)` + `recordLocation(父目录)`。
+
+### P5-B（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/main/vpm/unity/create.ts`：`ProjectCreateService`（`validate` / `create`）、
+    `TemplateAttachmentPort`（P5-C 注入）、`CreateIssueCode` 拒绝矩阵。
+  - 新增 `src/main/vpm/projects/recent.ts`：`RecentLocationStore`（`vpm_recent_location`
+    的唯一 SQL 入口，最近 8 条）；`TemplateService.recentLocations/recordLocation` 改为委托它。
+  - `VpmRuntime` 新增 `create`。
+  - 新错误码 `vpmCreateRejected` / `vpmCreateFailed`（三语）。
+- **校验矩阵**：父目录存在/是目录/非链接/可写、不在已有 Unity 工程内、不在禁用根内；
+  名称非法字符/保留名（CON、COM1…）/结尾点或空格/≤80/`.`/`..`/不逃逸；
+  目标必须不存在（**空目录也算存在**）；路径 <260；空间 ≥ 估算×1.2+512 MiB；
+  Unity 版本必须在已安装列表（没探测到编辑器时只给"未验证"警告）。
+- **创建流程**：隐藏临时目录 `.atrium-create-<op>` → 骨架（`Assets/`、`Packages/`、
+  `ProjectSettings/ProjectVersion.txt`、初始 `vpm-manifest.json`）→ 同卷 rename →
+  `projects.addExisting` → 装模板依赖（P3/P4 事务）→ `markUsed` + `recordLocation`。
+  **不写 `ProjectSettings.asset`、不写任何 `.meta`。**
+- **失败策略**：rename 之前失败 → 临时目录移到回滚仓 `create-failed/`（回滚仓不可用时
+  退到父目录旁的 `.atrium-create-failed-<op>`），**不永久删**；依赖安装失败 → **保留工程**，
+  `dependencyStatus='failed'` 并给错误码，可重试。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/unity/create.spec.ts` **18 条**全绿
+  （校验矩阵、骨架内容、无 `.meta`、依赖安装成功/失败、失败现场归档、附件端口、
+  最近路径有界）。
+- **未验证**：**没有用真 Unity 打开过新建的工程**（本工作站不启动 GUI，这是本卡唯一缺口）；
+  模板附件解包（P5-C）；`kind=create` 的操作记录没做（`vpm_operation.kind` 有 CHECK 约束，
+  要改就得重建表，收益不大；依赖安装本身有 `install` 操作记录）。
+- **给 P5-C**：实现 `TemplateAttachmentPort` 后传给 `ProjectCreateService`，
+  带附件的模板就能直接建；解包目标就是临时工程的 `Assets/`。
 
 ---
 
