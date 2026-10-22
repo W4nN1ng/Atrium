@@ -1308,8 +1308,8 @@
       "readOnly": "只读",
       "intro": "这里读取工程和已安装包；安装、升级和卸载留到后续阶段。",
       "search": "搜索工程…",
-      "add": "添加已有工程",
-      "addTitle": "添加已有工程",
+      "add": "添加项目",
+      "addTitle": "添加项目",
       "addHint": "只读取工程，不会修改或复制文件。",
       "path": "工程目录",
       "pathPlaceholder": "选择包含 ProjectSettings 的 Unity 工程目录",
@@ -1694,7 +1694,7 @@
       }
     },
     "create": {
-      "title": "新建工程",
+      "title": "新建项目",
       "intro": "选一个模板，填名称和位置。依赖会在建完后按正常流程安装；不会自动打开 Unity，除非你点了\"打开 Unity\"。",
       "template": "模板",
       "loading": "读取模板…",

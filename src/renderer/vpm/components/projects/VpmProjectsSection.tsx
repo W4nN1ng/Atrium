@@ -410,8 +410,6 @@ export function VpmProjectsSection({
   return (
     <section className="space-y-2" data-vpm-projects>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[15px] font-medium">{t('vpm.projects.title')}</span>
-        <Badge>{visible.length}</Badge>
         <div className="ml-auto flex gap-2">
           <Button variant="accent" onClick={() => setCreateOpen(true)} disabled={projects.busy}>
             {t('vpm.create.title')}
