@@ -18,3 +18,15 @@ export type {
   UnityInstallSource,
   UnityManualInput
 } from './editors'
+
+export { ProjectCreateService } from './create'
+export type {
+  CreateIssue,
+  CreateIssueCode,
+  CreateProjectContext,
+  CreateProjectInput,
+  CreateProjectResult,
+  CreateValidation,
+  ProjectCreateDeps,
+  TemplateAttachmentPort
+} from './create'

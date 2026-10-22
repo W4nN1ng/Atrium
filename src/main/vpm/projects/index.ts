@@ -18,3 +18,6 @@ export type {
   ProjectLedgerRecord,
   ProjectPackageRow
 } from './ledger'
+
+export { RecentLocationStore, RECENT_LOCATION_LIMIT } from './recent'
+export type { RecentLocation } from './recent'

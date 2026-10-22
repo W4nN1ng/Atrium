@@ -13,6 +13,7 @@ import { PlanService } from './planService'
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
 import { TemplateService } from './templates'
+
 import { UndoService } from './undoService'
 import { VaultStore } from './vault'
 import {
@@ -24,6 +25,7 @@ import {
 import type { ProjectReaderPort } from '../../shared/vpm/domain/project'
 import type { ProjectLinkagePort } from '../../shared/vpm/linkage'
 import {
+  ProjectCreateService,
   UnityEditorService,
   UnityInstallStore,
   type UnityDiscoveryOptions
@@ -74,6 +76,7 @@ export interface VpmRuntime {
   transactions: InstallTransactionService
   undo: UndoService
   templates: TemplateService
+  create: ProjectCreateService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -156,6 +159,27 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       dataRoot: options.dataRoot,
       now: options.now
     })
+    const create = new ProjectCreateService({
+      templates,
+      dataRoot: options.dataRoot,
+      vault,
+      projects,
+      plans,
+      transactions,
+      activity: options.projectActivity,
+      // 数据根里不允许建工程（会和模板/缓存/回滚仓混在一起）。
+      forbiddenRoots: () => [options.dataRoot],
+      installedUnityVersions: () => {
+        try {
+          return unity
+            .list()
+            .map((install) => install.version)
+            .filter((version): version is string => typeof version === 'string' && version.length > 0)
+        } catch {
+          return []
+        }
+      }
+    })
     const undo = new UndoService({
       operations,
       plans,
@@ -185,6 +209,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       transactions,
       undo,
       templates,
+      create,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return

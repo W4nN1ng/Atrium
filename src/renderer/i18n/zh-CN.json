@@ -1519,6 +1519,8 @@
       "vpmTemplateInvalid": "模板文件不合法：{{reason}}。",
       "vpmTemplateReadOnly": "内置模板不能编辑或删除。",
       "vpmTemplateWriteFailed": "写入模板失败，请检查数据根是否可写。",
+      "vpmCreateRejected": "不能在这个位置新建工程：{{reason}}。",
+      "vpmCreateFailed": "新建工程失败（现场已保留，编号 {{opId}}）。",
       "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。"
     },
     "packages": {

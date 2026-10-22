@@ -137,31 +137,4 @@ export class TemplateStore {
     this.db.prepare('DELETE FROM vpm_template WHERE id = ?').run(id)
   }
 
-  recentLocations(limit = 8): Array<{ path: string; lastUsedAt: number }> {
-    const rows = this.db
-      .prepare('SELECT path, last_used_at FROM vpm_recent_location ORDER BY last_used_at DESC LIMIT ?')
-      .all(Math.max(1, Math.min(50, Math.trunc(limit)))) as Array<{ path: string; last_used_at: number }>
-    return rows.map((row) => ({ path: row.path, lastUsedAt: row.last_used_at }))
-  }
-
-  recordLocation(path: string, keep = 8): void {
-    const at = this.now()
-    this.db
-      .prepare(
-        `INSERT INTO vpm_recent_location (path, last_used_at) VALUES (?, ?)
-         ON CONFLICT(path) DO UPDATE SET last_used_at = excluded.last_used_at`
-      )
-      .run(path, at)
-    // 只保留最近 N 条，避免无限增长。
-    this.db
-      .prepare(
-        `DELETE FROM vpm_recent_location
-          WHERE path NOT IN (SELECT path FROM vpm_recent_location ORDER BY last_used_at DESC LIMIT ?)`
-      )
-      .run(Math.max(1, Math.min(50, Math.trunc(keep))))
-  }
-
-  clearRecentLocations(): void {
-    this.db.prepare('DELETE FROM vpm_recent_location').run()
-  }
 }

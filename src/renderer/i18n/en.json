@@ -1519,6 +1519,8 @@
       "vpmTemplateInvalid": "The template is invalid: {{reason}}.",
       "vpmTemplateReadOnly": "Built-in templates cannot be edited or removed.",
       "vpmTemplateWriteFailed": "Failed to write the template; check that the data root is writable.",
+      "vpmCreateRejected": "Cannot create a project here: {{reason}}.",
+      "vpmCreateFailed": "Failed to create the project (the scene is kept, id {{opId}}).",
       "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected."
     },
     "packages": {

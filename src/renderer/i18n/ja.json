@@ -1519,6 +1519,8 @@
       "vpmTemplateInvalid": "テンプレートが不正です: {{reason}}。",
       "vpmTemplateReadOnly": "組み込みテンプレートは編集・削除できません。",
       "vpmTemplateWriteFailed": "テンプレートの書き込みに失敗しました。データルートが書き込み可能か確認してください。",
+      "vpmCreateRejected": "この場所にはプロジェクトを作成できません: {{reason}}。",
+      "vpmCreateFailed": "プロジェクトの作成に失敗しました（現場は保持されています。ID {{opId}}）。",
       "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。"
     },
     "packages": {

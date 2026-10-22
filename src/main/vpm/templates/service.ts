@@ -12,6 +12,7 @@ import { VpmError } from '../../../shared/vpm/errors'
 import { ulid } from '../../../shared/ulid'
 import type { VpmDb } from '../db'
 import { writeFileAtomic } from '../fsUtil'
+import { RecentLocationStore } from '../projects'
 import { BUILTIN_TEMPLATES, builtinTemplate } from './builtin'
 import { TemplateStore } from './store'
 import type {
@@ -78,10 +79,12 @@ function issueSummary(issues: readonly TemplateIssue[]): string {
  */
 export class TemplateService {
   private readonly store: TemplateStore
+  private readonly recent: RecentLocationStore
   private readonly root: string
 
   constructor(private readonly options: TemplateServiceOptions) {
     this.store = new TemplateStore(options.db, options.now)
+    this.recent = new RecentLocationStore(options.db, options.now)
     this.root = path.join(options.dataRoot, 'templates')
   }
 
@@ -230,13 +233,11 @@ export class TemplateService {
   }
 
   recentLocations(limit = 8): Array<{ path: string; lastUsedAt: number }> {
-    return this.store.recentLocations(limit)
+    return this.recent.list(limit)
   }
 
   recordLocation(target: string): void {
-    const value = typeof target === 'string' ? target.trim() : ''
-    if (!value || value.includes('\0')) return
-    this.store.recordLocation(value)
+    this.recent.record(target)
   }
 
   private entryFromRow(row: TemplateRow): TemplateListEntry {
