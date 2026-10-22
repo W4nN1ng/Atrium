@@ -18,8 +18,6 @@ export interface VpmLaunchResultDto {
   version: string | null
   args: string[]
   pid: number | null
-  /** 走的是 Unity Hub 协议。 */
-  viaHub: boolean
   /** 看到 `Temp/UnityLockfile` = 工程真的被打开了。 */
   verified: boolean
 }

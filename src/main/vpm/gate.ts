@@ -219,8 +219,6 @@ async function ensureRuntime(): Promise<void> {
         projectActivity: gateDeps.projectActivity,
         legacyGuard: gateDeps.legacyGuard,
         revealPath: (target: string) => shell.showItemInFolder(target),
-        // R1：Unity 启动优先走 Hub 协议（直接跑 Unity.exe 会卡在创建窗口之前）
-        openExternal: (url: string) => shell.openExternal(url),
         // 启动前判断"这个工程是不是已经在跑"：不接这个端口的话，每点一次都会再拉起一个 Unity。
         isProjectActive: (projectPath: string) => {
           try {

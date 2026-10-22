@@ -1,5 +1,6 @@
 import { spawn as nodeSpawn, type ChildProcess } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { parseUnityVersion, unityVersionBase } from '../../../shared/vpm/domain/unityVersion'
 import { VpmError } from '../../../shared/vpm/errors'
@@ -15,8 +16,9 @@ import type { UnityInstall } from './editors'
  * - 启动失败/取消必须 `clearLaunchTarget`，不留旧目标；
  * - 已在运行 → 不重复启动，返回 `alreadyRunning`，但仍把该工程设为导入目标；
  * - 缺失编辑器**不自动换版本**，直接报 `vpmUnityNotFound`；
- * - **优先用 Unity Hub 协议启动**（`unityhub://<版本>/<路径>`）：直接跑 `Unity.exe -projectPath`
- *   在 2022.3 上会卡在创建窗口之前（实测：进程在、没有窗口、工程里连 Temp 都没有）；
+ * - **必须带上 Hub 的许可参数**（`-useHub -hubIPC -licensingIpc LicenseClient-<用户名>`）：
+ *   裸 `Unity.exe -projectPath` 在 2022.3 上会卡在许可验证之后（实测：进程在、没有窗口、
+ *   工程里连 Temp 都没有、Editor.log 里是 `LicensingClient has failed validation`）；
  * - 启动后**必须验证**：轮询 `Temp/UnityLockfile`，超时返回 `unverified` 并清掉绑定。
  */
 
@@ -45,8 +47,6 @@ export interface LaunchUnityResult {
   version: string | null
   args: string[]
   pid: number | null
-  /** 走的是 Unity Hub 协议（而不是直接 spawn exe）。 */
-  viaHub: boolean
   /** 看到 `Temp/UnityLockfile` 出现 = 工程真的被打开了。 */
   verified: boolean
 }
@@ -60,40 +60,22 @@ export interface UnityLaunchDeps {
   isRunning?: (projectPath: string) => boolean
   /** 测试可替换；生产用 `node:child_process.spawn`。 */
   spawn?: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess
-  /** 打开 `unityhub://` 协议（gate 注入 `shell.openExternal`）；不传就退回直接跑 exe。 */
-  openExternal?: (url: string) => void | Promise<void>
   /** 验证超时与轮询间隔（默认 45s / 800ms）。 */
   verifyTimeoutMs?: number
   verifyIntervalMs?: number
   sleep?: (ms: number) => Promise<void>
   exists?: (target: string) => boolean
+  /** 许可 IPC 通道名；默认 `LicenseClient-<当前用户名>`（和 Hub 用的一致）。 */
+  licenseChannel?: string
 }
 
-/** Unity Hub 的常见安装位置。 */
-export function findUnityHub(): string | null {
-  const candidates = [
-    process.env.ProgramFiles ? path.join(process.env.ProgramFiles, 'Unity Hub', 'Unity Hub.exe') : null,
-    process.env['ProgramFiles(x86)']
-      ? path.join(process.env['ProgramFiles(x86)'], 'Unity Hub', 'Unity Hub.exe')
-      : null,
-    process.env.LOCALAPPDATA
-      ? path.join(process.env.LOCALAPPDATA, 'Programs', 'Unity Hub', 'Unity Hub.exe')
-      : null
-  ].filter((item): item is string => !!item)
-  for (const candidate of candidates) {
-    try {
-      if (fs.existsSync(candidate)) return candidate
-    } catch {
-      /* 读不到就试下一个 */
-    }
+/** `LicenseClient-<用户名>` 里的用户名（和 Hub 用的同一个）。 */
+function userName(): string {
+  try {
+    return os.userInfo().username
+  } catch {
+    return process.env.USERNAME ?? 'User'
   }
-  return null
-}
-
-/** `unityhub://2022.3.22f1/E:/projects/Demo` */
-export function hubProjectUrl(version: string, projectPath: string): string {
-  const normalized = projectPath.replace(/\\/g, '/')
-  return `unityhub://${encodeURIComponent(version)}/${encodeURI(normalized).replace(/#/g, '%23')}`
 }
 
 const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
@@ -217,7 +199,6 @@ export class UnityLaunchService {
         version: install.version,
         args,
         pid: null,
-        viaHub: false,
         verified: true
       }
     }
@@ -226,33 +207,30 @@ export class UnityLaunchService {
     input.bindTarget?.(projectPath)
 
     /**
-     * Hub 优先：直接 `Unity.exe -projectPath` 在 2022.3 上会卡在创建窗口之前
-     * （实测：进程在、MainWindowHandle=0、工程里连 Temp 都没有）。
-     * 有自定义参数时走不了协议，只能直接跑 exe。
+     * Unity 2022.3 只有在拿到 Hub 的许可通道时才会真正打开工程窗口。
+     * 实测（2026-10-22）：裸 `-projectPath` → 进程在、无窗口、无 Temp，
+     * Editor.log 里是 `LicensingClient has failed validation`；
+     * 加上下面这几个参数后 `Temp/UnityLockfile` 立刻出现。
      */
-    /**
-     * 只要系统注册了 `unityhub://` 协议就能用——**不需要知道 Hub.exe 装在哪**
-     * （实测这台机器装在 `E://unity hub\`，按默认路径探测根本找不到，导致一直回退到
-     * 直接跑 exe，然后卡在创建窗口之前）。
-     */
-    const viaHub = !!this.deps.openExternal && extraArgs.length === 0 && !!projectVersion
+    const licenseChannel = this.deps.licenseChannel ?? `LicenseClient-${userName()}`
+    const spawnArgs = [
+      '-projectPath',
+      projectPath,
+      '-useHub',
+      '-hubIPC',
+      '-cloudEnvironment',
+      'production',
+      '-licensingIpc',
+      licenseChannel,
+      ...extraArgs
+    ]
     let child: ChildProcess | null = null
 
     try {
-      let hubHandled = false
-      if (viaHub && this.deps.openExternal) {
-        try {
-          await this.deps.openExternal(hubProjectUrl(install.version ?? projectVersion, projectPath))
-          hubHandled = true
-        } catch {
-          // 协议没注册/Hub 被卸了：退回直接跑 exe，别让用户卡在这里。
-          hubHandled = false
-        }
-      }
-      if (!hubHandled) {
+      {
         const spawnFn: NonNullable<UnityLaunchDeps['spawn']> =
           this.deps.spawn ?? (nodeSpawn as unknown as NonNullable<UnityLaunchDeps['spawn']>)
-        child = spawnFn(install.path, args, {
+        child = spawnFn(install.path, spawnArgs, {
           cwd: projectPath,
           detached: true,
           stdio: 'ignore',
@@ -274,12 +252,11 @@ export class UnityLaunchService {
         await new Promise<void>((resolve) => setImmediate(resolve))
         if (failed) throw new VpmError('vpmUnityLaunchFailed', { reason: 'spawn' })
       }
-      if (hubHandled) child = null
     } catch (error) {
       input.clearTarget?.(projectPath)
       throw error instanceof VpmError
         ? error
-        : new VpmError('vpmUnityLaunchFailed', { reason: viaHub ? 'hub' : 'spawn' }, error)
+        : new VpmError('vpmUnityLaunchFailed', { reason: 'spawn' }, error)
     }
 
     // 启动是"发出去"了，但工程有没有真的打开要验证：等 Temp/UnityLockfile。
@@ -293,7 +270,6 @@ export class UnityLaunchService {
         version: install.version,
         args,
         pid: child?.pid ?? null,
-        viaHub,
         verified: false
       }
     }
@@ -304,7 +280,6 @@ export class UnityLaunchService {
       version: install.version,
       args,
       pid: child?.pid ?? null,
-      viaHub,
       verified: true
     }
   }

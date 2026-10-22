@@ -204,10 +204,9 @@ describe('launch', () => {
   })
 })
 
-describe('hub launch and verification', () => {
-  it('prefers the unityhub:// protocol when Hub is available', async () => {
+describe('licensing args and verification', () => {
+  it('passes the Hub licensing arguments so Unity actually opens the project', async () => {
     const exe = touchExe(path.join(root, 'editor', 'Unity.exe'))
-    const opened: string[] = []
     const spawn = vi.fn(
       (_command: string, _args: readonly string[], _options: Record<string, unknown>) =>
         fakeChild()
@@ -215,41 +214,43 @@ describe('hub launch and verification', () => {
     const service = new UnityLaunchService({
       installs: () => [install({ path: exe })],
       spawn,
-      openExternal: (url) => {
-        opened.push(url)
-      },
-      exists: () => true
+      exists: () => true,
+      licenseChannel: 'LicenseClient-tester'
     })
 
     const result = await service.launch({ projectPath })
 
-    expect(spawn).not.toHaveBeenCalled()
-    expect(opened).toHaveLength(1)
-    expect(opened[0].startsWith('unityhub://2022.3.22f1/')).toBe(true)
-    expect(opened[0]).toContain(projectPath.replace(/\\/g, '/'))
-    expect(result).toMatchObject({ status: 'launched', viaHub: true, verified: true })
+    const argv = spawn.mock.calls[0][1] as readonly string[]
+    expect(argv).toEqual([
+      '-projectPath',
+      projectPath,
+      '-useHub',
+      '-hubIPC',
+      '-cloudEnvironment',
+      'production',
+      '-licensingIpc',
+      'LicenseClient-tester'
+    ])
+    expect(result).toMatchObject({ status: 'launched', verified: true })
   })
 
-  it('falls back to the exe when custom args are present', async () => {
+  it('appends custom args after the licensing args', async () => {
     const exe = touchExe(path.join(root, 'editor', 'Unity.exe'))
     const spawn = vi.fn(
       (_command: string, _args: readonly string[], _options: Record<string, unknown>) =>
         fakeChild()
     )
-    const opened: string[] = []
     const service = new UnityLaunchService({
       installs: () => [install({ path: exe })],
       spawn,
-      openExternal: (url) => {
-        opened.push(url)
-      },
-      exists: () => true
+      exists: () => true,
+      licenseChannel: 'LicenseClient-tester'
     })
 
-    const result = await service.launch({ projectPath, extraArgs: ['-batchmode'] })
-    expect(opened).toEqual([])
-    expect(spawn).toHaveBeenCalledTimes(1)
-    expect(result).toMatchObject({ status: 'launched', viaHub: false })
+    await service.launch({ projectPath, extraArgs: ['-batchmode'] })
+    const argv = spawn.mock.calls[0][1] as readonly string[]
+    expect(argv[argv.length - 1]).toBe('-batchmode')
+    expect(argv).toContain('-licensingIpc')
   })
 
   it('reports unverified and clears the binding when the project never opens', async () => {
