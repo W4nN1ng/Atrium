@@ -63,7 +63,7 @@
 | P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | done |
 | P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | review |
 | P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | done |
-| P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | todo |
+| P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | done |
 | P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | todo |
 | P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | todo |
 | P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10/K1 | todo |
@@ -90,7 +90,7 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P4-F 也已完成（工程活动闸门）；下一个可执行的卡是 **P5-A**（模板格式、存储与原创内置模板）。
+> P5-A 也已完成（模板格式/存储/内置模板）；下一个可执行的卡是 **P5-B**（新建工程、校验与最近路径）。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -896,6 +896,34 @@ Task: P?-?
   P6 的备份/复制/迁移还没接租约（那是 P6-D 的活）；跨进程（两个 Atrium 实例）不覆盖。
 - **给 P5-A / P6-D**：所有维护动作先 `acquireMaintenance(path, kind)`，`finally` 释放；
   备份/复制在 `importing=true` 时必须拒绝（现在闸门已经会抛 `vpmProjectImporting`）。
+
+### P5-A（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/shared/vpm/domain/template.ts`（纯逻辑）：`parseTemplateManifest` /
+    `serializeTemplateManifest` / `resolveTemplate` / `mergeTemplate` /
+    `intersectUnityRange` / `rangesOverlap` / `normalizeAttachmentPath` / `isValidTemplateId`，
+    常量 `TEMPLATE_SCHEMA_VERSION=1`、`TEMPLATE_MAX_DEPTH=8`、`TEMPLATE_MAX_ATTACHMENTS=32`。
+  - 新增 `src/main/vpm/templates/`：`TemplateService`（list/get/raw/create/update/duplicate/
+    setFavorite/removeReference/restore/markUsed/recentLocations/recordLocation）、
+    `TemplateStore`、`BUILTIN_TEMPLATES`。`VpmRuntime` 新增 `templates`。
+  - **vpm.db v4**：`vpm_template`、`vpm_recent_location` 两张表（`VPM_REQUIRED_TABLES[4]` 已更新）。
+  - 新错误码：`vpmTemplateNotFound` / `vpmTemplateInvalid` / `vpmTemplateReadOnly` /
+    `vpmTemplateWriteFailed`（三语文案齐全）。
+- **模板格式**：`template.json`（schemaVersion=1），`base` 继承（Unity 范围取交集、依赖同名覆盖、
+  附件追加、settings 浅合并、深度 ≤8、检测循环），未知顶层字段原样保留。
+  附件路径必须是 `files/` 下的相对路径（拒绝绝对路径/`..`/反斜杠/重复）。
+- **存储**：用户模板 `<dataRoot>/templates/<id>/template.json`（原子写）+ 可选 `files/`；
+  内置模板代码生成、不落盘不入库；删模板 = `visible=0`，**不动用户文件**。
+- **内置模板**：`builtin.blank`（无依赖）/ `builtin.avatars`（`com.vrchat.avatars >=3.0.0 <4.0.0`）/
+  `builtin.worlds`（`com.vrchat.worlds >=3.0.0 <4.0.0`），推荐 Unity 2022.3.22f1，无任何附件。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/domain/template.spec.ts` 14 条 +
+  `tests/vpm/templates/service.spec.ts` 16 条全绿；`tests/vpm` 44 files / 439 tests 全绿
+  （含把 db 迁移测试整体升到 v4）。
+- **未验证**：`.atriumtemplate` ZIP 的打包/解包没做（P7-D）；模板被建工程真正消费要等 P5-B；
+  没有 UI 目视。
+- **给 P5-B**：用 `runtime.templates.get(id)` 拿合并后的清单（`dependencies`/`unitypackages`），
+  附件从 `filesDir(id)` 读；建完工程后用 `markUsed(id)` + `recordLocation(父目录)`。
 
 ---
 
