@@ -211,6 +211,11 @@ export function createSafeStorageSecretStore(options: SafeStorageSecretStoreOpti
   }
 }
 
+/** 没有 Electron 时的降级实现：只存内存（进程退出即丢），绝不写盘。 */
+export function createMemorySecretStore(): SecretStore {
+  return new MemorySecretStore()
+}
+
 /** 仓库级 scope。 */
 export function repoScope(repoId: string): SecretScope {
   return `repo:${repoId}`

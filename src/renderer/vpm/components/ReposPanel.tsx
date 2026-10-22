@@ -5,6 +5,8 @@ import { errorText } from '../../lib/msg'
 import { Badge, Button, Field, Modal, Switch } from '../../components/ui'
 import type { VpmOperationState } from '../hooks/useVpmRepos'
 import { formatTimestamp, repoErrorLabel, repoHost } from '../lib/view'
+import { vpmApi } from '../api'
+import type { VpmRepoHeadersDto } from '../../../shared/vpm/dto'
 
 interface ReposPanelProps {
   repos: VpmRepoDto[]
@@ -32,9 +34,175 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
   const [name, setName] = useState('')
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
+  const [editTarget, setEditTarget] = useState<VpmRepoDto | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editUrl, setEditUrl] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [headersTarget, setHeadersTarget] = useState<VpmRepoDto | null>(null)
+  const [headerState, setHeaderState] = useState<VpmRepoHeadersDto | null>(null)
+  const [headerRows, setHeaderRows] = useState<Array<{ name: string; value: string }>>([])
+  const [headerBusy, setHeaderBusy] = useState(false)
+  const [headerError, setHeaderError] = useState<string | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [importBusy, setImportBusy] = useState(false)
+  const [importResult, setImportResult] = useState<string | null>(null)
+  const [exportText, setExportText] = useState<string | null>(null)
+  const [actionNotice, setActionNotice] = useState<string | null>(null)
   const [removeTarget, setRemoveTarget] = useState<VpmRepoDto | null>(null)
   const [removing, setRemoving] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
+
+  const toggleEnabled = async (repo: VpmRepoDto, enabled: boolean): Promise<void> => {
+    setActionNotice(null)
+    try {
+      await vpmApi.repoUpdate({ id: repo.id, enabled })
+      await props.onReload()
+    } catch (cause) {
+      setActionNotice(errorText(cause))
+    }
+  }
+
+  /** 上移/下移：只交换相邻两项，然后整表提交顺序。 */
+  const move = async (id: string, delta: -1 | 1): Promise<void> => {
+    const ids = props.repos.map((repo) => repo.id)
+    const index = ids.indexOf(id)
+    const target = index + delta
+    if (index < 0 || target < 0 || target >= ids.length) return
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    setActionNotice(null)
+    try {
+      await vpmApi.repoReorder(ids)
+      await props.onReload()
+    } catch (cause) {
+      setActionNotice(errorText(cause))
+    }
+  }
+
+  const openEdit = (repo: VpmRepoDto): void => {
+    setEditTarget(repo)
+    setEditName(repo.name)
+    setEditUrl(repo.url)
+    setEditError(null)
+  }
+
+  const submitEdit = async (): Promise<void> => {
+    if (!editTarget) return
+    setEditBusy(true)
+    setEditError(null)
+    try {
+      await vpmApi.repoUpdate({
+        id: editTarget.id,
+        name: editName.trim(),
+        url: editUrl.trim()
+      })
+      setEditTarget(null)
+      await props.onReload()
+    } catch (cause) {
+      setEditError(errorText(cause))
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
+  const openHeaders = async (repo: VpmRepoDto): Promise<void> => {
+    setHeadersTarget(repo)
+    setHeaderError(null)
+    setHeaderRows([])
+    setHeaderState(null)
+    try {
+      const state = await vpmApi.repoHeaders(repo.id)
+      setHeaderState(state)
+      // 值不回渲染层：只能覆盖或清除，不能"看到原值再改一个字母"。
+      setHeaderRows(state.names.map((name: string) => ({ name, value: '' })))
+    } catch (cause) {
+      setHeaderError(errorText(cause))
+    }
+  }
+
+  const saveHeaders = async (): Promise<void> => {
+    if (!headersTarget) return
+    setHeaderBusy(true)
+    setHeaderError(null)
+    try {
+      const headers: Record<string, string> = {}
+      for (const row of headerRows) {
+        const name = row.name.trim()
+        const value = row.value.trim()
+        if (!name && !value) continue
+        if (!name || !value) throw new Error(t('vpm.repos.headersIncomplete'))
+        headers[name] = value
+      }
+      const state = await vpmApi.repoHeadersSet({ id: headersTarget.id, headers })
+      setHeaderState(state)
+      setHeadersTarget(null)
+      setActionNotice(t('vpm.repos.headersSaved'))
+    } catch (cause) {
+      setHeaderError(errorText(cause))
+    } finally {
+      setHeaderBusy(false)
+    }
+  }
+
+  const clearHeaders = async (): Promise<void> => {
+    if (!headersTarget) return
+    setHeaderBusy(true)
+    setHeaderError(null)
+    try {
+      await vpmApi.repoHeadersClear(headersTarget.id)
+      setHeadersTarget(null)
+      setActionNotice(t('vpm.repos.headersCleared'))
+    } catch (cause) {
+      setHeaderError(errorText(cause))
+    } finally {
+      setHeaderBusy(false)
+    }
+  }
+
+  const testRepo = async (repo: VpmRepoDto): Promise<void> => {
+    setActionNotice(null)
+    try {
+      const result = await vpmApi.repoTest(repo.id)
+      setActionNotice(
+        result.ok
+          ? t('vpm.repos.testOk', { status: result.status ?? 200 })
+          : t('vpm.repos.testFailed', { error: repoErrorLabel(result.errorCode) ?? '—' })
+      )
+    } catch (cause) {
+      setActionNotice(errorText(cause))
+    }
+  }
+
+  const openImport = async (): Promise<void> => {
+    setImportText('')
+    setImportResult(null)
+    setImportOpen(true)
+  }
+
+  const submitImport = async (): Promise<void> => {
+    setImportBusy(true)
+    setImportResult(null)
+    try {
+      const result = await vpmApi.repoImport(importText)
+      setImportResult(
+        t('vpm.repos.importDone', { added: result.added.length, skipped: result.skipped.length })
+      )
+      await props.onReload()
+    } catch (cause) {
+      setImportResult(errorText(cause))
+    } finally {
+      setImportBusy(false)
+    }
+  }
+
+  const doExport = async (): Promise<void> => {
+    try {
+      setExportText(await vpmApi.repoExport())
+    } catch (cause) {
+      setActionNotice(errorText(cause))
+    }
+  }
 
   const openAdd = (): void => {
     setUrl('')
@@ -119,6 +287,18 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
         </div>
       ) : null}
 
+      {actionNotice ? (
+        <div
+          className="flex items-center justify-between gap-3 rounded border px-3 py-2 text-[11px]"
+          style={{ borderColor: 'var(--line-2)', color: 'var(--muted)' }}
+        >
+          <span>{actionNotice}</span>
+          <Button variant="ghost" onClick={() => setActionNotice(null)}>
+            {t('common.close')}
+          </Button>
+        </div>
+      ) : null}
+
       {props.notice ? (
         <div
           className="flex items-center justify-between gap-3 rounded border px-3 py-2 text-[11px]"
@@ -188,7 +368,13 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
 
       {props.repos.length ? (
         <div className="space-y-2">
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => void openImport()} disabled={props.busy}>
+              {t('vpm.repos.import')}
+            </Button>
+            <Button variant="ghost" onClick={() => void doExport()} disabled={props.busy}>
+              {t('vpm.repos.export')}
+            </Button>
             <Button
               variant="ghost"
               onClick={props.onRefreshAll}
@@ -224,7 +410,48 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    <Switch
+                      checked={repo.enabled}
+                      onChange={(value) => void toggleEnabled(repo, value)}
+                    />
+                    <Button
+                      variant="ghost"
+                      onClick={() => void move(repo.id, -1)}
+                      disabled={props.busy || props.repos[0]?.id === repo.id}
+                      title={t('vpm.repos.moveUp')}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => void move(repo.id, 1)}
+                      disabled={props.busy || props.repos[props.repos.length - 1]?.id === repo.id}
+                      title={t('vpm.repos.moveDown')}
+                    >
+                      ↓
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => openEdit(repo)}
+                      disabled={props.busy || !!props.operation}
+                    >
+                      {t('vpm.repos.edit')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => void openHeaders(repo)}
+                      disabled={props.busy || !!props.operation}
+                    >
+                      {t('vpm.repos.headers')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => void testRepo(repo)}
+                      disabled={props.busy || !!props.operation || !networkAllowed}
+                    >
+                      {t('vpm.repos.test')}
+                    </Button>
                     <Button
                       variant="ghost"
                       onClick={() => props.onRefresh(repo.id)}
@@ -337,6 +564,186 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
               {removeError}
             </div>
           ) : null}
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!editTarget}
+        onOpenChange={(open) => {
+          if (!editBusy && !open) setEditTarget(null)
+        }}
+        title={t('vpm.repos.editTitle')}
+        footer={
+          <>
+            <Button onClick={() => setEditTarget(null)} disabled={editBusy}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => void submitEdit()}
+              disabled={editBusy || !editName.trim() || !editUrl.trim()}
+            >
+              {editBusy ? t('common.saving') : t('common.save')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-[12px]">
+          <Field label={t('vpm.repos.name')}>
+            <input
+              className="input"
+              value={editName}
+              onChange={(event) => setEditName(event.target.value)}
+            />
+          </Field>
+          <Field label={t('vpm.repos.url')} hint={t('vpm.repos.urlHint')}>
+            <input
+              className="input font-mono"
+              value={editUrl}
+              onChange={(event) => setEditUrl(event.target.value)}
+            />
+          </Field>
+          {editError ? (
+            <div className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+              {editError}
+            </div>
+          ) : null}
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!headersTarget}
+        onOpenChange={(open) => {
+          if (!headerBusy && !open) setHeadersTarget(null)
+        }}
+        title={t('vpm.repos.headersTitle')}
+        footer={
+          <>
+            <Button onClick={() => setHeadersTarget(null)} disabled={headerBusy}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => void clearHeaders()}
+              disabled={headerBusy || !headerState?.names.length}
+            >
+              {t('vpm.repos.headersClear')}
+            </Button>
+            <Button variant="accent" onClick={() => void saveHeaders()} disabled={headerBusy}>
+              {headerBusy ? t('common.saving') : t('common.save')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-[12px]">
+          <p className="faint text-[11px] leading-relaxed">{t('vpm.repos.headersHint')}</p>
+          {headerState && !headerState.available ? (
+            <div className="rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}>
+              {t('vpm.repos.headersUnavailable')}
+            </div>
+          ) : null}
+          {headerState?.names.length ? (
+            <p className="text-[11px]">
+              {t('vpm.repos.headersPresent', { names: headerState.names.join(', ') })}
+            </p>
+          ) : null}
+          {headerRows.map((row, index) => (
+            <div key={index} className="flex gap-2">
+              <input
+                className="input w-[45%] font-mono"
+                placeholder="Authorization"
+                value={row.name}
+                onChange={(event) =>
+                  setHeaderRows((current) =>
+                    current.map((item, at) =>
+                      at === index ? { ...item, name: event.target.value } : item
+                    )
+                  )
+                }
+              />
+              <input
+                className="input flex-1 font-mono"
+                type="password"
+                placeholder="Bearer …"
+                value={row.value}
+                onChange={(event) =>
+                  setHeaderRows((current) =>
+                    current.map((item, at) =>
+                      at === index ? { ...item, value: event.target.value } : item
+                    )
+                  )
+                }
+              />
+              <Button
+                variant="ghost"
+                onClick={() => setHeaderRows((current) => current.filter((_, at) => at !== index))}
+              >
+                −
+              </Button>
+            </div>
+          ))}
+          <Button
+            variant="ghost"
+            onClick={() => setHeaderRows((current) => [...current, { name: '', value: '' }])}
+          >
+            {t('vpm.repos.headersAdd')}
+          </Button>
+          {headerError ? (
+            <div className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+              {headerError}
+            </div>
+          ) : null}
+        </div>
+      </Modal>
+
+      <Modal
+        open={importOpen}
+        onOpenChange={(open) => {
+          if (!importBusy) setImportOpen(open)
+        }}
+        title={t('vpm.repos.importTitle')}
+        footer={
+          <>
+            <Button onClick={() => setImportOpen(false)} disabled={importBusy}>
+              {t('common.close')}
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => void submitImport()}
+              disabled={importBusy || !importText.trim()}
+            >
+              {importBusy ? t('vpm.repos.importing') : t('vpm.repos.import')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-[12px]">
+          <p className="faint text-[11px] leading-relaxed">{t('vpm.repos.importHint')}</p>
+          <textarea
+            className="input h-40 w-full font-mono text-[11px]"
+            value={importText}
+            placeholder={'https://example.com/index.json\n# 或者粘贴导出的 JSON'}
+            onChange={(event) => setImportText(event.target.value)}
+          />
+          {importResult ? <p className="text-[11px]">{importResult}</p> : null}
+        </div>
+      </Modal>
+
+      <Modal
+        open={exportText !== null}
+        onOpenChange={(open) => {
+          if (!open) setExportText(null)
+        }}
+        title={t('vpm.repos.exportTitle')}
+        footer={<Button onClick={() => setExportText(null)}>{t('common.close')}</Button>}
+      >
+        <div className="space-y-2 text-[12px]">
+          <p className="faint text-[11px] leading-relaxed">{t('vpm.repos.exportHint')}</p>
+          <textarea
+            className="input h-40 w-full font-mono text-[11px]"
+            readOnly
+            value={exportText ?? ''}
+          />
         </div>
       </Modal>
     </div>

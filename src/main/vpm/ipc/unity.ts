@@ -1,11 +1,16 @@
 import { IpcInvoke } from '../../../shared/ipc'
 import type {
+  VpmBackupDto,
+  VpmCopyResultDto,
   VpmCreateProjectInput,
   VpmCreateProjectResultDto,
   VpmLaunchResultDto,
+  VpmMigrateCandidateInput,
+  VpmMigrateResultDto,
   VpmRecentLocationDto,
   VpmTemplateDto,
-  VpmUnityInstallDto
+  VpmUnityInstallDto,
+  VpmVersionChangeResultDto
 } from '../../../shared/vpm/dto'
 import { VpmError } from '../../../shared/vpm/errors'
 import type { IpcApi } from '../../ipc/types'
@@ -186,5 +191,139 @@ export function registerUnityIpc(options: UnityIpcOptions): void {
 
   ipc.handle(IpcInvoke.Vpm.TemplateRecent, (): VpmRecentLocationDto[] => {
     return runtime().templates.recentLocations(8)
+  })
+}
+
+function backupDto(record: {
+  id: string
+  projectKey: string
+  projectName: string
+  filePath: string
+  size: number | null
+  sha256: string | null
+  unityVersion: string | null
+  packageCount: number | null
+  status: 'running' | 'ok' | 'failed' | 'cancelled'
+  createdAt: number
+  finishedAt: number | null
+  errorCode: string | null
+}): VpmBackupDto {
+  return {
+    id: record.id,
+    projectKey: record.projectKey,
+    projectName: record.projectName,
+    filePath: record.filePath,
+    size: record.size,
+    sha256: record.sha256,
+    unityVersion: record.unityVersion,
+    packageCount: record.packageCount,
+    status: record.status,
+    createdAt: record.createdAt,
+    finishedAt: record.finishedAt,
+    errorCode: record.errorCode
+  }
+}
+
+/** 备份 / 复制 / 换版本 / 迁移（P6-B/C/D）。 */
+export function registerMaintenanceIpc(options: UnityIpcOptions): void {
+  const { ipc } = options
+  const runtime = (): VpmRuntime => {
+    const value = options.getRuntime()
+    if (!value) throw new VpmError('vpmRuntimeNotReady')
+    return value
+  }
+
+  ipc.handle(IpcInvoke.Vpm.BackupCreate, async (input: unknown): Promise<VpmBackupDto> => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmProjectInvalid', { field: 'input' })
+    }
+    const raw = input as Record<string, unknown>
+    const record = await runtime().backup.create({
+      projectKey: requireKey(raw.projectKey),
+      ...(typeof raw.excludeVpmPackages === 'boolean'
+        ? { excludeVpmPackages: raw.excludeVpmPackages }
+        : {}),
+      ...(raw.compression === 'store' || raw.compression === 'fast' || raw.compression === 'normal'
+        ? { compression: raw.compression }
+        : {})
+    })
+    return backupDto(record)
+  })
+
+  ipc.handle(IpcInvoke.Vpm.BackupList, (projectKey: unknown): VpmBackupDto[] => {
+    return runtime()
+      .backup.list(requireKey(projectKey))
+      .map(backupDto)
+  })
+
+  ipc.handle(IpcInvoke.Vpm.BackupReveal, (id: unknown) => {
+    if (typeof id !== 'string' || !id.trim()) throw new VpmError('vpmBackupInvalid', { field: 'id' })
+    return { ok: runtime().backup.reveal(id.trim()) }
+  })
+
+  ipc.handle(IpcInvoke.Vpm.ProjectCopy, async (input: unknown): Promise<VpmCopyResultDto> => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmProjectInvalid', { field: 'input' })
+    }
+    const raw = input as Record<string, unknown>
+    if (typeof raw.targetDir !== 'string' || !raw.targetDir.trim()) {
+      throw new VpmError('vpmProjectInvalid', { field: 'targetDir' })
+    }
+    const result = await runtime().copy.copy({
+      sourceKey: requireKey(raw.projectKey),
+      targetDir: raw.targetDir.trim()
+    })
+    return { projectPath: result.projectPath, files: result.files, bytes: result.bytes }
+  })
+
+  ipc.handle(IpcInvoke.Vpm.ProjectVersionChange, async (input: unknown): Promise<VpmVersionChangeResultDto> => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmProjectInvalid', { field: 'input' })
+    }
+    const raw = input as Record<string, unknown>
+    if (typeof raw.unityVersion !== 'string' || !raw.unityVersion.trim()) {
+      throw new VpmError('vpmUnityVersionInvalid', { field: 'version' })
+    }
+    const result = await runtime().version.change({
+      projectKey: requireKey(raw.projectKey),
+      unityVersion: raw.unityVersion.trim(),
+      backupFirst: raw.backupFirst !== false
+    })
+    return {
+      previous: result.previous.version,
+      next: result.next.version,
+      downgrade: result.downgrade,
+      backupId: result.backupId,
+      backupSkipped: result.backupSkipped
+    }
+  })
+
+  ipc.handle(IpcInvoke.Vpm.ProjectMigrate, async (input: unknown): Promise<VpmMigrateResultDto> => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmProjectInvalid', { field: 'input' })
+    }
+    const raw = input as Record<string, unknown>
+    const candidates: VpmMigrateCandidateInput[] = Array.isArray(raw.candidates)
+      ? (raw.candidates as VpmMigrateCandidateInput[]).filter(
+          (item) =>
+            item &&
+            typeof item === 'object' &&
+            (item.confidence === 'high' || item.confidence === 'medium' || item.confidence === 'low')
+        )
+      : []
+    const result = await runtime().migrate.migrate({
+      projectKey: requireKey(raw.projectKey),
+      candidates: candidates.map((item) => ({
+        packageId: typeof item.packageId === 'string' ? item.packageId : null,
+        relativePath: typeof item.relativePath === 'string' ? item.relativePath : null,
+        confidence: item.confidence
+      }))
+    })
+    return {
+      backupId: result.backupId,
+      installed: result.installed,
+      skipped: result.skipped,
+      failed: result.failed
+    }
   })
 }

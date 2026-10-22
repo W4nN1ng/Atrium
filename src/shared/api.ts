@@ -64,7 +64,14 @@ import type {
   VpmLaunchResultDto,
   VpmRecentLocationDto,
   VpmTemplateDto,
-  VpmUnityInstallDto
+  VpmUnityInstallDto,
+  VpmBackupDto,
+  VpmCopyResultDto,
+  VpmMigrateCandidateInput,
+  VpmMigrateResultDto,
+  VpmRepoHeadersDto,
+  VpmRepoTestDto,
+  VpmVersionChangeResultDto
 } from './vpm/dto'
 
 export interface AppInfo {
@@ -312,6 +319,27 @@ export interface AApi {
     repoReorder(ids: string[]): Promise<VpmRepoDto[]>
     repoImport(text: string): Promise<{ added: VpmRepoDto[]; skipped: Array<{ url: string; reason: 'duplicate' | 'invalid' }> }>
     repoExport(): Promise<string>
+    repoHeaders(id: string): Promise<VpmRepoHeadersDto>
+    repoHeadersSet(input: { id: string; headers: Record<string, string> }): Promise<VpmRepoHeadersDto>
+    repoHeadersClear(id: string): Promise<{ ok: boolean }>
+    repoTest(id: string): Promise<VpmRepoTestDto>
+    backupCreate(input: {
+      projectKey: string
+      compression?: 'store' | 'fast' | 'normal'
+      excludeVpmPackages?: boolean
+    }): Promise<VpmBackupDto>
+    backupList(projectKey: string): Promise<VpmBackupDto[]>
+    backupReveal(id: string): Promise<{ ok: boolean }>
+    projectCopy(input: { projectKey: string; targetDir: string }): Promise<VpmCopyResultDto>
+    projectVersionChange(input: {
+      projectKey: string
+      unityVersion: string
+      backupFirst?: boolean
+    }): Promise<VpmVersionChangeResultDto>
+    projectMigrate(input: {
+      projectKey: string
+      candidates: VpmMigrateCandidateInput[]
+    }): Promise<VpmMigrateResultDto>
     repoRefresh(id: string): Promise<VpmOperationStart>
     repoRefreshAll(): Promise<VpmOperationStart>
     networkStatus(): Promise<VpmNetworkStatus>

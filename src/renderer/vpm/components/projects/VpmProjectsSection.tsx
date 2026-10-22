@@ -9,6 +9,7 @@ import { useVpmProjects } from '../../hooks/useProjects'
 import { VpmPlanSheet } from '../plan/VpmPlanSheet'
 import { VpmPackagesPanel } from '../packages/VpmPackagesPanel'
 import { VpmCreateProjectDialog } from './VpmCreateProjectDialog'
+import { VpmMaintenancePanel } from './VpmMaintenancePanel'
 import { vpmApi } from '../../api'
 import type { VpmUnityInstallDto } from '../../../../shared/vpm/dto'
 
@@ -147,6 +148,8 @@ function DetailBody({
       </section>
 
       <VpmPackagesPanel projectKey={detail.projectKey} detail={detail} onChanged={onChanged} />
+
+      <VpmMaintenancePanel projectKey={detail.projectKey} detail={detail} onChanged={onChanged} />
 
       <section>
         <div className="mb-2 text-[12px] font-medium">{t('vpm.projects.warnings')}</div>

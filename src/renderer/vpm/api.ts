@@ -22,8 +22,15 @@ import type {
   VpmProjectDetailDto,
   VpmProjectSummaryDto,
   VpmRepoDoneEvent,
+  VpmBackupDto,
+  VpmCopyResultDto,
+  VpmMigrateCandidateInput,
+  VpmMigrateResultDto,
   VpmRecentLocationDto,
   VpmRepoDto,
+  VpmRepoHeadersDto,
+  VpmRepoTestDto,
+  VpmVersionChangeResultDto,
   VpmRepoProgressEvent,
   VpmTemplateDto,
   VpmUnityInstallDto
@@ -70,6 +77,47 @@ export const vpmApi = {
   },
   repoExport(): Promise<string> {
     return window.a.vpm.repoExport()
+  },
+  repoHeaders(id: string): Promise<VpmRepoHeadersDto> {
+    return window.a.vpm.repoHeaders(id)
+  },
+  repoHeadersSet(input: { id: string; headers: Record<string, string> }): Promise<VpmRepoHeadersDto> {
+    return window.a.vpm.repoHeadersSet(input)
+  },
+  repoHeadersClear(id: string): Promise<{ ok: boolean }> {
+    return window.a.vpm.repoHeadersClear(id)
+  },
+  repoTest(id: string): Promise<VpmRepoTestDto> {
+    return window.a.vpm.repoTest(id)
+  },
+  backupCreate(input: {
+    projectKey: string
+    compression?: 'store' | 'fast' | 'normal'
+    excludeVpmPackages?: boolean
+  }): Promise<VpmBackupDto> {
+    return window.a.vpm.backupCreate(input)
+  },
+  backupList(projectKey: string): Promise<VpmBackupDto[]> {
+    return window.a.vpm.backupList(projectKey)
+  },
+  backupReveal(id: string): Promise<{ ok: boolean }> {
+    return window.a.vpm.backupReveal(id)
+  },
+  projectCopy(input: { projectKey: string; targetDir: string }): Promise<VpmCopyResultDto> {
+    return window.a.vpm.projectCopy(input)
+  },
+  projectVersionChange(input: {
+    projectKey: string
+    unityVersion: string
+    backupFirst?: boolean
+  }): Promise<VpmVersionChangeResultDto> {
+    return window.a.vpm.projectVersionChange(input)
+  },
+  projectMigrate(input: {
+    projectKey: string
+    candidates: VpmMigrateCandidateInput[]
+  }): Promise<VpmMigrateResultDto> {
+    return window.a.vpm.projectMigrate(input)
   },
   repoRefresh(id: string): Promise<VpmOperationStart> {
     return window.a.vpm.repoRefresh(id)

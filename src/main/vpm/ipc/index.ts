@@ -23,7 +23,8 @@ import type { RepoDto, RepoRefreshResult } from '../reposService'
 import { registerProjectIpc } from './projects'
 import { registerPlanIpc } from './plan'
 import { registerInstallIpc } from './install'
-import { registerUnityIpc } from './unity'
+import { registerMaintenanceIpc, registerUnityIpc } from './unity'
+import { repoScope, validateSecretHeaders } from '../secrets'
 
 export interface VpmIpcOptions {
   ipc: IpcApi
@@ -323,6 +324,28 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
     return { added: result.added.map(repoDto), skipped: result.skipped }
   })
   ipc.handle(IpcInvoke.Vpm.RepoExport, () => requireRuntime().repos.exportRepos())
+  ipc.handle(IpcInvoke.Vpm.RepoHeaders, (id: unknown) => {
+    const current = requireRuntime()
+    const headers = current.secrets.get(repoScope(requireId(id)))
+    return { available: current.secrets.available(), names: headers ? Object.keys(headers).sort() : [] }
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoHeadersSet, (input: unknown) => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmSecretInvalid', { field: 'input' })
+    }
+    const raw = input as { id?: unknown; headers?: unknown }
+    const current = requireRuntime()
+    const scope = repoScope(requireId(raw.id))
+    // validateSecretHeaders 在 store 里再跑一次；这里先拿归一化结果做返回。
+    const normalized = validateSecretHeaders(raw.headers)
+    current.secrets.set(scope, normalized)
+    return { available: current.secrets.available(), names: Object.keys(normalized).sort() }
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoHeadersClear, (id: unknown) => {
+    requireRuntime().secrets.clear(repoScope(requireId(id)))
+    return { ok: true }
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoTest, (id: unknown) => requireRuntime().repos.testRepo(requireId(id)))
   ipc.handle(IpcInvoke.Vpm.RepoRefresh, (id: unknown) => startSingle(requireId(id)))
   ipc.handle(IpcInvoke.Vpm.RepoRefreshAll, () => startAll())
 
@@ -365,6 +388,7 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
     broadcast: options.broadcast
   })
   registerUnityIpc({ ipc, getRuntime: options.getRuntime })
+  registerMaintenanceIpc({ ipc, getRuntime: options.getRuntime })
 
   return {
     dispose(): void {

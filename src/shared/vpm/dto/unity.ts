@@ -63,3 +63,56 @@ export interface VpmRecentLocationDto {
   path: string
   lastUsedAt: number
 }
+
+export interface VpmBackupDto {
+  id: string
+  projectKey: string
+  projectName: string
+  filePath: string
+  size: number | null
+  sha256: string | null
+  unityVersion: string | null
+  packageCount: number | null
+  status: 'running' | 'ok' | 'failed' | 'cancelled'
+  createdAt: number
+  finishedAt: number | null
+  errorCode: string | null
+}
+
+export interface VpmCopyResultDto {
+  projectPath: string
+  files: number
+  bytes: number
+}
+
+export interface VpmVersionChangeResultDto {
+  previous: string
+  next: string
+  downgrade: boolean
+  backupId: string | null
+  backupSkipped: boolean
+}
+
+export interface VpmMigrateCandidateInput {
+  packageId: string | null
+  relativePath: string | null
+  confidence: 'high' | 'medium' | 'low'
+}
+
+export interface VpmMigrateResultDto {
+  backupId: string | null
+  installed: string[]
+  skipped: Array<{ packageId: string; reason: string }>
+  failed: Array<{ packageId: string; errorCode: string | null }>
+}
+
+export interface VpmRepoHeadersDto {
+  available: boolean
+  names: string[]
+}
+
+export interface VpmRepoTestDto {
+  ok: boolean
+  status: number | null
+  errorCode: string | null
+}

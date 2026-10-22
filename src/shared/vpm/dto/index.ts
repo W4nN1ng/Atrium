@@ -152,5 +152,12 @@ export type {
   VpmLaunchResultDto,
   VpmRecentLocationDto,
   VpmTemplateDto,
-  VpmUnityInstallDto
+  VpmUnityInstallDto,
+  VpmBackupDto,
+  VpmCopyResultDto,
+  VpmVersionChangeResultDto,
+  VpmMigrateCandidateInput,
+  VpmMigrateResultDto,
+  VpmRepoHeadersDto,
+  VpmRepoTestDto
 } from './unity'

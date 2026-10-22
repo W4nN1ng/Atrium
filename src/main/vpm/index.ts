@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { ProjectBackupService, ProjectCopyService, ProjectMigrateService } from './backup'
 import { CatalogService } from './catalog'
 import { CacheEntryStore, PackageCacheService, VpmCacheStore } from './cache'
@@ -13,6 +14,12 @@ import {
 import { PlanService } from './planService'
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
+import {
+  createMemorySecretStore,
+  createSafeStorageSecretStore,
+  type SafeStorageLike,
+  type SecretStore
+} from './secrets'
 import { TemplateService } from './templates'
 
 import { UndoService } from './undoService'
@@ -63,6 +70,8 @@ export interface InitVpmOptions {
   cacheQuotaBytes?: number
   /** 打开备份所在位置（Electron shell），由 gate 注入。 */
   revealPath?: (target: string) => void
+  /** Electron safeStorage（P7-B）；不传就用内存实现（测试/无 Electron）。 */
+  secretStorage?: SafeStorageLike
 }
 
 export interface VpmRuntime {
@@ -85,6 +94,7 @@ export interface VpmRuntime {
   create: ProjectCreateService
   launch: UnityLaunchService
   backup: ProjectBackupService
+  secrets: SecretStore
   copy: ProjectCopyService
   version: UnityVersionService
   migrate: ProjectMigrateService
@@ -121,12 +131,19 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       quotaBytes: options.cacheQuotaBytes,
       now: options.now
     })
+    const secrets: SecretStore = options.secretStorage
+      ? createSafeStorageSecretStore({
+          safeStorage: options.secretStorage,
+          file: path.join(options.dataRoot, 'secrets.json')
+        })
+      : createMemorySecretStore()
     const repos = new ReposService({
       store,
       http,
       hasConsent: options.isNetworkAllowed,
       now: options.now,
-      concurrency: options.fetchConcurrency
+      concurrency: options.fetchConcurrency,
+      secrets
     })
     const catalog = new CatalogService(store)
     const unity = new UnityEditorService(
@@ -285,6 +302,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       create,
       launch,
       backup,
+      secrets,
       copy,
       version,
       migrate,

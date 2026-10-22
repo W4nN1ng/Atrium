@@ -213,6 +213,26 @@ export class ReposService {
     return toDto(fresh)
   }
 
+  /**
+   * 测试连接（P7-B）：发一次 GET，不落库、不改 etag、不读正文。
+   * 返回脱敏后的结果——错误只有 code，没有 URL 查询串或请求头。
+   */
+  async testRepo(id: string): Promise<{ ok: boolean; status: number | null; errorCode: string | null }> {
+    const repo = this.store.getRepo(id)
+    if (!repo) throw new VpmError('vpmRepoNotFound')
+    if (!this.consent()) return { ok: false, status: null, errorCode: 'vpmNetworkNotConsented' }
+    const headers = this.secrets?.get(repoScope(id)) ?? null
+    try {
+      const response = await this.http.getJson(repo.url, {
+        ...(headers ? { headers } : {}),
+        signal: AbortSignal.timeout(20_000)
+      })
+      return { ok: true, status: response.status, errorCode: null }
+    } catch (error) {
+      return { ok: false, status: null, errorCode: errorCodeOf(error) }
+    }
+  }
+
   /** 按给定顺序重写 sortOrder（P7-A）；未列出的仓库排在后面，保持相对顺序。 */
   reorderRepos(ids: readonly string[]): RepoDto[] {
     const repos = this.store.listRepos()
