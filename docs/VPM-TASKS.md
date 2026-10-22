@@ -59,7 +59,7 @@
 | P3-D | 解析测试矩阵与只读计划 UI/IPC | P3-C/P2-D | 冲突矩阵、计划预览、解释面板 | B9/B11/B27/I9 | done |
 | P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | done |
 | P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | done |
-| P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | todo |
+| P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | done |
 | P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | todo |
 | P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | todo |
 | P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | todo |
@@ -88,10 +88,10 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B、P3-C、P3-D、P4-A、P4-B 已完成，
-> 下一个执行任务是 **P4-C**（单包安装事务、manifest 最后写与 vault）；P4-A 只落 journal/状态机，
-> P4-B 只落下载/缓存/解压，两者都**未执行真实安装**。
-> 开工前先读 §12 的 P1-A…P4-B 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C 已完成，
+> 下一个执行任务是 **P4-D**（失败注入、崩溃恢复与并发）；P4-C 已把
+> “预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault”跑通，但**还没有在真 Unity 沙盒里装过包**。
+> 开工前先读 §12 的 P1-A…P4-C 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -701,6 +701,74 @@ Task: P?-?
   `PreparedPackage` 已预留 `local` 分支（P7 接入），**不要写死 zip**。
 - **备查**：本站的详细交接见 `docs/VPM-P4B-HANDOVER.md`，
   可直接复制的下站提示词见 `docs/PROMPT-P4B-HANDOVER.md`。
+
+### P4-C（2026-10-22，done）
+
+- **公开 API/契约**：`src/main/vpm/install` 新增导出 `InstallTransactionService`、
+  `evaluatePreflight`/`collectPreflightFacts`/`requiredBytesFor`、
+  `cleanupLegacyAssets`、`transactionLayout`/`ensureTransactionLayout`，
+  以及类型 `ApplyPlanInput`/`ApplyPlanResult`/`TransactionProgress`/`TransactionWarning`/
+  `ProjectActivityPort`/`LegacyGuardPort`/`PreflightFacts`。
+  新增 `src/main/vpm/vault`（`VaultStore`）；新增 `src/shared/vpm/domain/manifest.ts`
+  （`buildManifest` 纯函数）。`VpmRuntime` 新增 `vault`/`transactions`；
+  `InitVpmOptions` 新增 `projectActivity`/`legacyGuard`（P4-F 注入真实实现）。
+  `PlanService` 新增 `get(planId)`（事务唯一取计划的入口，过期/不存在都拒绝）。
+  **没有新增 vpm.db 迁移**：P4-C 只用 P4-A 的 v3 表。
+- **事务顺序**：`prepare → download → extract → move-out → move-in → manifest（提交点）→
+  legacy → vault → cleanup`。`.atrium-tx/<op>/{install,trash/packages,trash/legacy,rolledback}`
+  与 `manifest.original.json`/`vpm-manifest.new.json` 同卷。
+- **提交点**：manifest 先在事务区写完 + fsync + 校验 hash，再 `rename` 覆盖
+  `Packages/vpm-manifest.json`，然后 `markCommitPoint`（3 次重试）。
+  rename 之前任何失败都反向恢复（新包进 `rolledback/`、旧包从 trash 移回、manifest 未动）；
+  rename 之后（含 `markCommitPoint` 失败）一律 `needs_attention`，**不假装回滚**。
+  回滚本身失败 → `needs_attention` + `vpmRollbackFailed`，现场不删。
+- **预检拒绝矩阵**：计划 hash/工程键不符、计划 blocked/冲突/缺依赖、manifest 缺失或不可解析、
+  manifest hash 被外部改、Unity 运行中、素材导入中、受保护包、缺 URL/缺 SHA-256、
+  工程卷/数据根空间不足、回滚仓不可写、`.atrium-tx` 不可用、`Packages/<id>` 是文件/符号链接、
+  “计划说新装但目录已存在”。移除目标不存在只给警告 `vpmProjectMissingPackage`。
+- **manifest 规则**：未知顶层字段保留；`dependencies = plan.roots`；`locked` = 最终包精确版本 +
+  依赖范围；**不在最终集合且未被显式移除的旧 locked 条目保留**（受保护/旧式/unlisted 包靠这条不被抹掉）；
+  提交前再读一次原 manifest 算 hash 比对。
+- **旧 Assets 清理**：只处理 `legacyFolders`/`legacyFiles` 声明且 `packageId` 属于本次移除的包；
+  必须在 `Assets/` 下、不是 `Assets` 本身；遇到符号链接/受保护资产整条（目录则整目录）跳过；
+  文件与目录都连同同名 `.meta` 一起移到 `trash/legacy/Assets/...`，不生成/不改写 `.meta`；
+  失败只记 warning（`vpmLegacyCleanupFailed`），不回滚已提交的包。
+  `LegacyGuardPort` 目前默认不保护任何路径，**`import_log` 已知资产要等 P4-F 注入**。
+- **回滚仓**：`<dataRoot>/vault/<projectSlug>/<opId>/`；复制 + 逐文件 hash/大小校验，
+  全部成功后才删事务区副本；目录用树摘要（`rel\0size\0fileHash` 排序后 SHA-256）；
+  失败保留源目录；`vault_pending` 在归档前置 1、成功后置 0，失败保留 1 并给 warning。
+- **已记录错误码**（三语齐全）：`vpmPlanBlocked`、`vpmProjectChanged`、`vpmUnityRunning`、
+  `vpmProjectImporting`、`vpmProtectedPackage`、`vpmProjectNoSpace`、`vpmProjectPathUnsafe`、
+  `vpmTransactionFailed`、`vpmRollbackFailed`、`vpmVaultUnavailable`、`vpmVaultArchiveFailed`；
+  警告 `vpmLegacyCleanupSkipped`、`vpmLegacyCleanupFailed`、`vpmVaultPending`。
+- **已验证**：`npm run typecheck` exit 0；定向 `tests/vpm/install` + `tests/vpm/vault` +
+  `tests/vpm/domain/manifest.spec.ts` **5 files / 63 tests 全绿**
+  （transaction 29 / journal 13 / archive 8 / vault 7 / manifest 6）；全量
+  **187 passed / 1 failed / 9 skipped files（197）**、
+  **2420 passed / 1 failed / 19 skipped tests（2440）**，唯一红的是
+  `tests/classify/unitypackage.spec.ts` 的性能阈值（5005ms vs 5000ms，单独重跑 21 passed，
+  与 P4-C 代码路径零重叠，属并行 perf 噪声）。
+  覆盖：安装/升级/降级/重装/卸载成功路径、未知字段与 locked 保留、vault 归档内容、
+  预检矩阵、下载/解压/移入失败注入、回滚成功、`needs_attention` 两条路径、
+  vault 失败保留 `vault_pending`、legacy 路径级清理与三种保护。
+- **未验证**：**没有在真 Unity 沙盒里装过包**（全部用临时工程 + 夹具 zip + 假包源）；
+  没有对真实 VRChat 官方仓库跑过完整“下载→解压→换入”；
+  真实 NTFS 上 rename 被占用（EBUSY/EPERM）的退避重试未实测；
+  `markCommitPoint` 与 rename 之间崩溃的恢复（需要 P4-D 用 `afterHash` 对账）；
+  并发/多工程并行未压测；长路径 >260 未实测。
+- **给 P4-D**：`RecoveryService` 现在对“未过提交点”只判 `rollback` 并落 `needs_attention`，
+  P4-D 要用 journal 的 `moves` + `manifest.afterHash` 做真实反向恢复；
+  **建议先补一条判据**：磁盘 manifest hash == `manifest.afterHash` 时，即使 journal 还写
+  `before`，也应判 `complete`（rename 与 markCommitPoint 之间的崩溃窗口）。
+  `transactionLayout()` 已经给出 `rolledback/`、`manifest.original.json` 的位置，直接复用。
+  失败注入可以直接注入 `extract`/`packages`/`operations`（测试里已有三种写法）。
+- **已知偏差**：`evaluatePreflight` 的 `expectedPlanHash` 目前由 `plan.planHash` 传入，
+  它防的是“缓存里的计划对象被替换/改坏”，不构成对渲染层的信任边界（渲染层只能给 planId）；
+  P4-E 接 IPC 时如需更强校验，可在 DTO 里带 `planHash` 再比对。
+  另外 P3 的解析器在 `vpm-manifest.json` 的 `dependencies` 里出现 `com.avca.bridge` 时会产出
+  `protectedPackage` 冲突并阻断计划（P4-C 未改 P3，记录给 P3 复查；核心桥接安装器不写
+  `vpm-manifest.json`，所以正常工程不会踩到）。
+- **备查**：本站的详细交接见 `docs/VPM-P4C-HANDOVER.md`。
 
 ---
 
