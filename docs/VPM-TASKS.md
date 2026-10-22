@@ -58,7 +58,7 @@
 | P3-C | 变更计划、卸载、升级全部与解释 | P3-B | `domain/plan.ts`、mark-and-sweep、upgradeAll | B5/B7/B8/B9/B11/B27 | done |
 | P3-D | 解析测试矩阵与只读计划 UI/IPC | P3-C/P2-D | 冲突矩阵、计划预览、解释面板 | B9/B11/B27/I9 | done |
 | P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | done |
-| P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | todo |
+| P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | done |
 | P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | todo |
 | P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | todo |
 | P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | todo |
@@ -88,9 +88,10 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B、P3-C、P3-D、P4-A 已完成，
-> 下一个执行任务是 **P4-B**（缓存、下载、hash 与解压安全）；P4-A 只落 journal/状态机，未执行真实安装。
-> 开工前先读 §12 的 P1-A…P3-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B、P3-C、P3-D、P4-A、P4-B 已完成，
+> 下一个执行任务是 **P4-C**（单包安装事务、manifest 最后写与 vault）；P4-A 只落 journal/状态机，
+> P4-B 只落下载/缓存/解压，两者都**未执行真实安装**。
+> 开工前先读 §12 的 P1-A…P4-B 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -646,6 +647,60 @@ Task: P?-?
   `transition(preflight/applying)`；每步 `beginStep/finishStep`，文件用 `upsertFile`；
   manifest rename 成功后 `markCommitPoint` 再 `committed`；失败在提交点前走 `failed/
   rolled_back`，提交点后只能 `needs_attention`/补完。不要信任渲染层 Plan 内容。
+
+### P4-B（2026-10-22，done）
+
+- **公开 API/契约**：`src/main/vpm/cache` 导出 `VpmCacheStore`（原有）、
+  **`CacheEntryStore`**（`vpm_cache_entry` 表的唯一 SQL 入口）、
+  **`PackageCacheService`**（下载 + 缓存编排）。`VpmRuntime` 新增
+  `cacheEntries` / `packageCache`；`InitVpmOptions` 新增 `cacheQuotaBytes`（默认 20 GiB）。
+  `src/main/vpm/install` 新增导出 **`extractPackageZip`**、`DEFAULT_ARCHIVE_LIMITS`
+  及类型 `ArchiveLimits`/`ExtractPackageZipInput`/`ExtractedPackage`/`PreparedPackage`。
+  `VpmHttpPort.downloadToFile` 新增 `onProgress`（调用方负责节流）。
+- **缓存不变量**：包路径只由 64 位 hex SHA-256 派生；`cacheRoot` 必须是 dataRoot 的
+  **严格子目录**（词法 + realpath 双检）；临时文件必须在 `tmp/` 内，`tmp/` 外的临时文件
+  **拒绝且不删**；提交用同卷 `rename`；清理只动 `cache/packages`，
+  绝不碰 `vault/`/`backups/`/工程文件。
+- **下载流程**：无 SHA-256 → `vpmCacheHashMissing`（不触网）；同 hash 并发**共享一个下载**；
+  命中缓存仍**完整重算 hash**，损坏则隔离到 `cache/corrupt`（保留字节）+ 删行后重下；
+  下载边写边算 SHA-256；**只重试** `vpmHttpNetwork`/`vpmHttpTimeout`/5xx（最多 2 次），
+  4xx 与 hash 不匹配**不重试**；落盘后**再完整校验一次**；进度节流 ≥100ms，
+  回调抛异常不中断下载。
+- **配额**：默认 20 GiB；下载前按 LRU 淘汰到配额内，淘汰时保护当前 hash；
+  单包超过配额 → `vpmCacheQuotaExceeded`；磁盘可用 < size + 64 MiB → `vpmCacheNoSpace`。
+- **解压安全**：逐条目拒绝 `..`/绝对路径/盘符/UNC/Windows 保留名/非法字符 `<>:"|?*`/
+  控制字符/尾点空格/NFC+小写归一后的重复路径/文件-目录冲突/超长路径；
+  符号链接条目 → `vpmArchiveSymlink`；压缩炸弹按**条目数/单条目/展开总量/压缩比/
+  zip 文件大小**五维判定；写入用 `flags:'wx'` + `mode:0o600`，每步 `realpathSync` 复核
+  仍在目标根内；流式计量器实时核对实际字节不超过声明值。
+- **包根识别**：根有 `package.json` 则为根；否则**恰好一个**直接子目录含 `package.json`
+  则为包根（兼容单层 wrapper）；0 个或多个 → `vpmArchivePackageInvalid`。
+  校验 `name`/`version`/`vpmDependencies`；提供 `expected` 时精确匹配 name 与 `version.raw`。
+- **失败取舍**：解压失败**保留目标目录与已解出的前缀文件**，不删除、不回滚工程文件——
+  现场是诊断证据，清理由 P4-C 按 journal 决定。
+- **已记录错误码**（三语齐全）：`vpmCacheHashMissing`、`vpmCacheQuotaExceeded`、
+  `vpmCacheNoSpace`、`vpmArchiveInvalid`、`vpmArchiveUnsafePath`、`vpmArchiveSymlink`、
+  `vpmArchiveBomb`、`vpmArchivePackageInvalid`、`vpmArchiveWriteFailed`（共 9 个）。
+- **已验证**：`npm run typecheck` 干净；全量测试
+  **185 passed / 9 skipped files（194）**、**2378 passed / 20 skipped tests（2398）**；
+  定向 `tests/vpm/cache` + `tests/vpm/install` **44 条全绿**
+  （store 11 / download 12 / archive 8 / journal 13）。覆盖 zip-slip、绝对/盘符/UNC/
+  保留名/ADS/尾点/重复路径、symlink、炸弹四维、损坏包、已存在目标、失败保留现场；
+  下载侧覆盖命中/损坏重下、无 hash 与大小不符、重试策略（4xx 不重试）、abort 清理、
+  LRU 淘汰保护当前包、超配额拒绝、磁盘满、并发去重与进度节流。
+- **未验证**：**真实仓库下载与真实包解压**（所有用例走假 HTTP 端口与夹具 zip）；
+  真机 `statfsSync` 行为；真实 NTFS 长路径（>260）；与 P4-C 事务的实际衔接
+  （"事务只消费 hash/路径"目前是设计意图）；`vpm_cache_entry` 与并发淘汰的一致性压测；
+  真 Unity 下 `.atrium-tx` 是否被忽略（P4-C 真机项）。
+- **给 P4-C**：用 `packageCache.ensurePackage({ url, sha256, size })` 拿包，
+  用 `extractPackageZip({ zipPath, targetDir, expected })` 解到
+  `<project>/.atrium-tx/<op>/install/<pkg>`；**缓存写入的唯一写入者是 `PackageCacheService`**，
+  事务只消费 `{ sha256, size, path }`，不要自己写 `cache/` 或 `vpm_cache_entry`；
+  `vpm_cache_entry` 表已在 P4-A 的 v3 建好，**不要再加迁移抢这张表**；
+  `extractPackageZip` 失败会把现场留在目标目录，事务按 journal 决定清理或保留；
+  `PreparedPackage` 已预留 `local` 分支（P7 接入），**不要写死 zip**。
+- **备查**：本站的详细交接见 `docs/VPM-P4B-HANDOVER.md`，
+  可直接复制的下站提示词见 `docs/PROMPT-P4B-HANDOVER.md`。
 
 ---
 
