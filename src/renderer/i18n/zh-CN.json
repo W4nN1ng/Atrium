@@ -1535,6 +1535,8 @@
       "vpmBackupTooLarge": "备份超出大小限制（{{limit}}）。",
       "vpmBackupConflict": "目标位置已经有东西了，不会覆盖。",
       "vpmCopyConflict": "目标位置已经有东西了，不会覆盖。",
+      "vpmSecretUnavailable": "系统加密不可用，无法保存请求头（不会以明文保存）。",
+      "vpmSecretInvalid": "请求头不合法（{{field}}）。",
       "vpmCopyFailed": "复制工程失败（{{reason}}），临时目录已保留。",
       "vpmUnityVersionChangeFailed": "更换 Unity 版本失败，已恢复原版本文件。",
       "vpmUnityPackageInvalid": "这个 unitypackage 读不出来或结构不对。",

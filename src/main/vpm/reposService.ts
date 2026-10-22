@@ -3,6 +3,7 @@ import { VpmError, type VpmErrorCode } from '../../shared/vpm/errors'
 import { parseRepoJson, type ParsedRepo } from '../../shared/vpm/domain/repo'
 import { assertHttpsUrl, type VpmHttpPort, type VpmJsonResponse } from './http'
 import type { RepoRow, RepoStore, PackageVersionInput } from './repos'
+import { repoScope, type SecretStore } from './secrets'
 
 export const OFFICIAL_REPO_URL = 'https://packages.vrchat.com/official?download'
 export const CURATED_REPO_URL = 'https://packages.vrchat.com/curated?download'
@@ -41,6 +42,8 @@ export interface ReposServiceOptions {
   now?: () => number
   /** refreshAll 并发；默认 2，夹在 1..4。 */
   concurrency?: number
+  /** 每仓库请求头（P7-B）；只有这里能拿到，头不进 DTO/日志。 */
+  secrets?: Pick<SecretStore, 'get' | 'available' | 'set' | 'clear' | 'list'>
 }
 
 function toDto(row: RepoRow): RepoDto {
@@ -91,6 +94,7 @@ export class ReposService {
   private readonly hasConsent: () => boolean
   private readonly now: () => number
   private readonly concurrency: number
+  private readonly secrets: ReposServiceOptions['secrets']
   private readonly abortController = new AbortController()
   private readonly inFlight = new Map<string, Promise<RepoRefreshResult>>()
   private disposed = false
@@ -101,6 +105,7 @@ export class ReposService {
     this.hasConsent = options.hasConsent
     this.now = options.now ?? Date.now
     this.concurrency = Math.min(4, Math.max(1, Math.trunc(options.concurrency ?? 2)))
+    this.secrets = options.secrets
   }
 
   listRepos(): RepoDto[] {
@@ -337,9 +342,12 @@ export class ReposService {
     const startedAt = this.now()
     let response: VpmJsonResponse
     try {
+      // 自定义头只在这里出现：不记日志、不进错误、不回渲染层。
+      const headers = this.secrets?.get(repoScope(id)) ?? null
       response = await this.http.getJson(repo.url, {
         etag: repo.etag,
         lastModified: repo.lastModified,
+        ...(headers ? { headers } : {}),
         signal: this.abortController.signal
       })
     } catch (error) {

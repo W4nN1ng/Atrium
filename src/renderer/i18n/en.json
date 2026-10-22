@@ -1535,6 +1535,8 @@
       "vpmBackupTooLarge": "The backup exceeds the size limit ({{limit}}).",
       "vpmBackupConflict": "The destination already has content; nothing was overwritten.",
       "vpmCopyConflict": "The destination already has content; nothing was overwritten.",
+      "vpmSecretUnavailable": "System encryption is unavailable, so the header cannot be saved (it will not be stored in plaintext).",
+      "vpmSecretInvalid": "The request header is invalid ({{field}}).",
       "vpmCopyFailed": "Copying the project failed ({{reason}}); the temporary folder was kept.",
       "vpmUnityVersionChangeFailed": "Changing the Unity version failed; the original version file was restored.",
       "vpmUnityPackageInvalid": "This unitypackage cannot be read or is malformed.",

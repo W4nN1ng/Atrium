@@ -1535,6 +1535,8 @@
       "vpmBackupTooLarge": "バックアップがサイズ上限を超えています（{{limit}}）。",
       "vpmBackupConflict": "保存先に既に内容があるため、上書きしませんでした。",
       "vpmCopyConflict": "保存先に既に内容があるため、上書きしませんでした。",
+      "vpmSecretUnavailable": "システムの暗号化が使えないため、ヘッダーを保存できません（平文では保存しません）。",
+      "vpmSecretInvalid": "リクエストヘッダーが不正です（{{field}}）。",
       "vpmCopyFailed": "プロジェクトのコピーに失敗しました（{{reason}}）。一時フォルダーは保持されています。",
       "vpmUnityVersionChangeFailed": "Unity バージョンの変更に失敗し、元のバージョンファイルを復元しました。",
       "vpmUnityPackageInvalid": "この unitypackage は読み取れないか構造が不正です。",

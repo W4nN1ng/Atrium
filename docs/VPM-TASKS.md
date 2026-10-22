@@ -91,7 +91,7 @@
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
 > P6-D 服务层完成、状态 review（迁移服务 + 拒绝矩阵已做；**维护 UI 与真机未做**）。
-> 下一个可执行的卡是 **P7-A**（仓库治理）——服务层与 IPC 已完成，UI 未做。
+> 下一个可执行的卡是 **P7-B**（请求头与密钥）——服务层完成，IPC/UI/测试连接未做。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1125,6 +1125,24 @@ Task: P?-?
 - **未做/未验证**：**UI 完全没做**（拖拽/键盘排序、编辑表单、导入导出按钮、二次确认）；
   排序对"同版本多源优先级"的影响只依赖 `queryCatalog` 的既有排序，没有专门断言；
   URL 变更后的真实重抓（联网）没跑。
+
+### P7-B（2026-10-22，review：SecretStore + HTTP 接线完成，IPC/UI/测试连接未做）
+
+- **新增** `src/main/vpm/secrets/index.ts`：
+  - `SecretStore` 接口 + `MemorySecretStore`（测试用）+ `createSafeStorageSecretStore`（Electron
+    safeStorage 加密后落盘，文件里只有密文）；
+  - `validateSecretHeaders`（头名白名单：拒绝 cookie/host/content-length 等、长度/控制字符）；
+  - `redactHeaders`（日志只留头名）；`repoScope` / `packageScope`。
+  - 不可用时 `available()=false`、`set()` 抛 `vpmSecretUnavailable`，**不写明文**；
+    解密失败当"没设"，不打断刷新。
+- **接线**：`ReposServiceOptions.secrets`；`refreshRepo` 只在这里取仓库级头并传给
+  `http.getJson({ headers })`——头不进 DTO、不进日志、不回渲染层。
+  HTTP 层原有的"自定义头跨源重定向停止"保持不变。
+- **已验证**：typecheck exit 0；`tests/vpm/secrets/store.spec.ts` **8 条**
+  （头校验/脱敏、内存存储、密文落盘不含明文、不可用拒绝存储、坏密文当缺失、列表只给头名、
+  package scope 归一）。
+- **未做/未验证**：**IPC 与 UI 没做**（设置/清除头、包级头、"测试连接"按钮）；
+  真实 Electron safeStorage 没跑过（只用假实现）；真实跨源重定向带头的联网测试没做。
 
 ---
 
