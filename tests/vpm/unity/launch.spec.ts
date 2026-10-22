@@ -276,8 +276,8 @@ describe('licensing args and verification', () => {
   })
 })
 
-describe('single instance policy (R12)', () => {
-  it('refuses to launch another project while one is running', async () => {
+describe('multi instance policy (R21)', () => {
+  it('allows launching another project while one is already running', async () => {
     const exe = touchExe(path.join(root, 'editor', 'Unity.exe'))
     const spawn = vi.fn(
       (_command: string, _args: readonly string[], _options: Record<string, unknown>) =>
@@ -291,12 +291,11 @@ describe('single instance policy (R12)', () => {
       runningProject: () => ({ name: 'Other', path: path.join(root, 'other-project') })
     })
 
-    await expect(
-      service.launch({ projectPath, bindTarget: bind })
-    ).rejects.toMatchObject({ code: 'vpmUnityAlreadyRunning' })
-    expect(spawn).not.toHaveBeenCalled()
-    // 拒绝时不能改导入目标
-    expect(bind).not.toHaveBeenCalled()
+    // R21：允许多开——导入目标由"最近启动的那个"决定，不再拒绝。
+    const result = await service.launch({ projectPath, bindTarget: bind })
+    expect(result.status).toBe('launched')
+    expect(spawn).toHaveBeenCalledTimes(1)
+    expect(bind).toHaveBeenCalledWith(projectPath)
   })
 
   it('allows launching when the running project is the same one', async () => {

@@ -1399,7 +1399,8 @@
       "scanAlready": "追加済み",
       "scanAdding": "追加中…",
       "scanning": "スキャン中…",
-      "trashFallback": "C ドライブの Atrium ごみ箱に移動しました。手動で復元できます。"
+      "trashFallback": "C ドライブの Atrium ごみ箱に移動しました。手動で復元できます。",
+      "setTarget": "インポート先に設定"
     },
     "plan": {
       "title": "変更計画（読み取り専用）",

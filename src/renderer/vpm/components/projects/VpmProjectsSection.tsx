@@ -4,6 +4,7 @@ import type { VpmProjectDetailDto, VpmProjectSummaryDto } from '../../../../shar
 import { Badge, Button, Field, MenuButton, Modal } from '../../../components/ui'
 import { errorText } from '../../../lib/msg'
 import { cleanText, formatTimestamp, vpmCodeLabel } from '../../lib/view'
+import { useUi } from '../../../stores/ui'
 import { targetBadge } from '../../lib/target'
 import { useVpmProjects } from '../../hooks/useProjects'
 import { VpmPlanSheet } from '../plan/VpmPlanSheet'
@@ -245,6 +246,7 @@ export function VpmProjectsSection({
 }): JSX.Element | null {
   const { t } = useTranslation()
   const projects = useVpmProjects()
+  const setUnityTarget = useUi((state) => state.setUnityTarget)
   const [query, setQuery] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [addPath, setAddPath] = useState('')
@@ -297,6 +299,8 @@ export function VpmProjectsSection({
   // R18：不再按 hasLedger 过滤——R11 之后这一页是唯一的工程列表，
   // 早先接桥进核心表的老工程也要显示（它们的台账会在打开页面时自动补建）。
   const visible = projects.items
+  // R21：同时开多个工程时，才出现「设为导入目标」——平时不占位置。
+  const runningCount = visible.filter((item) => item.running).length
   const filtered = visible.filter((item) => {
     const text = query.trim().toLowerCase()
     return !text || item.name.toLowerCase().includes(text) || item.path.toLowerCase().includes(text)
@@ -507,6 +511,15 @@ export function VpmProjectsSection({
                 <Button onClick={() => void openFromRow(item.projectKey)} disabled={projects.busy}>
                   {item.running ? t('vpm.projects.opened') : t('vpm.projects.open')}
                 </Button>
+                {runningCount > 1 && item.running && item.coreId ? (
+                  <Button
+                    variant="ghost"
+                    disabled={item.coreId === targetProjectId}
+                    onClick={() => setUnityTarget(item.coreId as string)}
+                  >
+                    {t('vpm.projects.setTarget')}
+                  </Button>
+                ) : null}
                 <Button variant="ghost" onClick={() => void openDetail(item.projectKey)}>
                   {t('vpm.projects.manage')}
                 </Button>

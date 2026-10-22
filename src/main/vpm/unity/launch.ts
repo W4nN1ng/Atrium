@@ -232,13 +232,10 @@ export class UnityLaunchService {
     }
 
     /**
-     * R12：同时只允许一个工程开着。
-     * 别的工程在跑就**直接拒绝**（不做"切换导入目标"），并带上它的名字让人知道关哪个。
+     * 允许多开（R21）：同时开几个工程是正常用法。
+     * 导入目标由「最近启动的那个」决定；开了两个以上时，工程行上会出现
+     * 「设为导入目标」让人手动指定（平时不显示）。
      */
-    const other = this.deps.runningProject?.() ?? null
-    if (other && projectKeyOf(other.path) !== projectKeyOf(projectPath)) {
-      throw new VpmError('vpmUnityAlreadyRunning', { name: other.name })
-    }
 
     // 先绑定再启动：绑定立即生效，双击素材会等这个工程起来。
     input.bindTarget?.(projectPath)

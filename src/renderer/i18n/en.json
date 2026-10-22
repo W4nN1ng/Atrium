@@ -1399,7 +1399,8 @@
       "scanAlready": "Already added",
       "scanAdding": "Adding…",
       "scanning": "Scanning…",
-      "trashFallback": "Moved to Atrium trash on C:; you can restore it manually."
+      "trashFallback": "Moved to Atrium trash on C:; you can restore it manually.",
+      "setTarget": "Set as import target"
     },
     "plan": {
       "title": "Change plan (read-only)",

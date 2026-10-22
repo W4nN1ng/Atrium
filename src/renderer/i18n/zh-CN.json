@@ -1399,7 +1399,8 @@
       "scanAlready": "已添加",
       "scanAdding": "正在添加…",
       "scanning": "正在扫描…",
-      "trashFallback": "已移到 Atrium 回收站（C 盘），可手动还原。"
+      "trashFallback": "已移到 Atrium 回收站（C 盘），可手动还原。",
+      "setTarget": "设为导入目标"
     },
     "plan": {
       "title": "变更计划（只读）",
