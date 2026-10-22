@@ -90,7 +90,7 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P6-A 也已完成（文件收集器）；下一个可执行的卡是 **P6-B**（备份格式与压缩）。
+> P6-B 也已完成（ZIP 备份/记录/从备份新建）；下一个可执行的卡是 **P6-C**（复制与换版本）。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1051,6 +1051,31 @@ Task: P?-?
   260+ 的路径；junction 用 `fs.symlinkSync(..., 'junction')` 造的，没覆盖其他 reparse point。
 - **给 P6-B**：压缩直接用 `CollectResult.files` 的顺序写 zip，别再自己遍历；
   `truncated=true` 必须当失败处理，不能压一个残缺包。
+
+### P6-B（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/main/vpm/backup/zip.ts`：`writeZip`（`.part` 原子写 + 真三档压缩）、
+    `readZipEntries`（写完读回校验）、`extractZip`（解压，拒绝逃逸/符号链接）、`safeZipPath`。
+  - 新增 `src/main/vpm/backup/service.ts`：`ProjectBackupService`（`create` / `list` / `get` /
+    `reveal` / `restore`）、`sanitizeFileStem`。
+  - **vpm.db v5**：`vpm_backup` 表（状态 running/ok/failed/cancelled + error_code）。
+  - `VpmRuntime.backup`；`initVpm` 新增 `revealPath`（gate 注入 `shell.showItemInFolder`）。
+  - 新错误码 `vpmBackupCancelled/Failed/Invalid/Unsafe/TooLarge/Conflict`（三语）。
+  - 新依赖：`yazl`（+ `@types/yazl`）——因为它支持 `compressionLevel`，三档才是真的。
+- **备份**：先拿 P4-F 维护租约（导入/装包中拒绝）→ 收集 → `.part` 写 zip → rename →
+  sha256 → yauzl 读回校验 → 写记录；取消/失败删 `.part` 并留 `cancelled`/`failed` 记录。
+  Unity 运行中默认拒绝（`allowUnityRunning` 可覆盖）。
+- **从备份新建**：目标必须不存在（`vpmBackupConflict`）；解压拒绝路径逃逸/符号链接；
+  可选 `installPackages` 走同一条计划 + 事务补装。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/backup/service.spec.ts` **10 条** +
+  collector 14 条；`tests/vpm/backup` + `tests/vpm/db` 20 条全绿。覆盖：zip 可读/内容正确/
+  排除生效、store 与 normal 体积差异（真压缩）、取消留 cancelled 且无 `.part`、失败留 failed、
+  未知工程/Unity 运行拒绝、从备份新建、非空目标拒绝、未知备份拒绝、installer 回调、路径安全。
+- **未验证**：**没有用标准解压工具（7-Zip/资源管理器）真的解过**；没有在真机大工程（GB 级）
+  上跑过；`revealPath` 没有在 Electron 里点过；从备份新建后的"补装依赖"没有真机跑过。
+- **给 P6-C**：复制可以直接复用 `collectProjectFiles` + `copyTreeWithDigest`；
+  换版本前记得先 `backup.create` 再动工程（P6-D 的 UI 会要求）。
 
 ---
 
