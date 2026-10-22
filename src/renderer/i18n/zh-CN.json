@@ -1515,6 +1515,10 @@
       "vpmVaultArchiveFailed": "旧文件没能归档到回滚仓；它们仍在工程的临时事务区，可稍后重试。",
       "vpmUndoUnsafe": "撤销不安全：工程在这次操作之后被改过、或它不是最后一次操作（{{reason}}）。",
       "vpmCancelTooLate": "这次操作已经过了提交点，取消来不及了；它会继续跑完。",
+      "vpmTemplateNotFound": "找不到这个模板。",
+      "vpmTemplateInvalid": "模板文件不合法：{{reason}}。",
+      "vpmTemplateReadOnly": "内置模板不能编辑或删除。",
+      "vpmTemplateWriteFailed": "写入模板失败，请检查数据根是否可写。",
       "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。"
     },
     "packages": {

@@ -12,6 +12,7 @@ import {
 import { PlanService } from './planService'
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
+import { TemplateService } from './templates'
 import { UndoService } from './undoService'
 import { VaultStore } from './vault'
 import {
@@ -72,6 +73,7 @@ export interface VpmRuntime {
   vault: VaultStore
   transactions: InstallTransactionService
   undo: UndoService
+  templates: TemplateService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -149,6 +151,11 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
         }
       }
     })
+    const templates = new TemplateService({
+      db,
+      dataRoot: options.dataRoot,
+      now: options.now
+    })
     const undo = new UndoService({
       operations,
       plans,
@@ -177,6 +184,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       vault,
       transactions,
       undo,
+      templates,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return

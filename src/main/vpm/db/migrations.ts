@@ -174,10 +174,45 @@ CREATE TABLE IF NOT EXISTS vpm_cache_entry (
 );
 `
 
+/**
+ * v4：模板与"最近使用位置"（P5-A）。
+ *
+ * 模板的**文件**在 `<dataRoot>/templates/<id>/`，这里只存索引/元数据：
+ * 收藏、可见性、最近使用都改行，不动用户文件。删模板 = `visible=0`。
+ */
+const V4 = `
+CREATE TABLE IF NOT EXISTS vpm_template (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  source TEXT NOT NULL CHECK (source IN ('builtin', 'imported', 'user')),
+  format TEXT NOT NULL CHECK (format = 'atrium'),
+  base_id TEXT,
+  unity_range TEXT,
+  dependencies_json TEXT,
+  unitypackages_json TEXT,
+  settings_json TEXT,
+  favorite INTEGER NOT NULL DEFAULT 0,
+  visible INTEGER NOT NULL DEFAULT 1,
+  last_used_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_vpm_template_visible
+  ON vpm_template(visible, favorite, last_used_at);
+
+CREATE TABLE IF NOT EXISTS vpm_recent_location (
+  path TEXT PRIMARY KEY,
+  last_used_at INTEGER NOT NULL
+);
+`
+
 export const VPM_MIGRATIONS: readonly VpmMigration[] = [
   { version: 1, sql: V1 },
   { version: 2, sql: V2 },
-  { version: 3, sql: V3 }
+  { version: 3, sql: V3 },
+  { version: 4, sql: V4 }
 ]
 
 /** 每个版本完整迁移后必须存在的表；用于发现“版本号对但表被删/半迁移”的库。 */
@@ -200,5 +235,18 @@ export const VPM_REQUIRED_TABLES: Readonly<Record<number, readonly string[]>> = 
     'vpm_operation_step',
     'vpm_operation_file',
     'vpm_cache_entry'
+  ],
+  4: [
+    'vpm_repo',
+    'vpm_repo_package',
+    'vpm_unity_install',
+    'vpm_project',
+    'vpm_project_package',
+    'vpm_operation',
+    'vpm_operation_step',
+    'vpm_operation_file',
+    'vpm_cache_entry',
+    'vpm_template',
+    'vpm_recent_location'
   ]
 }
