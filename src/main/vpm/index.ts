@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { ProjectBackupService, ProjectCopyService, ProjectMigrateService } from './backup'
-import { CatalogService } from './catalog'
+import { CatalogService, LocalPackageStore } from './catalog'
 import { CacheEntryStore, PackageCacheService, VpmCacheStore } from './cache'
 import { closeVpmDb, openVpmDb, type VpmDb } from './db'
 import { createElectronHttpTransport, createVpmHttpClient, type VpmHttpPort } from './http'
@@ -83,6 +83,7 @@ export interface InitVpmOptions {
 export interface VpmRuntime {
   /** VPM 数据根（vpm.db / 缓存 / 备份 / secrets 都在这下面）。 */
   dataRoot: string
+  local: LocalPackageStore
   store: RepoStore
   http: VpmHttpPort
   cache: VpmCacheStore
@@ -302,6 +303,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
     let disposed = false
     runtime = {
       dataRoot: options.dataRoot,
+      local: new LocalPackageStore(db),
       store,
       http,
       cache,

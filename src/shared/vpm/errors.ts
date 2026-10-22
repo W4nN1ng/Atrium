@@ -69,6 +69,7 @@ export const VPM_ERROR_CODES = [
   'vpmBackupTooLarge',
   'vpmBackupConflict',
   'vpmCopyConflict',
+  'vpmLocalRootInvalid',
   'vpmSecretUnavailable',
   'vpmSecretInvalid',
   'vpmCopyFailed',

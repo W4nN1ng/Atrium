@@ -1592,7 +1592,8 @@
       "vpmUnityPackageTooLarge": "The package is too large or has too many entries ({{limit}}).",
       "vpmUnityPackageFailed": "Extraction failed midway and was rolled back ({{moved}} files).",
       "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected.",
-      "vpmUnityAlreadyRunning": "Project \"{{name}}\" is already open in Unity. Close it first, then open this one."
+      "vpmUnityAlreadyRunning": "Project \"{{name}}\" is already open in Unity. Close it first, then open this one.",
+      "vpmLocalRootInvalid": "That local package folder cannot be used ({{reason}})."
     },
     "packages": {
       "title": "Installed packages",

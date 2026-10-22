@@ -216,6 +216,20 @@ export const vpmApi = {
   projectCreate(input: VpmCreateProjectInput): Promise<VpmCreateProjectResultDto> {
     return window.a.vpm.projectCreate(input)
   },
+  localRoots(): Promise<
+    Array<{ id: string; path: string; label: string | null; lastScanAt: number | null; packageCount: number }>
+  > {
+    return window.a.vpm.localRoots()
+  },
+  localAdd(input: { path: string; label?: string }): Promise<{ id: string; path: string; label: string | null; packageCount: number }> {
+    return window.a.vpm.localAdd(input)
+  },
+  localRemove(id: string): Promise<{ ok: boolean }> {
+    return window.a.vpm.localRemove(id)
+  },
+  localScan(): Promise<Array<{ name: string; version: string; path: string; unity: string | null; rootId: string }>> {
+    return window.a.vpm.localScan()
+  },
   templateList(): Promise<VpmTemplateDto[]> {
     return window.a.vpm.templateList()
   },

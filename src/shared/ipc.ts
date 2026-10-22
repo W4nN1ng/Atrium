@@ -265,6 +265,10 @@ export const IpcInvoke = {
     ProjectLaunch: 'vpm:project-launch',
     ProjectLaunchArgs: 'vpm:project-launch-args',
     ProjectCreate: 'vpm:project-create',
+    LocalRoots: 'vpm:local-roots',
+    LocalAdd: 'vpm:local-add',
+    LocalRemove: 'vpm:local-remove',
+    LocalScan: 'vpm:local-scan',
     TemplateList: 'vpm:template-list',
     TemplateFavorite: 'vpm:template-favorite',
     TemplateRecent: 'vpm:template-recent'

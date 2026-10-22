@@ -380,6 +380,19 @@ export interface AApi {
     }): Promise<VpmLaunchResultDto>
     projectLaunchArgs(input: { projectKey: string; extraArgs?: string[] }): Promise<string[]>
     projectCreate(input: VpmCreateProjectInput): Promise<VpmCreateProjectResultDto>
+    localRoots(): Promise<
+      Array<{ id: string; path: string; label: string | null; lastScanAt: number | null; packageCount: number }>
+    >
+    localAdd(input: { path: string; label?: string }): Promise<{
+      id: string
+      path: string
+      label: string | null
+      packageCount: number
+    }>
+    localRemove(id: string): Promise<{ ok: boolean }>
+    localScan(): Promise<
+      Array<{ name: string; version: string; path: string; unity: string | null; rootId: string }>
+    >
     templateList(): Promise<VpmTemplateDto[]>
     templateFavorite(input: { id: string; favorite: boolean }): Promise<VpmTemplateDto>
     templateRecent(): Promise<VpmRecentLocationDto[]>

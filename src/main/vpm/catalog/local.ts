@@ -2,6 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { parseUnityVersion } from '../../../shared/vpm/domain/unityVersion'
+import { VpmError } from '../../../shared/vpm/errors'
+import { ulid } from '../../../shared/ulid'
+import type { VpmDb } from '../db'
 
 /**
  * 本地用户包目录（P7-C）。
@@ -153,4 +156,110 @@ export function diffLocalPackages(
     return old ? old.hash !== pkg.hash || old.version !== pkg.version : false
   })
   return { added, removed, changed }
+}
+
+export interface LocalRoot {
+  id: string
+  path: string
+  label: string | null
+  createdAt: number
+  lastScanAt: number | null
+  packageCount: number
+}
+
+interface RootRow {
+  id: string
+  path: string
+  label: string | null
+  created_at: number
+  last_scan_at: number | null
+  package_count: number
+}
+
+function mapRoot(row: RootRow): LocalRoot {
+  return {
+    id: row.id,
+    path: row.path,
+    label: row.label,
+    createdAt: row.created_at,
+    lastScanAt: row.last_scan_at,
+    packageCount: row.package_count
+  }
+}
+
+/**
+ * 本地包目录的信任表（v6）+ 扫描合并。
+ *
+ * 只有**用户显式添加**的目录才会进表——不扫全盘、不猜。
+ */
+export class LocalPackageStore {
+  private readonly now: () => number
+
+  constructor(private readonly db: VpmDb, options: { now?: () => number } = {}) {
+    this.now = options.now ?? Date.now
+  }
+
+  list(): LocalRoot[] {
+    const rows = this.db
+      .prepare('SELECT * FROM vpm_local_root ORDER BY created_at')
+      .all() as RootRow[]
+    return rows.map(mapRoot)
+  }
+
+  get(id: string): LocalRoot | null {
+    const row = this.db.prepare('SELECT * FROM vpm_local_root WHERE id = ?').get(id) as
+      | RootRow
+      | undefined
+    return row ? mapRoot(row) : null
+  }
+
+  /** 添加一个目录：必须是可读目录、至少含一个包、不能重复。 */
+  add(input: { path: string; label?: string | null }): LocalRoot {
+    const target = path.resolve(input.path)
+    let stat: fs.Stats
+    try {
+      stat = fs.lstatSync(target)
+    } catch {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'missing' })
+    }
+    if (!stat.isDirectory() || stat.isSymbolicLink()) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'notDirectory' })
+    }
+    const existing = this.db
+      .prepare('SELECT id FROM vpm_local_root WHERE path = ?')
+      .get(target) as { id: string } | undefined
+    if (existing) throw new VpmError('vpmLocalRootInvalid', { reason: 'duplicate' })
+
+    const scanned = scanLocalPackages(target)
+    if (scanned.packages.length === 0) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'noPackages' })
+    }
+
+    const id = ulid()
+    const at = this.now()
+    this.db
+      .prepare(
+        `INSERT INTO vpm_local_root (id, path, label, created_at, last_scan_at, package_count)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(id, target, input.label?.trim() || null, at, at, scanned.packages.length)
+    return this.get(id) as LocalRoot
+  }
+
+  remove(id: string): boolean {
+    return this.db.prepare('DELETE FROM vpm_local_root WHERE id = ?').run(id).changes > 0
+  }
+
+  /** 重新扫所有信任目录，返回合并后的本地包（带 rootId 便于界面分组）。 */
+  scanAll(): Array<LocalPackage & { rootId: string }> {
+    const out: Array<LocalPackage & { rootId: string }> = []
+    for (const root of this.list()) {
+      const scanned = scanLocalPackages(root.path)
+      this.db
+        .prepare('UPDATE vpm_local_root SET last_scan_at = ?, package_count = ? WHERE id = ?')
+        .run(this.now(), scanned.packages.length, root.id)
+      for (const pkg of scanned.packages) out.push({ ...pkg, rootId: root.id })
+    }
+    return out
+  }
 }

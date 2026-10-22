@@ -8,3 +8,11 @@ export type {
   CatalogSourceDto,
   CatalogVersionDto
 } from './types'
+
+export {
+  LocalPackageStore,
+  diffLocalPackages,
+  readLocalPackage,
+  scanLocalPackages
+} from './local'
+export type { LocalPackage, LocalPackageIssue, LocalRoot, LocalScanResult } from './local'

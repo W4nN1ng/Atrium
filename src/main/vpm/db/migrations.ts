@@ -236,12 +236,29 @@ CREATE INDEX IF NOT EXISTS idx_vpm_backup_project
   ON vpm_backup(project_key, created_at DESC);
 `
 
+/**
+ * v6：本地包目录（P7-C）。
+ *
+ * 只有用户**显式添加**的目录才会进这张表；`last_scan_at` 用来判断"上次扫到现在有没有变"。
+ */
+const V6 = `
+CREATE TABLE IF NOT EXISTS vpm_local_root (
+  id TEXT PRIMARY KEY,
+  path TEXT NOT NULL UNIQUE,
+  label TEXT,
+  created_at INTEGER NOT NULL,
+  last_scan_at INTEGER,
+  package_count INTEGER NOT NULL DEFAULT 0
+);
+`
+
 export const VPM_MIGRATIONS: readonly VpmMigration[] = [
   { version: 1, sql: V1 },
   { version: 2, sql: V2 },
   { version: 3, sql: V3 },
   { version: 4, sql: V4 },
-  { version: 5, sql: V5 }
+  { version: 5, sql: V5 },
+  { version: 6, sql: V6 }
 ]
 
 /** 每个版本完整迁移后必须存在的表；用于发现“版本号对但表被删/半迁移”的库。 */
@@ -290,6 +307,7 @@ export const VPM_REQUIRED_TABLES: Readonly<Record<number, readonly string[]>> = 
     'vpm_cache_entry',
     'vpm_template',
     'vpm_recent_location',
-    'vpm_backup'
+    'vpm_backup',
+    'vpm_local_root'
   ]
 }

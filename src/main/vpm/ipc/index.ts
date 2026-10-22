@@ -363,6 +363,28 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
     return networkStatus()
   })
 
+  ipc.handle(IpcInvoke.Vpm.LocalRoots, () => requireRuntime().local.list())
+  ipc.handle(IpcInvoke.Vpm.LocalAdd, (input: unknown) => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'input' })
+    }
+    const raw = input as { path?: unknown; label?: unknown }
+    if (typeof raw.path !== 'string' || !raw.path.trim()) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'path' })
+    }
+    return requireRuntime().local.add({
+      path: raw.path,
+      ...(typeof raw.label === 'string' ? { label: raw.label } : {})
+    })
+  })
+  ipc.handle(IpcInvoke.Vpm.LocalRemove, (id: unknown) => {
+    if (typeof id !== 'string' || !id.trim()) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'id' })
+    }
+    return { ok: requireRuntime().local.remove(id.trim()) }
+  })
+  ipc.handle(IpcInvoke.Vpm.LocalScan, () => requireRuntime().local.scanAll())
+
   ipc.handle(IpcInvoke.Vpm.CatalogQuery, (query: unknown) => {
     if (!query || typeof query !== 'object' || Array.isArray(query)) {
       throw new VpmError('vpmInternal')

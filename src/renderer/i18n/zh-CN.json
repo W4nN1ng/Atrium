@@ -1592,7 +1592,8 @@
       "vpmUnityPackageTooLarge": "包太大或条目太多，已拒绝（{{limit}}）。",
       "vpmUnityPackageFailed": "解包中途失败，已经回滚（已搬 {{moved}} 个文件）。",
       "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。",
-      "vpmUnityAlreadyRunning": "已经有工程「{{name}}」在 Unity 里运行。请先关闭它，再打开这个工程。"
+      "vpmUnityAlreadyRunning": "已经有工程「{{name}}」在 Unity 里运行。请先关闭它，再打开这个工程。",
+      "vpmLocalRootInvalid": "这个本地包目录不能用（{{reason}}）。"
     },
     "packages": {
       "title": "已安装的包",

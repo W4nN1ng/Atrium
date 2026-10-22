@@ -1592,7 +1592,8 @@
       "vpmUnityPackageTooLarge": "パッケージが大きすぎるかエントリが多すぎます（{{limit}}）。",
       "vpmUnityPackageFailed": "展開の途中で失敗し、ロールバックしました（{{moved}} ファイル）。",
       "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。",
-      "vpmUnityAlreadyRunning": "プロジェクト「{{name}}」が Unity で開いています。先に閉じてから開いてください。"
+      "vpmUnityAlreadyRunning": "プロジェクト「{{name}}」が Unity で開いています。先に閉じてから開いてください。",
+      "vpmLocalRootInvalid": "このローカルパッケージフォルダーは使えません（{{reason}}）。"
     },
     "packages": {
       "title": "インストール済みパッケージ",
