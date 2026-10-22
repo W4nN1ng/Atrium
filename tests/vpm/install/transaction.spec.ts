@@ -17,6 +17,7 @@ import {
   type PreflightFacts
 } from '../../../src/main/vpm/install'
 import { ProjectFsReader } from '../../../src/main/vpm/projects'
+import { fakeActivity } from './harness'
 import { VaultStore } from '../../../src/main/vpm/vault'
 import { sha256Hex } from '../../../src/shared/vpm/domain/hash'
 import {
@@ -431,7 +432,7 @@ describe('install transaction: preflight rejections', () => {
     const { result } = await run({
       catalog: [entry],
       requests: [{ kind: 'install', name: 'com.example.a' }],
-      overrides: { activity: { state: () => ({ unityRunning: true, importing: false }) } }
+      overrides: { activity: fakeActivity({ unityRunning: true, importing: false }) }
     })
 
     expectRejected(result, 'vpmUnityRunning')
@@ -444,7 +445,7 @@ describe('install transaction: preflight rejections', () => {
     const { result } = await run({
       catalog: [entry],
       requests: [{ kind: 'install', name: 'com.example.a' }],
-      overrides: { activity: { state: () => ({ unityRunning: false, importing: true }) } }
+      overrides: { activity: fakeActivity({ unityRunning: false, importing: true }) }
     })
     expectRejected(result, 'vpmProjectImporting')
   })
@@ -776,7 +777,7 @@ describe('install transaction: legacy Assets cleanup', () => {
     writeAsset('Assets/OldThing/model.prefab')
     writeAsset('Assets/OldThing/imported.png')
     const guard: LegacyGuardPort = {
-      isProtected: (relative) => relative === 'Assets/OldThing/imported.png'
+      isProtected: (_project, relative) => relative === 'Assets/OldThing/imported.png'
     }
     const { result } = await run({
       manifest: {

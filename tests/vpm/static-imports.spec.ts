@@ -30,6 +30,17 @@ function networkCalls(src: string): string[] {
 }
 
 /** 规则集中在一处，方便用合成源码做“闸会不会真的红”的对照。 */
+
+/**
+ * 核心允许静态引用的 VPM **契约**模块（纯类型/错误码，不含运行时）。
+ *
+ * 规则的本意是"核心不要静态拉起 VPM 运行时"，`shared/vpm/linkage` 恰恰是
+ * gate 注入的端口定义，`shared/vpm/errors` 是错误码表 —— 它们没有 IO、没有 Electron。
+ */
+function isSharedVpmContract(spec: string): boolean {
+  return /(?:^|\/)shared\/vpm\/(?:linkage|errors)(?:\.ts)?$/.test(spec)
+}
+
 function violationsFor(relative: string, src: string): string[] {
   const file = relative.replace(/\\/g, '/')
   const specs = staticSpecifiers(src)
@@ -38,6 +49,7 @@ function violationsFor(relative: string, src: string): string[] {
   if (file.startsWith('src/main/') && !file.startsWith('src/main/vpm/')) {
     for (const spec of specs) {
       if (!spec.includes('vpm/')) continue
+      if (isSharedVpmContract(spec)) continue
       if (file === 'src/main/index.ts' && spec === './vpm/gate') continue
       out.push(`main-static-vpm:${relative} -> ${spec}`)
     }

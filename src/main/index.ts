@@ -12,6 +12,12 @@ import { registerStubs } from './ipc/stubs'
 import { registerIntegration } from './ipc/integration'
 import { startIngest, type IngestApi } from './ingest/api'
 import { BridgeManager } from './bridge/manager'
+import { setImportActivityHook } from './import/coordinator'
+import {
+  ProjectActivityRegistry,
+  createLegacyGuard,
+  createProjectActivityPort
+} from './project/activity'
 import { registerCoverIpc } from './covers/ipc'
 import type { CoverService } from './covers/service'
 import { registerBridgeIpc, type BridgeIpcApi } from './bridge/ipc'
@@ -88,6 +94,22 @@ function bootstrap(): void {
   let detectedProjects: ProjectInfo[] = []
   let covers: CoverService | null = null
 
+  /**
+   * P4-F 工程活动闸门：素材写入（导入/撤销/成员导入）与维护写（装包/备份/迁移…）互斥。
+   * 身份用归一化工程路径；Unity 运行状态现问桥接心跳，不缓存。
+   */
+  const projectActivity = new ProjectActivityRegistry({
+    isUnityRunning: (projectPath) => {
+      try {
+        return bridge?.statusOf(projectPath).running === true
+      } catch {
+        // 状态自己坏了：按"可能在跑"处理（调用方会拒绝写）。
+        return true
+      }
+    }
+  })
+  setImportActivityHook({ begin: (projectPath) => projectActivity.beginImport(projectPath) })
+
   const isPrimary = (): boolean => true
 
   registerSystem(registrar.ipc, () => getMainWindow(), isPrimary)
@@ -136,6 +158,8 @@ function bootstrap(): void {
       const manifest = readVccManifest()
       return { paths: manifest.projects, error: manifest.error }
     },
+    projectActivity: createProjectActivityPort(projectActivity),
+    legacyGuard: createLegacyGuard(() => getDb()),
     projectLinkage: {
       currentTarget: () => {
         const snapshot = connections?.snapshot()

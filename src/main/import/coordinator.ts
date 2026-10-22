@@ -132,6 +132,22 @@ export interface ImportOptions {
 // ---------------------------------------------------------------- 预扫描
 
 /** 按 `GUID_BATCH_SIZE`（2000）分批，规格 §3 / §5.1③ 明确要求 */
+/**
+ * 素材写入的活动上报（P4-F 注入）。
+ *
+ * 只上报"开始/结束"，**不改导入算法**：`begin()` 返回幂等释放函数，
+ * 协调器在 `finally` 里调用，异常/取消都不会漏。
+ */
+export interface ImportActivityHook {
+  begin(projectPath: string): () => void
+}
+
+let importActivityHook: ImportActivityHook | null = null
+
+export function setImportActivityHook(hook: ImportActivityHook | null): void {
+  importActivityHook = hook
+}
+
 export function chunk<T>(list: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size))
@@ -377,6 +393,24 @@ export async function importUnitypackage(
   pre: PreflightResult,
   opts: ImportOptions = {}
 ): Promise<ImportResult> {
+  // 导入期间这个工程不能被包事务/备份等维护写碰；结束（含异常/取消）立刻释放。
+  const release = importActivityHook?.begin(projectPath) ?? null
+  try {
+    return await importUnitypackageInner(db, bridge, projectPath, packagePath, projectId, pre, opts)
+  } finally {
+    release?.()
+  }
+}
+
+async function importUnitypackageInner(
+  db: Db,
+  bridge: BridgeLike,
+  projectPath: string,
+  packagePath: string,
+  projectId: string,
+  pre: PreflightResult,
+  opts: ImportOptions = {}
+): Promise<ImportResult> {
   const startedAt = Date.now()
   const choice = opts.choice ?? 'continue'
   const wantBackup = opts.backupOverwritten ?? true
@@ -537,6 +571,21 @@ export interface RollbackResult {
  * `createdGuids` 对应的路径上，随后的删除会把刚救回来的内容一起带走。
  */
 export async function rollbackImport(
+  db: Db,
+  bridge: BridgeLike,
+  projectPath: string,
+  importId: string
+): Promise<RollbackResult> {
+  // 撤销也是一次素材写入：同样要挡住维护写。
+  const release = importActivityHook?.begin(projectPath) ?? null
+  try {
+    return await rollbackImportInner(db, bridge, projectPath, importId)
+  } finally {
+    release?.()
+  }
+}
+
+async function rollbackImportInner(
   db: Db,
   bridge: BridgeLike,
   projectPath: string,

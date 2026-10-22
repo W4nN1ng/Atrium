@@ -1,18 +1,16 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { ProjectSnapshot, VpmLegacyEntry } from '../../../shared/vpm/domain/project'
+import type { LegacyGuardPort } from '../../../shared/vpm/linkage'
 import { lstatOrNull, renameWithRetry } from '../fsUtil'
 
 const DEFAULT_MAX_ENTRIES = 5_000
 const MAX_DEPTH = 16
 
-export interface LegacyGuardPort {
-  /**
-   * 工程内相对路径（`Assets/...`）是否属于不能动的资产。
-   * P4-F 会接 `import_log` 已知资产与桥接写入的素材；默认实现不保护任何路径。
-   */
-  isProtected(relativePath: string): boolean
-}
+export type { LegacyGuardPort }
+
+/** 这些包的旧 Assets 声明即使出现在移除集合里也绝不清理。 */
+const PROTECTED_LEGACY_OWNERS = new Set(['com.avca.bridge'])
 
 export interface LegacyCleanupInput {
   projectPath: string
@@ -33,6 +31,7 @@ export type LegacySkipReason =
   | 'missing'
   | 'symlink'
   | 'protected'
+  | 'protectedPackage'
   | 'unsupported'
   | 'truncated'
 
@@ -78,6 +77,8 @@ export async function cleanupLegacyAssets(
   const assetsRoot = path.resolve(input.projectPath, 'Assets')
   const maxEntries = Math.max(1, Math.trunc(input.maxEntries ?? DEFAULT_MAX_ENTRIES))
   const seen = new Set<string>()
+  // 清理开始前刷新保护集合：一次事务内 `import_log` 不会变（维护租约挡着导入）。
+  input.guard?.prime?.(input.projectPath)
 
   const candidates: Array<{ entry: VpmLegacyEntry; kind: 'dir' | 'file' }> = [
     ...manifest.legacyFolders.map((entry) => ({ entry, kind: 'dir' as const })),
@@ -91,6 +92,10 @@ export async function cleanupLegacyAssets(
       continue
     }
     if (!removed.has(owner)) continue
+    if (PROTECTED_LEGACY_OWNERS.has(owner)) {
+      result.skipped.push({ path: String(entry?.path ?? ''), reason: 'protectedPackage' })
+      continue
+    }
 
     const relative = normalizeLegacyPath(entry.path)
     if (!relative) {
@@ -115,7 +120,7 @@ export async function cleanupLegacyAssets(
       result.skipped.push({ path: relative, reason: 'symlink' })
       continue
     }
-    if (input.guard?.isProtected(relative)) {
+    if (input.guard?.isProtected(input.projectPath, relative)) {
       result.skipped.push({ path: relative, reason: 'protected' })
       continue
     }
@@ -133,7 +138,7 @@ export async function cleanupLegacyAssets(
       result.skipped.push({ path: relative, reason: 'unsupported' })
       continue
     }
-    const scan = scanDirectory(absolute, relative, input.guard, maxEntries)
+    const scan = scanDirectory(absolute, relative, input.guard, input.projectPath, maxEntries)
     if (scan.reason) {
       result.skipped.push({ path: relative, reason: scan.reason })
       continue
@@ -170,6 +175,7 @@ function scanDirectory(
   absolute: string,
   relative: string,
   guard: LegacyGuardPort | undefined,
+  projectPath: string,
   maxEntries: number
 ): ScanResult {
   let count = 0
@@ -186,7 +192,7 @@ function scanDirectory(
       if (count > maxEntries) return { reason: 'truncated' }
       const childRelative = `${currentRelative}/${entry.name}`
       if (entry.isSymbolicLink()) return { reason: 'symlink' }
-      if (guard?.isProtected(childRelative)) return { reason: 'protected' }
+      if (guard?.isProtected(projectPath, childRelative)) return { reason: 'protected' }
       if (entry.isDirectory()) {
         const nested = walk(path.join(currentAbsolute, entry.name), childRelative, depth + 1)
         if (nested.reason) return nested

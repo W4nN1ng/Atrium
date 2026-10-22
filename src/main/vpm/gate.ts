@@ -18,7 +18,7 @@ import type {
   CoreProjectSummary,
   VccProjectsRead
 } from './projects'
-import type { ProjectLinkagePort } from '../../shared/vpm/linkage'
+import type { LegacyGuardPort, ProjectActivityPort, ProjectLinkagePort } from '../../shared/vpm/linkage'
 import {
   VPM_SETTINGS_SCHEMA_VERSION,
   type VpmDataRootContext,
@@ -49,6 +49,10 @@ export interface VpmGateDeps {
   readVccProjects?(): VccProjectsRead
   /** 核心当前导入目标/启动绑定；P5-D 启动工程前调用。 */
   projectLinkage?: ProjectLinkagePort
+  /** P4-F 工程活动闸门（素材写入 vs 维护写）。 */
+  projectActivity?: ProjectActivityPort
+  /** P4-F 旧 Assets 保护集合（`import_log` 已知资产）。 */
+  legacyGuard?: LegacyGuardPort
   appVersion?(): string
   appInstallDirs?(): string[]
   /** 主进程事件广播；P1-E 的刷新进度用。 */
@@ -210,7 +214,9 @@ async function ensureRuntime(): Promise<void> {
         vccProjects: readVccProjects
           ? { read: () => readVccProjects() }
           : undefined,
-        projectLinkage: gateDeps.projectLinkage
+        projectLinkage: gateDeps.projectLinkage,
+        projectActivity: gateDeps.projectActivity,
+        legacyGuard: gateDeps.legacyGuard
       })
       if (generation !== runtimeGeneration) {
         handle.dispose()

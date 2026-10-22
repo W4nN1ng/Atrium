@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
-import { TxHarness, crashAt } from './harness'
+import { TxHarness, crashAt, fakeActivity } from './harness'
 
 let h: TxHarness
 let project: string
@@ -97,7 +97,7 @@ describe('activity gate', () => {
   it('refuses to install while assets are being imported', async () => {
     const planId = installPlan(project, 'com.example.a')
     const result = await h.apply(project, planId, {
-      activity: { state: () => ({ unityRunning: false, importing: true }) }
+      activity: fakeActivity({ unityRunning: false, importing: true })
     })
 
     expect(result.status).toBe('failed')
@@ -109,7 +109,7 @@ describe('activity gate', () => {
   it('refuses to install while Unity is running', async () => {
     const planId = installPlan(project, 'com.example.a')
     const result = await h.apply(project, planId, {
-      activity: { state: () => ({ unityRunning: true, importing: false }) }
+      activity: fakeActivity({ unityRunning: true, importing: false })
     })
 
     expect(result.status).toBe('failed')
@@ -120,11 +120,9 @@ describe('activity gate', () => {
   it('fails closed when the activity gate itself throws', async () => {
     const planId = installPlan(project, 'com.example.a')
     const result = await h.apply(project, planId, {
-      activity: {
-        state: () => {
-          throw new Error('gate exploded')
-        }
-      }
+      activity: fakeActivity(() => {
+        throw new Error('gate exploded')
+      })
     })
 
     expect(result.status).toBe('failed')

@@ -31,6 +31,10 @@ import type {
   ResolverCatalogPackage,
   ResolverInstalled
 } from '../../../src/shared/vpm/domain/resolver'
+import type {
+  ProjectActivityPort,
+  ProjectActivitySnapshot
+} from '../../../src/shared/vpm/linkage'
 import { VpmError } from '../../../src/shared/vpm/errors'
 import { ulid } from '../../../src/shared/ulid'
 import { makeZip } from './zip-fixture'
@@ -316,6 +320,32 @@ export class TxHarness {
       }
     }
     return null
+  }
+}
+
+/**
+ * 假的活动闸门：只回一个固定快照，`acquireMaintenance` 永远成功。
+ * 想测"拿不到租约"就自己传一个更狠的实现。
+ */
+export function fakeActivity(
+  snapshot: Partial<ProjectActivitySnapshot> | (() => never)
+): ProjectActivityPort {
+  const read =
+    typeof snapshot === 'function'
+      ? (snapshot as () => ProjectActivitySnapshot)
+      : (): ProjectActivitySnapshot => ({
+          unityRunning: false,
+          importing: false,
+          maintenance: null,
+          ...snapshot
+        })
+  return {
+    state: read,
+    acquireMaintenance: (projectPath, kind) => ({
+      projectPath,
+      kind,
+      release: () => undefined
+    })
   }
 }
 

@@ -25,7 +25,7 @@ import {
   ensureTransactionLayout,
   type TransactionLayout
 } from './journal'
-import { cleanupLegacyAssets, type LegacyGuardPort } from './legacy'
+import { cleanupLegacyAssets } from './legacy'
 import {
   PROTECTED_PACKAGE_ID,
   collectPreflightFacts,
@@ -33,6 +33,12 @@ import {
   type PreflightActivity,
   type PreflightResult
 } from './preflight'
+import type {
+  LegacyGuardPort,
+  MaintenanceKind,
+  MaintenanceLease,
+  ProjectActivityPort
+} from '../../../shared/vpm/linkage'
 import type { OperationStore } from './state'
 import type { OperationKind, OperationRecord, OperationStatus } from './types'
 
@@ -56,9 +62,13 @@ export interface PlanSourcePort {
   get(planId: string): ChangePlan
 }
 
-export interface ProjectActivityPort {
-  state(projectPath: string): PreflightActivity
-}
+export type {
+  LegacyGuardPort,
+  MaintenanceKind,
+  MaintenanceLease,
+  ProjectActivityPort,
+  ProjectActivitySnapshot
+} from '../../../shared/vpm/linkage'
 
 export interface InstallTransactionOptions {
   operations: OperationStore
@@ -401,10 +411,18 @@ export class InstallTransactionService {
         return this.result(context, 'failed', code, first.detail ?? null)
       }
 
-      this.operations.transition(operation.id, 'applying')
-      await this.execute(context, input)
-      const committed = this.operations.transition(operation.id, 'committed')
-      return this.result(context, committed.status, null, null)
+      // 预检通过后立刻拿维护租约：挡住"预检通过 → 写盘"之间插进来的素材导入。
+      // 拿不到就按 busy/importing/unityRunning 失败，一个字节都不写。
+      const lease = this.activity?.acquireMaintenance(loaded.projectPath, 'install') ?? null
+      try {
+        this.operations.transition(operation.id, 'applying')
+        await this.execute(context, input)
+        const committed = this.operations.transition(operation.id, 'committed')
+        return this.result(context, committed.status, null, null)
+      } finally {
+        // 异常/取消/崩溃都不能漏释放；release 自身幂等。
+        lease?.release()
+      }
     } catch (error) {
       // 模拟进程死亡：不写状态、不回滚，现场留给启动恢复。
       if (error instanceof HookFailure && this.hooks?.crashOnError) throw error.inner
