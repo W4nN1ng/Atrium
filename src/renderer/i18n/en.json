@@ -1388,7 +1388,8 @@
       "advanced": "Advanced",
       "disabledTitle": "Projects are disabled",
       "disabledHint": "Enable it under Settings → Projects & packages and pick a data root.",
-      "importHistory": "Import history"
+      "importHistory": "Import history",
+      "more": "More"
     },
     "plan": {
       "title": "Change plan (read-only)",

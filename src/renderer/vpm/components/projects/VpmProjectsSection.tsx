@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { VpmProjectDetailDto, VpmProjectSummaryDto } from '../../../../shared/vpm/dto'
-import { Badge, Button, Field, Modal } from '../../../components/ui'
+import { Badge, Button, Field, MenuButton, Modal } from '../../../components/ui'
 import { errorText } from '../../../lib/msg'
 import { cleanText, formatTimestamp, vpmCodeLabel } from '../../lib/view'
 import { targetBadge } from '../../lib/target'
@@ -159,22 +159,16 @@ function DetailBody({
         {/* 名字只在弹窗标题里出现一次（R10） */}
         {detail.unityVersion ? <Badge>{detail.unityVersion}</Badge> : null}
         {!detail.linked ? <Badge tone="warn">{t('vpm.projects.unlinkedShort')}</Badge> : null}
-        <details className="relative ml-auto">
-          <summary className="cursor-pointer select-none px-2 py-1 text-[14px]" style={{ color: 'var(--muted)' }}>
-            ⋯
-          </summary>
-          <div
-            className="absolute right-0 z-10 mt-1 w-[200px] rounded border p-1 shadow-lg"
-            style={{ borderColor: 'var(--line-2)', background: 'var(--panel)' }}
-          >
-            <MenuItem onClick={onOpenFolder}>{t('vpm.projects.openFolder')}</MenuItem>
-            <MenuItem onClick={onRescan}>{t('vpm.projects.rescan')}</MenuItem>
-            <MenuItem onClick={onPreview}>{t('vpm.plan.preview')}</MenuItem>
-            <MenuItem onClick={onRemove} danger>
-              {t('vpm.projects.remove')}
-            </MenuItem>
-          </div>
-        </details>
+        <MenuButton
+          className="ml-auto"
+          title={t('vpm.projects.more')}
+          items={[
+            { key: 'folder', label: t('vpm.projects.openFolder'), onSelect: onOpenFolder },
+            { key: 'rescan', label: t('vpm.projects.rescan'), onSelect: onRescan },
+            { key: 'plan', label: t('vpm.plan.preview'), onSelect: onPreview },
+            { key: 'remove', label: t('vpm.projects.remove'), danger: true, onSelect: onRemove }
+          ]}
+        />
       </div>
 
       {!detail.linked ? (
@@ -230,27 +224,6 @@ function DetailBody({
         </div>
       </details>
     </div>
-  )
-}
-
-function MenuItem({
-  children,
-  onClick,
-  danger
-}: {
-  children: React.ReactNode
-  onClick: () => void
-  danger?: boolean
-}): JSX.Element {
-  return (
-    <button
-      type="button"
-      className="block w-full rounded px-2 py-1.5 text-left text-[12px] hover:bg-[color:var(--raise)]"
-      style={danger ? { color: 'var(--bad)' } : undefined}
-      onClick={onClick}
-    >
-      {children}
-    </button>
   )
 }
 
@@ -454,39 +427,35 @@ export function VpmProjectsSection({
                 <Button variant="ghost" onClick={() => void openDetail(item.projectKey)}>
                   {t('vpm.projects.manage')}
                 </Button>
-                <details className="relative">
-                  <summary
-                    className="cursor-pointer select-none px-1.5 text-[14px]"
-                    style={{ color: 'var(--muted)' }}
-                  >
-                    ⋯
-                  </summary>
-                  <div
-                    className="absolute right-0 z-10 mt-1 w-[180px] rounded border p-1 shadow-lg"
-                    style={{ borderColor: 'var(--line-2)', background: 'var(--panel)' }}
-                  >
-                    {onOpenHistory && item.coreId ? (
-                      <MenuItem onClick={() => onOpenHistory(item.coreId as string)}>
-                        {t('vpm.projects.importHistory')}
-                      </MenuItem>
-                    ) : null}
-                    <MenuItem onClick={() => void rescan(item.projectKey)}>
-                      {t('vpm.projects.rescan')}
-                    </MenuItem>
-                    <MenuItem onClick={() => void projects.openFolder(item.projectKey)}>
-                      {t('vpm.projects.openFolder')}
-                    </MenuItem>
-                    <MenuItem
-                      danger
-                      onClick={() => {
+                <MenuButton
+                  title={t('vpm.projects.more')}
+                  items={[
+                    ...(onOpenHistory && item.coreId
+                      ? [
+                          {
+                            key: 'history',
+                            label: t('vpm.projects.importHistory'),
+                            onSelect: () => onOpenHistory(item.coreId as string)
+                          }
+                        ]
+                      : []),
+                    { key: 'rescan', label: t('vpm.projects.rescan'), onSelect: () => void rescan(item.projectKey) },
+                    {
+                      key: 'folder',
+                      label: t('vpm.projects.openFolder'),
+                      onSelect: () => void projects.openFolder(item.projectKey)
+                    },
+                    {
+                      key: 'remove',
+                      label: t('vpm.projects.remove'),
+                      danger: true,
+                      onSelect: () => {
                         setRemoveError(null)
                         setRemoveTarget(item)
-                      }}
-                    >
-                      {t('vpm.projects.remove')}
-                    </MenuItem>
-                  </div>
-                </details>
+                      }
+                    }
+                  ]}
+                />
               </div>
             </div>
           ))}

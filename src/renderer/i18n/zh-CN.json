@@ -1388,7 +1388,8 @@
       "advanced": "高级",
       "disabledTitle": "项目功能未启用",
       "disabledHint": "在「设置 → 项目与包」里启用并选好数据根，这里就会显示项目列表。",
-      "importHistory": "导入历史"
+      "importHistory": "导入历史",
+      "more": "更多"
     },
     "plan": {
       "title": "变更计划（只读）",

@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 export const TooltipProvider = Tooltip.Provider
 
@@ -176,5 +177,117 @@ export function Modal({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  )
+}
+
+export interface MenuItemSpec {
+  key: string
+  label: string
+  onSelect: () => void
+  danger?: boolean
+}
+
+/**
+ * 行内 `⋯` 菜单。
+ *
+ * **必须用 portal 渲染到 body**：列表容器是 `overflow-y-auto`，绝对定位的菜单会被
+ * 裁在框里（用户实测：菜单在项目框里滚动）。portal + fixed 定位不受任何祖先裁剪影响。
+ */
+export function MenuButton({
+  items,
+  label = '⋯',
+  title,
+  className = ''
+}: {
+  items: MenuItemSpec[]
+  label?: ReactNode
+  title?: string
+  className?: string
+}): ReactNode {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const anchor = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const close = (): void => setOpen(false)
+    const onDown = (event: MouseEvent): void => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('[data-menu-panel]')) return
+      if (anchor.current && target && anchor.current.contains(target)) return
+      close()
+    }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') close()
+    }
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', close, true)
+    return () => {
+      window.removeEventListener('mousedown', onDown)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', close, true)
+    }
+  }, [open])
+
+  const toggle = (): void => {
+    const rect = anchor.current?.getBoundingClientRect()
+    if (rect) {
+      const width = 184
+      const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8))
+      const top =
+        rect.bottom + 4 + 8 * items.length > window.innerHeight
+          ? Math.max(8, rect.top - 8 * items.length - 12)
+          : rect.bottom + 4
+      setPos({ top, left })
+    }
+    setOpen((current) => !current)
+  }
+
+  return (
+    <>
+      <button
+        ref={anchor}
+        type="button"
+        className={`btn btn-ghost ${className}`}
+        title={title}
+        onClick={toggle}
+      >
+        {label}
+      </button>
+      {open
+        ? createPortal(
+            <div
+              data-menu-panel
+              className="fixed z-[60] rounded-md border p-1 shadow-panel"
+              style={{
+                top: pos.top,
+                left: pos.left,
+                width: 184,
+                background: 'var(--panel)',
+                borderColor: 'var(--line-2)'
+              }}
+            >
+              {items.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className="block w-full rounded px-2 py-1.5 text-left text-[12px] hover:bg-[color:var(--raise)]"
+                  style={item.danger ? { color: 'var(--bad)' } : undefined}
+                  onClick={() => {
+                    setOpen(false)
+                    item.onSelect()
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
+    </>
   )
 }

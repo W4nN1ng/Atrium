@@ -1388,7 +1388,8 @@
       "advanced": "詳細",
       "disabledTitle": "プロジェクト機能は無効です",
       "disabledHint": "「設定 → プロジェクトとパッケージ」で有効にしてデータルートを選んでください。",
-      "importHistory": "インポート履歴"
+      "importHistory": "インポート履歴",
+      "more": "その他"
     },
     "plan": {
       "title": "変更計画（読み取り専用）",

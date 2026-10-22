@@ -229,6 +229,15 @@ export function Sidebar(): JSX.Element {
       style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}
     >
       <nav className="flex flex-col">
+        {/* R4：项目排第一——用户打开应用第一件事就是开工程 */}
+        <button
+          type="button"
+          className={`nav-item ${nav === 'project' ? 'nav-active' : ''}`}
+          onClick={() => setNav('project')}
+        >
+          {t('nav.project')}
+        </button>
+        <div className="my-1.5 h-px" style={{ background: 'var(--line)' }} />
         {QUICK.map((q) => {
           const c = count(q.key)
           return (
@@ -337,9 +346,6 @@ export function Sidebar(): JSX.Element {
             {t('library.setupNeeded')}
           </button>
         ) : null}
-        <button type="button" className={`nav-item ${nav === 'project' ? 'nav-active' : ''}`} onClick={() => setNav('project')}>
-          {t('nav.project')}
-        </button>
         <button type="button" className={`nav-item ${nav === 'settings' ? 'nav-active' : ''}`} onClick={() => setNav('settings')}>
           {t('nav.settings')}
         </button>
