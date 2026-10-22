@@ -62,8 +62,6 @@ export interface UnityLaunchDeps {
   spawn?: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess
   /** 打开 `unityhub://` 协议（gate 注入 `shell.openExternal`）；不传就退回直接跑 exe。 */
   openExternal?: (url: string) => void | Promise<void>
-  /** Hub 可执行文件路径；不传就按默认位置探测。 */
-  hubPath?: () => string | null
   /** 验证超时与轮询间隔（默认 45s / 800ms）。 */
   verifyTimeoutMs?: number
   verifyIntervalMs?: number
@@ -232,8 +230,12 @@ export class UnityLaunchService {
      * （实测：进程在、MainWindowHandle=0、工程里连 Temp 都没有）。
      * 有自定义参数时走不了协议，只能直接跑 exe。
      */
-    const hub = this.deps.openExternal ? (this.deps.hubPath?.() ?? findUnityHub()) : null
-    const viaHub = !!hub && extraArgs.length === 0 && !!projectVersion
+    /**
+     * 只要系统注册了 `unityhub://` 协议就能用——**不需要知道 Hub.exe 装在哪**
+     * （实测这台机器装在 `E://unity hub\`，按默认路径探测根本找不到，导致一直回退到
+     * 直接跑 exe，然后卡在创建窗口之前）。
+     */
+    const viaHub = !!this.deps.openExternal && extraArgs.length === 0 && !!projectVersion
     let child: ChildProcess | null = null
 
     try {

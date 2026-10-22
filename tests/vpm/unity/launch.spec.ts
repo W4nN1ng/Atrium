@@ -218,7 +218,6 @@ describe('hub launch and verification', () => {
       openExternal: (url) => {
         opened.push(url)
       },
-      hubPath: () => 'C:////Program Files\\Unity Hub\\Unity Hub.exe',
       exists: () => true
     })
 
@@ -244,7 +243,6 @@ describe('hub launch and verification', () => {
       openExternal: (url) => {
         opened.push(url)
       },
-      hubPath: () => 'hub.exe',
       exists: () => true
     })
 

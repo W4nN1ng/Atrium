@@ -19,6 +19,7 @@ import type {
   VccProjectsRead
 } from './projects'
 import type { LegacyGuardPort, ProjectActivityPort, ProjectLinkagePort } from '../../shared/vpm/linkage'
+import { projectKeyOf } from '../../shared/vpm/domain/project'
 import {
   VPM_SETTINGS_SCHEMA_VERSION,
   type VpmDataRootContext,
@@ -219,7 +220,18 @@ async function ensureRuntime(): Promise<void> {
         legacyGuard: gateDeps.legacyGuard,
         revealPath: (target: string) => shell.showItemInFolder(target),
         // R1：Unity 启动优先走 Hub 协议（直接跑 Unity.exe 会卡在创建窗口之前）
-        openExternal: (url: string) => shell.openExternal(url)
+        openExternal: (url: string) => shell.openExternal(url),
+        // 启动前判断"这个工程是不是已经在跑"：不接这个端口的话，每点一次都会再拉起一个 Unity。
+        isProjectActive: (projectPath: string) => {
+          try {
+            const key = projectKeyOf(projectPath)
+            return (gateDeps.getCoreProjects?.() ?? []).some(
+              (project) => projectKeyOf(project.path) === key && project.running === true
+            )
+          } catch {
+            return false
+          }
+        }
       })
       if (generation !== runtimeGeneration) {
         handle.dispose()
