@@ -2,7 +2,8 @@
 
 ## 职责（一句话）
 
-只读发现 Unity 编辑器安装（`editors.ts`），以及**新建工程**（`create.ts`，P5-B）。
+只读发现 Unity 编辑器安装（`editors.ts`）、**新建工程**（`create.ts`，P5-B）、
+**unitypackage 解包与模板附件**（`unitypackage.ts`，P5-C）。
 
 ## 不负责什么
 
@@ -95,3 +96,25 @@ await runtime.create.create({ parentDir, name, unityVersion, templateId })
 
 模板附件（`unitypackages`）在 P5-C 之前没有实现：没有注入 `TemplateAttachmentPort` 时，
 带附件的模板会在校验阶段被拒（`attachmentsUnsupported`）。
+
+## unitypackage 解包（`unitypackage.ts`，P5-C）
+
+```ts
+await extractUnityPackage({ packagePath, projectPath, onConflict: 'reject' })
+```
+
+- `.unitypackage` 是 **tar.gz**，每条记录是一个 GUID 目录：`pathname` / `asset` /
+  `asset.meta` / `preview.png`。
+- 只接受 `<32位guid>/<白名单文件名>`，白名单就是上面四个；符号链接/硬链接/设备文件一律跳过。
+- **只搬 `asset` 与 `asset.meta`，绝不生成/补写 `.meta`**：包内没有 `asset.meta` 时只复制
+  asset 并给 `missingMeta` 警告（让 Unity 自己生成）。
+- 两段式：先解到 `<project>/Temp/atrium-unitypackage-*` → 校验全部路径与冲突 →
+  再搬进 `Assets/`。所以**冲突/逃逸/超限时工程里一个字节都没动**。
+- 冲突策略：`reject`（默认，整体中止）/ `skip`（跳过该文件）。
+- 限额：条目数 100k、总字节 2 GiB（超限不写盘，解完再报 `vpmUnityPackageTooLarge`）。
+- 中途 IO 失败：回滚本次已搬的文件与本次建的空目录，抛 `vpmUnityPackageFailed`。
+
+`createTemplateAttachmentPort({ templates })` 是给 P5-B 的 `TemplateAttachmentPort` 实现：
+逐个解模板 `files/` 下的附件，任何一个失败都抛错（P5-B 会归档整个临时工程）。
+
+纯解析（路径归一/去重/计划）在 `src/shared/vpm/domain/unitypackage.ts`。

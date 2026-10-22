@@ -1521,6 +1521,11 @@
       "vpmTemplateWriteFailed": "テンプレートの書き込みに失敗しました。データルートが書き込み可能か確認してください。",
       "vpmCreateRejected": "この場所にはプロジェクトを作成できません: {{reason}}。",
       "vpmCreateFailed": "プロジェクトの作成に失敗しました（現場は保持されています。ID {{opId}}）。",
+      "vpmUnityPackageInvalid": "この unitypackage は読み取れないか構造が不正です。",
+      "vpmUnityPackageUnsafe": "安全でないパスが含まれているため展開を中止しました（{{path}}）。",
+      "vpmUnityPackageConflict": "プロジェクトに同名ファイルがあるため上書きしませんでした（{{path}}）。",
+      "vpmUnityPackageTooLarge": "パッケージが大きすぎるかエントリが多すぎます（{{limit}}）。",
+      "vpmUnityPackageFailed": "展開の途中で失敗し、ロールバックしました（{{moved}} ファイル）。",
       "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。"
     },
     "packages": {

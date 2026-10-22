@@ -30,3 +30,9 @@ export type {
   ProjectCreateDeps,
   TemplateAttachmentPort
 } from './create'
+
+export { extractUnityPackage, createTemplateAttachmentPort } from './unitypackage'
+export type {
+  ExtractUnityPackageInput,
+  ExtractUnityPackageResult
+} from './unitypackage'

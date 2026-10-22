@@ -28,6 +28,7 @@ import {
   ProjectCreateService,
   UnityEditorService,
   UnityInstallStore,
+  createTemplateAttachmentPort,
   type UnityDiscoveryOptions
 } from './unity'
 
@@ -167,6 +168,8 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       plans,
       transactions,
       activity: options.projectActivity,
+      // P5-C：模板附件（unitypackage）解到临时工程的 Assets/。
+      attachments: createTemplateAttachmentPort({ templates }),
       // 数据根里不允许建工程（会和模板/缓存/回滚仓混在一起）。
       forbiddenRoots: () => [options.dataRoot],
       installedUnityVersions: () => {
