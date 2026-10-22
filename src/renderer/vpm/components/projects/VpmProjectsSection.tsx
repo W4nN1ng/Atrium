@@ -4,6 +4,7 @@ import type { VpmProjectDetailDto, VpmProjectSummaryDto } from '../../../../shar
 import { Badge, Button, Field, Modal } from '../../../components/ui'
 import { errorText } from '../../../lib/msg'
 import { cleanText, formatTimestamp, vpmCodeLabel } from '../../lib/view'
+import { targetBadge } from '../../lib/target'
 import { useVpmProjects } from '../../hooks/useProjects'
 import { VpmPlanSheet } from '../plan/VpmPlanSheet'
 import { VpmPackagesPanel } from '../packages/VpmPackagesPanel'
@@ -361,12 +362,16 @@ export function VpmProjectsSection({
                   <Badge tone={item.running ? 'ok' : 'default'}>
                     {item.running ? t('vpm.projects.running') : t('vpm.projects.notRunning')}
                   </Badge>
-                  {item.coreId && item.coreId === targetProjectId ? (
-                    <Badge tone="accent">{t('project.isTarget')}</Badge>
-                  ) : null}
-                  {item.coreId && item.coreId === targetProjectId && targetPending ? (
-                    <Badge tone="warn">{t('project.targetWaiting')}</Badge>
-                  ) : null}
+                  {(() => {
+                    const badge = targetBadge(item, targetProjectId, targetPending)
+                    if (!badge) return null
+                    // 静态 key：i18n 检查脚本要能扫到，不用动态拼接。
+                    return (
+                      <Badge tone={badge.tone}>
+                        {badge.key === 'isTarget' ? t('project.isTarget') : t('project.targetWaiting')}
+                      </Badge>
+                    )
+                  })()}
                   {!item.linked ? <Badge tone="warn">{t('vpm.projects.unlinkedShort')}</Badge> : null}
                   {item.legacyCount ? (
                     <Badge tone="warn">{t('vpm.projects.legacyCount', { count: item.legacyCount })}</Badge>

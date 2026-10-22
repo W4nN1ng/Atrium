@@ -3,7 +3,8 @@
 ## 职责（一句话）
 
 只读发现 Unity 编辑器安装（`editors.ts`）、**新建工程**（`create.ts`，P5-B）、
-**unitypackage 解包与模板附件**（`unitypackage.ts`，P5-C）。
+**unitypackage 解包与模板附件**（`unitypackage.ts`，P5-C）、**启动 Unity 并绑定导入目标**
+（`launch.ts`，P5-D/P5-E）。
 
 ## 不负责什么
 
@@ -118,3 +119,21 @@ await extractUnityPackage({ packagePath, projectPath, onConflict: 'reject' })
 逐个解模板 `files/` 下的附件，任何一个失败都抛错（P5-B 会归档整个临时工程）。
 
 纯解析（路径归一/去重/计划）在 `src/shared/vpm/domain/unitypackage.ts`。
+
+## 启动 Unity（`launch.ts`，P5-D / P5-E）
+
+```ts
+await runtime.launch.launch({ projectPath, editorPath?, extraArgs?, bindTarget, clearTarget })
+```
+
+- 编辑器解析顺序：**本次指定** → 工程台账 `unity_exe_path` → 按 `ProjectVersion.txt` 的
+  base 版本匹配（`2022.3.22f1` → `2022.3`，精确版本优先）。找不到就 `vpmUnityNotFound`，
+  **绝不自动换版本**。
+- 参数只作为数组传 `spawn(exe, ['-projectPath', path, ...extra])`，`shell: false`；
+  拒绝空字节/换行/空串/超长（单条 4096、总数 64）。
+- `detached: true`、`stdio: 'ignore'`、`windowsHide: true`、`unref()`，不等待退出。
+- **先 `bindTarget` 再 spawn**；spawn 抛错或异步 `error` 事件都 `clearTarget`。
+- 已在运行 → 不重复启动，返回 `alreadyRunning`，**仍然绑定目标**。
+- 目标优先级（核心侧固定）：显式选择 > 启动绑定 > 单工程自动；工程关闭/消失后
+  核心 `pruneLaunchBinding()` 会清掉绑定。
+- 启动本身是只读动作：不写工程、不装包；双击素材导入才写 `Assets/`。
