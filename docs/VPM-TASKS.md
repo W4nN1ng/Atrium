@@ -90,8 +90,7 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P5-E 代码完成、状态 review（缺真 Unity 双击导入验收，脚本在
-> `docs/VERIFY-2026-10-22-VPM-MATERIAL-LINK.md`）；下一个可执行的卡是 **P6-A**。
+> P6-A 也已完成（文件收集器）；下一个可执行的卡是 **P6-B**（备份格式与压缩）。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1026,6 +1025,32 @@ Task: P?-?
   双击素材导入"的完整链路；多实例真机优先级；启动中双击等待的体验。**没有截图、没有
   `import_log` 证据**。
 - **给 P6-A**：本卡没改导入/冲突/撤销算法，也没做跨重启目标持久化（刻意不做）。
+
+### P6-A（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/main/vpm/backup/collector.ts`：`collectProjectFiles(options)`、
+    `isExcluded(relativePath, depth, managedPackages)`（纯函数）、`readManagedPackages(root)`。
+  - `CollectOptions`：`root` / `mode`（backup|copy）/ `excludeVpmPackages` / `maxFiles` /
+    `maxBytes` / `maxDepth` / `signal` / `onProgress`。
+  - `CollectResult`：`files`（相对+绝对路径+大小）、`directories`、`fileCount`、`byteCount`、
+    `warnings`、`truncated`、`elapsedMs`。
+  - 新错误码 `vpmCollectCancelled`（三语）。
+- **排除表**：根级 `Logs`/`obj`/`Temp`/`.git`/`.atrium-tx`（大小写不敏感，只在根）；
+  任意层级 `.git`；`Library*` 整棵排除但**保留** `Library/LastSceneManagerSetup.txt`；
+  可选排除 `vpm-manifest.json` 受管的 `Packages/<id>`（未知/本地包保留）；
+  三个必须保留的文件任何规则都不能排除；隐藏文件保留。
+- **安全**：不跟随符号链接/junction（记 `symlink` warning）；取消立刻抛
+  `vpmCollectCancelled`；文件数 200k / 64 GiB / 深度 32 / 路径 260 命中即 `truncated`；
+  权限不足记 warning 继续；只读、不改源文件。
+- **稳定性**：`files` / `directories` 按相对路径排序，同输入同输出（压缩包可复现）。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/backup/collector.spec.ts` **14 条**全绿
+  （排除表 5 组、真实目录收集、受管包排除、坏 manifest、junction 不跟随、取消、稳定排序、
+  截断、进度、缺根拒绝）。
+- **未验证**：没有在超大真实工程（>10 万文件）上压过；长路径只做了字符串策略，没有真造
+  260+ 的路径；junction 用 `fs.symlinkSync(..., 'junction')` 造的，没覆盖其他 reparse point。
+- **给 P6-B**：压缩直接用 `CollectResult.files` 的顺序写 zip，别再自己遍历；
+  `truncated=true` 必须当失败处理，不能压一个残缺包。
 
 ---
 
