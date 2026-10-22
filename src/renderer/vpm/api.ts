@@ -113,6 +113,15 @@ export const vpmApi = {
   }): Promise<VpmVersionChangeResultDto> {
     return window.a.vpm.projectVersionChange(input)
   },
+  projectParentCheck(path: string): Promise<{ parent: string; adjustedFrom: string | null }> {
+    return window.a.vpm.projectParentCheck(path)
+  },
+  projectScanRoot(path: string): Promise<{
+    root: string
+    candidates: Array<{ path: string; name: string; unityVersion: string | null; added: boolean }>
+  }> {
+    return window.a.vpm.projectScanRoot(path)
+  },
   projectMigrate(input: {
     projectKey: string
     candidates: VpmMigrateCandidateInput[]

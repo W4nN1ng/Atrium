@@ -10,6 +10,11 @@ import { errorText } from '../../../lib/msg'
 import { cleanText } from '../../lib/view'
 import { vpmApi } from '../../api'
 
+function baseName(value: string): string {
+  const parts = value.split(/[\\/]/)
+  return parts[parts.length - 1] || value
+}
+
 /**
  * 新建工程对话框（P5-D）。
  *
@@ -37,6 +42,7 @@ export function VpmCreateProjectDialog({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
+  const [parentNotice, setParentNotice] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -81,11 +87,35 @@ export function VpmCreateProjectDialog({
 
   const selected = templates.find((item) => item.id === templateId) ?? null
 
+  /**
+   * R14：位置归一化。用户（尤其同时装了 ALCOM 的人）很容易把"某个工程目录"
+   * 当成"工程根"选进来；这里不报错，直接上移一级并说明改了什么。
+   */
+  const applyParent = async (raw: string): Promise<void> => {
+    const value = raw.trim()
+    if (!value) return
+    try {
+      const result = await vpmApi.projectParentCheck(value)
+      setParentDir(result.parent)
+      setParentNotice(
+        result.adjustedFrom
+          ? t('vpm.create.parentAdjusted', {
+              name: baseName(result.adjustedFrom),
+              parent: result.parent
+            })
+          : null
+      )
+    } catch {
+      setParentDir(value)
+      setParentNotice(null)
+    }
+  }
+
   const pickParent = async (): Promise<void> => {
     setError(null)
     try {
       const picked = await vpmApi.pickProjectDirectory(t('vpm.create.pickParent'))
-      if (picked) setParentDir(picked)
+      if (picked) await applyParent(picked)
     } catch (cause) {
       setError(errorText(cause))
     }
@@ -231,6 +261,11 @@ export function VpmCreateProjectDialog({
               {t('vpm.create.pick')}
             </Button>
           </div>
+          {parentNotice ? (
+            <p className="mt-1 text-[10px]" style={{ color: 'var(--muted)' }}>
+              {parentNotice}
+            </p>
+          ) : null}
           {recent.length ? (
             <div className="mt-1 flex flex-wrap gap-1">
               {recent.slice(0, 4).map((item) => (

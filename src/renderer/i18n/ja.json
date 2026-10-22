@@ -1389,7 +1389,13 @@
       "disabledTitle": "プロジェクト機能は無効です",
       "disabledHint": "「設定 → プロジェクトとパッケージ」で有効にしてデータルートを選んでください。",
       "importHistory": "インポート履歴",
-      "more": "その他"
+      "more": "その他",
+      "scanTitle": "{{root}} に {{count}} 件のプロジェクト",
+      "scanEmpty": "このフォルダーにプロジェクトはありません。",
+      "scanAdd": "選択を追加（{{count}}）",
+      "scanAlready": "追加済み",
+      "scanAdding": "追加中…",
+      "scanning": "スキャン中…"
     },
     "plan": {
       "title": "変更計画（読み取り専用）",
@@ -1710,7 +1716,8 @@
       "creating": "作成中…",
       "dependenciesFailed": "プロジェクトは作成されましたが依存関係が未完了です。一覧から再試行できます。",
       "noEditors": "Unity エディターが見つかりません。バージョンを直接入力して作成できますが、開く前に Unity Hub へ追加してください。",
-      "rescan": "再スキャン"
+      "rescan": "再スキャン",
+      "parentAdjusted": "「{{name}}」はプロジェクトです。親フォルダーに切り替えました: {{parent}}"
     },
     "maintenance": {
       "title": "バックアップとメンテナンス",

@@ -1389,7 +1389,13 @@
       "disabledTitle": "Projects are disabled",
       "disabledHint": "Enable it under Settings → Projects & packages and pick a data root.",
       "importHistory": "Import history",
-      "more": "More"
+      "more": "More",
+      "scanTitle": "Found {{count}} project(s) in {{root}}",
+      "scanEmpty": "No projects here. Pick a folder that contains projects, or pick a project directly.",
+      "scanAdd": "Add selected ({{count}})",
+      "scanAlready": "Already added",
+      "scanAdding": "Adding…",
+      "scanning": "Scanning…"
     },
     "plan": {
       "title": "Change plan (read-only)",
@@ -1710,7 +1716,8 @@
       "creating": "Creating…",
       "dependenciesFailed": "The project was created but dependencies did not finish; retry from the list.",
       "noEditors": "No installed Unity editor was detected: you can still type a version, but add the editor to Unity Hub before opening the project.",
-      "rescan": "Rescan"
+      "rescan": "Rescan",
+      "parentAdjusted": "\"{{name}}\" is a project, switched to its parent: {{parent}}"
     },
     "maintenance": {
       "title": "Backup & maintenance",

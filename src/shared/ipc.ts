@@ -235,6 +235,8 @@ export const IpcInvoke = {
     ProjectCopy: 'vpm:project-copy',
     ProjectVersionChange: 'vpm:project-version-change',
     ProjectMigrate: 'vpm:project-migrate',
+    ProjectParentCheck: 'vpm:project-parent-check',
+    ProjectScanRoot: 'vpm:project-scan-root',
     RepoRefresh: 'vpm:repo-refresh',
     RepoRefreshAll: 'vpm:repo-refresh-all',
     NetworkConsent: 'vpm:network-consent',

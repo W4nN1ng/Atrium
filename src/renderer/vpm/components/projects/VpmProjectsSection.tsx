@@ -243,6 +243,12 @@ export function VpmProjectsSection({
   const [addOpen, setAddOpen] = useState(false)
   const [addPath, setAddPath] = useState('')
   const [addError, setAddError] = useState<string | null>(null)
+  const [scan, setScan] = useState<{
+    root: string
+    candidates: Array<{ path: string; name: string; unityVersion: string | null; added: boolean }>
+  } | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [scanning, setScanning] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<VpmProjectSummaryDto | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -277,14 +283,41 @@ export function VpmProjectsSection({
   const openAdd = (): void => {
     setAddPath('')
     setAddError(null)
+    setScan(null)
+    setSelected(new Set())
     setAddOpen(true)
+  }
+
+  /**
+   * R15：选一个"工程根目录"就能把里面所有工程一次加进来
+   * （ALCOM 用户把 `E://ALCOMProjects` 选进来即可）。
+   */
+  const scanRoot = async (raw: string): Promise<void> => {
+    const value = raw.trim()
+    if (!value) return
+    setScanning(true)
+    setAddError(null)
+    try {
+      const result = await vpmApi.projectScanRoot(value)
+      setScan(result)
+      setSelected(new Set(result.candidates.filter((item) => !item.added).map((item) => item.path)))
+      if (result.candidates.length === 0) setAddError(t('vpm.projects.scanEmpty'))
+    } catch (cause) {
+      setScan(null)
+      setAddError(errorText(cause))
+    } finally {
+      setScanning(false)
+    }
   }
 
   const pickPath = async (): Promise<void> => {
     setAddError(null)
     try {
       const picked = await projects.pickDirectory(t('vpm.projects.addTitle'))
-      if (picked) setAddPath(picked)
+      if (picked) {
+        setAddPath(picked)
+        await scanRoot(picked)
+      }
     } catch (cause) {
       setAddError(errorText(cause))
     }
@@ -292,12 +325,27 @@ export function VpmProjectsSection({
 
   const submitAdd = async (): Promise<void> => {
     setAddError(null)
-    try {
-      await projects.add(addPath.trim())
-      setAddOpen(false)
-    } catch (cause) {
-      setAddError(errorText(cause))
+    const targets = scan
+      ? scan.candidates.filter((item) => !item.added && selected.has(item.path)).map((item) => item.path)
+      : [addPath.trim()].filter(Boolean)
+    if (targets.length === 0) {
+      setAddError(t('vpm.projects.scanEmpty'))
+      return
     }
+    const failures: string[] = []
+    for (const target of targets) {
+      try {
+        await projects.add(target)
+      } catch (cause) {
+        failures.push(`${target}: ${errorText(cause)}`)
+      }
+    }
+    if (failures.length > 0) {
+      setAddError(failures.join('\n'))
+      await scanRoot(scan?.root ?? addPath.trim())
+      return
+    }
+    setAddOpen(false)
   }
 
   const openFromRow = async (key: string): Promise<void> => {
@@ -485,8 +533,16 @@ export function VpmProjectsSection({
             <Button onClick={() => setAddOpen(false)} disabled={projects.busy}>
               {t('common.cancel')}
             </Button>
-            <Button variant="accent" onClick={() => void submitAdd()} disabled={projects.busy || !addPath.trim()}>
-              {projects.busy ? t('vpm.projects.adding') : t('vpm.projects.add')}
+            <Button
+              variant="accent"
+              onClick={() => void submitAdd()}
+              disabled={projects.busy || scanning || (scan ? selected.size === 0 : !addPath.trim())}
+            >
+              {projects.busy
+                ? t('vpm.projects.scanAdding')
+                : scan && scan.candidates.length > 0
+                  ? t('vpm.projects.scanAdd', { count: selected.size })
+                  : t('vpm.projects.add')}
             </Button>
           </>
         }
@@ -501,15 +557,66 @@ export function VpmProjectsSection({
                 onChange={(event) => {
                   setAddPath(event.target.value)
                   setAddError(null)
+                  setScan(null)
                 }}
+                onBlur={(event) => void scanRoot(event.target.value)}
               />
               <Button variant="ghost" onClick={() => void pickPath()} disabled={projects.busy}>
                 {t('vpm.projects.pick')}
               </Button>
             </div>
           </Field>
+          {scanning ? (
+            <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
+              {t('vpm.projects.scanning')}
+            </p>
+          ) : null}
+
+          {scan && scan.candidates.length > 0 ? (
+            <div className="space-y-1">
+              <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
+                {t('vpm.projects.scanTitle', { root: scan.root, count: scan.candidates.length })}
+              </p>
+              <div className="max-h-[36vh] overflow-y-auto rounded border" style={{ borderColor: 'var(--line)' }}>
+                {scan.candidates.map((candidate) => (
+                  <label
+                    key={candidate.path}
+                    className="flex items-center gap-2 border-b px-2 py-1.5 text-[12px] last:border-b-0"
+                    style={{ borderColor: 'var(--line)', opacity: candidate.added ? 0.55 : 1 }}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={candidate.added}
+                      checked={selected.has(candidate.path)}
+                      onChange={(event) => {
+                        setSelected((current) => {
+                          const next = new Set(current)
+                          if (event.target.checked) next.add(candidate.path)
+                          else next.delete(candidate.path)
+                          return next
+                        })
+                      }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px]">{cleanText(candidate.name, 120)}</span>
+                      <span className="block truncate text-[11px]" style={{ color: 'var(--faint)' }}>
+                        {cleanText(candidate.path, 300)}
+                      </span>
+                    </span>
+                    {candidate.unityVersion ? (
+                      <span className="text-[11px]" style={{ color: 'var(--muted)' }}>
+                        {candidate.unityVersion}
+                      </span>
+                    ) : null}
+                    {candidate.added ? <Badge>{t('vpm.projects.scanAlready')}</Badge> : null}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {addError ? (
-            <div className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+            <div className="whitespace-pre-wrap rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
               {addError}
             </div>
           ) : null}

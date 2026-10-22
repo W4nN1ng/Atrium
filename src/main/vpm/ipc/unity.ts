@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { IpcEvent, IpcInvoke } from '../../../shared/ipc'
 import type {
   VpmBackupDto,
@@ -342,5 +344,95 @@ export function registerMaintenanceIpc(options: UnityIpcOptions): void {
       skipped: result.skipped,
       failed: result.failed
     }
+  })
+}
+
+/** 一个目录是不是 Unity 工程（只认 ProjectSettings/ProjectVersion.txt）。 */
+function isUnityProject(dir: string): boolean {
+  try {
+    return fs.statSync(path.join(dir, 'ProjectSettings', 'ProjectVersion.txt')).isFile()
+  } catch {
+    return false
+  }
+}
+
+function readVersion(dir: string): string | null {
+  try {
+    const text = fs.readFileSync(path.join(dir, 'ProjectSettings', 'ProjectVersion.txt'), 'utf8')
+    const match = /m_EditorVersion:\s*(\S+)/.exec(text)
+    return match ? match[1] : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 新建工程的位置归一化（R14）。
+ *
+ * 用户很容易把"某个工程目录"当成"工程根"选进来（ALCOM 用户尤其：
+ * `E:\ALCOMProjects\22` 本身就是一个工程）。这里不报错，直接上移一级，
+ * 并把"我改了什么"告诉界面。
+ */
+export function registerProjectLocationIpc(options: UnityIpcOptions): void {
+  const { ipc } = options
+
+  ipc.handle(IpcInvoke.Vpm.ProjectParentCheck, (input: unknown) => {
+    if (typeof input !== 'string' || !input.trim()) {
+      throw new VpmError('vpmProjectInvalid', { field: 'path' })
+    }
+    const dir = path.resolve(input.trim())
+    if (!isUnityProject(dir)) return { parent: dir, adjustedFrom: null as string | null }
+    const parent = path.dirname(dir)
+    return { parent, adjustedFrom: dir }
+  })
+
+  ipc.handle(IpcInvoke.Vpm.ProjectScanRoot, (input: unknown) => {
+    if (typeof input !== 'string' || !input.trim()) {
+      throw new VpmError('vpmProjectInvalid', { field: 'path' })
+    }
+    const root = path.resolve(input.trim())
+    const runtime = options.getRuntime()
+    const known = new Set(
+      (runtime?.projects.list() ?? []).map((item) => item.path.toLowerCase())
+    )
+    const candidates: Array<{
+      path: string
+      name: string
+      unityVersion: string | null
+      added: boolean
+    }> = []
+    // 选到的目录本身就是工程：直接作为唯一候选
+    if (isUnityProject(root)) {
+      return {
+        root,
+        candidates: [
+          {
+            path: root,
+            name: path.basename(root),
+            unityVersion: readVersion(root),
+            added: known.has(root.toLowerCase())
+          }
+        ]
+      }
+    }
+    let entries: fs.Dirent[] = []
+    try {
+      entries = fs.readdirSync(root, { withFileTypes: true })
+    } catch {
+      throw new VpmError('vpmProjectInvalid', { field: 'path' })
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue
+      const child = path.join(root, entry.name)
+      if (!isUnityProject(child)) continue
+      candidates.push({
+        path: child,
+        name: entry.name,
+        unityVersion: readVersion(child),
+        added: known.has(child.toLowerCase())
+      })
+    }
+    candidates.sort((a, b) => a.name.localeCompare(b.name))
+    return { root, candidates }
   })
 }

@@ -1389,7 +1389,13 @@
       "disabledTitle": "项目功能未启用",
       "disabledHint": "在「设置 → 项目与包」里启用并选好数据根，这里就会显示项目列表。",
       "importHistory": "导入历史",
-      "more": "更多"
+      "more": "更多",
+      "scanTitle": "在 {{root}} 里找到 {{count}} 个工程",
+      "scanEmpty": "这个目录里没有工程。选一个装着工程的根目录，或者直接选某个工程。",
+      "scanAdd": "添加所选（{{count}}）",
+      "scanAlready": "已添加",
+      "scanAdding": "正在添加…",
+      "scanning": "正在扫描…"
     },
     "plan": {
       "title": "变更计划（只读）",
@@ -1710,7 +1716,8 @@
       "creating": "正在创建…",
       "dependenciesFailed": "工程已创建，但依赖没装完；可以在列表里重试安装。",
       "noEditors": "没探测到已安装的 Unity 编辑器：可以直接填版本号建工程，但打开 Unity 前要先把编辑器加进 Unity Hub。",
-      "rescan": "重新扫描"
+      "rescan": "重新扫描",
+      "parentAdjusted": "「{{name}}」是一个工程，已改用它的上级目录：{{parent}}"
     },
     "maintenance": {
       "title": "备份与维护",

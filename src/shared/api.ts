@@ -336,6 +336,11 @@ export interface AApi {
       unityVersion: string
       backupFirst?: boolean
     }): Promise<VpmVersionChangeResultDto>
+    projectParentCheck(path: string): Promise<{ parent: string; adjustedFrom: string | null }>
+    projectScanRoot(path: string): Promise<{
+      root: string
+      candidates: Array<{ path: string; name: string; unityVersion: string | null; added: boolean }>
+    }>
     projectMigrate(input: {
       projectKey: string
       candidates: VpmMigrateCandidateInput[]
