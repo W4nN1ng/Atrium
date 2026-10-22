@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { parseUnityVersion, unityVersionBase } from '../../../shared/vpm/domain/unityVersion'
+import log from 'electron-log'
 import { VpmError } from '../../../shared/vpm/errors'
 import type { UnityInstall } from './editors'
 
@@ -207,6 +208,29 @@ export class UnityLaunchService {
     input.bindTarget?.(projectPath)
 
     /**
+     * 崩溃/被强杀会留下 `Temp/UnityLockfile`。新起的 Unity 看到它就会**一直等**另一个实例
+     * （实测：进程在、CPU 几乎为 0、无窗口、不写 Editor.log）。
+     * 能删掉 = 没人持有 → 陈旧锁，清掉再启动；删不掉 = 真有实例在跑 → 不重复启动。
+     */
+    const lockfile = path.join(projectPath, 'Temp', 'UnityLockfile')
+    if (fs.existsSync(lockfile)) {
+      try {
+        fs.rmSync(lockfile)
+        log.info(`[launch] 清掉陈旧锁文件 ${lockfile}`)
+      } catch {
+        input.clearTarget?.(projectPath)
+        return {
+          status: 'alreadyRunning',
+          exePath: install.path,
+          version: install.version,
+          args,
+          pid: null,
+          verified: true
+        }
+      }
+    }
+
+    /**
      * Unity 2022.3 只有在拿到 Hub 的许可通道时才会真正打开工程窗口。
      * 实测（2026-10-22）：裸 `-projectPath` → 进程在、无窗口、无 Temp，
      * Editor.log 里是 `LicensingClient has failed validation`；
@@ -224,6 +248,7 @@ export class UnityLaunchService {
       licenseChannel,
       ...extraArgs
     ]
+    log.info(`[launch] ${install.path} ${JSON.stringify(spawnArgs)}`)
     let child: ChildProcess | null = null
 
     try {
@@ -261,6 +286,7 @@ export class UnityLaunchService {
 
     // 启动是"发出去"了，但工程有没有真的打开要验证：等 Temp/UnityLockfile。
     const verified = await this.verifyStarted(projectPath)
+    log.info(`[launch] verified=${verified} pid=${child?.pid ?? 'n/a'}`)
     if (!verified) {
       // 没打开就不要留着导入目标，否则双击素材会投到一个不存在的工程。
       input.clearTarget?.(projectPath)
