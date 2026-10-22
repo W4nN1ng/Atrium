@@ -59,6 +59,18 @@ export const vpmApi = {
   repoRemove(id: string): Promise<{ ok: boolean }> {
     return window.a.vpm.repoRemove(id)
   },
+  repoUpdate(input: { id: string; name?: string; url?: string; enabled?: boolean }): Promise<VpmRepoDto> {
+    return window.a.vpm.repoUpdate(input)
+  },
+  repoReorder(ids: string[]): Promise<VpmRepoDto[]> {
+    return window.a.vpm.repoReorder(ids)
+  },
+  repoImport(text: string): Promise<{ added: VpmRepoDto[]; skipped: Array<{ url: string; reason: 'duplicate' | 'invalid' }> }> {
+    return window.a.vpm.repoImport(text)
+  },
+  repoExport(): Promise<string> {
+    return window.a.vpm.repoExport()
+  },
   repoRefresh(id: string): Promise<VpmOperationStart> {
     return window.a.vpm.repoRefresh(id)
   },

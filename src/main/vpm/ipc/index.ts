@@ -290,6 +290,39 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
     requireRuntime().repos.removeRepo(requireId(id))
     return { ok: true }
   })
+  ipc.handle(IpcInvoke.Vpm.RepoUpdate, async (input: unknown) => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmRepoInvalid', { field: 'input' })
+    }
+    const raw = input as Record<string, unknown>
+    const id = requireId(raw.id)
+    const patch: { name?: string; url?: string; enabled?: boolean } = {}
+    if (raw.name !== undefined) {
+      if (typeof raw.name !== 'string') throw new VpmError('vpmRepoInvalid', { field: 'name' })
+      patch.name = raw.name
+    }
+    if (raw.url !== undefined) {
+      if (typeof raw.url !== 'string') throw new VpmError('vpmRepoInvalid', { field: 'url' })
+      patch.url = raw.url
+    }
+    if (raw.enabled !== undefined) {
+      if (typeof raw.enabled !== 'boolean') throw new VpmError('vpmRepoInvalid', { field: 'enabled' })
+      patch.enabled = raw.enabled
+    }
+    return repoDto(await requireRuntime().repos.updateRepo(id, patch))
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoReorder, (ids: unknown) => {
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) {
+      throw new VpmError('vpmRepoInvalid', { field: 'ids' })
+    }
+    return requireRuntime().repos.reorderRepos(ids as string[]).map(repoDto)
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoImport, async (text: unknown) => {
+    if (typeof text !== 'string') throw new VpmError('vpmRepoInvalid', { field: 'text' })
+    const result = await requireRuntime().repos.importRepos(text)
+    return { added: result.added.map(repoDto), skipped: result.skipped }
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoExport, () => requireRuntime().repos.exportRepos())
   ipc.handle(IpcInvoke.Vpm.RepoRefresh, (id: unknown) => startSingle(requireId(id)))
   ipc.handle(IpcInvoke.Vpm.RepoRefreshAll, () => startAll())
 

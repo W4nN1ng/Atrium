@@ -278,6 +278,20 @@ export class RepoStore {
     if (result.changes === 0) throw new VpmError('vpmRepoNotFound')
   }
 
+  /** 批量写排序（P7-A）；只更新存在的行，返回实际改了几行。 */
+  setSortOrders(entries: ReadonlyArray<{ id: string; sortOrder: number }>): number {
+    let changed = 0
+    const at = this.now()
+    const statement = this.db.prepare(
+      'UPDATE vpm_repo SET sort_order = ?, updated_at = ? WHERE id = ?'
+    )
+    for (const entry of entries) {
+      const result = statement.run(entry.sortOrder, at, entry.id)
+      changed += result.changes
+    }
+    return changed
+  }
+
   removeRepo(id: string): boolean {
     return this.db.prepare('DELETE FROM vpm_repo WHERE id = ?').run(id).changes > 0
   }

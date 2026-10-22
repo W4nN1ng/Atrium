@@ -308,6 +308,10 @@ export interface AApi {
     reposList(): Promise<VpmRepoDto[]>
     repoAdd(input: { url: string; name?: string }): Promise<VpmRepoDto>
     repoRemove(id: string): Promise<{ ok: boolean }>
+    repoUpdate(input: { id: string; name?: string; url?: string; enabled?: boolean }): Promise<VpmRepoDto>
+    repoReorder(ids: string[]): Promise<VpmRepoDto[]>
+    repoImport(text: string): Promise<{ added: VpmRepoDto[]; skipped: Array<{ url: string; reason: 'duplicate' | 'invalid' }> }>
+    repoExport(): Promise<string>
     repoRefresh(id: string): Promise<VpmOperationStart>
     repoRefreshAll(): Promise<VpmOperationStart>
     networkStatus(): Promise<VpmNetworkStatus>

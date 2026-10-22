@@ -91,7 +91,7 @@
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
 > P6-D 服务层完成、状态 review（迁移服务 + 拒绝矩阵已做；**维护 UI 与真机未做**）。
-> 下一个可执行的卡是 **P7-A**（外部格式导入）。
+> 下一个可执行的卡是 **P7-A**（仓库治理）——服务层与 IPC 已完成，UI 未做。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1107,6 +1107,24 @@ Task: P?-?
 - **未做/未验证**：**备份/复制/换版本/迁移的 UI 完全没做**（服务层 `backup/copy/version/migrate`
   都在 `runtime` 上，P6-D 的界面留给后续）；**真 Unity 迁移验证没做**；
   Unity 2022 特例检测只靠现有 legacy 报告，没有单独的"未验证"标注。
+
+### P7-A（2026-10-22，review：服务层 + IPC 完成，UI 未做）
+
+- **公开 API/契约变化**：
+  - `ReposService.updateRepo(id, {name?, url?, enabled?})`：URL 变更清抓取状态并重抓，
+    **旧包行保留到抓取成功**；URL 冲突报 `vpmRepoConflict`。
+  - `ReposService.reorderRepos(ids)`：按给定顺序重写 `sort_order`，未列出的追加在后面。
+  - `ReposService.importRepos(text)` / `exportRepos()` / `parseRepoImport(text)`：
+    支持纯 URL（一行一个、`#` 注释）与我们自己的 JSON（`atrium.repos` v1）；
+    重复跳过、坏 URL 单独返回，一条坏的不影响整批。
+  - `RepoStore.setSortOrders()`；IPC 新增 `repo-update` / `repo-reorder` /
+    `repo-import` / `repo-export`；preload 与渲染层 API 同步。
+- **已验证**：typecheck exit 0；`tests/vpm/repos/governance.spec.ts` **7 条**
+  （改名/启停、URL 变更清状态但保留旧包、URL 冲突、排序落库、导出再导入去重、
+  纯文本导入跳过坏行与重复、两种格式解析）。
+- **未做/未验证**：**UI 完全没做**（拖拽/键盘排序、编辑表单、导入导出按钮、二次确认）；
+  排序对"同版本多源优先级"的影响只依赖 `queryCatalog` 的既有排序，没有专门断言；
+  URL 变更后的真实重抓（联网）没跑。
 
 ---
 
