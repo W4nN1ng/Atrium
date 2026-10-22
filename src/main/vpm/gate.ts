@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, shell } from 'electron'
 import log from 'electron-log'
 import Database from 'better-sqlite3'
 import { createHash } from 'node:crypto'
@@ -216,7 +216,8 @@ async function ensureRuntime(): Promise<void> {
           : undefined,
         projectLinkage: gateDeps.projectLinkage,
         projectActivity: gateDeps.projectActivity,
-        legacyGuard: gateDeps.legacyGuard
+        legacyGuard: gateDeps.legacyGuard,
+        revealPath: (target: string) => shell.showItemInFolder(target)
       })
       if (generation !== runtimeGeneration) {
         handle.dispose()

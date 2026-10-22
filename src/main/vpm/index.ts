@@ -1,3 +1,4 @@
+import { ProjectBackupService } from './backup'
 import { CatalogService } from './catalog'
 import { CacheEntryStore, PackageCacheService, VpmCacheStore } from './cache'
 import { closeVpmDb, openVpmDb, type VpmDb } from './db'
@@ -59,6 +60,8 @@ export interface InitVpmOptions {
   legacyGuard?: LegacyGuardPort
   /** 包缓存配额；默认 20 GiB。P8 再接到设置/用量 UI。 */
   cacheQuotaBytes?: number
+  /** 打开备份所在位置（Electron shell），由 gate 注入。 */
+  revealPath?: (target: string) => void
 }
 
 export interface VpmRuntime {
@@ -80,6 +83,7 @@ export interface VpmRuntime {
   templates: TemplateService
   create: ProjectCreateService
   launch: UnityLaunchService
+  backup: ProjectBackupService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -202,6 +206,35 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
         }
       }
     })
+    const backup = new ProjectBackupService({
+      db,
+      dataRoot: options.dataRoot,
+      projects,
+      activity: options.projectActivity,
+      ...(options.revealPath ? { revealPath: options.revealPath } : {}),
+      now: options.now,
+      installer: async (projectPath: string) => {
+        // 从备份新建后的"按 manifest 补装"：和建工程用同一条计划 + 事务。
+        try {
+          const snapshot = projects.scan(projectPath)
+          const names = snapshot.packages
+            .filter((pkg) => pkg.source === 'embedded' && pkg.state !== 'protected')
+            .map((pkg) => pkg.name)
+          if (names.length === 0) return 'none'
+          const plan = plans.resolve({
+            projectKey: projectKeyOf(projectPath),
+            preset: 'upgradeAll'
+          })
+          const result = await transactions.apply({
+            projectKey: projectKeyOf(projectPath),
+            planId: plan.planId
+          })
+          return result.status === 'committed' ? 'installed' : 'failed'
+        } catch {
+          return 'failed'
+        }
+      }
+    })
     const undo = new UndoService({
       operations,
       plans,
@@ -233,6 +266,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       templates,
       create,
       launch,
+      backup,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return

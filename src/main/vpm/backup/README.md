@@ -2,8 +2,13 @@
 
 ## 职责
 
-备份/复制共用的**文件树收集**（P6-A）。只读目录，输出稳定有序的清单；
-压缩（P6-B）、复制/迁移（P6-C）、UI（P6-D）都不在这里。
+- **文件树收集**（P6-A，`collector.ts`）：只读遍历、排除规则、取消、稳定排序。
+- **ZIP 写入/校验/解压**（P6-B，`zip.ts`）：store/fast/normal 三档真压缩、`.part` 原子写、
+  yauzl 读回校验、解压路径安全。
+- **备份服务**（P6-B，`service.ts`）：拿维护租约 → 收集 → 写 zip → sha256 → 读回验证 →
+  写 `vpm_backup`；从备份新建（目标必须不存在）。
+
+复制/迁移（P6-C）、UI（P6-D）不在这里。
 
 ## 不负责什么
 
@@ -56,3 +61,27 @@ readManagedPackages(root): Promise<Set<string>>             // 读 Packages/vpm-
 
 - P6-B（压缩）、P6-C（复制/迁移）会调用 `collectProjectFiles`；
 - 渲染层不直接用它。
+
+## 备份（`service.ts`，P6-B）
+
+```ts
+const record = await runtime.backup.create({ projectKey, compression: 'normal', excludeVpmPackages? })
+await runtime.backup.restore({ backupId: record.id, targetDir, installPackages? })
+runtime.backup.list(projectKey?)
+runtime.backup.reveal(record.id)
+```
+
+- **先拿 P4-F 维护租约**（`kind='backup'`）：素材导入/装包进行中直接拒绝，避免备份到半成品。
+- Unity 运行中默认拒绝；调用方确认后传 `allowUnityRunning: true`。
+- 默认目标 `<dataRoot>/backups/<projectSlug>/<工程名>-<yyyyMMdd-HHmmss>.zip`（冲突加 `-2`）。
+- 写 `<target>.part` → 成功才 rename；取消/失败删 `.part`，**不留半成品**。
+- 写完 `hashFile`（sha256）+ `readZipEntries` 读一遍，读不了算失败。
+- 记录写 `vpm_backup`（vpm.db **v5**）：状态 `running/ok/failed/cancelled` + `error_code`。
+- 从备份新建：目标目录**必须不存在**（`vpmBackupConflict`）；解压拒绝路径逃逸/符号链接；
+  可选 `installPackages` 走同一条计划 + 事务补装依赖。
+
+## ZIP（`zip.ts`）
+
+- `store` = 不压缩、`fast` = zlib 1、`normal` = zlib 6（yazl 的 `compressionLevel`，**真三档**）。
+- 条目路径必须 `/` 分隔、相对工程根；保留空 `Assets/` 目录。
+- `safeZipPath()`：拒绝绝对路径/盘符/`..`/反斜杠/控制字符/超长。

@@ -179,7 +179,7 @@ describe('VPM composition root', () => {
     fs.mkdirSync(path.dirname(P.vpmDb()), { recursive: true })
     const raw = new Database(P.vpmDb())
     try {
-      raw.pragma('user_version = 5')
+      raw.pragma('user_version = 6')
     } finally {
       raw.close()
     }
@@ -194,7 +194,7 @@ describe('VPM composition root', () => {
     const check = new Database(P.vpmDb(), { readonly: true })
     try {
       // 拒绝后必须原样保留"更新版本"，不能悄悄降级
-      expect(check.pragma('user_version', { simple: true })).toBe(5)
+      expect(check.pragma('user_version', { simple: true })).toBe(6)
     } finally {
       check.close()
     }

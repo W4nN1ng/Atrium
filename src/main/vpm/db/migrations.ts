@@ -208,11 +208,40 @@ CREATE TABLE IF NOT EXISTS vpm_recent_location (
 );
 `
 
+/**
+ * v5：备份记录（P6-B）。
+ *
+ * 只存"做过什么备份"，zip 本身在 `<dataRoot>/backups/...`；
+ * 删记录不删文件（P6-D 的 UI 才会问用户）。
+ */
+const V5 = `
+CREATE TABLE IF NOT EXISTS vpm_backup (
+  id TEXT PRIMARY KEY,
+  project_key TEXT NOT NULL,
+  project_name TEXT NOT NULL,
+  source_path TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  size INTEGER,
+  sha256 TEXT,
+  unity_version TEXT,
+  package_count INTEGER,
+  options_json TEXT,
+  status TEXT NOT NULL CHECK (status IN ('running', 'ok', 'failed', 'cancelled')),
+  created_at INTEGER NOT NULL,
+  finished_at INTEGER,
+  error_code TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_vpm_backup_project
+  ON vpm_backup(project_key, created_at DESC);
+`
+
 export const VPM_MIGRATIONS: readonly VpmMigration[] = [
   { version: 1, sql: V1 },
   { version: 2, sql: V2 },
   { version: 3, sql: V3 },
-  { version: 4, sql: V4 }
+  { version: 4, sql: V4 },
+  { version: 5, sql: V5 }
 ]
 
 /** 每个版本完整迁移后必须存在的表；用于发现“版本号对但表被删/半迁移”的库。 */
@@ -248,5 +277,19 @@ export const VPM_REQUIRED_TABLES: Readonly<Record<number, readonly string[]>> = 
     'vpm_cache_entry',
     'vpm_template',
     'vpm_recent_location'
+  ],
+  5: [
+    'vpm_repo',
+    'vpm_repo_package',
+    'vpm_unity_install',
+    'vpm_project',
+    'vpm_project_package',
+    'vpm_operation',
+    'vpm_operation_step',
+    'vpm_operation_file',
+    'vpm_cache_entry',
+    'vpm_template',
+    'vpm_recent_location',
+    'vpm_backup'
   ]
 }
