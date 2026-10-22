@@ -397,7 +397,7 @@
     "modeArchived": "アーカイブ（ライブラリへ移動）",
     "modeIndexed": "インデックス（移動しない）",
     "dirTemplate": "フォルダテンプレート",
-    "dirTemplateHint": "使用可: {category} {subcategory} {name} {version} {avatar} {author} {year}",
+    "dirTemplateHint": "使用可: {category} {subcategory} {{name}} {version} {avatar} {author} {year}",
     "keepOriginal": "元の圧縮ファイルを保持",
     "autoExtract": "_extracted/ に解凍",
     "autoExtractHint": "容量節約のため既定はオフです。オンにすると解凍内容も保存されます。「元の圧縮ファイルを保持」と組み合わせて使用できます。",
@@ -1433,7 +1433,10 @@
       "vpmProjectScanTruncated": "プロジェクトのスキャンが上限に達したため、結果は一部です。",
       "vpmProjectPackageInvalid": "無効な package.json があったため、そのパッケージをスキップしました。",
       "vpmProjectMissingPackage": "manifest にはありますが、Packages フォルダーにありません。",
-      "vpmProjectVersionMismatch": "パッケージフォルダーのバージョンが vpm-manifest と一致しません。"
+      "vpmProjectVersionMismatch": "パッケージフォルダーのバージョンが vpm-manifest と一致しません。",
+      "vpmLegacyCleanupSkipped": "旧 Assets の一部は所有者を確認できないか保護対象のため残しました。",
+      "vpmLegacyCleanupFailed": "旧 Assets の整理に失敗しました。パッケージは導入済みで、旧ファイルはプロジェクトに残っています。",
+      "vpmVaultPending": "旧ファイルはプロジェクトの一時領域に残っており、まだロールバック保管庫へアーカイブされていません。後で再試行できます。"
     },
     "errors": {
       "vpmDisabled": "プロジェクトとパッケージ管理は無効です。",
@@ -1499,6 +1502,17 @@
       "vpmArchivePackageInvalid": "展開後に一意の package.json が見つからないか、名前/バージョンが計画と一致しません。",
       "vpmArchiveWriteFailed": "展開の書き込みに失敗しました。一時フォルダーは保持されています。",
       "vpmRuntimeNotReady": "プロジェクトとパッケージ管理のランタイムがまだ準備できていません。しばらくして再試行するか、再度有効にしてください。",
+      "vpmPlanBlocked": "この計画には競合または不足している依存関係があります。解決してから適用してください。",
+      "vpmProjectChanged": "プレビュー後にプロジェクトが変更されました（manifest またはパッケージフォルダー）。もう一度プレビューしてください。",
+      "vpmUnityRunning": "Unity がこのプロジェクトを開いています。パッケージを変更する前に Unity を閉じてください。",
+      "vpmProjectImporting": "素材をこのプロジェクトへインポート中です。インポートが終わってからパッケージを変更してください。",
+      "vpmProtectedPackage": "このパッケージは保護されているため、更新・ダウングレード・削除はできません: {{name}}。",
+      "vpmProjectNoSpace": "プロジェクトのあるディスクの空き容量が不足しています。あと {{required}} バイト必要です。",
+      "vpmProjectPathUnsafe": "プロジェクト内の対象パスが安全ではありません（シンボリックリンク、ジャンクション、同名ファイル）。停止しました。",
+      "vpmTransactionFailed": "インストール処理に失敗しました。ジャーナルに従って復元したか、現場を保持しています。",
+      "vpmRollbackFailed": "ロールバックが完全には成功しませんでした。プロジェクトの確認が必要です。ファイルは削除していません。",
+      "vpmVaultUnavailable": "ロールバック保管庫が使用できません（作成または書き込み不可）。ロールバック保管庫がない場合はプロジェクトを変更しません。",
+      "vpmVaultArchiveFailed": "旧ファイルをロールバック保管庫へアーカイブできませんでした。プロジェクトの一時領域に残っているため、後で再試行できます。",
       "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。"
     }
   }

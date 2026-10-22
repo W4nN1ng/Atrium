@@ -2,10 +2,17 @@ import { CatalogService } from './catalog'
 import { CacheEntryStore, PackageCacheService, VpmCacheStore } from './cache'
 import { closeVpmDb, openVpmDb, type VpmDb } from './db'
 import { createElectronHttpTransport, createVpmHttpClient, type VpmHttpPort } from './http'
-import { OperationStore, RecoveryService } from './install'
+import {
+  InstallTransactionService,
+  OperationStore,
+  RecoveryService,
+  type LegacyGuardPort,
+  type ProjectActivityPort
+} from './install'
 import { PlanService } from './planService'
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
+import { VaultStore } from './vault'
 import {
   ProjectLedgerStore,
   ProjectsService,
@@ -40,6 +47,10 @@ export interface InitVpmOptions {
   projectLinkage?: ProjectLinkagePort
   /** 恢复扫描用：工程是否正在 Unity 中/导入中；默认未知=false。P4-F 接入。 */
   isProjectActive?: (projectPath: string) => boolean
+  /** 包事务的工程活动闸门（Unity 运行 / 素材导入）；P4-F 注入真实实现。 */
+  projectActivity?: ProjectActivityPort
+  /** 旧 Assets 清理的保护集合（`import_log` 已知资产）；P4-F 注入。 */
+  legacyGuard?: LegacyGuardPort
   /** 包缓存配额；默认 20 GiB。P8 再接到设置/用量 UI。 */
   cacheQuotaBytes?: number
 }
@@ -57,6 +68,8 @@ export interface VpmRuntime {
   plans: PlanService
   operations: OperationStore
   recovery: RecoveryService
+  vault: VaultStore
+  transactions: InstallTransactionService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -114,6 +127,25 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       operations,
       isProjectActive: options.isProjectActive
     })
+    const vault = new VaultStore({ dataRoot: options.dataRoot })
+    const transactions = new InstallTransactionService({
+      operations,
+      plans,
+      packages: packageCache,
+      vault,
+      dataRoot: options.dataRoot,
+      activity: options.projectActivity,
+      legacyGuard: options.legacyGuard,
+      now: options.now,
+      projects: {
+        // 工程快照永远从磁盘现读：事务不相信任何缓存的 manifest。
+        load: (projectKey: string) => {
+          const item = projects.get(projectKey)
+          if (!item) return null
+          return { projectPath: item.path, snapshot: projects.scan(item.path) }
+        }
+      }
+    })
     // 启动先处理崩溃现场：P4-A 只做判定/保守落状态，不碰工程文件。
     recovery.scanAndApply()
     await repos.seedIfEmpty()
@@ -132,6 +164,8 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       plans,
       operations,
       recovery,
+      vault,
+      transactions,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return

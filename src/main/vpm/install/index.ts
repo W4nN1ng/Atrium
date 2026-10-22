@@ -3,13 +3,44 @@ export {
   MANIFEST_RELATIVE_PATH,
   OperationJournalStore,
   TRANSACTION_DIR,
+  ensureTransactionLayout,
   normalizeRelativePath,
+  transactionLayout,
   validateJournalSnapshot
 } from './journal'
+export type { TransactionLayout } from './journal'
 export { OperationStore } from './state'
 export { RecoveryService } from './recovery'
 export type { RecoveryServiceOptions } from './recovery'
 export { DEFAULT_ARCHIVE_LIMITS, extractPackageZip } from './archive'
+export { InstallTransactionService } from './transaction'
+export { cleanupLegacyAssets } from './legacy'
+export type {
+  ApplyPlanInput,
+  ApplyPlanResult,
+  InstallTransactionOptions,
+  PackageSourcePort,
+  PlanSourcePort,
+  ProjectActivityPort,
+  TransactionProjectPort,
+  TransactionProgress,
+  TransactionWarning
+} from './transaction'
+export type { LegacyCleanupResult, LegacyGuardPort } from './legacy'
+export {
+  PROTECTED_PACKAGE_ID,
+  collectPreflightFacts,
+  evaluatePreflight,
+  requiredBytesFor
+} from './preflight'
+export type {
+  CollectPreflightInput,
+  PreflightActivity,
+  PreflightFacts,
+  PreflightIssue,
+  PreflightPackagePath,
+  PreflightResult
+} from './preflight'
 export type {
   ArchiveLimits,
   ExtractPackageZipInput,

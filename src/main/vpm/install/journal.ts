@@ -420,6 +420,96 @@ export function validateJournalSnapshot(value: unknown): OperationJournalSnapsho
 }
 
 /**
+ * `.atrium-tx/<op>` 的目录布局。
+ *
+ * 事务区必须和 `Packages/` 同卷，才能用 rename 原子移动；
+ * 这里只做路径派生与安全检查，是否创建由 `ensureTransactionLayout()` 决定。
+ */
+export interface TransactionLayout {
+  /** `.atrium-tx/<op>` 的真实路径。 */
+  root: string
+  /** 解压后的新包暂存区。 */
+  install: string
+  /** 旧包/旧 Assets 的临时停放区。 */
+  trash: string
+  trashPackages: string
+  trashLegacy: string
+  /** 回滚时把新包移出的地方（不删除）。 */
+  rolledback: string
+  /** 变更前的 manifest 副本。 */
+  manifestOriginal: string
+  /** 新 manifest 的暂存文件；rename 到 Packages/ 就是提交点。 */
+  manifestNew: string
+  journal: string
+}
+
+function layoutOf(root: string): TransactionLayout {
+  const install = path.join(root, 'install')
+  const trash = path.join(root, 'trash')
+  return {
+    root,
+    install,
+    trash,
+    trashPackages: path.join(trash, 'packages'),
+    trashLegacy: path.join(trash, 'legacy'),
+    rolledback: path.join(root, 'rolledback'),
+    manifestOriginal: path.join(root, 'manifest.original.json'),
+    manifestNew: path.join(root, 'vpm-manifest.new.json'),
+    journal: path.join(root, JOURNAL_FILE)
+  }
+}
+
+/** 只算路径，不建目录；工程/opId 不合法直接拒绝。 */
+export function transactionLayout(projectPath: string, opId: string): TransactionLayout {
+  const real = realProject(projectPath)
+  const id = normalizeOpId(opId)
+  const tx = path.join(real, TRANSACTION_DIR)
+  const root = path.join(tx, id)
+  assertInside(real, root)
+  assertInside(tx, root)
+  return layoutOf(root)
+}
+
+/** 建好 install/trash/rolledback 子目录；已存在时只校验类型，不覆盖内容。 */
+export function ensureTransactionLayout(projectPath: string, opId: string): TransactionLayout {
+  const real = realProject(projectPath)
+  const id = normalizeOpId(opId)
+  const tx = ensureTransactionRoot(real)
+  const root = path.join(tx, id)
+  const stat = lstatOrNull(root)
+  if (stat) {
+    if (stat.isSymbolicLink() || !stat.isDirectory()) invalid()
+  } else {
+    try {
+      fs.mkdirSync(root)
+    } catch (error) {
+      throw new VpmError('vpmJournalWriteFailed', undefined, error)
+    }
+  }
+  let rootReal: string
+  try {
+    rootReal = fs.realpathSync.native(root)
+  } catch (error) {
+    throw new VpmError('vpmJournalWriteFailed', undefined, error)
+  }
+  assertInside(tx, rootReal)
+
+  const layout = layoutOf(rootReal)
+  for (const dir of [layout.install, layout.trashPackages, layout.trashLegacy, layout.rolledback]) {
+    try {
+      fs.mkdirSync(dir, { recursive: true })
+      const dirReal = fs.realpathSync.native(dir)
+      if (dirReal === rootReal) invalid()
+      if (!isSameOrInside(rootReal, dirReal, process.platform)) invalid()
+    } catch (error) {
+      if (error instanceof VpmError) throw error
+      throw new VpmError('vpmJournalWriteFailed', undefined, error)
+    }
+  }
+  return layout
+}
+
+/**
  * `.atrium-tx/<op>/journal.json` 的唯一读写入口。
  *
  * - 原子写：同目录临时文件 + fsync + rename；不直接改原文件；

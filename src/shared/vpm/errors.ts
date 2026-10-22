@@ -33,6 +33,17 @@ export const VPM_ERROR_CODES = [
   'vpmPlanNotFound',
   'vpmPlanExpired',
   'vpmPlanChanged',
+  'vpmPlanBlocked',
+  'vpmProjectChanged',
+  'vpmUnityRunning',
+  'vpmProjectImporting',
+  'vpmProtectedPackage',
+  'vpmProjectNoSpace',
+  'vpmProjectPathUnsafe',
+  'vpmTransactionFailed',
+  'vpmRollbackFailed',
+  'vpmVaultUnavailable',
+  'vpmVaultArchiveFailed',
   'vpmProjectInvalid',
   'vpmManifestInvalid',
   'vpmProjectPackagesUnreadable',
@@ -83,7 +94,10 @@ export const VPM_WARNING_CODES = [
   'vpmProjectScanTruncated',
   'vpmProjectPackageInvalid',
   'vpmProjectMissingPackage',
-  'vpmProjectVersionMismatch'
+  'vpmProjectVersionMismatch',
+  'vpmLegacyCleanupSkipped',
+  'vpmLegacyCleanupFailed',
+  'vpmVaultPending'
 ] as const
 
 export type VpmWarningCode = (typeof VPM_WARNING_CODES)[number]

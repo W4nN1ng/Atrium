@@ -397,7 +397,7 @@
     "modeArchived": "Archive (move into library)",
     "modeIndexed": "Index (leave files where they are)",
     "dirTemplate": "Folder template",
-    "dirTemplateHint": "Available: {category} {subcategory} {name} {version} {avatar} {author} {year}",
+    "dirTemplateHint": "Available: {category} {subcategory} {{name}} {version} {avatar} {author} {year}",
     "keepOriginal": "Keep the original archive",
     "autoExtract": "Extract into _extracted/",
     "autoExtractHint": "Off by default to save space. When enabled, extracted contents are saved too; combine with Keep original archives.",
@@ -1433,7 +1433,10 @@
       "vpmProjectScanTruncated": "The project scan reached its limit; these are partial results.",
       "vpmProjectPackageInvalid": "A package.json is invalid; that package was skipped.",
       "vpmProjectMissingPackage": "This package is in the manifest but missing from the Packages folder.",
-      "vpmProjectVersionMismatch": "The package folder version does not match vpm-manifest."
+      "vpmProjectVersionMismatch": "The package folder version does not match vpm-manifest.",
+      "vpmLegacyCleanupSkipped": "Some legacy Assets were kept because their owner could not be proven or they are protected.",
+      "vpmLegacyCleanupFailed": "Cleaning legacy Assets failed. The package is installed; the old files are still in the project.",
+      "vpmVaultPending": "Old files are still in the project transaction folder and were not archived to the vault yet. Retry the archive later."
     },
     "errors": {
       "vpmDisabled": "Project & package management is off.",
@@ -1499,6 +1502,17 @@
       "vpmArchivePackageInvalid": "No unique package.json was found after extraction, or the name/version does not match the plan.",
       "vpmArchiveWriteFailed": "Writing the extracted files failed; the temporary folder was kept.",
       "vpmRuntimeNotReady": "The project & package runtime is not ready yet. Try again shortly, or re-enable it.",
+      "vpmPlanBlocked": "This plan still has conflicts or missing dependencies. Resolve them before applying.",
+      "vpmProjectChanged": "The project changed after the preview (manifest or package folders). Preview again.",
+      "vpmUnityRunning": "Unity is running this project. Close Unity before installing or removing packages.",
+      "vpmProjectImporting": "Assets are being imported into this project. Wait for the import to finish before changing packages.",
+      "vpmProtectedPackage": "This package is protected and cannot be upgraded, downgraded or removed: {{name}}.",
+      "vpmProjectNoSpace": "The project volume is out of space; at least {{required}} more bytes are needed.",
+      "vpmProjectPathUnsafe": "A target path in the project is unsafe (symlink, junction or a file with the same name). Stopped.",
+      "vpmTransactionFailed": "The install transaction failed. The project was restored from the journal or the scene was kept.",
+      "vpmRollbackFailed": "Rollback did not fully succeed; the project needs a manual check. Nothing was deleted.",
+      "vpmVaultUnavailable": "The vault is unavailable (cannot create or write). Without a vault the project is not changed.",
+      "vpmVaultArchiveFailed": "Old files could not be archived to the vault. They are still in the project transaction folder; retry later.",
       "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected."
     }
   }
