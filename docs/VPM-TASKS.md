@@ -66,7 +66,7 @@
 | P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | done |
 | P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | todo |
 | P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | done |
-| P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10/K1 | todo |
+| P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10/K1 | review |
 | P5-E | 启动即绑定目标与双击素材真机验收 | P5-D/P4-F/P2-E | 启动绑定、双击导入真机、多实例回归 | K1/K2/K3/K6 | todo |
 | P6-A | 文件收集器、排除规则与取消 | P2-B | `backup/collector`、排除表、进度/取消 | E1/E3/E4 | todo |
 | P6-B | ZIP 备份、记录与从备份新建 | P6-A | `backup/service`、备份记录、恢复、打开位置 | A16/A17/E1–E7 | todo |
@@ -90,7 +90,7 @@
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P5-C 也已完成（unitypackage 解包与模板附件）；下一个可执行的卡是 **P5-D**（启动 Unity、工程/模板 UI 与真机）。
+> P5-D 代码完成、状态 review（缺真 Unity 启动/打开验收，需要 GUI）；下一个可执行的卡是 **P5-E**（双击素材真机验收）或 **P6-A**。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -978,6 +978,33 @@ Task: P?-?
   没有构造真实符号链接包（Windows 建链接要权限）；没有用超大真实包压过。
 - **给 P5-D**：`extractUnityPackage` 可直接用于"把 unitypackage 导进已有工程"；
   真机要确认 Unity 能识别搬进去的 `.meta`（字节原样，理论上是同一份）。
+
+### P5-D（2026-10-22，review：代码完成，缺真机验收）
+
+- **公开 API/契约变化**：
+  - 新增 `src/main/vpm/unity/launch.ts`：`UnityLaunchService`（`resolveEditor` / `buildArgs` /
+    `launch`）、`sanitizeArgs`；`VpmRuntime.launch`。
+  - 新增 `src/main/vpm/ipc/unity.ts` + 7 个通道：`UnityInstalls` / `ProjectLaunch` /
+    `ProjectLaunchArgs` / `ProjectCreate` / `TemplateList` / `TemplateFavorite` / `TemplateRecent`。
+  - 新增 `shared/vpm/dto/unity.ts`：编辑器/启动/创建/模板/最近位置 DTO。
+  - 新错误码 `vpmUnityLaunchFailed`（三语）。
+- **启动规则**：编辑器解析顺序 = 本次指定 → 工程台账 `unity_exe_path` → 按
+  `ProjectVersion.txt` 的 base 版本匹配（精确版本优先）；找不到报 `vpmUnityNotFound`，
+  **不自动换版本**。参数只作为数组传 `spawn`，拒绝空字节/换行/超长，`shell: false`、
+  `detached + stdio:'ignore' + unref()`、`windowsHide`。**先 `bindLaunchTarget` 再 spawn**，
+  spawn 失败/异步 error 都 `clearLaunchTarget`；已在运行不重复启动但仍绑定目标。
+- **UI**：工程页主按钮改为"新建工程"（添加已有降为次要）；新建对话框 = 模板卡片
+  （内置/收藏/依赖数/附件数/Unity 范围）+ 名称/位置（最近位置快捷）/Unity 版本 + 创建；
+  工程详情底部新增"打开 Unity"（编辑器下拉 + 自动按版本）；启动/已运行都有提示。
+  当前导入目标徽标沿用核心 `isTarget`（P2-E 已有）。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/unity/launch.spec.ts` **10 条**全绿
+  （版本匹配/精确优先/显式路径/工程台账/找不到/参数拒绝/绑定先于 spawn/detached 选项/
+  已运行不重复启动/spawn 失败清绑定/缺版本文件拒绝）；`tests/vpm` 48 files / 486 tests。
+- **未验证（本卡不能算 done 的原因）**：**没有真的启动 Unity、也没有用 Unity 打开过新建工程**；
+  没有截图；`ProjectLaunchArgs` 的自定义参数编辑 UI 没做（只有 IPC 与参数校验）；
+  设置页的模板编辑器（新建/编辑/复制模板）没做——本卡只做了创建对话框里的模板列表/收藏。
+- **给 P5-E**：双击素材导入要依赖 P4-F 的活动闸门 + 本卡的启动绑定；
+  真机验收时重点看"启动中/连接中"的徽标与"已运行也绑定目标"。
 
 ---
 
