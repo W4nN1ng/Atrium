@@ -82,6 +82,8 @@ export class UnityConnections {
   /** Atrium 启动工程时写入；closed 也保留，表示“Unity 正在启动/等待连接”。 */
   private launchId: string | null = null
   private launchSawRunning = false
+  /** 启动绑定是什么时候设的：用于"永远等不到心跳"的兜底清理。 */
+  private launchSince = 0
   private lastPublished: string | null = null
   private disposed = false
 
@@ -133,6 +135,7 @@ export class UnityConnections {
     const project = this.requiredProject(id)
     this.launchId = id
     this.launchSawRunning = project.running
+    this.launchSince = this.now()
     this.manualId = null
     this.publish()
   }
@@ -294,10 +297,21 @@ export class UnityConnections {
 
   private pruneLaunchBinding(): void {
     if (!this.launchId) return
+    /**
+     * 兜底：启动绑定设了但**一直没等到心跳**（Unity 起来了又关掉、或桥接没装成功），
+     * 不能让顶栏永远显示"正在连接"。超过 3 分钟就丢掉这个绑定。
+     */
+    if (!this.launchSawRunning && this.launchSince > 0 && this.now() - this.launchSince > 180_000) {
+      this.launchId = null
+      this.launchSawRunning = false
+      this.launchSince = 0
+      return
+    }
     const project = this.projects.get(this.launchId)
     if (!project) {
       this.launchId = null
       this.launchSawRunning = false
+      this.launchSince = 0
       return
     }
     if (project.running) {

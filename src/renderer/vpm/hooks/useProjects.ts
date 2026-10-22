@@ -83,6 +83,19 @@ export function useVpmProjects(): VpmProjectsState {
     void refresh()
   }, [refresh])
 
+  /**
+   * 运行状态（绿点 + 「已打开」）由主进程的三路探测（心跳/锁文件/wmi）决定，
+   * 关掉 Unity 后它要过几秒才会翻。列表如果只在挂载时拉一次，就会一直显示"已打开"。
+   * 这里每 5 秒轻量重拉一次列表（只在 VPM 启用时跑）。
+   */
+  useEffect(() => {
+    if (!status?.enabled) return
+    const timer = setInterval(() => {
+      void loadItems()
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [status?.enabled, loadItems])
+
   const select = useCallback(async (projectKey: string): Promise<void> => {
     const id = ++detailSeq.current
     setSelectedKey(projectKey)
