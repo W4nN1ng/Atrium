@@ -223,6 +223,20 @@ export function registerProjectIpc(options: ProjectIpcOptions): void {
     return { ok: requireRuntime().projects.remove(projectKey) }
   })
 
+  /**
+   * 删除工程（R16）：先把整个文件夹移进**回收站**，再从台账移除。
+   * 不提供永久删除——用户随时能从回收站还原。
+   */
+  ipc.handle(IpcInvoke.Vpm.ProjectTrash, async (key: unknown) => {
+    const projectKey = requireKey(key)
+    const runtime = requireRuntime()
+    const item = runtime.projects.get(projectKey)
+    if (!item) throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
+    if (!runtime.trashPath) throw new VpmError('vpmInternal')
+    await runtime.trashPath(item.path)
+    return { ok: runtime.projects.remove(projectKey) }
+  })
+
   ipc.handle(IpcInvoke.Vpm.ProjectRescan, (key: unknown) => {
     const projectKey = requireKey(key)
     const runtime = requireRuntime()

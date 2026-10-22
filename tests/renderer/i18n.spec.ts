@@ -138,6 +138,7 @@ describe('i18n 三语一致', () => {
           'vpm.packages.step.',
           'vpm.packages.run.status.',
           'vpm.maintenance.status.',
+          'vpm.create.reason.',
           'vpm.packages.undoBlocked.',
           'vpm.packages.kind.',
           'vpm.plan.action.',

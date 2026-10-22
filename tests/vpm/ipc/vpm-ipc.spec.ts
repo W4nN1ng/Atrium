@@ -238,6 +238,7 @@ describe('VPM P1 IPC', () => {
         IpcInvoke.Vpm.ProjectCopy,
         IpcInvoke.Vpm.ProjectVersionChange,
         IpcInvoke.Vpm.ProjectMigrate,
+        IpcInvoke.Vpm.ProjectTrash,
         IpcInvoke.Vpm.ProjectParentCheck,
         IpcInvoke.Vpm.ProjectScanRoot,
         IpcInvoke.Vpm.RepoRefresh,

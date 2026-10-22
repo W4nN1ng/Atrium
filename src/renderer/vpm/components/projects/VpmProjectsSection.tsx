@@ -251,6 +251,7 @@ export function VpmProjectsSection({
   const [scanning, setScanning] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<VpmProjectSummaryDto | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
+  const [removeFiles, setRemoveFiles] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [planProjectKey, setPlanProjectKey] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
@@ -335,11 +336,12 @@ export function VpmProjectsSection({
     const failures: string[] = []
     for (const target of targets) {
       try {
-        await projects.add(target)
+        await projects.add(target, { select: false })
       } catch (cause) {
         failures.push(`${target}: ${errorText(cause)}`)
       }
     }
+    await projects.refresh()
     if (failures.length > 0) {
       setAddError(failures.join('\n'))
       await scanRoot(scan?.root ?? addPath.trim())
@@ -376,7 +378,10 @@ export function VpmProjectsSection({
     if (!removeTarget) return
     setRemoveError(null)
     try {
-      const ok = await projects.remove(removeTarget.projectKey)
+      // 勾了"连文件夹一起删"就移进回收站（可还原），否则只从台账移除。
+      const ok = removeFiles
+        ? (await vpmApi.projectTrash(removeTarget.projectKey)).ok
+        : await projects.remove(removeTarget.projectKey)
       if (ok) {
         setRemoveTarget(null)
         setActionError(null)
@@ -499,6 +504,7 @@ export function VpmProjectsSection({
                       danger: true,
                       onSelect: () => {
                         setRemoveError(null)
+                        setRemoveFiles(false)
                         setRemoveTarget(item)
                       }
                     }
@@ -624,6 +630,34 @@ export function VpmProjectsSection({
       </Modal>
 
       <Modal
+        open={removeTarget !== null}
+        onOpenChange={(open) => {
+      if (!open && !projects.busy) setRemoveTarget(null)
+        }}
+        title={t('vpm.projects.removeTitle')}
+        footer={
+      <>
+        <Button onClick={() => setRemoveTarget(null)} disabled={projects.busy}>
+          {t('common.cancel')}
+        </Button>
+        <Button onClick={() => void confirmRemove()} disabled={projects.busy}>
+          {t('vpm.projects.remove')}
+        </Button>
+      </>
+        }
+      >
+        <div className="text-[12px] leading-relaxed" style={{ color: 'var(--muted)' }}>
+      <div>{t('vpm.projects.removeBody')}</div>
+      {removeTarget ? <div className="mt-2 break-all font-mono text-[11px]">{cleanText(removeTarget.name, 200)}</div> : null}
+      {removeError ? (
+        <div className="mt-2 rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+          {removeError}
+        </div>
+      ) : null}
+        </div>
+      </Modal>
+
+      <Modal
         open={projects.selectedKey !== null}
         onOpenChange={(open) => {
           if (!open) {
@@ -672,6 +706,7 @@ export function VpmProjectsSection({
                 }}
                 onRemove={() => {
                   setRemoveError(null)
+                  setRemoveFiles(false)
                   setRemoveTarget(detail)
                 }}
               />
@@ -680,33 +715,6 @@ export function VpmProjectsSection({
             <p className="faint">{projects.error ?? t('vpm.projects.noMatch')}</p>
           )}
 
-          <Modal
-            open={removeTarget !== null}
-            onOpenChange={(open) => {
-              if (!open && !projects.busy) setRemoveTarget(null)
-            }}
-            title={t('vpm.projects.removeTitle')}
-            footer={
-              <>
-                <Button onClick={() => setRemoveTarget(null)} disabled={projects.busy}>
-                  {t('common.cancel')}
-                </Button>
-                <Button onClick={() => void confirmRemove()} disabled={projects.busy}>
-                  {t('vpm.projects.remove')}
-                </Button>
-              </>
-            }
-          >
-            <div className="text-[12px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-              <div>{t('vpm.projects.removeBody')}</div>
-              {removeTarget ? <div className="mt-2 break-all font-mono text-[11px]">{cleanText(removeTarget.name, 200)}</div> : null}
-              {removeError ? (
-                <div className="mt-2 rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
-                  {removeError}
-                </div>
-              ) : null}
-            </div>
-          </Modal>
         </div>
       </Modal>
 

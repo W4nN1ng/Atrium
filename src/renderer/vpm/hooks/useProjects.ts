@@ -21,7 +21,7 @@ export interface VpmProjectsState {
   refresh: () => Promise<void>
   select: (projectKey: string) => Promise<void>
   closeDetail: () => void
-  add: (path: string) => Promise<VpmProjectDetailDto>
+  add: (path: string, options?: { select?: boolean }) => Promise<VpmProjectDetailDto>
   remove: (projectKey: string) => Promise<boolean>
   rescan: (projectKey: string) => Promise<VpmProjectDetailDto>
   openFolder: (projectKey: string) => Promise<void>
@@ -107,14 +107,17 @@ export function useVpmProjects(): VpmProjectsState {
   }, [])
 
   const add = useCallback(
-    async (path: string): Promise<VpmProjectDetailDto> => {
+    async (path: string, options?: { select?: boolean }): Promise<VpmProjectDetailDto> => {
       setBusy(true)
       setError(null)
       setNotice(null)
       try {
         const next = await vpmApi.projectAdd({ path })
-        setSelectedKey(next.projectKey)
-        setDetail(next)
+        // 批量添加时不要每次都把详情弹窗顶出来（R15）。
+        if (options?.select !== false) {
+          setSelectedKey(next.projectKey)
+          setDetail(next)
+        }
         await loadItems()
         return next
       } finally {

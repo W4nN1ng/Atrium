@@ -1395,7 +1395,9 @@
       "scanAdd": "選択を追加（{{count}}）",
       "scanAlready": "追加済み",
       "scanAdding": "追加中…",
-      "scanning": "スキャン中…"
+      "scanning": "スキャン中…",
+      "removeFiles": "プロジェクトフォルダーも削除",
+      "removeFilesHint": "フォルダーはゴミ箱に移動するので復元できます。"
     },
     "plan": {
       "title": "変更計画（読み取り専用）",
@@ -1717,7 +1719,28 @@
       "dependenciesFailed": "プロジェクトは作成されましたが依存関係が未完了です。一覧から再試行できます。",
       "noEditors": "Unity エディターが見つかりません。バージョンを直接入力して作成できますが、開く前に Unity Hub へ追加してください。",
       "rescan": "再スキャン",
-      "parentAdjusted": "「{{name}}」はプロジェクトです。親フォルダーに切り替えました: {{parent}}"
+      "parentAdjusted": "「{{name}}」はプロジェクトです。親フォルダーに切り替えました: {{parent}}",
+      "reason": {
+        "targetExists": "そのフォルダーは既に存在します",
+        "parentUnsafe": "ここは Atrium のデータルートです。別の場所を選んでください",
+        "parentInsideProject": "他のプロジェクトの中には作成できません",
+        "parentMissing": "場所が存在しないかアクセスできません",
+        "parentNotDirectory": "場所がフォルダーではありません",
+        "parentNotWritable": "場所に書き込めません",
+        "parentSymlink": "シンボリックリンクです",
+        "nameEmpty": "プロジェクト名が空です",
+        "nameIllegal": "名前に使えない文字があります",
+        "nameTooLong": "名前が長すぎます",
+        "nameReserved": "Windows の予約名です",
+        "nameTrailing": "名前をドットや空白で終えられません",
+        "nameEscapes": "パスが場所の外に出ます",
+        "longPath": "パスが長すぎます（260 超）",
+        "unityVersionMissing": "その Unity バージョンは未インストールです",
+        "unityVersionInvalid": "Unity バージョンの形式が不正です",
+        "noSpace": "ディスク容量が足りません",
+        "templateMissing": "テンプレートがありません",
+        "attachmentsUnsupported": "テンプレート添付は未対応です"
+      }
     },
     "maintenance": {
       "title": "バックアップとメンテナンス",

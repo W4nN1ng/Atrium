@@ -6,7 +6,7 @@ import type {
   VpmUnityInstallDto
 } from '../../../../shared/vpm/dto'
 import { Badge, Button, Field, Modal } from '../../../components/ui'
-import { errorText } from '../../../lib/msg'
+import { errorParts, errorText } from '../../../lib/msg'
 import { cleanText } from '../../lib/view'
 import { vpmApi } from '../../api'
 
@@ -151,7 +151,19 @@ export function VpmCreateProjectDialog({
       onCreated(result.projectKey)
       onOpenChange(false)
     } catch (cause) {
-      setError(errorText(cause))
+      // vpmCreateRejected 的 reason 是一串代码（targetExists,parentUnsafe…），
+      // 直接显示代码用户看不懂，这里逐条翻译。
+      const { key, params } = errorParts(cause)
+      const reason = typeof params.reason === 'string' ? params.reason : ''
+      if (key === 'vpm.errors.vpmCreateRejected' && reason) {
+        const lines = reason
+          .split(',')
+          .filter(Boolean)
+          .map((code) => t(`vpm.create.reason.${code}`, { defaultValue: code }))
+        setError(lines.join('；'))
+      } else {
+        setError(errorText(cause))
+      }
     } finally {
       setBusy(false)
     }

@@ -1395,7 +1395,9 @@
       "scanAdd": "Add selected ({{count}})",
       "scanAlready": "Already added",
       "scanAdding": "Adding…",
-      "scanning": "Scanning…"
+      "scanning": "Scanning…",
+      "removeFiles": "Also delete the project folder",
+      "removeFilesHint": "The folder goes to the Recycle Bin and can be restored."
     },
     "plan": {
       "title": "Change plan (read-only)",
@@ -1717,7 +1719,28 @@
       "dependenciesFailed": "The project was created but dependencies did not finish; retry from the list.",
       "noEditors": "No installed Unity editor was detected: you can still type a version, but add the editor to Unity Hub before opening the project.",
       "rescan": "Rescan",
-      "parentAdjusted": "\"{{name}}\" is a project, switched to its parent: {{parent}}"
+      "parentAdjusted": "\"{{name}}\" is a project, switched to its parent: {{parent}}",
+      "reason": {
+        "targetExists": "That folder already exists — change the name or location",
+        "parentUnsafe": "This folder is Atrium data root (backups/cache) — pick another location",
+        "parentInsideProject": "Cannot create inside another project",
+        "parentMissing": "Location does not exist or is not accessible",
+        "parentNotDirectory": "Location is not a folder",
+        "parentNotWritable": "Location is not writable",
+        "parentSymlink": "Location is a symlink — pick a real folder",
+        "nameEmpty": "Project name is empty",
+        "nameIllegal": "Name contains illegal characters",
+        "nameTooLong": "Name is too long",
+        "nameReserved": "That is a reserved Windows name",
+        "nameTrailing": "Name cannot end with a dot or space",
+        "nameEscapes": "Name would escape the location",
+        "longPath": "Path is too long (over 260)",
+        "unityVersionMissing": "That Unity version is not installed",
+        "unityVersionInvalid": "Invalid Unity version",
+        "noSpace": "Not enough disk space",
+        "templateMissing": "Template not found",
+        "attachmentsUnsupported": "Template attachments are not supported yet"
+      }
     },
     "maintenance": {
       "title": "Backup & maintenance",

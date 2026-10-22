@@ -356,6 +356,7 @@ export interface AApi {
     projectDetail(projectKey: string): Promise<VpmProjectDetailDto>
     projectAdd(input: { path: string }): Promise<VpmProjectDetailDto>
     projectRemove(projectKey: string): Promise<{ ok: boolean }>
+    projectTrash(projectKey: string): Promise<{ ok: boolean }>
     projectRescan(projectKey: string): Promise<VpmProjectDetailDto>
     projectOpenFolder(projectKey: string): Promise<{ ok: boolean }>
     planResolve(input: VpmPlanResolveInput): Promise<VpmPlanDto>

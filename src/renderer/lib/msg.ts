@@ -25,10 +25,34 @@ export function toastText(p: ToastPayload): string {
 }
 
 /** Electron prefixes thrown IPC errors; translate the embedded key, preserving unknown errors. */
+/** 从错误里拆出 `i18n:<key>` 与主进程附带的 params（`key|{...}`）。 */
+export function errorParts(error: unknown): {
+  key: string | null
+  params: Record<string, string | number>
+} {
+  const text = error instanceof Error ? error.message : String(error)
+  const key = text.match(/i18n:([A-Za-z0-9_.]+)/)?.[1] ?? null
+  const tail = text.match(/\|(\{[\s\S]*\})\s*$/)?.[1]
+  let params: Record<string, string | number> = {}
+  if (tail) {
+    try {
+      const parsed: unknown = JSON.parse(tail)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        params = parsed as Record<string, string | number>
+      }
+    } catch {
+      /* 解析失败就当没有参数 */
+    }
+  }
+  return { key, params }
+}
+
 export function errorText(error: unknown): string {
   const text = error instanceof Error ? error.message : String(error)
-  const key = text.match(/i18n:([A-Za-z0-9_.]+)/)?.[1] ?? text.match(/\b(project\.connection[A-Za-z]+)\b/)?.[1]
-  return key && i18next.exists(key) ? String(i18next.t(key)) : text
+  const { key, params } = errorParts(error)
+  if (key && i18next.exists(key)) return String(i18next.t(key, params))
+  const legacy = text.match(/\b(project\.connection[A-Za-z]+)\b/)?.[1]
+  return legacy && i18next.exists(legacy) ? String(i18next.t(legacy)) : text
 }
 
 /** 拖放被拒的原因：code 是 err.* 键 */

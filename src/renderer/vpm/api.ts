@@ -158,6 +158,9 @@ export const vpmApi = {
   projectAdd(input: { path: string }): Promise<VpmProjectDetailDto> {
     return window.a.vpm.projectAdd(input)
   },
+  projectTrash(projectKey: string): Promise<{ ok: boolean }> {
+    return window.a.vpm.projectTrash(projectKey)
+  },
   projectRemove(projectKey: string): Promise<{ ok: boolean }> {
     return window.a.vpm.projectRemove(projectKey)
   },
