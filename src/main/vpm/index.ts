@@ -1,5 +1,5 @@
 import { CatalogService } from './catalog'
-import { VpmCacheStore } from './cache'
+import { CacheEntryStore, PackageCacheService, VpmCacheStore } from './cache'
 import { closeVpmDb, openVpmDb, type VpmDb } from './db'
 import { createElectronHttpTransport, createVpmHttpClient, type VpmHttpPort } from './http'
 import { OperationStore, RecoveryService } from './install'
@@ -40,12 +40,16 @@ export interface InitVpmOptions {
   projectLinkage?: ProjectLinkagePort
   /** 恢复扫描用：工程是否正在 Unity 中/导入中；默认未知=false。P4-F 接入。 */
   isProjectActive?: (projectPath: string) => boolean
+  /** 包缓存配额；默认 20 GiB。P8 再接到设置/用量 UI。 */
+  cacheQuotaBytes?: number
 }
 
 export interface VpmRuntime {
   store: RepoStore
   http: VpmHttpPort
   cache: VpmCacheStore
+  cacheEntries: CacheEntryStore
+  packageCache: PackageCacheService
   repos: ReposService
   catalog: CatalogService
   unity: UnityEditorService
@@ -77,6 +81,14 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       transport: createElectronHttpTransport(),
       isNetworkAllowed: options.isNetworkAllowed,
       userAgent: options.userAgent
+    })
+    const cacheEntries = new CacheEntryStore(db, options.now)
+    const packageCache = new PackageCacheService({
+      store: cache,
+      entries: cacheEntries,
+      http,
+      quotaBytes: options.cacheQuotaBytes,
+      now: options.now
     })
     const repos = new ReposService({
       store,
@@ -111,6 +123,8 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       store,
       http,
       cache,
+      cacheEntries,
+      packageCache,
       repos,
       catalog,
       unity,
