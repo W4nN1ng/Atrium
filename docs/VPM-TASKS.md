@@ -61,7 +61,7 @@
 | P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | done |
 | P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | done |
 | P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | done |
-| P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | todo |
+| P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | review |
 | P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | todo |
 | P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | todo |
 | P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | todo |
@@ -88,11 +88,11 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成，
-> 下一个执行任务是 **P4-E**（包管理 UI、批量与真 Unity E2E）；P4-C/P4-D 已经把
-> “预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入，
-> 但**还没有在真 Unity 沙盒里装过包**（P4-E 的出门条件）。
-> 开工前先读 §12 的 P1-A…P4-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
+> （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
+> 下一个可执行的卡是 **P4-F**（工程活动闸门与素材/包冲突防护）——它不依赖 P4-E 的 UI。
+> P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
+> 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -832,6 +832,41 @@ Task: P?-?
   并发淘汰在 `verifyFile` 异步窗口里留下"有行没文件"的孤儿缓存行。
 - 仍未验证：真 Unity 装包、`.atrium-tx` 是否被 Unity 忽略、Electron `net` 传输、真断电
   （步骤写在验证报告 §10）。
+
+### P4-E（2026-10-22，review：代码完成，缺真 Unity 验收）
+
+- **公开 API/契约变化**：
+  - `IpcInvoke.Vpm` 新增 `PlanApply` / `OperationStatus` / `OperationCancel` /
+    `OperationHistory` / `OperationUndo` / `ProjectCatalog`；
+    `IpcEvent` 新增 `VpmOperationStarted` / `VpmOperationProgress` / `VpmOperationDone`。
+  - `shared/vpm/dto/install.ts`：`VpmOperationDto` / `VpmOperationSummaryDto` /
+    `VpmOperationProgressEvent` / `VpmProjectCatalogDto` 等。
+  - `ApplyPlanInput` 新增 `onStarted` 与 `kind`（撤销时 `kind='undo'`）。
+  - 新增 `src/main/vpm/undoService.ts`（`UndoService.canUndo/undo`）与
+    `shared/vpm/domain/undo.ts`（`reverseRequests`，纯函数）。
+  - `VpmRuntime` 新增 `undo`。
+- **UI**：工程详情里的包管理面板 —— 已装数量/可更新数量、搜索 + 筛选（全部/已安装/可更新/有冲突）、
+  每行版本下拉（含当前标记）、最新版本、状态、移除（二次确认，说明"移到回滚仓不永久删除"）、
+  重装、勾选后底部变更条（不常驻）、"升级全部（最新）"走 `preset:'upgradeAll'`、
+  变更单复用 `PlanBody` 并带风险确认、进度/取消/结果/`needs_attention` 说明、撤销入口、最近操作。
+  受保护包显示"系统包"且没有勾选/版本/移除入口；Unity 运行中禁用并说明。
+- **撤销**：只允许"该工程最后一次 + 已提交 + manifest hash == 那次 afterHash + Unity 未运行"，
+  反向请求由 `reverseRequests` 推导，再走同一事务（`kind='undo'`）；不安全的撤销抛
+  `vpmUndoUnsafe` 并在历史里显示原因。
+- **已验证**：`npm run typecheck` exit 0；`npx electron-vite build` 通过
+  （`VpmProjectsSection` chunk 75.97 kB）；`tests/renderer` + `tests/vpm`
+  **70 files / 650 tests 全绿**；新增
+  `tests/vpm/ipc/install.spec.ts`（9）/ `tests/vpm/domain/undo.spec.ts`（4）/
+  `tests/vpm/renderer/cart.spec.ts`（9）。
+  覆盖：只传 planId、进度/开始/完成事件、提交点前取消会 abort 且提交点后返回 `tooLate`、
+  状态/历史映射与 `canUndo`、catalog 过滤受保护包、反向请求推导、变更单/筛选/受保护包不入单。
+- **未验证（本卡不能算 done 的原因）**：**没有在真 Unity 2022.3.22f1 沙盒里装过包**，
+  因此"装/升/卸后工程能打开""`.atrium-tx` 被 Unity 忽略""旧 Assets 清理后不丢引用"三条都没有证据，
+  也没有沙盒截图。步骤写在 `docs/VPM-P4E-HANDOVER.md` §5，需要开 Unity 由用户执行。
+  另外没有做 100%/125% 缩放的目视检查（需要真实窗口）。
+- **给 P4-F**：`ProjectActivityPort` 已经贯穿预检与撤销闸门；把真实实现注入
+  `initVpm({ projectActivity })` 即可，UI 侧 `detail.running` 已经能禁用入口。
+  包事务的 `importing=true` 目前只能靠预检报 `vpmProjectImporting`，P4-F 接上端口后界面可提前禁用。
 
 ---
 
