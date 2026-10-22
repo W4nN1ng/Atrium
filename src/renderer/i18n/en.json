@@ -1348,7 +1348,12 @@
       "actionsLater": "Launching Unity and package management arrive in a later stage.",
       "running": "Running",
       "notRunning": "Not running",
-      "close": "Close"
+      "close": "Close",
+      "openUnity": "Open Unity",
+      "launching": "Launching…",
+      "launched": "Launched, connecting…",
+      "alreadyRunning": "Unity already running; set as import target",
+      "editorAuto": "Auto (by project version)"
     },
     "plan": {
       "title": "Change plan (read-only)",
@@ -1477,6 +1482,7 @@
       "vpmJournalWriteFailed": "The operation record could not be written, so this operation was stopped.",
       "vpmRecoveryRequired": "The previous operation did not finish. Recover it first; do not open and save this project in Unity yet.",
       "vpmUnityNotFound": "That Unity editor path was not found.",
+      "vpmUnityLaunchFailed": "Failed to launch Unity ({{reason}}).",
       "vpmUnityInvalid": "That path is not a valid Unity editor (Unity.exe is required).",
       "vpmUnityAccessDenied": "Atrium is not allowed to read that Unity editor path.",
       "vpmUnityVersionUnknown": "Could not detect the Unity version from the path; enter it manually.",
@@ -1631,6 +1637,29 @@
         "upgrade": "Upgrade",
         "undo": "Undo"
       }
+    },
+    "create": {
+      "title": "New project",
+      "intro": "Pick a template, then a name and location. Dependencies are installed afterwards through the normal flow; Unity is not launched unless you click \"Open Unity\".",
+      "template": "Template",
+      "loading": "Loading templates…",
+      "builtin": "Built-in",
+      "favorite": "Favorite",
+      "counts": "{{deps}} dependency(ies) · {{files}} attachment(s)",
+      "setFavorite": "Favorite",
+      "unfavorite": "Unfavorite",
+      "name": "Project name",
+      "nameHint": "Used as the folder name; cannot contain < > : \" / \\ | ? * or end with a dot/space.",
+      "parent": "Location",
+      "parentHint": "The project is created at \"location/name\"; the target must not exist.",
+      "pick": "Choose…",
+      "pickParent": "Choose where to create the project",
+      "unityVersion": "Unity version",
+      "unityHint": "Only discovered editors are listed; nothing is installed automatically.",
+      "inherits": "Inherits from {{base}}",
+      "submit": "Create",
+      "creating": "Creating…",
+      "dependenciesFailed": "The project was created but dependencies did not finish; retry from the list."
     }
   }
 }

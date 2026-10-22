@@ -15,12 +15,18 @@ import type {
   VpmPlanDto,
   VpmPlanExplainDto,
   VpmPlanResolveInput,
+  VpmCreateProjectInput,
+  VpmCreateProjectResultDto,
+  VpmLaunchResultDto,
   VpmProjectCatalogDto,
   VpmProjectDetailDto,
   VpmProjectSummaryDto,
   VpmRepoDoneEvent,
+  VpmRecentLocationDto,
   VpmRepoDto,
-  VpmRepoProgressEvent
+  VpmRepoProgressEvent,
+  VpmTemplateDto,
+  VpmUnityInstallDto
 } from '../../shared/vpm/dto'
 
 /**
@@ -115,6 +121,31 @@ export const vpmApi = {
   },
   projectCatalog(projectKey: string): Promise<VpmProjectCatalogDto> {
     return window.a.vpm.projectCatalog(projectKey)
+  },
+  unityInstalls(): Promise<VpmUnityInstallDto[]> {
+    return window.a.vpm.unityInstalls()
+  },
+  projectLaunch(input: {
+    projectKey: string
+    editorPath?: string | null
+    extraArgs?: string[]
+  }): Promise<VpmLaunchResultDto> {
+    return window.a.vpm.projectLaunch(input)
+  },
+  projectLaunchArgs(input: { projectKey: string; extraArgs?: string[] }): Promise<string[]> {
+    return window.a.vpm.projectLaunchArgs(input)
+  },
+  projectCreate(input: VpmCreateProjectInput): Promise<VpmCreateProjectResultDto> {
+    return window.a.vpm.projectCreate(input)
+  },
+  templateList(): Promise<VpmTemplateDto[]> {
+    return window.a.vpm.templateList()
+  },
+  templateFavorite(input: { id: string; favorite: boolean }): Promise<VpmTemplateDto> {
+    return window.a.vpm.templateFavorite(input)
+  },
+  templateRecent(): Promise<VpmRecentLocationDto[]> {
+    return window.a.vpm.templateRecent()
   },
   pickProjectDirectory(title: string): Promise<string | null> {
     return window.a.system.pickDirectory({ title })

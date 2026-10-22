@@ -144,3 +144,13 @@ export type {
   VpmProjectCatalogDto,
   VpmUndoBlockedReason
 } from './install'
+
+export type {
+  VpmCreateIssueDto,
+  VpmCreateProjectInput,
+  VpmCreateProjectResultDto,
+  VpmLaunchResultDto,
+  VpmRecentLocationDto,
+  VpmTemplateDto,
+  VpmUnityInstallDto
+} from './unity'

@@ -7,6 +7,9 @@ import { cleanText, formatTimestamp, vpmCodeLabel } from '../../lib/view'
 import { useVpmProjects } from '../../hooks/useProjects'
 import { VpmPlanSheet } from '../plan/VpmPlanSheet'
 import { VpmPackagesPanel } from '../packages/VpmPackagesPanel'
+import { VpmCreateProjectDialog } from './VpmCreateProjectDialog'
+import { vpmApi } from '../../api'
+import type { VpmUnityInstallDto } from '../../../../shared/vpm/dto'
 
 function shortHash(value: string | null): string {
   if (!value) return ''
@@ -19,6 +22,80 @@ function stateTone(state: string): 'default' | 'accent' | 'ok' | 'warn' | 'bad' 
   if (state === 'mismatch') return 'warn'
   if (state === 'protected') return 'accent'
   return 'default'
+}
+
+/**
+ * "打开 Unity"：默认按工程版本匹配，也可以本次临时选另一个编辑器。
+ * 启动前主进程会先绑定导入目标；失败会清掉绑定并给错误。
+ */
+function LaunchControl({
+  projectKey,
+  onError
+}: {
+  projectKey: string
+  onError: (message: string | null) => void
+}): JSX.Element {
+  const { t } = useTranslation()
+  const [editors, setEditors] = useState<VpmUnityInstallDto[]>([])
+  const [editorPath, setEditorPath] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    vpmApi
+      .unityInstalls()
+      .then((list) => {
+        if (!cancelled) setEditors(list.filter((item) => !item.missing))
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const launch = async (): Promise<void> => {
+    setBusy(true)
+    setNotice(null)
+    onError(null)
+    try {
+      const result = await vpmApi.projectLaunch({
+        projectKey,
+        ...(editorPath ? { editorPath } : {})
+      })
+      setNotice(result.status === 'alreadyRunning' ? t('vpm.projects.alreadyRunning') : t('vpm.projects.launched'))
+    } catch (cause) {
+      onError(errorText(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        className="input h-7 w-[190px] text-[11px]"
+        value={editorPath}
+        onChange={(event) => setEditorPath(event.target.value)}
+        aria-label={t('vpm.projects.editor')}
+      >
+        <option value="">{t('vpm.projects.editorAuto')}</option>
+        {editors.map((item) => (
+          <option key={item.id} value={item.path}>
+            {item.version ?? item.path}
+          </option>
+        ))}
+      </select>
+      <Button variant="accent" disabled={busy} onClick={() => void launch()}>
+        {busy ? t('vpm.projects.launching') : t('vpm.projects.openUnity')}
+      </Button>
+      {notice ? (
+        <span className="text-[10px]" style={{ color: 'var(--ok)' }}>
+          {notice}
+        </span>
+      ) : null}
+    </div>
+  )
 }
 
 function DetailBody({
@@ -146,6 +223,7 @@ export function VpmProjectsSection({
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [planProjectKey, setPlanProjectKey] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
 
   useEffect(() => {
     if (!projects.notice) return
@@ -231,7 +309,10 @@ export function VpmProjectsSection({
         <Badge>{visible.length}</Badge>
         <Badge>{t('vpm.projects.readOnly')}</Badge>
         <div className="ml-auto flex gap-2">
-          <Button variant="accent" onClick={openAdd} disabled={projects.busy}>
+          <Button variant="accent" onClick={() => setCreateOpen(true)} disabled={projects.busy}>
+            {t('vpm.create.title')}
+          </Button>
+          <Button variant="ghost" onClick={openAdd} disabled={projects.busy}>
             {t('vpm.projects.add')}
           </Button>
           <Button onClick={() => void projects.refresh()} disabled={projects.loading || projects.busy}>
@@ -379,6 +460,10 @@ export function VpmProjectsSection({
               <Button variant="ghost" onClick={() => void rescan(detail.projectKey)} disabled={projects.busy}>
                 {t('vpm.projects.rescan')}
               </Button>
+              <LaunchControl
+                projectKey={detail.projectKey}
+                onError={(message) => setActionError(message)}
+              />
               <Button
                 variant="ghost"
                 onClick={() => {
@@ -458,6 +543,15 @@ export function VpmProjectsSection({
           </Modal>
         </div>
       </Modal>
+
+      <VpmCreateProjectDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(projectKey) => {
+          void projects.refresh()
+          void projects.select(projectKey)
+        }}
+      />
 
       <VpmPlanSheet
         open={planProjectKey !== null}

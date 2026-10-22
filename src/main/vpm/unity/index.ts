@@ -36,3 +36,11 @@ export type {
   ExtractUnityPackageInput,
   ExtractUnityPackageResult
 } from './unitypackage'
+
+export { UnityLaunchService, sanitizeArgs } from './launch'
+export type {
+  LaunchEditorSource,
+  LaunchUnityInput,
+  LaunchUnityResult,
+  UnityLaunchDeps
+} from './launch'

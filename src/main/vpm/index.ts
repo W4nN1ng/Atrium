@@ -22,12 +22,13 @@ import {
   type ProjectCorePort,
   type VccProjectSource
 } from './projects'
-import type { ProjectReaderPort } from '../../shared/vpm/domain/project'
+import { projectKeyOf, type ProjectReaderPort } from '../../shared/vpm/domain/project'
 import type { ProjectLinkagePort } from '../../shared/vpm/linkage'
 import {
   ProjectCreateService,
   UnityEditorService,
   UnityInstallStore,
+  UnityLaunchService,
   createTemplateAttachmentPort,
   type UnityDiscoveryOptions
 } from './unity'
@@ -78,6 +79,7 @@ export interface VpmRuntime {
   undo: UndoService
   templates: TemplateService
   create: ProjectCreateService
+  launch: UnityLaunchService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -183,6 +185,23 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
         }
       }
     })
+    const launch = new UnityLaunchService({
+      installs: () => unity.list(),
+      projectExePath: (projectPath: string) => {
+        try {
+          return projects.get(projectKeyOf(projectPath))?.ledger?.unityExePath ?? null
+        } catch {
+          return null
+        }
+      },
+      isRunning: (projectPath: string) => {
+        try {
+          return options.isProjectActive?.(projectPath) === true
+        } catch {
+          return false
+        }
+      }
+    })
     const undo = new UndoService({
       operations,
       plans,
@@ -213,6 +232,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       undo,
       templates,
       create,
+      launch,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return

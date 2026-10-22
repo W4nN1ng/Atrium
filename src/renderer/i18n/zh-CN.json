@@ -1348,7 +1348,12 @@
       "actionsLater": "启动 Unity 和包管理留到后续阶段。",
       "running": "运行中",
       "notRunning": "未运行",
-      "close": "关闭"
+      "close": "关闭",
+      "openUnity": "打开 Unity",
+      "launching": "正在启动…",
+      "launched": "已启动，正在连接…",
+      "alreadyRunning": "Unity 已在运行，已设为导入目标",
+      "editorAuto": "自动（按工程版本）"
     },
     "plan": {
       "title": "变更计划（只读）",
@@ -1477,6 +1482,7 @@
       "vpmJournalWriteFailed": "无法写入操作记录，本次操作已停止。",
       "vpmRecoveryRequired": "上次操作没有完成，请先恢复；现在不要用 Unity 打开并保存这个工程。",
       "vpmUnityNotFound": "找不到这个 Unity 编辑器路径。",
+      "vpmUnityLaunchFailed": "启动 Unity 失败（{{reason}}）。",
       "vpmUnityInvalid": "这个路径不是有效的 Unity 编辑器（需要 Unity.exe）。",
       "vpmUnityAccessDenied": "没有权限读取这个 Unity 编辑器路径。",
       "vpmUnityVersionUnknown": "无法从路径识别 Unity 版本，请手动填写版本。",
@@ -1631,6 +1637,29 @@
         "upgrade": "升级",
         "undo": "撤销"
       }
+    },
+    "create": {
+      "title": "新建工程",
+      "intro": "选一个模板，填名称和位置。依赖会在建完后按正常流程安装；不会自动打开 Unity，除非你点了\"打开 Unity\"。",
+      "template": "模板",
+      "loading": "读取模板…",
+      "builtin": "内置",
+      "favorite": "收藏",
+      "counts": "{{deps}} 个依赖 · {{files}} 个附件",
+      "setFavorite": "收藏",
+      "unfavorite": "取消收藏",
+      "name": "工程名称",
+      "nameHint": "会成为文件夹名；不能包含 < > : \" / \\ | ? * 或结尾的点/空格。",
+      "parent": "位置",
+      "parentHint": "工程会建在\"位置/名称\"下；目标必须不存在。",
+      "pick": "选择…",
+      "pickParent": "选择新工程的位置",
+      "unityVersion": "Unity 版本",
+      "unityHint": "只列出已发现的编辑器；不会自动安装。",
+      "inherits": "继承自 {{base}}",
+      "submit": "创建",
+      "creating": "正在创建…",
+      "dependenciesFailed": "工程已创建，但依赖没装完；可以在列表里重试安装。"
     }
   }
 }

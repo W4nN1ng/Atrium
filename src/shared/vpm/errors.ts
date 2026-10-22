@@ -68,6 +68,7 @@ export const VPM_ERROR_CODES = [
   'vpmUnityPackageFailed',
   'vpmCancelTooLate',
   'vpmUnityNotFound',
+  'vpmUnityLaunchFailed',
   'vpmUnityInvalid',
   'vpmUnityAccessDenied',
   'vpmUnityVersionUnknown',

@@ -244,6 +244,13 @@ describe('VPM P1 IPC', () => {
         IpcInvoke.Vpm.OperationHistory,
         IpcInvoke.Vpm.OperationUndo,
         IpcInvoke.Vpm.ProjectCatalog,
+        IpcInvoke.Vpm.UnityInstalls,
+        IpcInvoke.Vpm.ProjectLaunch,
+        IpcInvoke.Vpm.ProjectLaunchArgs,
+        IpcInvoke.Vpm.ProjectCreate,
+        IpcInvoke.Vpm.TemplateList,
+        IpcInvoke.Vpm.TemplateFavorite,
+        IpcInvoke.Vpm.TemplateRecent,
         IpcInvoke.Vpm.PlanExplain
       ].sort()
     )

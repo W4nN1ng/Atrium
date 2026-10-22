@@ -58,7 +58,13 @@ import type {
   VpmProjectCatalogDto,
   VpmProjectDetailDto,
   VpmProjectSummaryDto,
-  VpmRepoDto
+  VpmRepoDto,
+  VpmCreateProjectInput,
+  VpmCreateProjectResultDto,
+  VpmLaunchResultDto,
+  VpmRecentLocationDto,
+  VpmTemplateDto,
+  VpmUnityInstallDto
 } from './vpm/dto'
 
 export interface AppInfo {
@@ -326,6 +332,17 @@ export interface AApi {
     operationUndo(operationId: string): Promise<VpmOperationDto>
     /** 工程里每个已装包在仓库里的可选版本（用于版本下拉/最新版本）。 */
     projectCatalog(projectKey: string): Promise<VpmProjectCatalogDto>
+    unityInstalls(): Promise<VpmUnityInstallDto[]>
+    projectLaunch(input: {
+      projectKey: string
+      editorPath?: string | null
+      extraArgs?: string[]
+    }): Promise<VpmLaunchResultDto>
+    projectLaunchArgs(input: { projectKey: string; extraArgs?: string[] }): Promise<string[]>
+    projectCreate(input: VpmCreateProjectInput): Promise<VpmCreateProjectResultDto>
+    templateList(): Promise<VpmTemplateDto[]>
+    templateFavorite(input: { id: string; favorite: boolean }): Promise<VpmTemplateDto>
+    templateRecent(): Promise<VpmRecentLocationDto[]>
   }
   categories: {
     list(): Promise<CategoryConfig>

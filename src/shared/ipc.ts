@@ -241,7 +241,14 @@ export const IpcInvoke = {
     OperationCancel: 'vpm:operation-cancel',
     OperationHistory: 'vpm:operation-history',
     OperationUndo: 'vpm:operation-undo',
-    ProjectCatalog: 'vpm:project-catalog'
+    ProjectCatalog: 'vpm:project-catalog',
+    UnityInstalls: 'vpm:unity-installs',
+    ProjectLaunch: 'vpm:project-launch',
+    ProjectLaunchArgs: 'vpm:project-launch-args',
+    ProjectCreate: 'vpm:project-create',
+    TemplateList: 'vpm:template-list',
+    TemplateFavorite: 'vpm:template-favorite',
+    TemplateRecent: 'vpm:template-recent'
   }
 } as const
 

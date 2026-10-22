@@ -114,7 +114,14 @@ const api: AApi = {
     operationCancel: (operationId) => invoke('vpm:operation-cancel', operationId),
     operationHistory: (projectKey) => invoke('vpm:operation-history', projectKey),
     operationUndo: (operationId) => invoke('vpm:operation-undo', operationId),
-    projectCatalog: (projectKey) => invoke('vpm:project-catalog', projectKey)
+    projectCatalog: (projectKey) => invoke('vpm:project-catalog', projectKey),
+    unityInstalls: () => invoke('vpm:unity-installs'),
+    projectLaunch: (input) => invoke('vpm:project-launch', input),
+    projectLaunchArgs: (input) => invoke('vpm:project-launch-args', input),
+    projectCreate: (input) => invoke('vpm:project-create', input),
+    templateList: () => invoke('vpm:template-list'),
+    templateFavorite: (input) => invoke('vpm:template-favorite', input),
+    templateRecent: () => invoke('vpm:template-recent')
   },
   categories: {
     list: () => invoke('categories:list'),

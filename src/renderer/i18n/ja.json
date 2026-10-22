@@ -1348,7 +1348,12 @@
       "actionsLater": "Unity の起動とパッケージ管理は後の段階で提供します。",
       "running": "実行中",
       "notRunning": "停止中",
-      "close": "閉じる"
+      "close": "閉じる",
+      "openUnity": "Unity を開く",
+      "launching": "起動中…",
+      "launched": "起動しました。接続中…",
+      "alreadyRunning": "Unity は実行中です。インポート先に設定しました",
+      "editorAuto": "自動（プロジェクトのバージョン）"
     },
     "plan": {
       "title": "変更計画（読み取り専用）",
@@ -1477,6 +1482,7 @@
       "vpmJournalWriteFailed": "操作記録を書き込めないため、この操作を停止しました。",
       "vpmRecoveryRequired": "前回の操作が完了していません。先に復旧してください。まだ Unity でこのプロジェクトを開いて保存しないでください。",
       "vpmUnityNotFound": "Unity エディターのパスが見つかりません。",
+      "vpmUnityLaunchFailed": "Unity の起動に失敗しました（{{reason}}）。",
       "vpmUnityInvalid": "このパスは有効な Unity エディターではありません（Unity.exe が必要です）。",
       "vpmUnityAccessDenied": "この Unity エディターのパスを読み取る権限がありません。",
       "vpmUnityVersionUnknown": "パスから Unity バージョンを判定できません。手動で入力してください。",
@@ -1631,6 +1637,29 @@
         "upgrade": "更新",
         "undo": "取り消し"
       }
+    },
+    "create": {
+      "title": "新規プロジェクト",
+      "intro": "テンプレートを選び、名前と場所を入力します。依存関係は作成後に通常の流れでインストールされます（「Unity を開く」を押すまで起動しません）。",
+      "template": "テンプレート",
+      "loading": "テンプレートを読み込み中…",
+      "builtin": "組み込み",
+      "favorite": "お気に入り",
+      "counts": "依存 {{deps}} 件 · 添付 {{files}} 件",
+      "setFavorite": "お気に入り",
+      "unfavorite": "解除",
+      "name": "プロジェクト名",
+      "nameHint": "フォルダー名になります。< > : \" / \\ | ? * や末尾のドット/空白は使えません。",
+      "parent": "場所",
+      "parentHint": "「場所/名前」に作成します。既存のフォルダーは使えません。",
+      "pick": "選択…",
+      "pickParent": "プロジェクトの作成先を選択",
+      "unityVersion": "Unity バージョン",
+      "unityHint": "検出済みのエディターのみ表示します。自動インストールはしません。",
+      "inherits": "{{base}} を継承",
+      "submit": "作成",
+      "creating": "作成中…",
+      "dependenciesFailed": "プロジェクトは作成されましたが依存関係が未完了です。一覧から再試行できます。"
     }
   }
 }
