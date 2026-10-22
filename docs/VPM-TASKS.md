@@ -57,7 +57,7 @@
 | P3-B | 解析器引擎、锁定与冲突 | P3-A/P1-D | `domain/resolver.ts`、候选/队列/冲突 | B10/B11/B12/B16/B22/K5 | done |
 | P3-C | 变更计划、卸载、升级全部与解释 | P3-B | `domain/plan.ts`、mark-and-sweep、upgradeAll | B5/B7/B8/B9/B11/B27 | done |
 | P3-D | 解析测试矩阵与只读计划 UI/IPC | P3-C/P2-D | 冲突矩阵、计划预览、解释面板 | B9/B11/B27/I9 | done |
-| P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | todo |
+| P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | done |
 | P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | todo |
 | P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | todo |
 | P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | todo |
@@ -88,8 +88,8 @@
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B、P3-C、P3-D 已完成，
-> 下一个执行任务是 **P4-A**（vpm.db v3、journal 与操作状态机）；P3 计划预览全程只读。
+> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B、P3-C、P3-D、P4-A 已完成，
+> 下一个执行任务是 **P4-B**（缓存、下载、hash 与解压安全）；P4-A 只落 journal/状态机，未执行真实安装。
 > 开工前先读 §12 的 P1-A…P3-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
@@ -603,6 +603,49 @@ Task: P?-?
   真实 locked 快照长期对比。
 - **给 P4-A**：只接受 planId + manifestHashBefore 重新校验，不信任渲染层 Plan 内容；
   计划缓存过期/工程变化必须拒绝。
+
+### P4-A（2026-10-22，done）
+
+- **公开 API/契约**：vpm.db v3 新增 `vpm_operation`、`vpm_operation_step`、`vpm_operation_file`、
+  `vpm_cache_entry`；`vpm_operation` 额外存 `project_path`/`plan_hash`，同工程
+  `planned/preflight/applying` 部分唯一索引最多一条。
+  `src/main/vpm/install` 导出 `OperationStore`/`OperationJournalStore`/`RecoveryService`；
+  `VpmRuntime.operations/recovery` 可用，初始化时先 `recovery.scanAndApply()`。
+- **状态机**：`planned → preflight → applying → committed`；预检失败 `failed`；可回滚失败
+  `rolled_back`；无法判定 `needs_attention`。`needs_attention` 只能推进到
+  committed/failed/rolled_back，不能回 applying；有未恢复操作的工程拒绝新操作
+  （`vpmRecoveryRequired`），活动操作冲突 `vpmProjectBusy`。
+- **提交点**：journal 的 `manifest_written`。未写 manifest 不能 `committed`；写入后不能
+  `failed/rolled_back`。`markCommitPoint` 要求 `manifestAfterHash` 已存在。
+- **journal**：`<project>/.atrium-tx/<opId>/journal.json`，原子写（临时文件 + fsync + rename），
+  只认常规文件、拒绝 symlink/超限/结构不符；`events` 用幂等键只追加，不删历史；
+  存 opId/projectKey/kind/phase/commitPoint/planHash/fingerprint/manifest hashes/
+  steps/moves/legacyPaths/vaultPending；不存 token、请求头、文件内容。
+- **步骤**：每步开始时写 journal + `vpm_operation_step`，结束时更新；同一操作同时最多一个
+  running 步骤，seq 严格递增，重复 begin/finish 幂等；`vpm_operation_file` 只记路径/动作/
+  hash/大小/状态（`move-out/move-in/legacy/vault`）。
+- **恢复骨架**：只扫描 active 操作；工程不存在/缺 journal/journal 损坏/工程键不符 →
+  `needs_attention`；未到提交点 → `rollback` 判定，P4-A 先落 `needs_attention`，不碰文件；
+  已过提交点 → `complete` 并落 `committed`；Unity/导入活动 → `wait`，保持原状态。
+  不用猜测补 journal，不删现场。
+- **已记录错误码**：`vpmProjectBusy`、`vpmOperationNotFound`、`vpmOperationInvalid`、
+  `vpmJournalInvalid`、`vpmJournalWriteFailed`、`vpmRecoveryRequired`（三语齐全）。
+- **已验证**：`npm run typecheck`、`npm run build` 退出码 0；全量测试
+  **183 passed / 9 skipped files（192）**、**2356 passed / 19 skipped tests（2375）**；
+  定向 install/migrate/runtime/i18n 34 条全绿。新增 journal 状态/幂等/崩溃模拟/恢复判定矩阵。
+  沙盒 packaged 0.9.0 启动时真实迁移 vpm.db **v2→v3**，生成并校验
+  `vpm.db.bak-v2-20261022-080401`（user_version=2、integrity=ok），新库 user_version=3、
+  9 张 vpm 表、0 个操作；本机安装 0.9.0 启动正常，真实 `library.db` 仍为 user_version=11，
+  真实 `%APPDATA%\A\vpm` 未创建。
+- **未验证**：真实下载/解压/移目录/manifest 写入/回滚（P4-B/P4-C/P4-D）；manifest rename
+  与 journal 标记之间崩溃的恢复演练；真 Unity 下 `.atrium-tx` 是否被忽略（P4-C真机）；
+  操作历史/恢复 UI（P4-E）；长路径/占用/只读失败注入。
+- **给 P4-B**：直接使用已建好的 `vpm_cache_entry`，不要再加一个 v3 之后的迁移来抢缓存表；
+  缓存写入仍走 `cache/` 的唯一写入者，事务只消费 hash/路径。**给 P4-C**：从 P3 planId
+  缓存取计划、重新校验 manifestHashBefore；插入操作用 `OperationStore.create`，然后
+  `transition(preflight/applying)`；每步 `beginStep/finishStep`，文件用 `upsertFile`；
+  manifest rename 成功后 `markCommitPoint` 再 `committed`；失败在提交点前走 `failed/
+  rolled_back`，提交点后只能 `needs_attention`/补完。不要信任渲染层 Plan 内容。
 
 ---
 

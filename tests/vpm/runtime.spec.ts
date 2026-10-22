@@ -5,6 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { initVpm, type VpmRuntime } from '../../src/main/vpm'
 import { P, setAppPathsForTest } from '../../src/main/services/paths'
+import { projectKeyOf } from '../../src/shared/vpm/domain/project'
 
 let root: string
 let dataRoot: string
@@ -107,6 +108,43 @@ describe('VPM composition root', () => {
     })
   })
 
+  it('scans unfinished operations during startup and lands them in needs_attention', async () => {
+    const project = path.join(root, 'project')
+    fs.mkdirSync(path.join(project, 'Packages'), { recursive: true })
+    const real = fs.realpathSync.native(project)
+
+    runtime = await initVpm({
+      dataRoot,
+      userAgent: 'Atrium/test',
+      isNetworkAllowed: () => false
+    })
+    const op = runtime.operations.create({
+      projectKey: projectKeyOf(real),
+      projectPath: real,
+      kind: 'install',
+      plan: { changes: [] },
+      planHash: 'a'.repeat(64),
+      manifestBeforeHash: 'b'.repeat(64),
+      manifestAfterHash: 'c'.repeat(64)
+    })
+    runtime.operations.transition(op.id, 'preflight')
+    runtime.operations.transition(op.id, 'applying')
+    runtime.dispose()
+    runtime = null
+
+    runtime = await initVpm({
+      dataRoot,
+      userAgent: 'Atrium/test',
+      isNetworkAllowed: () => false
+    })
+    expect(runtime.operations.get(op.id)).toMatchObject({
+      status: 'needs_attention',
+      errorCode: 'vpmRecoveryRequired',
+      errorDetail: 'before_commit'
+    })
+    expect(runtime.recovery.scan()).toEqual([])
+  })
+
   it('can reopen after dispose and keeps the schema valid', async () => {
     runtime = await initVpm({
       dataRoot,
@@ -128,7 +166,7 @@ describe('VPM composition root', () => {
     fs.mkdirSync(path.dirname(P.vpmDb()), { recursive: true })
     const raw = new Database(P.vpmDb())
     try {
-      raw.pragma('user_version = 3')
+      raw.pragma('user_version = 4')
     } finally {
       raw.close()
     }
@@ -142,7 +180,7 @@ describe('VPM composition root', () => {
     ).rejects.toMatchObject({ code: 'vpmDbVersionTooNew' })
     const check = new Database(P.vpmDb(), { readonly: true })
     try {
-      expect(check.pragma('user_version', { simple: true })).toBe(3)
+      expect(check.pragma('user_version', { simple: true })).toBe(4)
     } finally {
       check.close()
     }
