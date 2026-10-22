@@ -1697,7 +1697,9 @@
       "inherits": "{{base}} を継承",
       "submit": "作成",
       "creating": "作成中…",
-      "dependenciesFailed": "プロジェクトは作成されましたが依存関係が未完了です。一覧から再試行できます。"
+      "dependenciesFailed": "プロジェクトは作成されましたが依存関係が未完了です。一覧から再試行できます。",
+      "noEditors": "Unity エディターが見つかりません。バージョンを直接入力して作成できますが、開く前に Unity Hub へ追加してください。",
+      "rescan": "再スキャン"
     },
     "maintenance": {
       "title": "バックアップとメンテナンス",

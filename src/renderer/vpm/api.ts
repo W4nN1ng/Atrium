@@ -185,6 +185,9 @@ export const vpmApi = {
   unityInstalls(): Promise<VpmUnityInstallDto[]> {
     return window.a.vpm.unityInstalls()
   },
+  unityRefresh(): Promise<VpmUnityInstallDto[]> {
+    return window.a.vpm.unityRefresh()
+  },
   projectLaunch(input: {
     projectKey: string
     editorPath?: string | null

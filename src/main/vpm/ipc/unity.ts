@@ -101,6 +101,17 @@ export function registerUnityIpc(options: UnityIpcOptions): void {
     return runtime().unity.list().map(installDto)
   })
 
+  // 重新扫描编辑器（新建工程对话框里"没探测到"时用）。
+  ipc.handle(IpcInvoke.Vpm.UnityRefresh, (): VpmUnityInstallDto[] => {
+    const current = runtime()
+    try {
+      current.unity.refresh()
+    } catch {
+      /* 扫描失败就回旧列表 */
+    }
+    return current.unity.list().map(installDto)
+  })
+
   ipc.handle(IpcInvoke.Vpm.ProjectLaunchArgs, (input: unknown): string[] => {
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
       throw new VpmError('vpmProjectInvalid', { field: 'input' })

@@ -130,6 +130,7 @@ const api: AApi = {
     operationUndo: (operationId) => invoke('vpm:operation-undo', operationId),
     projectCatalog: (projectKey) => invoke('vpm:project-catalog', projectKey),
     unityInstalls: () => invoke('vpm:unity-installs'),
+    unityRefresh: () => invoke('vpm:unity-refresh'),
     projectLaunch: (input) => invoke('vpm:project-launch', input),
     projectLaunchArgs: (input) => invoke('vpm:project-launch-args', input),
     projectCreate: (input) => invoke('vpm:project-create', input),

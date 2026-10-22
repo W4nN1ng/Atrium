@@ -1697,7 +1697,9 @@
       "inherits": "继承自 {{base}}",
       "submit": "创建",
       "creating": "正在创建…",
-      "dependenciesFailed": "工程已创建，但依赖没装完；可以在列表里重试安装。"
+      "dependenciesFailed": "工程已创建，但依赖没装完；可以在列表里重试安装。",
+      "noEditors": "没探测到已安装的 Unity 编辑器：可以直接填版本号建工程，但打开 Unity 前要先把编辑器加进 Unity Hub。",
+      "rescan": "重新扫描"
     },
     "maintenance": {
       "title": "备份与维护",

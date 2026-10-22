@@ -1697,7 +1697,9 @@
       "inherits": "Inherits from {{base}}",
       "submit": "Create",
       "creating": "Creating…",
-      "dependenciesFailed": "The project was created but dependencies did not finish; retry from the list."
+      "dependenciesFailed": "The project was created but dependencies did not finish; retry from the list.",
+      "noEditors": "No installed Unity editor was detected: you can still type a version, but add the editor to Unity Hub before opening the project.",
+      "rescan": "Rescan"
     },
     "maintenance": {
       "title": "Backup & maintenance",

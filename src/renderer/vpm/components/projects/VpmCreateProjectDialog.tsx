@@ -49,10 +49,24 @@ export function VpmCreateProjectDialog({
         if (cancelled) return
         setTemplates(list.filter((item) => item.visible && !item.broken))
         setRecent(locations)
-        setEditors(installs.filter((item) => !item.missing))
-        const first = installs.find((item) => item.version && !item.missing)
-        if (first?.version) setUnityVersion((current) => current || first.version || '')
+        const usable = installs.filter((item) => !item.missing)
+        setEditors(usable)
+        const first = usable.find((item) => item.version)
+        // 没探测到编辑器时给一个可编辑的默认值（2022.3.22f1 是唯一验证过的版本）
+        setUnityVersion((current) => current || first?.version || '2022.3.22f1')
         if (locations[0]) setParentDir((current) => current || locations[0].path)
+        if (usable.length === 0) {
+          void vpmApi
+            .unityRefresh()
+            .then((refreshed) => {
+              if (cancelled) return
+              const next = refreshed.filter((item) => !item.missing)
+              setEditors(next)
+              const discovered = next.find((item) => item.version)
+              if (discovered?.version) setUnityVersion(discovered.version)
+            })
+            .catch(() => undefined)
+        }
       })
       .catch((cause) => {
         if (!cancelled) setError(errorText(cause))
@@ -235,23 +249,51 @@ export function VpmCreateProjectDialog({
         </Field>
 
         <Field label={t('vpm.create.unityVersion')} hint={t('vpm.create.unityHint')}>
-          <select
-            className="input"
-            value={unityVersion}
-            onChange={(event) => setUnityVersion(event.target.value)}
-          >
-            {unityVersion && !editors.some((item) => item.version === unityVersion) ? (
-              <option value={unityVersion}>{unityVersion}</option>
-            ) : null}
-            {editors
-              .filter((item) => item.version)
-              .map((item) => (
-                <option key={item.id} value={item.version ?? ''}>
-                  {item.version}
-                  {item.path ? ` · ${cleanText(item.path, 60)}` : ''}
-                </option>
-              ))}
-          </select>
+          {editors.some((item) => item.version) ? (
+            <select
+              className="input"
+              value={unityVersion}
+              onChange={(event) => setUnityVersion(event.target.value)}
+            >
+              {unityVersion && !editors.some((item) => item.version === unityVersion) ? (
+                <option value={unityVersion}>{unityVersion}</option>
+              ) : null}
+              {editors
+                .filter((item) => item.version)
+                .map((item) => (
+                  <option key={item.id} value={item.version ?? ''}>
+                    {item.version}
+                    {item.path ? ` · ${cleanText(item.path, 60)}` : ''}
+                  </option>
+                ))}
+            </select>
+          ) : (
+            <div className="space-y-1">
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1 font-mono"
+                  value={unityVersion}
+                  placeholder="2022.3.22f1"
+                  onChange={(event) => setUnityVersion(event.target.value)}
+                />
+                <Button
+                  variant="ghost"
+                  disabled={loading}
+                  onClick={() => {
+                    void vpmApi
+                      .unityRefresh()
+                      .then((list) => setEditors(list.filter((item) => !item.missing)))
+                      .catch(() => undefined)
+                  }}
+                >
+                  {t('vpm.create.rescan')}
+                </Button>
+              </div>
+              <p className="text-[10px]" style={{ color: 'var(--warn)' }}>
+                {t('vpm.create.noEditors')}
+              </p>
+            </div>
+          )}
         </Field>
 
         {selected?.base ? (

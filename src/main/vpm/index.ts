@@ -182,6 +182,14 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
         }
       }
     })
+    // 启动时扫一次 Unity 编辑器：新建工程/打开 Unity/换版本都依赖这张表。
+    // 发现是只读的，失败不影响启动。
+    try {
+      unity.refresh()
+    } catch {
+      /* 发现失败：表里保留旧数据，UI 会显示"没探测到" */
+    }
+
     const templates = new TemplateService({
       db,
       dataRoot: options.dataRoot,

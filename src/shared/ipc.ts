@@ -257,6 +257,7 @@ export const IpcInvoke = {
     OperationUndo: 'vpm:operation-undo',
     ProjectCatalog: 'vpm:project-catalog',
     UnityInstalls: 'vpm:unity-installs',
+    UnityRefresh: 'vpm:unity-refresh',
     ProjectLaunch: 'vpm:project-launch',
     ProjectLaunchArgs: 'vpm:project-launch-args',
     ProjectCreate: 'vpm:project-create',

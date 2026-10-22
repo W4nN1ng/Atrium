@@ -365,6 +365,7 @@ export interface AApi {
     /** 工程里每个已装包在仓库里的可选版本（用于版本下拉/最新版本）。 */
     projectCatalog(projectKey: string): Promise<VpmProjectCatalogDto>
     unityInstalls(): Promise<VpmUnityInstallDto[]>
+    unityRefresh(): Promise<VpmUnityInstallDto[]>
     projectLaunch(input: {
       projectKey: string
       editorPath?: string | null

@@ -259,6 +259,7 @@ describe('VPM P1 IPC', () => {
         IpcInvoke.Vpm.OperationUndo,
         IpcInvoke.Vpm.ProjectCatalog,
         IpcInvoke.Vpm.UnityInstalls,
+        IpcInvoke.Vpm.UnityRefresh,
         IpcInvoke.Vpm.ProjectLaunch,
         IpcInvoke.Vpm.ProjectLaunchArgs,
         IpcInvoke.Vpm.ProjectCreate,
