@@ -420,16 +420,20 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
                       onClick={() => void move(repo.id, -1)}
                       disabled={props.busy || props.repos[0]?.id === repo.id}
                       title={t('vpm.repos.moveUp')}
+                      aria-label={t('vpm.repos.moveUp')}
+                      className="px-2 text-[14px] font-bold leading-none"
                     >
-                      ↑
+                      ▲
                     </Button>
                     <Button
                       variant="ghost"
                       onClick={() => void move(repo.id, 1)}
                       disabled={props.busy || props.repos[props.repos.length - 1]?.id === repo.id}
                       title={t('vpm.repos.moveDown')}
+                      aria-label={t('vpm.repos.moveDown')}
+                      className="px-2 text-[14px] font-bold leading-none"
                     >
-                      ↓
+                      ▼
                     </Button>
                     <Button
                       variant="ghost"
@@ -484,7 +488,7 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
             <p className="faint mt-1 text-[11px] leading-relaxed">{t('vpm.catalog.intro')}</p>
           </div>
           <Button
-            variant="accent"
+            variant="ghost"
             onClick={props.onBrowse}
             disabled={!props.repos.length || props.busy}
           >

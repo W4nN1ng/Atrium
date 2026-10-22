@@ -1128,8 +1128,10 @@ Task: P?-?
   纯文本导入跳过坏行与重复、两种格式解析）。
 - **UI（2026-10-22 补齐）**：仓库卡片上有启用开关、↑/↓ 排序、编辑（名称/URL）、请求头、
   测试连接、刷新；工具条上有导入/导出对话框。全部是次要按钮，没有新增实心主按钮。
-- **未验证**：没有目视（本工作站不开窗口）；排序对"同版本多源优先级"只依赖既有
-  `queryCatalog` 排序，没有专门断言；URL 变更后的真实重抓（联网）没跑。
+- **目视（2026-10-22）**：已用离屏预览截图检查（`docs/verify/vpm-ui-2026-10-22.png`），
+  修掉 3 个问题：失败行显示成半句话、↑/↓ 太细看不清、同屏两个实心主按钮。
+- **未验证**：排序对"同版本多源优先级"只依赖既有 `queryCatalog` 排序，没有专门断言；
+  URL 变更后的真实重抓（联网）没跑（本工作环境拦截了 `packages.vrchat.com`）。
 
 ### P7-B（2026-10-22，review：SecretStore + HTTP 接线完成，IPC/UI/测试连接未做）
 
@@ -1149,8 +1151,10 @@ Task: P?-?
 - **IPC/UI（2026-10-22 补齐）**：`repo-headers` / `repo-headers-set` / `repo-headers-clear` /
   `repo-test`；仓库卡片上的"请求头"对话框（只回显头名、值必须重填）与"测试连接"按钮。
   `initVpm` 新增 `secretStorage`，gate 注入 Electron `safeStorage`。
-- **未验证**：真实 Electron safeStorage 没跑过（只用假实现）；真实跨源重定向带头的联网测试没做；
-  没有目视。
+- **真机抽查（2026-10-22）**：真实 Electron `safeStorage` 通过（`available:true`、
+  落盘无明文、读回一致、清除生效）；真实 HTTP 客户端经代理跑到 `200` + 自定义头 + 404 映射；
+  `packages.vrchat.com` 被本工作环境网络策略拦截（curl 同样握手失败），需用户本机验证。
+  详见 `docs/VERIFY-2026-10-22-VPM-UI.md`。
 
 ---
 

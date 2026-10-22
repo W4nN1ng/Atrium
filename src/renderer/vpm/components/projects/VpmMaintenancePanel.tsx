@@ -7,7 +7,7 @@ import type {
 } from '../../../../shared/vpm/dto'
 import { Badge, Button, Field, Modal } from '../../../components/ui'
 import { errorText } from '../../../lib/msg'
-import { cleanText, formatTimestamp, vpmCodeLabel } from '../../lib/view'
+import { cleanText, formatTimestamp } from '../../lib/view'
 import { vpmApi } from '../../api'
 
 /**
@@ -234,7 +234,9 @@ export function VpmMaintenancePanel({
               </Badge>
               <span className="faint text-[10px]">{formatTimestamp(item.createdAt)}</span>
               <span className="faint text-[10px]">{formatBytes(item.size ?? 0)}</span>
-              {item.errorCode ? <span className="faint text-[10px]">{vpmCodeLabel(item.errorCode)}</span> : null}
+              {item.errorCode ? (
+                <span className="faint font-mono text-[10px]">{item.errorCode}</span>
+              ) : null}
               <span className="ml-auto">
                 <Button variant="ghost" disabled={item.status !== 'ok'} onClick={() => void reveal(item.id)}>
                   {t('vpm.maintenance.reveal')}
