@@ -107,7 +107,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P6-D | 旧式迁移、备份/迁移 UI 与真机 | P2-B/P6-C | `backup/migrate`、迁移向导、UI | B18/E8/K4/K5 | todo |
 | P7-A | 仓库治理：编辑/启停/排序/导入导出 | P1-E | 仓库编辑、拖拽排序、lists | C3/C4/C5/C6/C13 | todo |
 | P7-B | 请求头、密钥存储与测试连接 | P7-A/P4-B | `SecretStore`、safeStorage、脱敏 | C7/C15 | todo |
-| P7-C | 本地用户包目录 | P7-B/P4-C | `catalog/local` 扫描已完成，信任表/UI 待做 | C11 | in_progress |
+| P7-C | 本地用户包目录 | P7-B/P4-C | `catalog/local`、信任表 v6、面板、本地安装 | C11 | done |
 | P7-D | VCC 只读导入与模板导入导出 | P2-C/P5-A | `interop/vcc`、settings 读取、模板互操作 | C12/F2/F3/F4/F5/F8/A9/A10 | todo |
 | P7-E | 深链、单实例与互操作 UI | P7-C/P7-D | `atrium://`、`vcc://` 确认、集成 UI | F7/H4/C3–C7 | todo |
 | P8-A | UI 收口、按钮纪律与组件边界 | P4-E/P5-D/P6-D/P7-E | 逐屏检查、组件拆分、文案 | I1/I2/A20/B24 | todo |
@@ -1188,6 +1188,30 @@ Task: P?-?
   落盘无明文、读回一致、清除生效）；真实 HTTP 客户端经代理跑到 `200` + 自定义头 + 404 映射；
   `packages.vrchat.com` 被本工作环境网络策略拦截（curl 同样握手失败），需用户本机验证。
   详见 `docs/VERIFY-2026-10-22-VPM-UI.md`。
+
+### P7-C（2026-10-23，done）
+
+- **公开 API/契约变化**：
+  - `catalog/local.ts`：`readLocalPackage` / `scanLocalPackages` / `diffLocalPackages` /
+    `LocalPackageStore`（`list/get/add/remove/scanAll`）。
+  - `catalog/localInstall.ts`：`LocalInstallService.install/plan`。
+  - **vpm.db v6**：`vpm_local_root(id, path UNIQUE, label, created_at, last_scan_at, package_count)`。
+  - IPC：`local-roots / local-add / local-remove / local-scan / local-install`。
+  - 新错误码 `vpmLocalRootInvalid`（三语）。
+- **扫描规则**：目录本身有 `package.json` 当单包，否则扫**下一层**（不递归）；
+  校验包名（`com.foo.bar`）与版本；`unity` 写错只丢字段不拒包；变化按 `package.json` 的 sha256。
+- **信任**：只有用户显式添加的目录才扫；拒绝不存在/符号链接/无包/重复路径；
+  移除只取消信任、**不动文件**。
+- **安装**：独立于 zip 事务（事务假设"下载 zip + sha256"，本地包两者都没有）——
+  校验 → 取最高版本 → 目标不能存在 → 维护租约 → 拷到 `.atrium-local-<id>` → rename
+  → 最后写 `vpm-manifest.json`（提交点），写失败撤销拷贝。Unity 运行中拒绝。
+- **UI**：设置页「本地包目录」面板（添加/移除/包数/包列表）；包面板「从本地装包」弹窗。
+- **刻意没做**：**不把本地包注入远程目录/解析器**。那会让它们进入 zip 下载管线
+  （`url`/`sha256` 为 null），把两条失败路径搅在一起；本地包的安装入口就是
+  「从本地装包」。包浏览里看不到本地包，这是已知取舍。
+- **已验证**：typecheck 0；build 过；`local.spec` 7 条 + `local-store.spec` 4 条 +
+  `local-install.spec` 5 条；通道清单 18 条。
+- **未验证**：真机装一个本地包进真实工程（需要 Unity 关闭 + 真实包目录）。
 
 ---
 
