@@ -1789,6 +1789,15 @@
       "retry": "Retry",
       "more": "More backups ({{count}})",
       "less": "Show less"
+    },
+    "local": {
+      "title": "Local package folders",
+      "add": "Add folder",
+      "pick": "Choose a local package folder",
+      "hint": "Only folders you add are scanned; removing one just forgets it, files stay.",
+      "empty": "No local package folders yet.",
+      "count": "{{count}} package(s)",
+      "remove": "Remove"
     }
   }
 }
