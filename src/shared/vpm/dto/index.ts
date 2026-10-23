@@ -146,6 +146,16 @@ export type {
 } from './install'
 
 export type {
+  VpmPreferencesDto,
+  VpmPreferencesPatch,
+  VpmUpdateAssetDto,
+  VpmUpdateCheckDto,
+  VpmUpdateDownloadDto,
+  VpmUpdateDownloadStatus,
+  VpmUpdateStatus
+} from './settings'
+
+export type {
   VpmCreateIssueDto,
   VpmCreateProjectInput,
   VpmCreateProjectResultDto,

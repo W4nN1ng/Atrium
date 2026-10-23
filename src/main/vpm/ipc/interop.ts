@@ -5,8 +5,7 @@ import { IpcInvoke } from '../../../shared/ipc'
 import { VpmError } from '../../../shared/vpm/errors'
 import type { IpcApi } from '../../ipc/types'
 import type { VpmRuntime } from '../index'
-import { exportTemplate, parseTemplateFile } from '../interop/templateIO'
-import { readVccSettings, type VccSettings } from '../interop/vcc'
+import { exportTemplate, parseTemplateFile, readVccSettings, type VccSettings } from '../interop'
 
 export interface InteropIpcOptions {
   ipc: IpcApi

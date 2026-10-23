@@ -71,6 +71,8 @@ function legacyFrom(snapshot: ProjectSnapshot): string[] {
 export interface PlanServiceDeps {
   projects: ProjectsService
   catalog: CatalogService
+  /** P8-C：解析请求没指定时，预发布偏好取这里的默认值。 */
+  defaultAllowPrerelease?: () => boolean
   now?: () => number
   ttlMs?: number
 }
@@ -119,7 +121,8 @@ export class PlanService {
       requests,
       preset: input.preset,
       options: {
-        allowPrerelease: input.allowPrerelease === true,
+        // P8-C：请求里没显式给 allowPrerelease 时，跟随设置里的全局偏好。
+        allowPrerelease: input.allowPrerelease ?? this.deps.defaultAllowPrerelease?.() ?? false,
         protectedPackages: [PROTECTED_PACKAGE],
         legacyPackages: legacyFrom(snapshot)
       },

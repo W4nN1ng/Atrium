@@ -57,6 +57,35 @@ describe('P8-A component boundaries', () => {
     expect(accents, '项目页主屏只能有一个实心按钮（新建项目）').toHaveLength(1)
   })
 
+  /**
+   * P8-C：更新这条链路必须"每一步都由用户点"。
+   *
+   * 能在代码里查的边界：
+   * - 组件里**没有定时器**（`setInterval` / `setTimeout(... check ...)`）自动去查更新；
+   * - 下载和安装是两次独立调用，安装前过一次 Modal 确认；
+   * - 运行安装包只走 `vpmApi.updateInstall(path)`，不直接 spawn/exec。
+   */
+  it('the update panel never installs by itself', () => {
+    const source = read(path.join(ROOT, 'src/renderer/vpm/components/settings/VpmUpdatePanel.tsx'))
+    expect(source).not.toMatch(/setInterval/)
+    expect(source).not.toMatch(/child_process|execFile|spawn\(/)
+    expect(source).toContain('vpmApi.updateDownload')
+    expect(source).toContain('vpmApi.updateInstall')
+    // 安装前必须有确认框
+    const confirm = source.indexOf('installConfirmTitle')
+    expect(confirm).toBeGreaterThan(0)
+    expect(source.slice(0, confirm)).toContain('<Modal')
+  })
+
+  it('the preferences panel saves through vpmApi.settingsPatch only', () => {
+    const source = read(path.join(ROOT, 'src/renderer/vpm/components/settings/VpmPreferencesPanel.tsx'))
+    expect(source).toContain('vpmApi.settingsPatch')
+    // 开关必须真的落盘：只 setState 不 patch 就是"看着存了，重启又回去"
+    const switchCount = (source.match(/<Switch/g) ?? []).length
+    expect(switchCount).toBeGreaterThan(0)
+    expect((source.match(/void patch\(/g) ?? []).length).toBeGreaterThanOrEqual(switchCount)
+  })
+
   it('every destructive dialog asks for confirmation through a Modal', () => {
     for (const name of [
       'src/renderer/vpm/components/projects/VpmProjectsSection.tsx',

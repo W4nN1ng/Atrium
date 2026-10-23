@@ -280,7 +280,14 @@ export const IpcInvoke = {
     LocalInstall: 'vpm:local-install',
     TemplateList: 'vpm:template-list',
     TemplateFavorite: 'vpm:template-favorite',
-    TemplateRecent: 'vpm:template-recent'
+    TemplateRecent: 'vpm:template-recent',
+    /** P8-C：偏好设置（预发布/隐藏包/配额/Unity 参数/更新检查开关）。 */
+    SettingsGet: 'vpm:settings-get',
+    SettingsPatch: 'vpm:settings-patch',
+    /** P8-C：手动更新检查 → 下载 → 运行安装包（每一步都要用户点）。 */
+    UpdateCheck: 'vpm:update-check',
+    UpdateDownload: 'vpm:update-download',
+    UpdateInstall: 'vpm:update-install'
   }
 } as const
 

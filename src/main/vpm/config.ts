@@ -203,8 +203,57 @@ export function writeVpmSettings(settings: VpmSettingsFile): void {
 }
 
 /** 读联网同意记录时间；没记录/没设置文件时返回 null。 */
+/**
+ * P8-C：局部更新设置。只接受白名单字段，其余忽略；
+ * 写之前用 `isValidVpmSettings` 整体校验一次（坏了就不写）。
+ */
+export function patchVpmSettings(patch: {
+  allowPrerelease?: boolean
+  hiddenPackageIds?: string[]
+  cacheQuotaGb?: number
+  vaultQuotaGb?: number
+  defaultUnityArgs?: string
+  checkUpdates?: boolean
+}): VpmSettingsFile {
+  const read = readVpmSettings()
+  const next: VpmSettingsFile = {
+    ...read.settings,
+    ...(patch.allowPrerelease === undefined ? {} : { allowPrerelease: patch.allowPrerelease }),
+    ...(patch.hiddenPackageIds === undefined
+      ? {}
+      : { hiddenPackageIds: [...patch.hiddenPackageIds] }),
+    ...(patch.cacheQuotaGb === undefined ? {} : { cacheQuotaGb: patch.cacheQuotaGb }),
+    ...(patch.vaultQuotaGb === undefined ? {} : { vaultQuotaGb: patch.vaultQuotaGb }),
+    ...(patch.defaultUnityArgs === undefined ? {} : { defaultUnityArgs: patch.defaultUnityArgs }),
+    ...(patch.checkUpdates === undefined ? {} : { checkUpdates: patch.checkUpdates })
+  }
+  if (!isValidVpmSettings(next)) throw new VpmError('vpmInternal', { field: 'settings' })
+  writeVpmSettings(next)
+  return next
+}
+
 export function readNetworkConsent(): string | null {
   return readVpmSettings().settings.networkConsentAt
+}
+
+/**
+ * P8-C：把设置里的"默认 Unity 启动参数"切成数组。
+ *
+ * 按空白切（用户习惯一行一个或空格分隔都行），丢掉空串，
+ * 单条超过 512 字符的整条丢弃 —— 不给启动参数留注入空间。
+ */
+export function parseUnityArgs(text: string): string[] {
+  if (typeof text !== 'string' || !text) return []
+  const out: string[] = []
+  for (const piece of text.split(/\s+/)) {
+    const item = piece.trim()
+    if (!item) continue
+    if (item.length > 512) continue
+    if (item.includes('\0')) continue
+    out.push(item)
+    if (out.length >= 32) break
+  }
+  return out
 }
 
 /** 记录同意时间并开启联网；保留其余设置。 */

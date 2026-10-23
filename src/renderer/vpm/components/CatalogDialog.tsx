@@ -83,6 +83,7 @@ export function CatalogDialog({
   const [detailLoading, setDetailLoading] = useState(false)
   const [pendingLink, setPendingLink] = useState<string | null>(null)
   const [linkError, setLinkError] = useState<string | null>(null)
+  const [hiding, setHiding] = useState(false)
   const seq = useRef(0)
   const detailSeq = useRef(0)
   const wasNetworkAllowed = useRef(networkAllowed)
@@ -145,6 +146,33 @@ export function CatalogDialog({
       if (id === detailSeq.current) setError(errorText(cause))
     } finally {
       if (id === detailSeq.current) setDetailLoading(false)
+    }
+  }
+
+  /**
+   * P8-C：把当前包加进"隐藏列表"。
+   *
+   * 隐藏是用户偏好（存在 VPM 设置里），不是仓库里的 hidden 标记：
+   * 只影响这个用户看到的列表，不影响解析和已装包。
+   */
+  const hidePackage = async (name: string): Promise<void> => {
+    setHiding(true)
+    setError(null)
+    try {
+      const prefs = await vpmApi.settingsGet()
+      if (!prefs.hiddenPackageIds.includes(name)) {
+        await vpmApi.settingsPatch({
+          hiddenPackageIds: [...prefs.hiddenPackageIds, name]
+        })
+      }
+      detailSeq.current++
+      setSelected(null)
+      setDetail(null)
+      await load(true, query, 0)
+    } catch (cause) {
+      setError(errorText(cause))
+    } finally {
+      setHiding(false)
     }
   }
 
@@ -304,6 +332,15 @@ export function CatalogDialog({
                   </div>
                   <div className="faint mt-1 text-[10px]">
                     {t('vpm.catalog.sources')}: {detail.sources.map((source) => source.repoName).join(' · ')}
+                  </div>
+                  <div className="mt-2">
+                    <Button
+                      variant="ghost"
+                      disabled={hiding}
+                      onClick={() => void hidePackage(detail.name)}
+                    >
+                      {t('vpm.catalog.hide')}
+                    </Button>
                   </div>
                 </div>
 

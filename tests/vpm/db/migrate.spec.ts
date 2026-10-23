@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { closeVpmDb, openVpmDb, type VpmDb } from '../../../src/main/vpm/db'
-import { VPM_MIGRATIONS } from '../../../src/main/vpm/db/migrations'
+import { VPM_MIGRATIONS, VPM_REQUIRED_TABLES, VPM_SCHEMA_VERSION } from '../../../src/main/vpm/db/migrations'
 import { P, setAppPathsForTest } from '../../../src/main/services/paths'
 
 let root: string
@@ -42,6 +42,22 @@ function tableNames(target: Database.Database): string[] {
     .all() as Array<{ name: string }>
   return rows.map((row) => row.name)
 }
+
+describe('schema 常量', () => {
+  /**
+   * 这两条是"漂移报警"：`VPM_SCHEMA_VERSION` 曾经硬编码 3、迁移表已经到 6，
+   * `VPM_REQUIRED_TABLES` 也漏过 6 —— 两个 bug 都是靠别的测试红才发现，
+   * 而且都表现成"断言在测别的东西"。以后加 v7 忘了同步，这里当场红。
+   */
+  it('VPM_SCHEMA_VERSION 等于迁移表最后一版', () => {
+    expect(VPM_SCHEMA_VERSION).toBe(VPM_MIGRATIONS[VPM_MIGRATIONS.length - 1].version)
+  })
+
+  it('每个迁移版本都有对应的必需表清单', () => {
+    const missing = VPM_MIGRATIONS.map((m) => m.version).filter((v) => !VPM_REQUIRED_TABLES[v])
+    expect(missing, `这些版本没有 VPM_REQUIRED_TABLES：${missing.join(', ')}`).toEqual([])
+  })
+})
 
 describe('vpm.db connection and migrations', () => {
   it('creates schema v6 in the VPM state directory with WAL and foreign keys', async () => {

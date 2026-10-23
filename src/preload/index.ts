@@ -153,7 +153,12 @@ const api: AApi = {
     templateExport: (input) => invoke('vpm:template-export', input),
     templateList: () => invoke('vpm:template-list'),
     templateFavorite: (input) => invoke('vpm:template-favorite', input),
-    templateRecent: () => invoke('vpm:template-recent')
+    templateRecent: () => invoke('vpm:template-recent'),
+    settingsGet: () => invoke('vpm:settings-get'),
+    settingsPatch: (patch) => invoke('vpm:settings-patch', patch),
+    updateCheck: (input) => invoke('vpm:update-check', input ?? {}),
+    updateDownload: () => invoke('vpm:update-download'),
+    updateInstall: (input) => invoke('vpm:update-install', input)
   },
   categories: {
     list: () => invoke('categories:list'),

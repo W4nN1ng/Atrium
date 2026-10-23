@@ -33,7 +33,11 @@ import type {
   VpmVersionChangeResultDto,
   VpmRepoProgressEvent,
   VpmTemplateDto,
-  VpmUnityInstallDto
+  VpmUnityInstallDto,
+  VpmPreferencesDto,
+  VpmPreferencesPatch,
+  VpmUpdateCheckDto,
+  VpmUpdateDownloadDto
 } from '../../shared/vpm/dto'
 
 /**
@@ -300,6 +304,22 @@ export const vpmApi = {
   },
   templateRecent(): Promise<VpmRecentLocationDto[]> {
     return window.a.vpm.templateRecent()
+  },
+  /** P8-C：偏好设置。写回整份 DTO，界面直接 setState 即可。 */
+  settingsGet(): Promise<VpmPreferencesDto> {
+    return window.a.vpm.settingsGet()
+  },
+  settingsPatch(patch: VpmPreferencesPatch): Promise<VpmPreferencesDto> {
+    return window.a.vpm.settingsPatch(patch)
+  },
+  updateCheck(force = false): Promise<VpmUpdateCheckDto> {
+    return window.a.vpm.updateCheck({ force })
+  },
+  updateDownload(): Promise<VpmUpdateDownloadDto> {
+    return window.a.vpm.updateDownload()
+  },
+  updateInstall(path: string): Promise<{ ok: boolean; errorCode: string | null }> {
+    return window.a.vpm.updateInstall({ path })
   },
   pickProjectDirectory(title: string): Promise<string | null> {
     return window.a.system.pickDirectory({ title })

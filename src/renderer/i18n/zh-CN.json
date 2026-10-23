@@ -1293,7 +1293,8 @@
       "changelog": "更新日志",
       "documentation": "文档",
       "installLater": "安装留到下一阶段；当前版本只读。",
-      "close": "关闭"
+      "close": "关闭",
+      "hide": "隐藏此包"
     },
     "operation": {
       "refreshing": "正在刷新 {{done}}/{{total}}",
@@ -1594,7 +1595,10 @@
       "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。",
       "vpmUnityAlreadyRunning": "已经有工程「{{name}}」在 Unity 里运行。请先关闭它，再打开这个工程。",
       "vpmLocalRootInvalid": "这个本地包目录不能用（{{reason}}）。",
-      "vpmInteropNotFound": "没找到可导入的设置文件（VCC / ALCOM）。"
+      "vpmInteropNotFound": "没找到可导入的设置文件（VCC / ALCOM）。",
+      "vpmUpdateCheckFailed": "检查更新失败",
+      "vpmUpdateHashMismatch": "安装包校验失败",
+      "vpmUpdateInstallFailed": "无法启动安装包"
     },
     "packages": {
       "title": "已安装的包",
@@ -1838,6 +1842,49 @@
       "usage": "缓存 {{cache}} · 回滚仓 {{vault}} · 备份 {{backups}}",
       "exported": "诊断包已导出：{{path}}",
       "cleared": "已清空缓存（{{size}}）"
+    },
+    "prefs": {
+      "title": "偏好设置",
+      "saved": "已保存",
+      "prerelease": "允许预发布版本",
+      "prereleaseHint": "关掉后浏览列表不显示 -beta / -alpha 这类版本；已装的包不受影响。",
+      "hidden": "隐藏的包",
+      "hiddenCount": "已隐藏 {{count}} 个",
+      "hiddenEmpty": "没有隐藏的包",
+      "manageHidden": "管理",
+      "hiddenAdd": "输入包名，例如 com.example.tool",
+      "add": "添加",
+      "unhide": "取消隐藏",
+      "cacheQuota": "包缓存上限（GB）",
+      "vaultQuota": "快照上限（GB）",
+      "quotaHint": "1–1024 GB；超了不会自动删，只会提示你清理。",
+      "checkUpdates": "打开更新页时自动检查",
+      "checkUpdatesHint": "只检查，不下载、不安装。",
+      "unityArgs": "默认 Unity 启动参数",
+      "unityArgsHint": "工程没单独设置时用这里的参数，空格分隔。"
+    },
+    "update": {
+      "title": "更新",
+      "hint": "手动检查 GitHub 上的最新版本。",
+      "current": "当前版本 {{version}}",
+      "check": "检查更新",
+      "checking": "检查中…",
+      "upToDate": "已是最新版本",
+      "available": "有新版本 {{version}}",
+      "download": "下载",
+      "downloading": "下载中…",
+      "downloaded": "已下载并通过校验，可以运行安装包。",
+      "cancelled": "已取消下载。",
+      "runInstaller": "运行安装包",
+      "openRelease": "打开 Release 页面",
+      "noHash": "发布说明里没有 SHA-256",
+      "hashMismatch": "校验失败：下载到的文件与发布说明里的 SHA-256 不一致，已删除。",
+      "busy": "有包操作正在进行，稍后再试。",
+      "networkOff": "联网已关闭，检查更新不会联网。",
+      "installConfirmTitle": "运行安装包？",
+      "installConfirmBody": "将启动 {{name}}。请先结束正在进行的包操作；安装完成后重新打开 Atrium。",
+      "installStarted": "已启动安装包。",
+      "installFailed": "无法启动安装包。"
     }
   }
 }

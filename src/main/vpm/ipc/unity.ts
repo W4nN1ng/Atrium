@@ -17,6 +17,7 @@ import type {
 import { VpmError } from '../../../shared/vpm/errors'
 import type { IpcApi } from '../../ipc/types'
 import type { VpmRuntime } from '../index'
+import { parseUnityArgs, readVpmSettings } from '../config'
 import type { TemplateListEntry } from '../templates'
 
 export interface UnityIpcOptions {
@@ -43,7 +44,31 @@ function optionalPath(value: unknown, field: string): string | null {
 function args(value: unknown): string[] {
   if (value === undefined || value === null) return []
   if (!Array.isArray(value)) throw new VpmError('vpmUnityLaunchFailed', { reason: 'args' })
-  return value as string[]
+  const out: string[] = []
+  for (const item of value) {
+    if (typeof item !== 'string') throw new VpmError('vpmUnityLaunchFailed', { reason: 'args' })
+    // 换行/空字节会把一条参数拆成两条，直接拒绝。
+    if (!item || item.length > 512 || /[\0\r\n]/.test(item)) {
+      throw new VpmError('vpmUnityLaunchFailed', { reason: 'args' })
+    }
+    out.push(item)
+    if (out.length >= 32) break
+  }
+  return out
+}
+
+/**
+ * 实际传给 Unity 的参数：工程显式给了就用工程的（"每工程可覆盖"），
+ * 否则用设置里的默认参数。
+ */
+function effectiveArgs(value: unknown): string[] {
+  const explicit = args(value)
+  if (explicit.length > 0) return explicit
+  try {
+    return parseUnityArgs(readVpmSettings().settings.defaultUnityArgs)
+  } catch {
+    return []
+  }
 }
 
 function templateDto(entry: TemplateListEntry): VpmTemplateDto {
@@ -124,7 +149,7 @@ export function registerUnityIpc(options: UnityIpcOptions): void {
     const current = runtime()
     const item = current.projects.get(projectKey)
     if (!item) throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
-    return current.launch.buildArgs(item.path, args(raw.extraArgs))
+    return current.launch.buildArgs(item.path, effectiveArgs(raw.extraArgs))
   })
 
   ipc.handle(IpcInvoke.Vpm.ProjectLaunch, async (input: unknown): Promise<VpmLaunchResultDto> => {
@@ -140,7 +165,7 @@ export function registerUnityIpc(options: UnityIpcOptions): void {
     const result = await current.launch.launch({
       projectPath: item.path,
       editorPath: optionalPath(raw.editorPath, 'editorPath'),
-      extraArgs: args(raw.extraArgs),
+      extraArgs: effectiveArgs(raw.extraArgs),
       bindTarget: () => {
         if (coreId) current.linkage?.bindLaunchTarget(coreId)
       },

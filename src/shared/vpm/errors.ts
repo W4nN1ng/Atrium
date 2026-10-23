@@ -108,6 +108,9 @@ export const VPM_ERROR_CODES = [
   'vpmArchiveBomb',
   'vpmArchivePackageInvalid',
   'vpmArchiveWriteFailed',
+  'vpmUpdateCheckFailed',
+  'vpmUpdateHashMismatch',
+  'vpmUpdateInstallFailed',
   'vpmRuntimeNotReady',
   'vpmInternal'
 ] as const

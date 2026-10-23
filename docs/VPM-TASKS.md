@@ -101,18 +101,18 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | done |
 | P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10/K1 | review |
 | P5-E | 启动即绑定目标与双击素材真机验收 | P5-D/P4-F/P2-E | 启动绑定、双击导入真机、多实例回归 | K1/K2/K3/K6 | todo |
-| P6-A | 文件收集器、排除规则与取消 | P2-B | `backup/collector`、排除表、进度/取消 | E1/E3/E4 | todo |
-| P6-B | ZIP 备份、记录与从备份新建 | P6-A | `backup/service`、备份记录、恢复、打开位置 | A16/A17/E1–E7 | todo |
-| P6-C | 复制工程与更换 Unity 版本 | P6-B/P5-D | `backup/copy`、`unity/version`、回滚 | A15/A19/D6/E9 | todo |
-| P6-D | 旧式迁移、备份/迁移 UI 与真机 | P2-B/P6-C | `backup/migrate`、迁移向导、UI | B18/E8/K4/K5 | todo |
-| P7-A | 仓库治理：编辑/启停/排序/导入导出 | P1-E | 仓库编辑、拖拽排序、lists | C3/C4/C5/C6/C13 | todo |
-| P7-B | 请求头、密钥存储与测试连接 | P7-A/P4-B | `SecretStore`、safeStorage、脱敏 | C7/C15 | todo |
+| P6-A | 文件收集器、排除规则与取消 | P2-B | `backup/collector`、排除表、进度/取消 | E1/E3/E4 | done |
+| P6-B | ZIP 备份、记录与从备份新建 | P6-A | `backup/service`、备份记录、恢复、打开位置 | A16/A17/E1–E7 | done |
+| P6-C | 复制工程与更换 Unity 版本 | P6-B/P5-D | `backup/copy`、`unity/version`、回滚 | A15/A19/D6/E9 | done |
+| P6-D | 旧式迁移、备份/迁移 UI 与真机 | P2-B/P6-C | `backup/migrate`、迁移向导、UI | B18/E8/K4/K5 | review |
+| P7-A | 仓库治理：编辑/启停/排序/导入导出 | P1-E | 仓库编辑、拖拽排序、lists | C3/C4/C5/C6/C13 | done |
+| P7-B | 请求头、密钥存储与测试连接 | P7-A/P4-B | `SecretStore`、safeStorage、脱敏 | C7/C15 | done |
 | P7-C | 本地用户包目录 | P7-B/P4-C | `catalog/local`、信任表 v6、面板、本地安装 | C11 | done |
-| P7-D | VCC 只读导入与模板导入导出 | P2-C/P5-A | `interop/vcc`、settings 读取、模板互操作 | C12/F2/F3/F4/F5/F8/A9/A10 | todo |
+| P7-D | VCC 只读导入与模板导入导出 | P2-C/P5-A | `interop/vcc`、settings 读取、模板互操作 | C12/F2/F3/F4/F5/F8/A9/A10 | done |
 | P7-E | 深链、单实例与互操作 UI | P7-C/P7-D | `interop/deeplink`、协议注册、确认弹窗 | F7/H4/C3–C7 | done |
 | P8-A | UI 收口、按钮纪律与组件边界 | P4-E/P5-D/P6-D/P7-E | 逐屏检查、边界测试、文案 | I1/I2/A20/B24 | done |
 | P8-B | 操作记录、诊断导出与配额清理 | P4-A | `log/`、诊断包、用量与清缓存 | G3/G4/G5/I3 | done |
-| P8-C | 设置补齐、更新检查与已知限制 | P7-B | 设置项、手动更新、限制文档 | G1/G2/G3/G6 | todo |
+| P8-C | 设置补齐、更新检查与已知限制 | P7-B | 设置项、手动更新、限制文档 | G1/G2/G3/G6 | done |
 | P8-D | 逐行功能对账与缺口分诊 | P8-A/B/C | 对账证据、差异、后续任务 | 全部 | todo |
 | P8-E | 性能、可访问性与全量回归 | P8-D | 基准、键盘/焦点、回归记录 | I1/I2/I10/A13 | todo |
 | P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | todo |
@@ -123,9 +123,11 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> P6-D 服务层完成、状态 review（迁移服务 + 拒绝矩阵已做；**维护 UI 与真机未做**）。
-> P7-A / P7-B 的 UI 已补齐（仓库编辑/启停/排序/导入导出、请求头、测试连接）；
-> 下一个可执行的卡是 **P7-C**（本地包与 VCC 导入）。
+> **P5-D / P6-D 代码完成、状态 review**（启动绑定、双击导入、旧工程迁移的真机验收还没做）。
+> P6-A…P6-C、P7-A…P7-E、P8-A…P8-C 已完成；P7-A/P7-B 的 UI（仓库编辑/启停/排序/导入导出、
+> 请求头、测试连接）已补齐。
+> **P8-C**：设置页新增"偏好设置"（预发布 / 隐藏包 / 配额 / 默认 Unity 参数 / 更新检查开关）
+> 与"更新"（手动检查 → 下载 → 校验 → 用户点安装），已知限制写进 `README.md` 与 `docs/DEVELOPMENT.md`。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1264,6 +1266,35 @@ Task: P?-?
   截图 `docs/screenshots/vpm-p8-projects.png`、`vpm-p8-delete-confirm.png`。
 - **已知限制**：包图标只有首字母回退（不新增图标管线）；模板编辑 UI 仍缺（属新功能）；
   深链未真机点过。
+
+### P8-C（2026-10-23，done）
+
+- **公开 API/契约**：新增 5 条 IPC（`vpm:settings-get` / `vpm:settings-patch` /
+  `vpm:update-check` / `vpm:update-download` / `vpm:update-install`）与
+  `VpmPreferencesDto` / `VpmUpdateCheckDto` / `VpmUpdateDownloadDto`；
+  新增错误码 `vpmUpdateCheckFailed` / `vpmUpdateHashMismatch` / `vpmUpdateInstallFailed`（三语齐全）。
+  `VpmRuntime` 新增 `updater: UpdaterService`。
+- **新模块**：`src/main/vpm/updater.ts`（手动更新）、`src/main/vpm/ipc/settings.ts`、
+  `src/shared/vpm/dto/settings.ts`、`src/renderer/vpm/components/settings/`。
+- **设置语义（对账时容易判错的地方）**：`allowPrerelease=false` **只过滤浏览列表**
+  （`CatalogService.query`）；包详情与 `resolverCatalog()` 不过滤，否则已装预发布包会变成
+  “查无此包”、依赖也解析不出来。预发布偏好经 `PlanService.deps.defaultAllowPrerelease()`
+  作为解析默认值。`hiddenPackageIds` 同理：列表/详情隐藏，解析照旧。
+  `defaultUnityArgs` 在 `ipc/unity.ts` 的 `effectiveArgs()` 生效（工程显式参数优先）。
+- **顺手修掉 3 个既有 bug**：`VPM_REQUIRED_TABLES` 漏 `6:`（v6 表被塞进 5 的数组，
+  缺表库也能打开）；`VPM_SCHEMA_VERSION` 硬编码 3（改成从 `VPM_MIGRATIONS` 推导 +
+  漂移守卫测试）；`main/index.ts` 静态引 `vpm/interop/deeplink`、`App.tsx` 静态引
+  `DeepLinkHost` 违反架构闸门（分别改走 gate 再导出 / `lazy()`，新增 `vpm/interop/index.ts`）。
+- **文档**：`README.md` 与 `docs/DEVELOPMENT.md` 各加一段已知限制；
+  `src/main/vpm/ipc/README.md` 补 P8-C 段。
+- **已验证**：`npm run typecheck` 0；`npx vitest run` **219 files / 2688 passed /
+  19 skipped / 0 failed**；`npx electron-vite build` 过（`DeepLinkHost` 单独成 chunk）。
+  新增定向测试 `tests/vpm/settings.spec.ts`(17)、`tests/vpm/updater.spec.ts`(19)。
+- **未验证**：GitHub 联网更新检查（本机代理不通，只有假 http 测试）；
+  安装包 `.exe` 未真跑（`runInstaller` 只做了路径白名单）；
+  真 Unity 启动/导入仍归 P5-D / P5-E / P6-D；本轮没出新 UI 截图。
+- **给 P8-D**：对账时注意"预发布/隐藏包只影响浏览"这条，别判成"解析也过滤"；
+  `docs/VPM-P8C-HANDOVER.md` 是换工作站用的完整交接档案（含环境踩坑与新机起步命令）。
 
 ---
 

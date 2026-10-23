@@ -71,7 +71,11 @@ import type {
   VpmMigrateResultDto,
   VpmRepoHeadersDto,
   VpmRepoTestDto,
-  VpmVersionChangeResultDto
+  VpmVersionChangeResultDto,
+  VpmPreferencesDto,
+  VpmPreferencesPatch,
+  VpmUpdateCheckDto,
+  VpmUpdateDownloadDto
 } from './vpm/dto'
 
 export interface AppInfo {
@@ -440,6 +444,13 @@ export interface AApi {
     templateList(): Promise<VpmTemplateDto[]>
     templateFavorite(input: { id: string; favorite: boolean }): Promise<VpmTemplateDto>
     templateRecent(): Promise<VpmRecentLocationDto[]>
+    /** P8-C：VPM 偏好设置（预发布/隐藏包/配额/Unity 参数/更新检查开关）。 */
+    settingsGet(): Promise<VpmPreferencesDto>
+    settingsPatch(patch: VpmPreferencesPatch): Promise<VpmPreferencesDto>
+    /** 手动检查更新；`force` 忽略 1 小时缓存。 */
+    updateCheck(input?: { force?: boolean }): Promise<VpmUpdateCheckDto>
+    updateDownload(): Promise<VpmUpdateDownloadDto>
+    updateInstall(input: { path: string }): Promise<{ ok: boolean; errorCode: string | null }>
   }
   categories: {
     list(): Promise<CategoryConfig>

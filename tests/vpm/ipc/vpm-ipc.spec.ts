@@ -283,6 +283,11 @@ describe('VPM P1 IPC', () => {
         IpcInvoke.Vpm.TemplateList,
         IpcInvoke.Vpm.TemplateFavorite,
         IpcInvoke.Vpm.TemplateRecent,
+        IpcInvoke.Vpm.SettingsGet,
+        IpcInvoke.Vpm.SettingsPatch,
+        IpcInvoke.Vpm.UpdateCheck,
+        IpcInvoke.Vpm.UpdateDownload,
+        IpcInvoke.Vpm.UpdateInstall,
         IpcInvoke.Vpm.PlanExplain
       ].sort()
     )

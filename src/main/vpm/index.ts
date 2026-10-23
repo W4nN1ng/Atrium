@@ -13,6 +13,8 @@ import {
   type ProjectActivityPort
 } from './install'
 import { PlanService } from './planService'
+import { readVpmSettings } from './config'
+import { UpdaterService } from './updater'
 import { RepoStore } from './repos'
 import { ReposService } from './reposService'
 import {
@@ -79,6 +81,8 @@ export interface InitVpmOptions {
   revealPath?: (target: string) => void
   /** Electron safeStorage（P7-B）；不传就用内存实现（测试/无 Electron）。 */
   secretStorage?: SafeStorageLike
+  /** 当前应用版本；更新检查用它比较。不传按 `0.0.0`（永远提示有更新，仅测试会这样）。 */
+  appVersion?: string
 }
 
 export interface VpmRuntime {
@@ -112,6 +116,8 @@ export interface VpmRuntime {
   copy: ProjectCopyService
   version: UnityVersionService
   migrate: ProjectMigrateService
+  /** P8-C：手动更新检查（不自动、不静默）。 */
+  updater: UpdaterService
   linkage?: ProjectLinkagePort
   dispose(): void
 }
@@ -132,10 +138,18 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
   try {
     db = await openVpmDb()
     const store = new RepoStore(db, options.now)
+    // 更新检查和仓库抓取共用同一个 transport，但限额更紧（release JSON ≤2 MiB）。
+    const transport = createElectronHttpTransport()
     const http = createVpmHttpClient({
-      transport: createElectronHttpTransport(),
+      transport,
       isNetworkAllowed: options.isNetworkAllowed,
       userAgent: options.userAgent
+    })
+    const updateHttp = createVpmHttpClient({
+      transport,
+      isNetworkAllowed: options.isNetworkAllowed,
+      userAgent: options.userAgent,
+      limits: { maxJsonBytes: UpdaterService.maxReleaseBytes, maxDownloadBytes: 1024 * 1024 * 1024 }
     })
     const cacheEntries = new CacheEntryStore(db, options.now)
     const packageCache = new PackageCacheService({
@@ -160,7 +174,15 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       secrets
     })
     const localStore = new LocalPackageStore(db)
-    const catalog = new CatalogService(store)
+    const catalog = new CatalogService(store, () => {
+      // 设置读坏了也不能让目录整体挂掉：回退到"全显示"。
+      try {
+        const settings = readVpmSettings().settings
+        return { allowPrerelease: settings.allowPrerelease, hiddenPackageIds: settings.hiddenPackageIds }
+      } catch {
+        return { allowPrerelease: true, hiddenPackageIds: [] }
+      }
+    })
     const unity = new UnityEditorService(
       new UnityInstallStore(db, options.now),
       options.unityDiscovery
@@ -171,7 +193,12 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       vcc: options.vccProjects,
       reader: options.projectReader
     })
-    const plans = new PlanService({ projects, catalog, now: options.now })
+    const plans = new PlanService({
+      projects,
+      catalog,
+      defaultAllowPrerelease: () => catalog.defaultAllowPrerelease(),
+      now: options.now
+    })
     const operations = new OperationStore(db, options.now)
     const vault = new VaultStore({ dataRoot: options.dataRoot })
     const recovery = new RecoveryService({
@@ -300,6 +327,20 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       transactions,
       activity: options.projectActivity
     })
+    const updater = new UpdaterService({
+      http: updateHttp,
+      currentVersion: options.appVersion ?? '0.0.0',
+      downloadDir: path.join(options.dataRoot, 'updates'),
+      now: options.now,
+      // 有包事务在跑时不允许下载/安装：免得用户中途覆盖掉正在写的文件。
+      isBusy: () => {
+        try {
+          return operations.listActive().length > 0 ? 'operation' : null
+        } catch {
+          return null
+        }
+      }
+    })
     // 启动先处理崩溃现场：能证明安全的自动回滚/补完归档，判不了的落 needs_attention。
     await recovery.scanAndApply()
     await repos.seedIfEmpty()
@@ -335,6 +376,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       copy,
       version,
       migrate,
+      updater,
       linkage: options.projectLinkage,
       dispose(): void {
         if (disposed) return

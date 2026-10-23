@@ -37,6 +37,16 @@ import {
   writeVpmSettings
 } from './config'
 
+/**
+ * 深链解析（P7-E）从 gate 转出去。
+ *
+ * 核心（`src/main/index.ts`）**只允许静态引 `vpm/gate`** —— 这是架构闸门写死的规矩，
+ * 所以深链这种"启动时就要用、且完全纯函数"的东西走 gate 的再导出，
+ * 而不是让主进程直接 `import './vpm/interop/deeplink'`（那样闸门会红）。
+ */
+export { deepLinksInArgv, parseDeepLink } from './interop'
+export type { DeepLinkIntent } from './interop'
+
 export interface VpmGateDeps {
   ipc: IpcApi
   getDb(): Db
@@ -205,6 +215,8 @@ async function ensureRuntime(): Promise<void> {
       const handle = await initVpm({
         dataRoot: status.dataRoot as string,
         userAgent: `Atrium/${status.appVersion || '0.0.0'}`,
+        // 更新检查要跟当前版本比，别用占位版本号。
+        appVersion: status.appVersion || '0.0.0',
         isNetworkAllowed: () => isNetworkEnabled(),
         coreProjects: readCoreProjects
           ? {

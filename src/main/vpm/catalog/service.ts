@@ -187,11 +187,39 @@ function detailFor(name: string, rows: CatalogPackageRow[]): CatalogPackageDetai
  * - 不联网、不写库；搜索/过滤最终由 RepoStore 的 SQL 完成。
  */
 export class CatalogService {
-  constructor(private readonly store: RepoStore) {}
+  constructor(
+    private readonly store: RepoStore,
+    /**
+     * P8-C：用户偏好。
+     *
+     * - `hiddenPackageIds` 是用户显式隐藏的包，浏览列表和包详情都看不到；
+     * - `allowPrerelease=false` 时浏览列表不列预发布版本（包详情仍可打开，
+     *   这样已装的预发布包不会变成“查无此包”）。
+     *
+     * 解析（`resolverCatalog`）不做任何过滤：依赖必须能解析，已装包不受影响；
+     * 预发布偏好在解析里走 `PlanService` 的默认值。
+     */
+    private readonly flags: () => { allowPrerelease: boolean; hiddenPackageIds: readonly string[] } = () => ({
+      allowPrerelease: true,
+      hiddenPackageIds: []
+    })
+  ) {}
+
+  /** 用户显式隐藏的包：浏览与详情都不显示。 */
+  private notHidden(row: CatalogPackageRow, hidden: readonly string[]): boolean {
+    return !hidden.includes(row.name)
+  }
+
+  /** 解析默认值：用户在设置里勾了“允许预发布”才默认带预发布。 */
+  defaultAllowPrerelease(): boolean {
+    return this.flags().allowPrerelease
+  }
 
   query(query: CatalogListQuery = {}): CatalogPage {
     const limit = clamp(query.limit, 100, 1, MAX_LIST)
     const offset = clamp(query.offset, 0, 0, 1_000_000)
+    // 每次查询只读一次偏好，不逐行读设置文件。
+    const { allowPrerelease, hiddenPackageIds } = this.flags()
     const rows = this.fetchRows({
       name: query.name,
       text: query.text,
@@ -199,6 +227,10 @@ export class CatalogService {
       enabledOnly: query.enabledOnly,
       includeHidden: query.includeHidden,
       includeYanked: query.includeYanked
+    }).filter((row) => {
+      if (!this.notHidden(row, hiddenPackageIds)) return false
+      if (!allowPrerelease && row.version.includes('-')) return false
+      return true
     })
 
     const byName = new Map<string, CatalogPackageRow[]>()
@@ -215,12 +247,13 @@ export class CatalogService {
 
   getPackage(name: string): CatalogPackageDetail | null {
     if (!/^[a-z0-9][a-z0-9._-]{0,213}$/.test(name)) return null
+    const { hiddenPackageIds } = this.flags()
     const rows = this.fetchRows({
       name,
       enabledOnly: true,
       includeHidden: true,
       includeYanked: true
-    })
+    }).filter((row) => this.notHidden(row, hiddenPackageIds))
     return rows.length ? detailFor(name, rows) : null
   }
 

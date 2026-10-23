@@ -65,9 +65,23 @@ P1 的只读仓库/目录 IPC：参数校验、DTO 映射、刷新操作/事件�
 
 - `PlanResolve`：只接受 `projectKey` + 可选 `preset:'upgradeAll'`/requests/allowPrerelease；
   主进程重新读取工程、manifest、目录并生成 `ChangePlan`，返回 `planId`。
+  没传 `allowPrerelease` 时跟随设置里的全局偏好（`PlanService.defaultAllowPrerelease`）。
 - `PlanExplain`：按 `planId` 返回（可按包名过滤的）changes/conflicts/missing/warnings；
   计划缓存仅内存 10 分钟，不持久化。
 - 计划不写工程、不下载；P3 的 UI 应用按钮始终禁用。
+
+## P8-C 设置与更新（`ipc/settings.ts`）
+
+- `SettingsGet` / `SettingsPatch`：只走 `VpmPreferencesDto` 的白名单字段
+  （预发布 / 隐藏包 / 两个配额 / 默认 Unity 参数 / 更新检查开关）。
+  `SettingsPatch` **逐字段校验，任何一项不合法就整次拒绝**，不做"部分生效"；
+  落盘用 `patchVpmSettings`（原子写 + 整体 schema 校验）。
+- `UpdateCheck` / `UpdateDownload` / `UpdateInstall`：手动更新三步，一步一次 IPC。
+  - 检查结果缓存 1 小时（`force` 可绕过）；
+  - 下载后必须命中发布正文里的 SHA-256，否则删文件并返回 `vpmUpdateHashMismatch`；
+  - `UpdateInstall` 只接受 `<数据根>/updates/Atrium-Setup-*.exe`，不接受渲染层传任意路径
+    （否则这条通道等于"随便执行一个 exe"）。
+- 这三条都受 VPM 联网开关约束（走 `createVpmHttpClient`，关掉就是 `vpmNetworkNotConsented`）。
 
 ## 测试入口
 

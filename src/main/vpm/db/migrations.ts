@@ -12,7 +12,6 @@ export interface VpmMigration {
   sql: string
 }
 
-export const VPM_SCHEMA_VERSION = 3
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS vpm_repo (
@@ -261,6 +260,15 @@ export const VPM_MIGRATIONS: readonly VpmMigration[] = [
   { version: 6, sql: V6 }
 ]
 
+/**
+ * 当前支持的最高版本。
+ *
+ * **从迁移表推出来，不写字面量**：以前这里硬编码成 3，v4/v5/v6 加完就再没人动它，
+ * 于是"支持的最高版本"整整落后三个版本（`tests/vpm/runtime.spec.ts` 里那条
+ * "拒绝更新的库"因此一直在测别的东西）。推导出来就漂不动了。
+ */
+export const VPM_SCHEMA_VERSION: number = VPM_MIGRATIONS[VPM_MIGRATIONS.length - 1].version
+
 /** 每个版本完整迁移后必须存在的表；用于发现“版本号对但表被删/半迁移”的库。 */
 export const VPM_REQUIRED_TABLES: Readonly<Record<number, readonly string[]>> = {
   1: ['vpm_repo', 'vpm_repo_package'],
@@ -296,6 +304,23 @@ export const VPM_REQUIRED_TABLES: Readonly<Record<number, readonly string[]>> = 
     'vpm_recent_location'
   ],
   5: [
+    'vpm_repo',
+    'vpm_repo_package',
+    'vpm_unity_install',
+    'vpm_project',
+    'vpm_project_package',
+    'vpm_operation',
+    'vpm_operation_step',
+    'vpm_operation_file',
+    'vpm_cache_entry',
+    'vpm_template',
+    'vpm_recent_location',
+    'vpm_backup'
+  ],
+  // v6 加的是 `vpm_local_root`（本地包根）。**必须单开一个 6**：
+  // 当初把它塞进 5 的数组里，导致 `VPM_REQUIRED_TABLES[6]` 是 undefined，
+  // 完整性检查对 v6 库直接 `if (!required) return` —— 一个缺表的新库也能开起来。
+  6: [
     'vpm_repo',
     'vpm_repo_package',
     'vpm_unity_install',

@@ -13,6 +13,10 @@
 > 回退见 [VPM-ROLLBACK.md](VPM-ROLLBACK.md)。P0 之后版本线进入 **0.9.0**；
 > VPM 默认关闭，独立使用 `%APPDATA%\A\vpm\`，核心 `library.db` schema 仍是 11。
 > 下面“当前版本 / 主线 HEAD”那段是 2026-10-17 的旧账，以 `package.json` 和 `git log` 为准。
+>
+> **2026-10-23：换工作站接手 VPM，先读 [VPM-P8C-HANDOVER.md](VPM-P8C-HANDOVER.md)。**
+> 那份带新机起步命令、当前进度（P8-A/B/C done，下一张 P8-D 逐行对账）、
+> 未验证清单和已踩过的坑；本文档其余部分（素材管家本体）仍然有效。
 
 ---
 

@@ -1293,7 +1293,8 @@
       "changelog": "変更履歴",
       "documentation": "ドキュメント",
       "installLater": "インストールは後の段階で接続します。現在は読み取り専用です。",
-      "close": "閉じる"
+      "close": "閉じる",
+      "hide": "このパッケージを非表示"
     },
     "operation": {
       "refreshing": "更新中 {{done}}/{{total}}",
@@ -1594,7 +1595,10 @@
       "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。",
       "vpmUnityAlreadyRunning": "プロジェクト「{{name}}」が Unity で開いています。先に閉じてから開いてください。",
       "vpmLocalRootInvalid": "このローカルパッケージフォルダーは使えません（{{reason}}）。",
-      "vpmInteropNotFound": "インポートできる設定ファイル（VCC / ALCOM）が見つかりません。"
+      "vpmInteropNotFound": "インポートできる設定ファイル（VCC / ALCOM）が見つかりません。",
+      "vpmUpdateCheckFailed": "更新の確認に失敗しました",
+      "vpmUpdateHashMismatch": "インストーラーの検証に失敗しました",
+      "vpmUpdateInstallFailed": "インストーラーを起動できませんでした"
     },
     "packages": {
       "title": "インストール済みパッケージ",
@@ -1838,6 +1842,49 @@
       "usage": "キャッシュ {{cache}} · 保管庫 {{vault}} · バックアップ {{backups}}",
       "exported": "診断を書き出しました: {{path}}",
       "cleared": "キャッシュを削除しました（{{size}}）"
+    },
+    "prefs": {
+      "title": "環境設定",
+      "saved": "保存しました",
+      "prerelease": "プレリリースを許可",
+      "prereleaseHint": "オフにすると一覧に -beta / -alpha 版を表示しません。インストール済みには影響しません。",
+      "hidden": "非表示のパッケージ",
+      "hiddenCount": "{{count}} 件を非表示",
+      "hiddenEmpty": "非表示のパッケージはありません",
+      "manageHidden": "管理",
+      "hiddenAdd": "パッケージ名（例: com.example.tool）",
+      "add": "追加",
+      "unhide": "表示に戻す",
+      "cacheQuota": "パッケージキャッシュ上限（GB）",
+      "vaultQuota": "スナップショット上限（GB）",
+      "quotaHint": "1〜1024 GB。自動削除はせず、警告のみ表示します。",
+      "checkUpdates": "更新ページを開いたときに確認",
+      "checkUpdatesHint": "確認のみ。ダウンロードやインストールは行いません。",
+      "unityArgs": "Unity 起動引数の既定値",
+      "unityArgsHint": "プロジェクト側の指定がない場合に使います。空白区切り。"
+    },
+    "update": {
+      "title": "更新",
+      "hint": "GitHub の最新リリースを手動で確認します。",
+      "current": "現在のバージョン {{version}}",
+      "check": "更新を確認",
+      "checking": "確認中…",
+      "upToDate": "最新バージョンです",
+      "available": "バージョン {{version}} があります",
+      "download": "ダウンロード",
+      "downloading": "ダウンロード中…",
+      "downloaded": "検証済みです。インストーラーを実行できます。",
+      "cancelled": "ダウンロードを中止しました。",
+      "runInstaller": "インストーラーを実行",
+      "openRelease": "リリースページを開く",
+      "noHash": "リリースノートに SHA-256 がありません",
+      "hashMismatch": "検証に失敗しました。公開された SHA-256 と一致しないため削除しました。",
+      "busy": "パッケージ操作中です。しばらくしてから再試行してください。",
+      "networkOff": "ネットワークが無効のため、更新確認は行いません。",
+      "installConfirmTitle": "インストーラーを実行しますか？",
+      "installConfirmBody": "{{name}} を起動します。実行中のパッケージ操作を終えてから行い、インストール後に Atrium を開き直してください。",
+      "installStarted": "インストーラーを起動しました。",
+      "installFailed": "インストーラーを起動できませんでした。"
     }
   }
 }
