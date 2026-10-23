@@ -1,4 +1,4 @@
-# VPM 性能与可访问性报告（P8-E）
+# VPM 性能与可访问性报告（P8-E / P9-C）
 
 > 2026-10-23。环境：Windows 11，16 GB，Node v24.21.0（测试）/ Electron 33.4.11（构建），
 > 仓库 `C:\程序\A素材管家`，VPM 数据根 `%APPDATA%\Atrium`（R19，用户已接受）。
@@ -44,6 +44,9 @@
 | `catalog.getPackage(单包详情)` | 0.35ms | 0.59ms | <50ms | 过 |
 | `catalog.resolverCatalog()`（5,000 行） | 77.05ms | 84.40ms | <300ms | 过 |
 | 查询期间堆增量 | — | 0.2 MB | <128MB | 过 |
+
+> **P9-C 之后这张表已过时**：同样的 2,500 包查询从 p95 145ms 降到 **8.54ms**
+> （分页改到 SQL 侧）。保留这组数字是为了对照"改之前长什么样"，最新数字看 §6.3。
 
 ### 2.2 解析 / 计划 / 预检
 
@@ -148,7 +151,80 @@
 - **真 Unity/VCC/GitHub 更新/安装器**仍归 P9-D/P9-E；本报告不把它们算作已验证。
 - 目录查询的 145ms 余量偏小；P9-C 需要时再做索引/分页，本卡不改语义。
 
-## 6. 下一步
+## 6. P9-C：规模上限与分页改造（2026-10-23）
 
-- P8-F：模板编辑 UI（A8）。
-- P9-C：目录 10k 行/长稳/版本矩阵；P9-D 真 Unity + 回退演练；P9-E 更新/安装器/发布。
+> 复现：`VPM_PERF_ISOLATED=1 npx vitest run tests/perf/vpm-scale-p9c.spec.ts`
+> 数据：**5,000 个包 × 2 个版本 = 10,000 行 / 5 个仓库**（P8-E 只量到 5,000 行）。
+
+### 6.1 改造前（同一台机器，隔离跑）
+
+| 场景 | p50 | p95 | 预算 | 结果 |
+|---|---:|---:|---:|---|
+| `catalog.query({text:'scale'})`（5k 包全命中） | 512.90ms | **548.65ms** | <200ms | ❌ 2.7× |
+| `catalog.query({text:单包名})` | 18.95ms | 20.04ms | <120ms | 过 |
+| `catalog.getPackage` | 0.14ms | 0.27ms | <60ms | 过 |
+| `catalog.query({repoIds:[一个仓库]})` | 20.29ms | 21.13ms | <120ms | 过 |
+| `catalog.resolverCatalog()`（10k 行） | 196.81ms | 210.91ms | <500ms | 过 |
+| `resolve(500 roots)` | — | — | <200ms | 过 |
+| `buildChangePlan(500 roots)` | 89.28ms | 93.87ms | <800ms | 过 |
+| `collectProjectFiles`（5k 文件 + 500 依赖 manifest） | — | 442ms | <10s | 过 |
+
+**根因（分段实测，不是猜）**：
+
+- 20 次分页 SQL（每次 500 行 + 一次 `COUNT(*)`）：**338ms**
+  - 其中 `COUNT(*)` 20 次 = 50ms（每页都重算一遍全表）
+  - 取页（4 列）20 次 = 171ms
+  - 其余 15 列 + `mapPackage` ≈ 117ms
+- JS 侧分组 10k 行 = 2ms，5,000 个名字排序 = 0ms（`Intl.Collator` 复用后）
+- 结论：**慢在"为了分页把整个目录读进内存"**，不在聚合。界面一屏只要 100 张卡片，
+  却在为 4,900 个看不见的包付钱。
+
+### 6.2 改了什么（两处，都不改业务语义）
+
+1. **`RepoStore.queryCatalogNames()`**：在 SQL 里按**包名**分页
+   （`SELECT DISTINCT p.name ... ORDER BY p.name COLLATE NOCASE LIMIT/OFFSET` +
+   `COUNT(DISTINCT p.name)`），`CatalogService.query` 拿到一页名字后
+   再用 `queryCatalog({ names })` 只取这些包的行。
+2. **用户偏好下沉到 SQL**：`excludeNames`（用户隐藏）与 `excludePrerelease`
+   变成 WHERE 条件。**必须**这样，否则隐藏项会先占掉页内名额，翻到第二页会少几行。
+   名字列表用 `json_each(@names)` 传，避免 500 个绑定变量撞上 SQLite 上限。
+
+顺带修掉一个**潜在静默丢数据**的坑：`fetchRows` 原来 `offset += PAGE_SIZE`，
+而 `queryCatalog` 会把 limit 夹到 500 —— 只要有人把 `PAGE_SIZE` 写得比 500 大，
+就会跳过中间的页（10,000 行只读到 2,500 行，且 `total` 还是对的，极难发现）。
+现在按**实际返回行数**推进。
+
+### 6.3 改造后
+
+| 场景 | p50 | p95 | 预算 | 结果 |
+|---|---:|---:|---:|---|
+| `catalog.query({text:'scale'})`（10k 行） | 14.36ms | **16.03ms** | <200ms | 过（34× 提速） |
+| `catalog.query({text:单包名})` | 24.03ms | 31.31ms | <120ms | 过（多了一次 DISTINCT 查询） |
+| `catalog.getPackage` | 0.21ms | 0.30ms | <60ms | 过 |
+| `catalog.query({repoIds:[一个仓库]})` | 4.22ms | 5.09ms | <120ms | 过 |
+| `catalog.resolverCatalog()`（10k 行） | 275.16ms | 316.84ms | <500ms | 过（解析必须拿全量行，不动） |
+| `resolve(500 roots, 10k catalog)` | 56.74ms | 64.51ms | <200ms | 过 |
+| `buildChangePlan(500 roots)` | 83.54ms | 96.48ms | <800ms | 过 |
+| `collectProjectFiles`（5k 文件 + 500 依赖） | — | 329ms | <10s | 过 |
+
+分页语义由 `tests/vpm/catalog/paging.spec.ts`（7 条）钉住：`total` 是包数量、
+翻页不重不漏、隐藏/预发布在分页前生效、offset 越界返回空页、详情不受分页影响。
+
+### 6.4 P9-C 兼容记录
+
+| 项 | 结论 |
+|---|---|
+| 中文 / 空格 / `#` `&` 路径 | 过（`tests/vpm/compat/paths-and-versions.spec.ts`，相对路径一律 posix） |
+| 长路径 | Node 实测能读写 643 字符；**产品策略线是 260**：收集器对越线文件报 `longPath` 警告并跳过，解压侧 `safeZipPath` 直接拒绝。不是静默丢，但**备份会少文件**，已写进 README 已知限制 |
+| Unity 版本矩阵（解析侧） | 2019.4 / 2021.3 / 2022.3 / 6000.0 各自精确匹配；只有别的补丁版时报 `vpmUnityNotFound`（不凑合、不改工程版本）；中国版 `cN` 按 base 归一；显式指定优先 |
+| Windows 10 | **未验证**（本机只有 Windows 11 build 26200） |
+| 真 Unity 打开工程 | 归 P9-D |
+
+> 顺带纠正一处文档错误：`docs/VPM-P5D-HANDOVER.md` 写"按 base 版本（2022.3.22f1 → 2022.3）
+> 匹配已发现编辑器"，**与代码不符**。`unityVersionBase()` 只去掉中国版 `cN` 后缀，
+> 匹配是**精确版本**。以代码为准，该文档已加注。
+
+## 7. 下一步
+
+- P9-D：真 Unity + 回退演练（L1–L5）。
+- P9-E：更新/安装器/发布。

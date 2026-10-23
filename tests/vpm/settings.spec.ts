@@ -96,17 +96,46 @@ describe('parseUnityArgs', () => {
 })
 
 /** 最小 RepoStore 桩：只要 queryCatalog / listRepos。 */
+/**
+ * 最小 RepoStore 桩：只要 listRepos / queryCatalog / queryCatalogNames。
+ *
+ * P9-C 起目录是"先按名字分页、再按名字取行"，桩必须两个方法都实现，
+ * 否则 `CatalogService.query` 会在 `queryCatalogNames` 上拿到 undefined。
+ */
 function storeOf(rows: CatalogPackageRow[]): RepoStore {
+  const filtered = (query: CatalogQuery): CatalogPackageRow[] => {
+    let items = rows
+    if (query.name) items = items.filter((row) => row.name === query.name)
+    if (Array.isArray(query.names)) {
+      const wanted = new Set(query.names)
+      items = items.filter((row) => wanted.has(row.name))
+    }
+    if (Array.isArray(query.excludeNames)) {
+      const excluded = new Set(query.excludeNames)
+      items = items.filter((row) => !excluded.has(row.name))
+    }
+    if (query.excludePrerelease === true) {
+      items = items.filter((row) => !row.version.includes('-'))
+    }
+    if (query.text) {
+      const text = query.text.toLowerCase()
+      items = items.filter((row) => row.name.toLowerCase().includes(text))
+    }
+    return items
+  }
   return {
     listRepos: () => [],
     queryCatalog: (query: CatalogQuery) => {
-      let items = rows
-      if (query.name) items = items.filter((row) => row.name === query.name)
-      if (query.text) {
-        const text = query.text.toLowerCase()
-        items = items.filter((row) => row.name.toLowerCase().includes(text))
-      }
-      return { items, total: items.length, limit: query.limit ?? 100, offset: query.offset ?? 0 }
+      const items = filtered(query)
+      const offset = query.offset ?? 0
+      const limit = query.limit ?? 100
+      return { items: items.slice(offset, offset + limit), total: items.length, limit, offset }
+    },
+    queryCatalogNames: (query: CatalogQuery) => {
+      const names = [...new Set(filtered(query).map((row) => row.name))].sort()
+      const offset = query.offset ?? 0
+      const limit = query.limit ?? 100
+      return { names: names.slice(offset, offset + limit), total: names.length, limit, offset }
     }
   } as unknown as RepoStore
 }

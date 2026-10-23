@@ -1,5 +1,6 @@
 export { RepoStore } from './store'
 export type {
+  CatalogNamePage,
   CatalogPage,
   CatalogPackageRow,
   CatalogQuery,

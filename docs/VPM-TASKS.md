@@ -118,7 +118,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P8-F | 模板编辑 UI（A8 缺口） | P5-A/P8-D | 设置页模板新建/编辑/复制/删除引用 | A8 | done |
 | P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | done（I6 接受例外） |
 | P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | done |
-| P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | todo |
+| P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | done（D10/H1 仍按部分记录） |
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
 
@@ -132,8 +132,8 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 > **P8-D**：124 行 A–K 对账已填满；61 完整 / 56 部分 / 7 不做；35 行目标=完整但实际=部分，
 > **P8 门禁未签字**。缺口与 P9 只修清单见 `docs/VPM-GAPS.md`；A8 模板编辑 UI 已由 **P8-F** 关闭。
 > GAP-02（R19 数据根在 C）与 A18（R17 删除进回收站）已由用户 2026-10-23 明确接受，
-> 不再改动；**P8-E/P8-F 已完成**，**P9-A/P9-B 已完成**（安全硬化；可靠性与并发硬化），
-> 下一张 **P9-C**（性能、兼容与长路径），真 Unity 仍归 P9-D。
+> 不再改动；**P8-E/P8-F 已完成**，**P9-A/P9-B/P9-C 已完成**（安全、可靠性、性能/兼容），
+> 下一张 **P9-D**（回退演练与真机回归），真 Unity 与 Windows 10 都归 P9-D。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1452,6 +1452,36 @@ Task: P?-?
   断电/杀毒占用/UNC；journal 永久丢失仍只能人工修复，不提供强制解锁（有意）。
 - **给 P9-C**：恢复路径的测试入口在 `tests/vpm/reliability/`；不要改事务语义来“优化”
   可靠性数字。性能/长路径/版本矩阵从 `docs/VPM-RELIABILITY.md` §7/§8 接。
+
+### P9-C（2026-10-23，done）
+
+- **性能报告**：`docs/VPM-PERF.md` §6（改造前后对照 + 分段根因 + 兼容记录）。
+- **修掉的真实性能问题**：10,000 行目录查询 p95 **548.65ms**（预算 200ms）。
+  根因不是聚合，是"为了分页把整个目录读进内存"：20 次分页 SQL（338ms，其中每页重算
+  `COUNT(*)` 50ms）+ 全量分组。界面一屏只要 100 张卡片。
+  - 新增 `RepoStore.queryCatalogNames()`：SQL 里按包名分页
+    （`SELECT DISTINCT p.name ... LIMIT/OFFSET` + `COUNT(DISTINCT p.name)`）；
+  - `CatalogService.query()` 拿一页名字后 `queryCatalog({ names })` 只取这些包的行；
+  - 用户偏好下沉成 SQL 条件（`excludeNames` / `excludePrerelease`）——
+    留在 JS 里会让隐藏项占掉页内名额、第二页少行；名字列表用 `json_each(@names)` 传。
+  - 结果：**16.03ms**（34×），`resolverCatalog` 10k 行 317ms（预算 500，解析必须全量，不动）。
+- **顺手修掉一个静默丢数据的坑**：`fetchRows` 原来 `offset += PAGE_SIZE`，
+  而 `queryCatalog` 把 limit 夹到 500 —— `PAGE_SIZE` 一旦写得比 500 大就会跳过中间页
+  （10k 行只读到 2.5k，且 `total` 仍正确）。现在按**实际返回行数**推进。
+- **兼容**：新增 `tests/vpm/compat/paths-and-versions.spec.ts`（11 条）——
+  中文/空格/`#&` 路径、260 策略线报警、解压路径策略、Unity 2019.4/2021.3/2022.3/6000.0
+  精确匹配、中国版 `cN` 归一、不凑合别的补丁版、显式编辑器优先。
+- **分页语义**：新增 `tests/vpm/catalog/paging.spec.ts`（7 条）——
+  total 是包数量、翻页不重不漏、隐藏/预发布在分页前生效、offset 越界、详情不受影响。
+- **文档更正**：`docs/VPM-P5D-HANDOVER.md` 写"按 base 版本 2022.3 匹配"是错的，
+  `unityVersionBase()` 只去中国版后缀，匹配是**精确版本**；已在原文加注，
+  `docs/DEVELOPMENT.md` 与 `README.md` 同步写清 260 路径线与 Win10 未验。
+- **已验证**：`npm run typecheck` 0；全量 **250 files / 2864 tests（2838 passed /
+  26 skipped）、0 failed**；隔离基准 `vpm-perf.spec.ts` 3 条 + `vpm-scale-p9c.spec.ts` 4 条全绿。
+- **未验证**：Windows 10 无实机；真 Unity 打开工程（P9-D）；真机 UI 帧率/低配机；
+  UNC/可移动盘/非 NTFS 上的事务（只做了路径字符串层面的兼容）。
+- **给 P9-D**：性能余量已经很大（10k 行 16ms），别再为"更快"改分页语义；
+  真机回归时重点看备份的 `longPath` 警告是否真的显示给用户。
 
 ---
 

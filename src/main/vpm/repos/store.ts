@@ -2,6 +2,7 @@ import { ulid } from '../../../shared/ulid'
 import { VpmError } from '../../../shared/vpm/errors'
 import type { VpmDb } from '../db'
 import type {
+  CatalogNamePage,
   CatalogPage,
   CatalogPackageRow,
   CatalogQuery,
@@ -348,9 +349,17 @@ export class RepoStore {
     }
   }
 
-  queryCatalog(query: CatalogQuery = {}): CatalogPage {
-    if (!query || typeof query !== 'object') throw invalid('query')
-    if (query.text !== undefined && typeof query.text !== 'string') throw invalid('text')
+  /**
+   * 把查询条件翻译成 WHERE。
+   *
+   * P9-C 新增两条**在 SQL 里就生效**的偏好过滤（`excludeNames` / `excludePrerelease`）：
+   * 目录分页改成"先取一页包名、再取这些包的行"，如果隐藏/预发布过滤留在 JS 里，
+   * 分页会先被隐藏项占掉名额，第二页就少几行 —— 所以必须在分页之前筛掉。
+   */
+  private catalogWhere(query: CatalogQuery): {
+    where: string[]
+    filters: Record<string, string | number>
+  } {
     const exactName = query.name === undefined ? null : text(query.name, 'name', 214)
     const rawText = query.text === undefined ? '' : query.text.trim()
     if (rawText.length > 200) throw invalid('text')
@@ -358,9 +367,16 @@ export class RepoStore {
       ? [...new Set(query.repoIds.map((id) => text(id, 'repoIds', 100)))]
       : []
     if (repoIds.length > 100) throw invalid('repoIds')
+    const names = Array.isArray(query.names)
+      ? [...new Set(query.names.map((name) => text(name, 'names', 214)))]
+      : []
+    if (names.length > 500) throw invalid('names')
+    const excludeNames = Array.isArray(query.excludeNames)
+      ? [...new Set(query.excludeNames.map((name) => text(name, 'excludeNames', 214)))]
+      : []
+    if (excludeNames.length > 5000) throw invalid('excludeNames')
 
-    const limit = clamp(query.limit, 200, 1, 500)
-    const offset = clamp(query.offset, 0, 0, 1_000_000)
+    // 值一律是字符串/数字：名字列表用 JSON.stringify 变成一个参数。
     const filters: Record<string, string | number> = {}
     const where: string[] = []
 
@@ -386,7 +402,60 @@ export class RepoStore {
       })
       where.push(`p.repo_id IN (${placeholders.join(', ')})`)
     }
+    if (names.length) {
+      // json_each 而不是几百个占位符：SQLite 的绑定变量上限撑不住 500 个名字。
+      where.push('p.name IN (SELECT value FROM json_each(@names))')
+      filters.names = JSON.stringify(names)
+    }
+    if (excludeNames.length) {
+      where.push('p.name NOT IN (SELECT value FROM json_each(@excludeNames))')
+      filters.excludeNames = JSON.stringify(excludeNames)
+    }
+    if (query.excludePrerelease === true) {
+      // 与 JS 的 `version.includes('-')` 等价（SemVer 预发布段）。
+      where.push("instr(p.version, '-') = 0")
+    }
+    return { where, filters }
+  }
 
+  /**
+   * P9-C：只按**包名**分页（每页 limit 个包，不是 limit 行）。
+   *
+   * 目录列表只显示 100 张卡片，但旧实现为了分页把整个目录（10,000 行）读进内存再分组，
+   * 10k 行实测 p95 500ms+。名字页只扫一遍索引、返回 100 个字符串。
+   */
+  queryCatalogNames(query: CatalogQuery = {}): CatalogNamePage {
+    if (!query || typeof query !== 'object') throw invalid('query')
+    if (query.text !== undefined && typeof query.text !== 'string') throw invalid('text')
+    const { where, filters } = this.catalogWhere(query)
+    const limit = clamp(query.limit, 100, 1, 500)
+    const offset = clamp(query.offset, 0, 0, 1_000_000)
+    const fromWhere = `FROM vpm_repo_package p JOIN vpm_repo r ON r.id = p.repo_id
+      ${where.length ? 'WHERE ' + where.join(' AND ') : ''}`
+    const totalRow = this.db
+      .prepare(`SELECT COUNT(DISTINCT p.name) AS n ${fromWhere}`)
+      .get(filters) as { n: number } | undefined
+    const rows = this.db
+      .prepare(
+        `SELECT DISTINCT p.name AS name ${fromWhere}
+         ORDER BY p.name COLLATE NOCASE ASC
+         LIMIT @limit OFFSET @offset`
+      )
+      .all({ ...filters, limit, offset }) as Array<{ name: string }>
+    return {
+      names: rows.map((row) => row.name),
+      total: Number(totalRow?.n ?? 0),
+      limit,
+      offset
+    }
+  }
+
+  queryCatalog(query: CatalogQuery = {}): CatalogPage {
+    if (!query || typeof query !== 'object') throw invalid('query')
+    if (query.text !== undefined && typeof query.text !== 'string') throw invalid('text')
+    const limit = clamp(query.limit, 200, 1, 500)
+    const offset = clamp(query.offset, 0, 0, 1_000_000)
+    const { where, filters } = this.catalogWhere(query)
     const fromWhere = `FROM vpm_repo_package p JOIN vpm_repo r ON r.id = p.repo_id
       ${where.length ? 'WHERE ' + where.join(' AND ') : ''}`
     const totalRow = this.db

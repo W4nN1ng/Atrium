@@ -58,6 +58,8 @@ export interface PackageVersionInput {
 export interface CatalogQuery {
   /** 精确包名（详情页用）；与 text 可同时使用。 */
   name?: string
+  /** 只查这些包名（P9-C：先分页拿名字，再按名字取行）。 */
+  names?: string[]
   /** 包名/显示名/描述/别名/关键词/仓库名的子串；空则不筛。 */
   text?: string
   /** 只查这些仓库；空数组视为不筛。 */
@@ -68,8 +70,20 @@ export interface CatalogQuery {
   includeHidden?: boolean
   /** 默认 false。 */
   includeYanked?: boolean
+  /** P9-C：用户隐藏的包，在 SQL 里就排除（否则分页会空出格子）。 */
+  excludeNames?: string[]
+  /** P9-C：排除带 `-` 的预发布版本（等价于 `!version.includes('-')`）。 */
+  excludePrerelease?: boolean
   limit?: number
   offset?: number
+}
+
+/** P9-C：目录按包名分页的结果（`total` 是包的数量，不是版本行数）。 */
+export interface CatalogNamePage {
+  names: string[]
+  total: number
+  limit: number
+  offset: number
 }
 
 export interface CatalogPackageRow extends PackageVersionInput {

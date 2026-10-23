@@ -10,7 +10,17 @@ import type {
   CatalogVersionDto
 } from './types'
 
+// 与 RepoStore.queryCatalog 的上限一致（它会把 limit 夹到 500）。
 const PAGE_SIZE = 500
+
+/**
+ * 共享 collator。
+ *
+ * `String.prototype.localeCompare` 每次调用都会新建一个 ICU collator，
+ * 5,000 个包名排序要 300ms 上下（P9-C 实测：10k 行查询里这一项占了一半时间）。
+ * 复用同一个 `Intl.Collator` 的排序结果**完全一致**，但快一个数量级。
+ */
+const NAME_COLLATOR = new Intl.Collator()
 const MAX_ROWS = 50_000
 const MAX_LIST = 500
 const MAX_KEYWORDS = 50
@@ -215,34 +225,51 @@ export class CatalogService {
     return this.flags().allowPrerelease
   }
 
+  /**
+   * 浏览目录的一页。
+   *
+   * P9-C：分页在 **SQL 里按包名**做（`queryCatalogNames`），再只取这一页包的行。
+   * 旧实现为了分页把整个目录读进内存（10,000 行 ≈ 500ms/次），
+   * 而界面一屏只显示 100 张卡片 —— 每次搜索都在为 4,900 个看不见的包付钱。
+   *
+   * 用户偏好（隐藏包 / 预发布）**必须在分页之前生效**，否则隐藏项会占掉页内名额，
+   * 翻到第二页会少几行；所以它们作为 SQL 条件传下去，而不是取回来再过滤。
+   */
   query(query: CatalogListQuery = {}): CatalogPage {
     const limit = clamp(query.limit, 100, 1, MAX_LIST)
     const offset = clamp(query.offset, 0, 0, 1_000_000)
     // 每次查询只读一次偏好，不逐行读设置文件。
     const { allowPrerelease, hiddenPackageIds } = this.flags()
-    const rows = this.fetchRows({
+    const filters: CatalogQuery = {
       name: query.name,
       text: query.text,
       repoIds: query.repoIds,
       enabledOnly: query.enabledOnly,
       includeHidden: query.includeHidden,
-      includeYanked: query.includeYanked
-    }).filter((row) => {
-      if (!this.notHidden(row, hiddenPackageIds)) return false
-      if (!allowPrerelease && row.version.includes('-')) return false
-      return true
-    })
+      includeYanked: query.includeYanked,
+      excludeNames: [...hiddenPackageIds],
+      excludePrerelease: !allowPrerelease
+    }
 
+    const page = this.store.queryCatalogNames({ ...filters, limit, offset })
+    if (page.names.length === 0) {
+      return { items: [], total: page.total, limit, offset }
+    }
+
+    const rows = this.fetchRows({ ...filters, names: page.names })
     const byName = new Map<string, CatalogPackageRow[]>()
     for (const row of rows) {
       const current = byName.get(row.name)
       if (current) current.push(row)
       else byName.set(row.name, [row])
     }
-    const all = [...byName.entries()]
-      .map(([name, group]) => summaryFor(name, group))
-      .sort((a, b) => a.name.localeCompare(b.name))
-    return { items: all.slice(offset, offset + limit), total: all.length, limit, offset }
+
+    // SQL 用 NOCASE 排序，展示沿用原来的 collator 顺序；只排一页，代价可以忽略。
+    const names = [...page.names].sort(NAME_COLLATOR.compare)
+    const items = names
+      .filter((name) => byName.has(name))
+      .map((name) => summaryFor(name, byName.get(name) as CatalogPackageRow[]))
+    return { items, total: page.total, limit, offset }
   }
 
   getPackage(name: string): CatalogPackageDetail | null {
@@ -280,14 +307,23 @@ export class CatalogService {
     }))
   }
 
+  /**
+   * 分页拉全量行。
+   *
+   * **按实际拿到的行数推进 offset**，不按请求的 limit：`RepoStore.queryCatalog`
+   * 会把 limit 夹到 500，如果这里 `offset += PAGE_SIZE`（PAGE_SIZE 写得比 500 大），
+   * 就会静默跳过中间的页 —— 10,000 行只读到 2,500 行，而且 total 还是对的，
+   * 极难发现（P9-C 把 PAGE_SIZE 调到 2,000 时当场踩到）。
+   */
   private fetchRows(query: CatalogQuery): CatalogPackageRow[] {
     const rows: CatalogPackageRow[] = []
     let offset = 0
     while (rows.length < MAX_ROWS) {
       const page = this.store.queryCatalog({ ...query, limit: PAGE_SIZE, offset })
+      if (page.items.length === 0) break
       rows.push(...page.items)
-      if (page.items.length === 0 || rows.length >= page.total) break
-      offset += PAGE_SIZE
+      if (rows.length >= page.total) break
+      offset += page.items.length
     }
     return rows
   }

@@ -38,9 +38,9 @@ GAP-03（模板编辑 UI）已由 P8-F 关闭，不再作为 P9 必修项。
 | **GAP-03** | 模板编辑 UI | A8 | **已解决（P8-F）**：列表/新建/编辑/复制/删除引用/恢复 + 测试/截图 | 关闭，不再列入 P9 |
 | **GAP-04** | 更新检查/安装器真机 | G6 H5 | 只有假 HTTP 测试；GitHub 检查、下载、hash、`runInstaller` 未真跑 | P9-E |
 | **GAP-05** | 回退演练 | G8 | 回退手册/开关/安全模式有；演练未做 | P9-D |
-| **GAP-06** | 键盘/可访问性/真机 UI/性能 | E5 H4 I2 I10 | 放大镜/深链/焦点/ARIA/5000 包基准未系统验收 | P8-E + P9-C |
+| **GAP-06** | 键盘/可访问性/真机 UI/性能 | E5 H4 I2 I10 | 放大镜/深链/焦点/ARIA/5000 包基准未系统验收 | **性能已收（P9-C：10k 行 548→16ms）；键盘/ARIA 真窗口归 P9-D** |
 | **GAP-07** | VCC/ALCOM 真机只读 | A23 C12 F1 F2 F3 F4 | 测试全部用注入 source；真实 VCC 设置路径未跑 | P9-D 真机，或接受部分 |
-| **GAP-08** | 版本/locked/Windows 矩阵 | B12 D10 H1 | 只有 Unity 2022.3.22f1 + Windows 11；真实 locked 对比未做 | P9-C/P9-D |
+| **GAP-08** | 版本/locked/Windows 矩阵 | B12 D10 H1 | 只有 Unity 2022.3.22f1 + Windows 11；真实 locked 对比未做 | **解析侧已补（P9-C：2019/2021/2022/6000 精确匹配矩阵）；真机与 Win10 归 P9-D** |
 | **GAP-09** | 已接受差异 | A5 A6 A9 A13 A18 A20 B24 B26 F5 F7 F8 G1 G3 I6 | 目标本来就是部分，或用户已明确接受（A18/G3/I6）；写进 README/DEVELOPMENT 即可 | 文档收口 |
 | **GAP-10** | 交付/流程 | — | 本分支无 upstream，P4-B…P9-A 没有 PR；`check-worker-deps` 误报已在 P8-D 修 | 推送/PR/发布前核对 |
 | **GAP-11** | 文档缺口 | — | `docs/VPM-TASKS.md` 缺 P8-B 交接段 | 本卡补上 |

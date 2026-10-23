@@ -50,8 +50,11 @@ vpm:template-recent      → VpmRecentLocationDto[]
 
 1. 本次显式指定（`editorPath`）——**只影响这一次**，不写版本文件；
 2. 工程台账的 `unity_exe_path`（存在且是文件）；
-3. 按 `ProjectVersion.txt` 的 **base 版本**（`2022.3.22f1` → `2022.3`）匹配已发现编辑器，
+3. 按 `ProjectVersion.txt` 的 **base 版本**匹配已发现编辑器，
    精确版本优先、其次路径排序（保证同输入同结果）；
+   > **2026-10-23 更正（P9-C 实测）**：这里的 "base" 只去掉中国版 `cN` 后缀
+   > （`2022.3.22f1c1` → `2022.3.22f1`），**不是**折成 `2022.3` 的 minor 线。
+   > 匹配是**精确版本**：只有别的补丁版时报 `vpmUnityNotFound`，不拿别的编辑器凑合。
 4. 找不到 → `vpmUnityNotFound`，**不自动换版本**。
 
 参数：

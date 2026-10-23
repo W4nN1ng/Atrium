@@ -943,6 +943,20 @@ tests/            Vitest，256 项
   重试回滚/补完；journal 永久丢失时仍保持锁定，必须人工从备份修复。
   可靠性证据（24 点失败注入、真实进程死亡、租约/DB 锁、40 次连续事务）见
   `docs/VPM-RELIABILITY.md`。
+- **260 字符是产品的路径策略线**（P9-C）：`COLLECT_MAX_PATH` / `MAX_EXTRACT_PATH` /
+  `UNITYPACKAGE_MAX_PATH` 都是 260。收集器对越线文件报 `longPath` 警告并跳过，解压侧直接拒绝。
+  Node 自己能处理更长的路径（libuv 加 `\\?\`，实测 643 字符可读写），这条线是为了
+  "备份产物还能被别的工具/Unity 打开"。**代价**：路径很深的工程备份会少文件，
+  所以 UI 必须显示 `longPath` 警告，不能只写日志。
+- **Unity 版本匹配是精确匹配，不是 minor 线匹配**（P9-C 实测）：`unityVersionBase()`
+  只去掉中国版 `cN` 后缀（`2022.3.22f1c1` → `2022.3.22f1`），不会把 `2022.3.22f1` 折成 `2022.3`。
+  只有别的补丁版时报 `vpmUnityNotFound`，**不拿别的编辑器凑合**（否则一开工程就改写了
+  `ProjectVersion.txt`）。`docs/VPM-P5D-HANDOVER.md` 里"按 base 版本 2022.3 匹配"的说法是错的。
+- **目录分页在 SQL 侧按包名做**（P9-C）：`RepoStore.queryCatalogNames()` +
+  `queryCatalog({ names })`。用户偏好（隐藏包/预发布）必须作为 SQL 条件传下去，
+  **不能**取回后再过滤 —— 否则隐藏项占掉页内名额，第二页少行。
+  `fetchRows` 按**实际返回行数**推进 offset（`queryCatalog` 把 limit 夹到 500，
+  按请求的 limit 推进会静默跳页，10k 行只读到 2.5k 且 `total` 仍然正确）。
 - **P8-D 对账结论**：`docs/VPM-PARITY.md` 124 行，61 完整 / 56 部分 / 7 不做；
   35 行目标=完整但实际=部分，P8 门禁未签字。必修清单与 P9 范围见
   `docs/VPM-GAPS.md`；已接受差异（A5/A6、A9、A13、A18、A20、B24、B26、F5、F7、F8、
