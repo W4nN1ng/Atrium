@@ -113,8 +113,9 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P8-A | UI 收口、按钮纪律与组件边界 | P4-E/P5-D/P6-D/P7-E | 逐屏检查、边界测试、文案 | I1/I2/A20/B24 | done |
 | P8-B | 操作记录、诊断导出与配额清理 | P4-A | `log/`、诊断包、用量与清缓存 | G3/G4/G5/I3 | done |
 | P8-C | 设置补齐、更新检查与已知限制 | P7-B | 设置项、手动更新、限制文档 | G1/G2/G3/G6 | done |
-| P8-D | 逐行功能对账与缺口分诊 | P8-A/B/C | 对账证据、差异、后续任务 | 全部 | todo |
+| P8-D | 逐行功能对账与缺口分诊 | P8-A/B/C | 对账证据、差异、后续任务 | 全部 | done（P8 门禁未签） |
 | P8-E | 性能、可访问性与全量回归 | P8-D | 基准、键盘/焦点、回归记录 | I1/I2/I10/A13 | todo |
+| P8-F | 模板编辑 UI（A8 缺口） | P5-A/P8-D | 设置页模板新建/编辑/复制/删除引用 | A8 | todo |
 | P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | todo |
 | P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | todo |
 | P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | todo |
@@ -128,6 +129,9 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 > 请求头、测试连接）已补齐。
 > **P8-C**：设置页新增"偏好设置"（预发布 / 隐藏包 / 配额 / 默认 Unity 参数 / 更新检查开关）
 > 与"更新"（手动检查 → 下载 → 校验 → 用户点安装），已知限制写进 `README.md` 与 `docs/DEVELOPMENT.md`。
+> **P8-D**：124 行 A–K 对账已填满；60 完整 / 57 部分 / 7 不做；39 行目标=完整但实际=部分，
+> **P8 门禁未签字**。缺口与 P9 只修清单见 `docs/VPM-GAPS.md`；A8 模板编辑 UI 新开 **P8-F**。
+> 下一步：先裁定 GAP-02（数据根落 C）与 A18（删除 vs 只移除列表），再做 P8-E/P9-D。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1267,6 +1271,23 @@ Task: P?-?
 - **已知限制**：包图标只有首字母回退（不新增图标管线）；模板编辑 UI 仍缺（属新功能）；
   深链未真机点过。
 
+### P8-B（2026-10-23，done；交接段由 P8-D 补记）
+
+- **公开 API/契约**：`src/main/vpm/log/` 导出 `OperationLogService`、`toLogEntry`、
+  `usageOf`、`clearUsage`、`buildDiagnostics`、`exportDiagnostics`；IPC 新增
+  `LogRecent` / `UsageSnapshot` / `CacheClear` / `DiagnosticsExport`；
+  UI 是工程详情里的 `MaintenanceLogPanel`（最近操作、三块用量、清缓存、导出诊断）。
+- **脱敏**：操作记录只留工程名/类型/状态/步骤/错误码/时间，不带绝对路径、计划 JSON、
+  hash、文件清单；诊断包是一个只含 `diagnostics.json` 的 zip，不含路径/密钥/请求头/文件内容。
+- **清理边界**：`clearUsage` 只接受 `cache`；`vault`/`backups` 即使传进来也拒绝，
+  必须走各自界面的用户确认（回滚仓走回收站，备份不自动删）。
+- **已验证**：`tests/vpm/log/diagnostics.spec.ts`（6 条：脱敏/跨工程排序/用量/只清缓存/
+  诊断不含路径/可读 zip）；全量测试当时 221 files / 2748 passed / 19 skipped；typecheck 0。
+- **未验证**：没有 UI 截图；诊断包没有在真实故障现场跑过；缓存清理没有在下载/事务进行中
+  做并发演练（P9-B）。
+- **给 P8-C**：设置/更新页不要复用 `clearUsage` 去清 vault/backups；诊断导出只传
+  `buildDiagnostics` 的白名单字段。
+
 ### P8-C（2026-10-23，done）
 
 - **公开 API/契约**：新增 5 条 IPC（`vpm:settings-get` / `vpm:settings-patch` /
@@ -1295,6 +1316,34 @@ Task: P?-?
   真 Unity 启动/导入仍归 P5-D / P5-E / P6-D；本轮没出新 UI 截图。
 - **给 P8-D**：对账时注意"预发布/隐藏包只影响浏览"这条，别判成"解析也过滤"；
   `docs/VPM-P8C-HANDOVER.md` 是换工作站用的完整交接档案（含环境踩坑与新机起步命令）。
+
+### P8-D（2026-10-23，done；P8 门禁未签）
+
+- **交付**：`docs/VPM-PARITY.md` 124 行全部填实际状态/证据/差异/去向；
+  新增 `docs/VPM-GAPS.md`（GAP-01…GAP-11 + P9 只修清单 + 产品裁定）；
+  新增 `tests/vpm/parity-evidence.spec.ts`（5 条：行数/四字段/不做行/部分行去向/
+  目标完整但实际部分的行必须在 GAP 文档里）。
+- **统计**：60 实际完整 / 57 实际部分 / 7 不做。**39 行目标=完整但实际=部分**，
+  所以 P8 不能签字；这不是“全部做完”，P9 只修这些缺口。
+- **最大缺口**：GAP-01 真 Unity 2022.3.22f1 端到端（装/升/降/重装/卸/撤销、启动、
+  双击导入、多实例、创建、附件、备份恢复、迁移、换版本），覆盖 P4-E/P5-D/P5-E/P6-D
+  的 review 卡；P4-VERIFICATION 的无头证据不能替代。
+- **产品裁定两条**：GAP-02（R19 把数据根/cache/vault/backups 固定到
+  `%APPDATA%\Atrium`，与原“缓存不落 C”硬约束冲突）；A18（R17 只有“删除进回收站”，
+  没有“只移除台账”）。P9 开工前需要一句明确裁定。
+- **顺手修复**：`tools/check-worker-deps.cjs` 原来扫 `out/main` 所有 chunk，
+  把主进程专用的 VPM 动态 chunk 误报成 worker 依赖；改成从 `worker.js` 出发只检查
+  可达图后，`yazl`/`electron-log` 误报消失，`node tools/check-worker-deps.cjs` 通过。
+- **已验证**：`npm run typecheck` 0；全量测试 **222 files / 2752 passed / 20 skipped**
+  （P8-D 前 221/2748/19；新增 parity 1 file/5 tests，另有 1 条环境性 skip）；
+  `npx electron-vite build` 0；worker 依赖图 2 个文件自包含。
+- **未验证**：真 Unity、真实 VCC、GitHub 更新/安装器、Windows 10/其他 Unity 版本、
+  100%/125% 真窗口键盘/ARIA；均已在 VPM-GAPS 里分派。
+- **流程缺口**：当前分支 `codex/vpm-p4d-failure-recovery` 无 upstream；`origin/main`
+  仍在 P4-A `e8c3dcb`，P4-B…P8-C 尚未推送/PR。P9-E 发布前必须处理。
+- **给 P8-E/P8-F/P9**：P8-E 做键盘/可访问性/性能/真机截图；P8-F 补模板编辑 UI；
+  P9-D 做真 Unity/回退演练；P9-E 做更新/安装器/发布。不要在没有 GAP-02/A18 裁定的
+  情况下改数据根或删除入口。
 
 ---
 
