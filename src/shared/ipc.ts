@@ -293,7 +293,10 @@ export const IpcInvoke = {
     /** P8-C：手动更新检查 → 下载 → 运行安装包（每一步都要用户点）。 */
     UpdateCheck: 'vpm:update-check',
     UpdateDownload: 'vpm:update-download',
-    UpdateInstall: 'vpm:update-install'
+    UpdateInstall: 'vpm:update-install',
+    /** P9-E：本地投放目录里的安装包（不依赖 GitHub）。 */
+    UpdateLocal: 'vpm:update-local',
+    UpdateOpenFolder: 'vpm:update-open-folder'
   }
 } as const
 

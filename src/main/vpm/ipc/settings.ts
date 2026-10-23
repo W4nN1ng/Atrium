@@ -1,6 +1,11 @@
+import fs from 'node:fs'
 import { VpmError } from '../../../shared/vpm/errors'
 import { IpcInvoke } from '../../../shared/ipc'
-import type { VpmPreferencesDto, VpmPreferencesPatch } from '../../../shared/vpm/dto'
+import type {
+  VpmLocalBuildsDto,
+  VpmPreferencesDto,
+  VpmPreferencesPatch
+} from '../../../shared/vpm/dto'
 import type { IpcApi } from '../../ipc/types'
 import { patchVpmSettings, readVpmSettings } from '../config'
 import type { VpmRuntime } from '../index'
@@ -98,6 +103,33 @@ export function registerSettingsIpc(options: VpmSettingsIpcOptions): void {
     const runtime = options.getRuntime()
     if (!runtime) throw new VpmError('vpmRuntimeNotReady')
     return runtime.updater.download()
+  })
+
+  /**
+   * P9-E：本地投放目录里的安装包。
+   *
+   * GitHub 那条路要等正式发布；自己构建的包就在磁盘上，
+   * 放进去（`<数据根>/updates/`）就能在界面里直接装，不用去翻文档。
+   */
+  ipc.handle(IpcInvoke.Vpm.UpdateLocal, (): VpmLocalBuildsDto => {
+    const runtime = options.getRuntime()
+    if (!runtime) throw new VpmError('vpmRuntimeNotReady')
+    return { dir: runtime.updater.updatesDir, builds: runtime.updater.localBuilds() }
+  })
+
+  ipc.handle(IpcInvoke.Vpm.UpdateOpenFolder, () => {
+    const runtime = options.getRuntime()
+    if (!runtime) throw new VpmError('vpmRuntimeNotReady')
+    const dir = runtime.updater.updatesDir
+    // 目录可能还不存在（第一次用）：先建出来再打开，免得"打开了空气"。
+    try {
+      fs.mkdirSync(dir, { recursive: true })
+    } catch {
+      /* 建不出来就让 reveal 去报错 */
+    }
+    if (!runtime.revealPath) throw new VpmError('vpmUpdateInstallFailed')
+    runtime.revealPath(dir)
+    return { ok: true }
   })
 
   ipc.handle(IpcInvoke.Vpm.UpdateInstall, (input: unknown) => {

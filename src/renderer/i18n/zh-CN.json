@@ -1955,7 +1955,12 @@
       "installConfirmTitle": "运行安装包？",
       "installConfirmBody": "将启动 {{name}}。请先结束正在进行的包操作；安装完成后重新打开 Atrium。",
       "installStarted": "已启动安装包。",
-      "installFailed": "无法启动安装包。"
+      "installFailed": "无法启动安装包。",
+      "localTitle": "本地安装包",
+      "localHint": "把 Atrium-Setup-*.exe 放进这个文件夹，就会出现在下面",
+      "localOpen": "打开文件夹",
+      "localInstall": "安装",
+      "localEmpty": "还没有本地安装包（{{dir}}）"
     }
   }
 }

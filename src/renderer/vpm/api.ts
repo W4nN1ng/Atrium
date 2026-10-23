@@ -43,7 +43,8 @@ import type {
   VpmPreferencesDto,
   VpmPreferencesPatch,
   VpmUpdateCheckDto,
-  VpmUpdateDownloadDto
+  VpmUpdateDownloadDto,
+  VpmLocalBuildsDto
 } from '../../shared/vpm/dto'
 
 /**
@@ -344,6 +345,12 @@ export const vpmApi = {
   },
   updateInstall(path: string): Promise<{ ok: boolean; errorCode: string | null }> {
     return window.a.vpm.updateInstall({ path })
+  },
+  updateLocal(): Promise<VpmLocalBuildsDto> {
+    return window.a.vpm.updateLocal()
+  },
+  updateOpenFolder(): Promise<{ ok: boolean }> {
+    return window.a.vpm.updateOpenFolder()
   },
   pickProjectDirectory(title: string): Promise<string | null> {
     return window.a.system.pickDirectory({ title })

@@ -156,7 +156,9 @@ export type {
   VpmUpdateCheckDto,
   VpmUpdateDownloadDto,
   VpmUpdateDownloadStatus,
-  VpmUpdateStatus
+  VpmUpdateStatus,
+  VpmLocalBuildDto,
+  VpmLocalBuildsDto
 } from './settings'
 
 export type {

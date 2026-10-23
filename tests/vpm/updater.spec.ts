@@ -180,6 +180,41 @@ describe('UpdaterService.download', () => {
   })
 })
 
+describe('UpdaterService.localBuilds', () => {
+  it('列出投放目录里的安装包，按版本从新到旧', () => {
+    fs.mkdirSync(downloads, { recursive: true })
+    for (const name of ['Atrium-Setup-0.9.0.exe', 'Atrium-Setup-0.10.0.exe', 'Atrium-Setup-0.9.1.exe']) {
+      fs.writeFileSync(path.join(downloads, name), 'x')
+    }
+    // 干扰项：不是安装包 / 不是 exe
+    fs.writeFileSync(path.join(downloads, 'notes.txt'), 'x')
+    fs.writeFileSync(path.join(downloads, 'Atrium-Setup-0.9.0.exe.blockmap'), 'x')
+
+    const builds = service(fakeHttp({}).http).localBuilds()
+
+    expect(builds.map((build) => build.version)).toEqual(['0.10.0', '0.9.1', '0.9.0'])
+    expect(builds[0].name).toBe('Atrium-Setup-0.10.0.exe')
+    expect(builds[0].size).toBeGreaterThan(0)
+    expect(builds[0].mtime).toBeGreaterThan(0)
+  })
+
+  it('目录不存在时返回空数组，不抛错', () => {
+    expect(service(fakeHttp({}).http).localBuilds()).toEqual([])
+  })
+
+  it('文件名里没有合法版本时 version 为 null，但仍然列出来', () => {
+    fs.mkdirSync(downloads, { recursive: true })
+    fs.writeFileSync(path.join(downloads, 'Atrium-Setup-nightly.exe'), 'x')
+    const builds = service(fakeHttp({}).http).localBuilds()
+    expect(builds).toHaveLength(1)
+    expect(builds[0].version).toBeNull()
+  })
+
+  it('updatesDir 就是下载目录（界面"打开文件夹"用）', () => {
+    expect(service(fakeHttp({}).http).updatesDir).toBe(downloads)
+  })
+})
+
 describe('UpdaterService.runInstaller', () => {
   it('只接受下载目录里的 Atrium-Setup-*.exe', () => {
     const updater = service(fakeHttp({}).http)

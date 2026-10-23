@@ -1955,7 +1955,12 @@
       "installConfirmTitle": "Run the installer?",
       "installConfirmBody": "This starts {{name}}. Finish any running package operation first, and reopen Atrium after installing.",
       "installStarted": "Installer started.",
-      "installFailed": "Could not start the installer."
+      "installFailed": "Could not start the installer.",
+      "localTitle": "Local installers",
+      "localHint": "Drop an Atrium-Setup-*.exe into this folder and it shows up here",
+      "localOpen": "Open folder",
+      "localInstall": "Install",
+      "localEmpty": "No local installer yet ({{dir}})"
     }
   }
 }

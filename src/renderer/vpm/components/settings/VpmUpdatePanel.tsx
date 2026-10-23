@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { VpmUpdateCheckDto, VpmUpdateDownloadDto } from '../../../../shared/vpm/dto'
+import type {
+  VpmLocalBuildsDto,
+  VpmUpdateCheckDto,
+  VpmUpdateDownloadDto
+} from '../../../../shared/vpm/dto'
 import { Badge, Button, Modal } from '../../../components/ui'
 import { errorText, msg } from '../../../lib/msg'
 import { vpmApi } from '../../api'
@@ -25,6 +29,10 @@ export function VpmUpdatePanel({ networkAllowed }: { networkAllowed: boolean }):
   const [notice, setNotice] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [autoTried, setAutoTried] = useState(false)
+  /** 本地投放目录里的安装包（自己构建的包，不依赖 GitHub）。 */
+  const [local, setLocal] = useState<VpmLocalBuildsDto | null>(null)
+  /** 待安装的本地包（点"安装"先过确认框）。 */
+  const [pendingBuild, setPendingBuild] = useState<{ path: string; name: string } | null>(null)
 
   const check = useCallback(
     async (force: boolean): Promise<void> => {
@@ -57,6 +65,44 @@ export function VpmUpdatePanel({ networkAllowed }: { networkAllowed: boolean }):
       }
     })()
   }, [autoTried, networkAllowed, check])
+
+  const loadLocal = useCallback(async (): Promise<void> => {
+    try {
+      setLocal(await vpmApi.updateLocal())
+    } catch {
+      // 本地列表读不出来不影响 GitHub 那条路
+      setLocal(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadLocal()
+  }, [loadLocal])
+
+  const installLocal = async (): Promise<void> => {
+    if (!pendingBuild) return
+    setBusy('install')
+    setError(null)
+    try {
+      const result = await vpmApi.updateInstall(pendingBuild.path)
+      if (result.ok) setNotice(t('vpm.update.installStarted'))
+      else setError(t('vpm.update.installFailed'))
+    } catch (cause) {
+      setError(errorText(cause))
+    } finally {
+      setBusy(null)
+      setPendingBuild(null)
+      setConfirmOpen(false)
+    }
+  }
+
+  const openFolder = async (): Promise<void> => {
+    try {
+      await vpmApi.updateOpenFolder()
+    } catch (cause) {
+      setError(errorText(cause))
+    }
+  }
 
   const download = async (): Promise<void> => {
     setBusy('download')
@@ -143,6 +189,56 @@ export function VpmUpdatePanel({ networkAllowed }: { networkAllowed: boolean }):
         </p>
       ) : null}
 
+      {/*
+        P9-E：不依赖 GitHub 的更新路径。
+        自己构建的 Atrium-Setup-*.exe 丢进 <数据根>/updates/，这里直接列出来点安装 ——
+        用户不用去翻文档、也不用自己去双击安装包。
+      */}
+      <div className="rounded border" style={{ borderColor: 'var(--line)' }}>
+        <div
+          className="flex flex-wrap items-center gap-2 border-b px-4 py-2.5"
+          style={{ borderColor: 'var(--line)' }}
+        >
+          <span className="text-[13px]">{t('vpm.update.localTitle')}</span>
+          <span className="text-[12px]" style={{ color: 'var(--muted)' }}>
+            {t('vpm.update.localHint')}
+          </span>
+          <div className="ml-auto">
+            <Button variant="ghost" onClick={() => void openFolder()}>
+              {t('vpm.update.localOpen')}
+            </Button>
+          </div>
+        </div>
+        {local && local.builds.length > 0 ? (
+          <div>
+            {local.builds.map((build) => (
+              <div
+                key={build.path}
+                className="flex flex-wrap items-center gap-2 border-b px-4 py-2 text-[12px] last:border-b-0"
+                style={{ borderColor: 'var(--line)' }}
+              >
+                <span className="font-mono">{build.version ?? build.name}</span>
+                <span style={{ color: 'var(--muted)' }}>{new Date(build.mtime).toLocaleString()}</span>
+                <span style={{ color: 'var(--muted)' }}>{size(build.size)}</span>
+                <div className="ml-auto">
+                  <Button
+                    variant="accent"
+                    disabled={busy !== null}
+                    onClick={() => setPendingBuild({ path: build.path, name: build.name })}
+                  >
+                    {t('vpm.update.localInstall')}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="px-4 py-2.5 text-[12px]" style={{ color: 'var(--muted)' }}>
+            {t('vpm.update.localEmpty', { dir: local?.dir ?? '' })}
+          </div>
+        )}
+      </div>
+
       {hasUpdate && installer ? (
         <div className="rounded border" style={{ borderColor: 'var(--line)' }}>
           <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2.5" style={{ borderColor: 'var(--line)' }}>
@@ -187,23 +283,39 @@ export function VpmUpdatePanel({ networkAllowed }: { networkAllowed: boolean }):
       ) : null}
 
       <Modal
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
+        open={confirmOpen || pendingBuild !== null}
+        onOpenChange={(next) => {
+          if (busy === 'install') return
+          setConfirmOpen(next)
+          if (!next) setPendingBuild(null)
+        }}
         width={480}
         title={t('vpm.update.installConfirmTitle')}
         footer={
           <>
-            <Button disabled={busy === 'install'} onClick={() => setConfirmOpen(false)}>
+            <Button
+              disabled={busy === 'install'}
+              onClick={() => {
+                setConfirmOpen(false)
+                setPendingBuild(null)
+              }}
+            >
               {t('common.cancel')}
             </Button>
-            <Button variant="accent" disabled={busy === 'install'} onClick={() => void install()}>
+            <Button
+              variant="accent"
+              disabled={busy === 'install'}
+              onClick={() => void (pendingBuild ? installLocal() : install())}
+            >
               {t('vpm.update.runInstaller')}
             </Button>
           </>
         }
       >
         <div className="text-[13px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-          {t('vpm.update.installConfirmBody', { name: installer?.name ?? '' })}
+          {t('vpm.update.installConfirmBody', {
+            name: pendingBuild?.name ?? installer?.name ?? ''
+          })}
         </div>
       </Modal>
     </section>

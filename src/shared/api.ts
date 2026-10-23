@@ -81,7 +81,8 @@ import type {
   VpmPreferencesDto,
   VpmPreferencesPatch,
   VpmUpdateCheckDto,
-  VpmUpdateDownloadDto
+  VpmUpdateDownloadDto,
+  VpmLocalBuildsDto
 } from './vpm/dto'
 
 export interface AppInfo {
@@ -464,6 +465,9 @@ export interface AApi {
     updateCheck(input?: { force?: boolean }): Promise<VpmUpdateCheckDto>
     updateDownload(): Promise<VpmUpdateDownloadDto>
     updateInstall(input: { path: string }): Promise<{ ok: boolean; errorCode: string | null }>
+    /** P9-E：本地投放目录里的安装包（不依赖 GitHub）。 */
+    updateLocal(): Promise<VpmLocalBuildsDto>
+    updateOpenFolder(): Promise<{ ok: boolean }>
   }
   categories: {
     list(): Promise<CategoryConfig>

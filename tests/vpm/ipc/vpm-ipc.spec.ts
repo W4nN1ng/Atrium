@@ -294,6 +294,8 @@ describe('VPM P1 IPC', () => {
         IpcInvoke.Vpm.UpdateCheck,
         IpcInvoke.Vpm.UpdateDownload,
         IpcInvoke.Vpm.UpdateInstall,
+        IpcInvoke.Vpm.UpdateLocal,
+        IpcInvoke.Vpm.UpdateOpenFolder,
         IpcInvoke.Vpm.PlanExplain
       ].sort()
     )

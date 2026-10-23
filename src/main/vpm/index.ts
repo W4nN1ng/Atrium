@@ -109,6 +109,8 @@ export interface VpmRuntime {
   templates: TemplateService
   create: ProjectCreateService
   launch: UnityLaunchService
+  /** 在资源管理器里定位一个文件/目录（gate 注入 `shell.showItemInFolder`）。 */
+  revealPath?: (target: string) => void
   trashPath?: (target: string) => Promise<void>
   forgetCoreProject?: (path: string) => void
   backup: ProjectBackupService

@@ -164,7 +164,9 @@ const api: AApi = {
     settingsPatch: (patch) => invoke('vpm:settings-patch', patch),
     updateCheck: (input) => invoke('vpm:update-check', input ?? {}),
     updateDownload: () => invoke('vpm:update-download'),
-    updateInstall: (input) => invoke('vpm:update-install', input)
+    updateInstall: (input) => invoke('vpm:update-install', input),
+    updateLocal: () => invoke('vpm:update-local'),
+    updateOpenFolder: () => invoke('vpm:update-open-folder')
   },
   categories: {
     list: () => invoke('categories:list'),

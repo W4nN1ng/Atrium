@@ -1955,7 +1955,12 @@
       "installConfirmTitle": "インストーラーを実行しますか？",
       "installConfirmBody": "{{name}} を起動します。実行中のパッケージ操作を終えてから行い、インストール後に Atrium を開き直してください。",
       "installStarted": "インストーラーを起動しました。",
-      "installFailed": "インストーラーを起動できませんでした。"
+      "installFailed": "インストーラーを起動できませんでした。",
+      "localTitle": "ローカルインストーラー",
+      "localHint": "Atrium-Setup-*.exe をこのフォルダに入れると下に表示されます",
+      "localOpen": "フォルダを開く",
+      "localInstall": "インストール",
+      "localEmpty": "ローカルのインストーラーはまだありません（{{dir}}）"
     }
   }
 }

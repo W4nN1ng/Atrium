@@ -32,6 +32,17 @@ export interface UpdateCheckResult {
   cached: boolean
 }
 
+/** 本地已经躺着的安装包（`<数据根>/updates/Atrium-Setup-*.exe`）。 */
+export interface LocalBuild {
+  name: string
+  path: string
+  size: number
+  /** 文件修改时间（毫秒）。 */
+  mtime: number
+  /** 从文件名解析的版本；解析不出来是 null。 */
+  version: string | null
+}
+
 export interface UpdateDownloadResult {
   status: 'ready' | 'hash-mismatch' | 'failed' | 'cancelled'
   path: string | null
@@ -311,6 +322,57 @@ export class UpdaterService {
     } catch {
       return { ok: false, errorCode: 'vpmUpdateInstallFailed' }
     }
+  }
+
+  /** 安装包投放目录（UI 上"打开这个文件夹"用）。 */
+  get updatesDir(): string {
+    return this.options.downloadDir
+  }
+
+  /**
+   * 扫一遍投放目录里已经有的安装包。
+   *
+   * 为什么需要它：GitHub 那条路要等发布，而自己构建的包就躺在磁盘上 ——
+   * 用户把 `Atrium-Setup-*.exe` 丢进 `<数据根>/updates/`，界面直接列出来点安装，
+   * 不用去翻文档/资源管理器。
+   */
+  localBuilds(): LocalBuild[] {
+    let entries: string[]
+    try {
+      entries = fs.readdirSync(this.options.downloadDir)
+    } catch {
+      return []
+    }
+    const builds: LocalBuild[] = []
+    for (const name of entries) {
+      if (!name.startsWith(INSTALLER_PREFIX) || !name.toLowerCase().endsWith('.exe')) continue
+      const file = path.join(this.options.downloadDir, name)
+      let stat: fs.Stats
+      try {
+        stat = fs.statSync(file)
+      } catch {
+        continue
+      }
+      if (!stat.isFile()) continue
+      const matched = /^Atrium-Setup-(.+\.exe)$/i.exec(name)
+      const raw = matched ? matched[1].replace(/\.exe$/i, '') : ''
+      builds.push({
+        name,
+        path: file,
+        size: stat.size,
+        mtime: stat.mtimeMs,
+        version: parseVpmVersion(raw) ? raw : null
+      })
+    }
+    builds.sort((a, b) => {
+      if (a.version && b.version) {
+        const diff = compareVpmVersions(b.version, a.version)
+        if (diff !== 0) return diff
+      } else if (a.version) return -1
+      else if (b.version) return 1
+      return b.mtime - a.mtime
+    })
+    return builds
   }
 
   /** 测试用：丢掉缓存。 */

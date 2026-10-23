@@ -60,3 +60,20 @@ export interface VpmUpdateDownloadDto {
   actualSha256: string | null
   errorCode: VpmErrorCode | null
 }
+
+/** 本地投放目录里的安装包（P9-E：不依赖 GitHub 也能更新）。 */
+export interface VpmLocalBuildDto {
+  name: string
+  path: string
+  size: number
+  /** 文件修改时间（毫秒）。 */
+  mtime: number
+  /** 文件名里的版本；解析不出来是 null。 */
+  version: string | null
+}
+
+export interface VpmLocalBuildsDto {
+  /** 投放目录（`<数据根>/updates`）；界面上"打开这个文件夹"用。 */
+  dir: string
+  builds: VpmLocalBuildDto[]
+}
