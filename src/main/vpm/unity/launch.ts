@@ -243,13 +243,19 @@ export class UnityLaunchService {
     /**
      * 崩溃/被强杀会留下 `Temp/UnityLockfile`。新起的 Unity 看到它就会**一直等**另一个实例
      * （实测：进程在、CPU 几乎为 0、无窗口、不写 Editor.log）。
-     * 能删掉 = 没人持有 → 陈旧锁，清掉再启动；删不掉 = 真有实例在跑 → 不重复启动。
+     * 能搬走 = 没人持有 → 陈旧锁，搬到同目录的 `.atrium-stale-*` 再启动；
+     * 搬不动 = 真有实例在跑 → 不重复启动。**不直接删工程文件**。
      */
     const lockfile = path.join(projectPath, 'Temp', 'UnityLockfile')
     if (fs.existsSync(lockfile)) {
+      const stale = path.join(
+        projectPath,
+        'Temp',
+        `UnityLockfile.atrium-stale-${Date.now()}`
+      )
       try {
-        fs.rmSync(lockfile)
-        log.info(`[launch] 清掉陈旧锁文件 ${lockfile}`)
+        fs.renameSync(lockfile, stale)
+        log.info(`[launch] 陈旧锁已移到 ${stale}`)
       } catch {
         input.clearTarget?.(projectPath)
         return {

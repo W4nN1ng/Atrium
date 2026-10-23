@@ -179,6 +179,30 @@ describe('launch', () => {
     expect(bind).toHaveBeenCalledWith(projectPath)
   })
 
+  it('moves a stale UnityLockfile aside instead of deleting a project file', async () => {
+    const exe = touchExe(path.join(root, 'editor', 'Unity.exe'))
+    const lockfile = path.join(projectPath, 'Temp', 'UnityLockfile')
+    fs.mkdirSync(path.dirname(lockfile), { recursive: true })
+    fs.writeFileSync(lockfile, 'stale-lock')
+    const service = new UnityLaunchService({
+      installs: () => [install({ path: exe })],
+      spawn: () => fakeChild(),
+      exists: () => true
+    })
+
+    const result = await service.launch({ projectPath })
+
+    expect(result.status).toBe('launched')
+    expect(fs.existsSync(lockfile)).toBe(false)
+    const stale = fs
+      .readdirSync(path.join(projectPath, 'Temp'))
+      .find((name) => name.startsWith('UnityLockfile.atrium-stale-'))
+    expect(stale).toBeTruthy()
+    expect(fs.readFileSync(path.join(projectPath, 'Temp', stale as string), 'utf8')).toBe(
+      'stale-lock'
+    )
+  })
+
   it('clears the binding when spawning throws', async () => {
     const clear = vi.fn()
     const service = new UnityLaunchService({

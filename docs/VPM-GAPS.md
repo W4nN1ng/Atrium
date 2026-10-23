@@ -42,7 +42,7 @@ GAP-03（模板编辑 UI）已由 P8-F 关闭，不再作为 P9 必修项。
 | **GAP-07** | VCC/ALCOM 真机只读 | A23 C12 F1 F2 F3 F4 | 测试全部用注入 source；真实 VCC 设置路径未跑 | P9-D 真机，或接受部分 |
 | **GAP-08** | 版本/locked/Windows 矩阵 | B12 D10 H1 | 只有 Unity 2022.3.22f1 + Windows 11；真实 locked 对比未做 | P9-C/P9-D |
 | **GAP-09** | 已接受差异 | A5 A6 A9 A13 A18 A20 B24 B26 F5 F7 F8 G1 G3 I6 | 目标本来就是部分，或用户已明确接受（A18/G3/I6）；写进 README/DEVELOPMENT 即可 | 文档收口 |
-| **GAP-10** | 交付/流程 | — | 本分支无 upstream，P4-B…P8-F 没有 PR；`check-worker-deps` 误报已在 P8-D 修 | 推送/PR/发布前核对 |
+| **GAP-10** | 交付/流程 | — | 本分支无 upstream，P4-B…P9-A 没有 PR；`check-worker-deps` 误报已在 P8-D 修 | 推送/PR/发布前核对 |
 | **GAP-11** | 文档缺口 | — | `docs/VPM-TASKS.md` 缺 P8-B 交接段 | 本卡补上 |
 
 > A18（从列表移除、不删盘）已由用户在 2026-10-23 明确接受 R17：删除就是整个文件夹进回收站。
@@ -211,7 +211,7 @@ locked 快照长期对比。
 5. **GAP-07 VCC 真机只读**（P9-D）：真实 VCC/ALCOM 设置路径。
 6. **GAP-08 版本矩阵**（P9-C/D）：locked 对比、Win10、其他 Unity 版本。
 7. **GAP-09 文档收口**：已接受差异写进 README/DEVELOPMENT（A18/G3/I6 已由用户接受）。
-8. **GAP-10 交付**：推送当前分支/建 PR（P4-B…P8-F 尚未上远端）；P9-E 前确认
+8. **GAP-10 交付**：推送当前分支/建 PR（P4-B…P9-A 尚未上远端）；P9-E 前确认
    `npm run build` 四段都过。P8-F 已关闭模板 UI，不再单列。
 
 ---
@@ -232,7 +232,7 @@ locked 快照长期对比。
 ## 5. 流程与交付缺口（GAP-10/11）
 
 - **分支/PR**：当前 `codex/vpm-p4d-failure-recovery` 没有 upstream，`origin/main`
-  还停在 P4-A 的 `e8c3dcb`；P4-B…P8-F 全部只在本地。P9 发布前必须推送并走 PR/合并。
+  还停在 P4-A 的 `e8c3dcb`；P4-B…P9-A 全部只在本地。P9 发布前必须推送并走 PR/合并。
 - **P8-C 交接文档**：`docs/VPM-P8C-HANDOVER.md` 写“P8-C 未提交、HEAD 689d8e2”，
   实际已提交 `709a990`；接手时以 git 和本文件为准。
 - **P8-B 交接**：`docs/VPM-TASKS.md` 缺 P8-B 段；本卡补一条，证据来自

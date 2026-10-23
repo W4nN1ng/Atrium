@@ -194,9 +194,9 @@
 | I1 | 按钮少/单一主操作 | 完整 | P8 | 截图复核 + 交互清单 | 实际=完整；证据=docs/VPM-P8A-UI-AUDIT.md、tests/renderer/vpm-ui.spec.ts、截图 vpm-p8-*；差异=一屏一实心；离屏截图；去向=接受 |
 | I2 | 键盘/可访问性 | 完整 | P8 | Esc/Enter/Tab/焦点；不只靠颜色 | 实际=部分；证据=tests/renderer/vpm-a11y.spec.ts(5)、vpm-contrast.spec.ts(2)、tools/preview/a11y.cjs(14 项)、截图 vpm-p8e-100/125；差异=菜单/弹窗焦点、方向键/End/Esc、对比度、100/125 无溢出已验；真实屏幕阅读器/真实 DPI/合成 Enter 未验；去向=GAP-06/P9-C |
 | I3 | 操作可恢复 | 完整 | P4/P8 | 崩溃恢复、操作记录、回滚仓 | 实际=完整；证据=P4-D recovery/failure-injection、P8-B log/usage；差异=崩溃恢复/操作记录/回滚仓；去向=接受 |
-| I4 | 永不永久删用户素材 | 完整 | 全部 | 代码审查 + 测试：无 `unlink` 用户文件 | 实际=完整；证据=代码审查：用户文件只移 vault/trash；cache/tmp 例外；transaction/vault 测试；差异=缓存/临时例外；去向=接受 |
-| I5 | 不手写 `.meta` | 完整 | 全部 | 代码审查 + 真 Unity | 实际=完整；证据=unitypackage 测试、源码守卫、P4 真实包 519 .meta 原样；差异=不生成/改写 .meta；去向=接受 |
-| I6 | 缓存不落 C | 部分 | P0/P1 | 数据根校验 + 测试 | 实际=部分；证据=gate.ts R19 defaultVpmDataRoot=%APPDATA%/Atrium；cache/vault/backups 派生；差异=缓存/回滚仓/备份在 C；去向=接受差异（R19 用户裁定） |
+| I4 | 永不永久删用户素材 | 完整 | 全部 | 代码审查 + 测试：无 `unlink` 用户文件 | 实际=完整；证据=tests/vpm/security/static.spec.ts 删除白名单、vault/store 测试、事务失败注入、P9-A 安全报告；差异=缓存/临时例外；去向=接受 |
+| I5 | 不手写 `.meta` | 完整 | 全部 | 代码审查 + 真 Unity | 实际=完整；证据=unitypackage 测试、tests/vpm/security/static.spec.ts .meta 静态扫描、P4 真实包 519 .meta 原样；差异=不生成/改写 .meta；去向=接受 |
+| I6 | 缓存不落 C | 部分 | P0/P1 | 数据根校验 + 测试 | 实际=部分；证据=gate.ts R19 defaultVpmDataRoot=%APPDATA%/Atrium；cache/vault/backups 派生；差异=缓存/回滚仓/备份在 C；去向=接受差异（R19 用户裁定，P9-A 记为安全例外） |
 | I7 | 核心库 schema 不变 | 完整 | 全部 | 断言 `SCHEMA_VERSION=11`；无新迁移 | 实际=完整；证据=SCHEMA_VERSION=11 断言、vpm 独立库 v6；差异=核心库不变；去向=接受 |
 | I8 | 三语文案齐全 | 完整 | 全部 | i18n 测试零漂移 | 实际=完整；证据=tests/renderer/i18n.spec.ts、errors-i18n；差异=zh/en/ja 零漂移；去向=接受 |
 | I9 | 真 Unity 验收 | 完整 | P4/P5/P6 | 2022.3.22f1 沙盒记录 | 实际=部分；证据=P4-E/P5-D/P5-E/P6-D review；P4-VERIFICATION 仅无头；差异=真 Unity 2022.3.22f1 未验；去向=GAP-01/P9-D |

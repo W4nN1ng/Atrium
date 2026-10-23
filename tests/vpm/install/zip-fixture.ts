@@ -6,6 +6,10 @@ export interface ZipFixtureEntry {
   /** 高 16 位 Unix mode；默认目录 0o040755 / 文件 0o100644。 */
   mode?: number
   compression?: 'store' | 'deflate'
+  /** 覆盖压缩方法（例如 12 = bzip2）；默认按 compression 推断。 */
+  method?: number
+  /** 覆盖 general purpose flags（例如 0x1 = encrypted）；默认 UTF-8 位。 */
+  flags?: number
   directory?: boolean
 }
 
@@ -39,14 +43,16 @@ export function makeZip(entries: readonly ZipFixtureEntry[]): Buffer {
     const data = input.data === undefined ? Buffer.alloc(0) : Buffer.from(input.data)
     const directory = input.directory ?? input.name.endsWith('/')
     const mode = input.mode ?? (directory ? 0o040755 : 0o100644)
-    const method = directory || (input.compression ?? 'store') === 'store' ? 0 : 8
+    const method =
+      input.method ?? (directory || (input.compression ?? 'store') === 'store' ? 0 : 8)
     const stored = method === 8 ? zlib.deflateRawSync(data) : data
+    const flags = 0x800 | (input.flags ?? 0)
     const crc = crc32(data)
 
     const local = Buffer.alloc(30)
     local.writeUInt32LE(0x04034b50, 0)
     local.writeUInt16LE(20, 4)
-    local.writeUInt16LE(0x800, 6)
+    local.writeUInt16LE(flags, 6)
     local.writeUInt16LE(method, 8)
     local.writeUInt16LE(0, 10)
     local.writeUInt16LE(0, 12)
@@ -61,7 +67,7 @@ export function makeZip(entries: readonly ZipFixtureEntry[]): Buffer {
     central.writeUInt32LE(0x02014b50, 0)
     central.writeUInt16LE(0x031e, 4)
     central.writeUInt16LE(20, 6)
-    central.writeUInt16LE(0x800, 8)
+    central.writeUInt16LE(flags, 8)
     central.writeUInt16LE(method, 10)
     central.writeUInt16LE(0, 12)
     central.writeUInt16LE(0, 14)

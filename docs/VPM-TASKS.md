@@ -97,10 +97,10 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | review |
 | P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | done |
 | P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | done |
-| P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | todo |
+| P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | done |
 | P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | done |
 | P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10/K1 | review |
-| P5-E | 启动即绑定目标与双击素材真机验收 | P5-D/P4-F/P2-E | 启动绑定、双击导入真机、多实例回归 | K1/K2/K3/K6 | todo |
+| P5-E | 启动即绑定目标与双击素材真机验收 | P5-D/P4-F/P2-E | 启动绑定、双击导入真机、多实例回归 | K1/K2/K3/K6 | review |
 | P6-A | 文件收集器、排除规则与取消 | P2-B | `backup/collector`、排除表、进度/取消 | E1/E3/E4 | done |
 | P6-B | ZIP 备份、记录与从备份新建 | P6-A | `backup/service`、备份记录、恢复、打开位置 | A16/A17/E1–E7 | done |
 | P6-C | 复制工程与更换 Unity 版本 | P6-B/P5-D | `backup/copy`、`unity/version`、回滚 | A15/A19/D6/E9 | done |
@@ -116,7 +116,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P8-D | 逐行功能对账与缺口分诊 | P8-A/B/C | 对账证据、差异、后续任务 | 全部 | done（P8 门禁未签） |
 | P8-E | 性能、可访问性与全量回归 | P8-D | 基准、键盘/焦点、回归记录 | I1/I2/I10/A13 | done（I2/I10/A13 仍按部分记录） |
 | P8-F | 模板编辑 UI（A8 缺口） | P5-A/P8-D | 设置页模板新建/编辑/复制/删除引用 | A8 | done |
-| P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | todo |
+| P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | done（I6 接受例外） |
 | P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | todo |
 | P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | todo |
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
@@ -124,7 +124,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
-> **P5-D / P6-D 代码完成、状态 review**（启动绑定、双击导入、旧工程迁移的真机验收还没做）。
+> **P5-D / P5-E / P6-D 代码完成、状态 review**（启动绑定、双击导入、旧工程迁移的真机验收还没做）。
 > P6-A…P6-C、P7-A…P7-E、P8-A…P8-C 已完成；P7-A/P7-B 的 UI（仓库编辑/启停/排序/导入导出、
 > 请求头、测试连接）已补齐。
 > **P8-C**：设置页新增"偏好设置"（预发布 / 隐藏包 / 配额 / 默认 Unity 参数 / 更新检查开关）
@@ -132,7 +132,8 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 > **P8-D**：124 行 A–K 对账已填满；61 完整 / 56 部分 / 7 不做；35 行目标=完整但实际=部分，
 > **P8 门禁未签字**。缺口与 P9 只修清单见 `docs/VPM-GAPS.md`；A8 模板编辑 UI 已由 **P8-F** 关闭。
 > GAP-02（R19 数据根在 C）与 A18（R17 删除进回收站）已由用户 2026-10-23 明确接受，
-> 不再改动；**P8-E/P8-F 已完成**，下一张 **P9-A**（安全硬化），真 Unity 仍归 P9-D。
+> 不再改动；**P8-E/P8-F 已完成**，**P9-A 已完成**（安全硬化；I6/R19 为接受例外），
+> 下一张 **P9-B**（可靠性与并发硬化），真 Unity 仍归 P9-D。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1400,6 +1401,27 @@ Task: P?-?
   不做附件上传/编辑；不做永久删除。
 - **给 P9-A**：模板面板只走 IPC；新按钮保持原生 button/aria-label；错误用 role=alert。
   A8 已关闭，P9 只剩真 Unity/VCC/更新器/回退/性能等缺口。
+
+### P9-A（2026-10-23，done；I6 接受例外）
+
+- **安全报告**：`docs/VPM-SECURITY.md`（攻击面矩阵、静态闸门、接受例外、未验证）。
+- **修复的唯一真实问题**：陈旧 `Temp/UnityLockfile` 原来 `rmSync` 永久删工程文件；
+  改为同目录改名 `UnityLockfile.atrium-stale-<timestamp>`，改名失败才按 alreadyRunning。
+  `tests/vpm/unity/launch.spec.ts` 新增用例断言旧文件仍在、内容不变。
+- **新增安全用例**：`tests/vpm/security/archive-attacks.spec.ts`（5）、
+  `static.spec.ts`（6）、`deeplink.spec.ts`（4）、`protected-and-templates.spec.ts`（4），
+  覆盖 zip-slip/UNC/ADS/保留名/长路径/symlink/encrypted/未知压缩/bomb、网络唯一出口、
+  TLS 绕过、删除白名单、`.meta`、深链全部凭据键、受保护包、模板路径/循环/只删引用。
+- **静态闸门**：除 `http/` 外无 fetch/net.request/node:http(s)/http://；无 TLS 绕过；
+  删除只允许白名单文件；无生成/改写 `.meta`；陈旧锁只 rename。
+- **已验证**：typecheck 0；`npm run build` 0（含全量 **230 files / 2790 passed /
+  22 skipped**、worker 检查、安装包）；定向安全 4 files/19 条 + launch 16 条全绿。
+- **接受例外**：I6/R19 数据根/cache/vault/backups 在 `%APPDATA%\Atrium`（用户已接受）；
+  回收站不可用时 copy→delete 回退、legacy/unitypackage 原样搬 `.meta` 不算永久删/生成。
+- **未验证**：真实 Unity/VCC/更新器/安装器、OS 级 ACL/UNC/只读盘/杀毒占用、
+  极端 zip bomb/TOCTOU；归 P9-D/P9-E。
+- **给 P9-B**：保留 `tests/vpm/security/static.spec.ts` 的删除/网络/.meta 白名单；
+  新增删除点先过它；不要为了通过率降低校验，也不要“修”回非 C 数据根。
 
 ---
 
