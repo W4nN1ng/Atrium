@@ -1368,6 +1368,7 @@ Task: P?-?
   100%/125% 横向溢出 0）；两套主题 text/muted/faint/bad/warn/ok/accent 与主按钮白字
   全部 ≥4.5:1；全量 **224 files / 2760 passed / 22 skipped**；typecheck 0；
   `electron-vite build` 0；`check-worker-deps` 0；`check-vpm-taskpack` 0。
+  本机安装 P8-E 0.9.0 启动正常（VPM enabled，dataRoot `%APPDATA%\Atrium`）。
 - **未验证**：真实屏幕阅读器、真实物理 100%/125% DPI、离屏合成 Enter（原生 button
   语义由静态测试守住）、10k 包目录/长稳、A13 置顶（可选，未做）、E5/H4 真机点击、
   真 Unity/VCC/更新器/安装器。

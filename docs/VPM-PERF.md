@@ -131,6 +131,7 @@
 | `tests/renderer/vpm-a11y.spec.ts` | 5/5 |
 | `tests/renderer/vpm-contrast.spec.ts` | 2/2 |
 | `VPM_PERF_ISOLATED=1 … vpm-perf.spec.ts` | 3/3（本报告数字） |
+| 本机安装版启动 | 0.9.0（P8-E 构建）正常启动，VPM enabled，dataRoot `%APPDATA%\Atrium`；未操作工程 |
 
 全量里的 22 个 skip = 原有 19 + 环境性 skip + 性能组 3 条（默认 opt-in）。
 不是失败。
@@ -139,6 +140,8 @@
 
 - **真实屏幕阅读器**（NVDA/讲述人）没有跑；只做了 DOM/焦点/ARIA 与离屏探针。
 - **真实 100%/125% DPI** 没有在物理显示器上目视；截图是 Electron offscreen + zoomFactor。
+- **真实窗口的键盘走查**没有做：安装版 0.9.0 已启动过（VPM enabled），但键盘/焦点证据来自
+  离屏 `verify.html`；真窗口 Tab/Esc/Enter 归 P9-D。
 - **合成 Enter**：离屏 `sendInputEvent` 对原生 button 默认 click 的模拟不稳定，未把合成
   Enter 算通过；菜单项是原生 `button`，Enter/Space 由浏览器语义保证，静态测试守住这一点。
 - **A13**（Unity 已运行→窗口顶到前台）未实现，保持部分；P8-E 标为可选，不阻塞本卡。
