@@ -1821,6 +1821,15 @@
       "imported": "已导入仓库 {{repos}} 个、目录 {{folders}} 个",
       "templateImported": "模板「{{name}}」已导入",
       "templateExported": "已导出到 {{path}}"
+    },
+    "deeplink": {
+      "title": "通过链接添加仓库？",
+      "body": "这个链接想往 Atrium 加一个仓库。确认后才会写入，随时可以移除。",
+      "add": "添加仓库",
+      "adding": "正在添加…",
+      "fromVcc": "来自 VCC 的链接：不是 Atrium 自己的请求，请确认来源。",
+      "repoAdded": "仓库已添加",
+      "projectOpened": "工程已加入列表"
     }
   }
 }

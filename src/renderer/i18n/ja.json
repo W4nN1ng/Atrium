@@ -1821,6 +1821,15 @@
       "imported": "リポジトリ {{repos}} 件、フォルダー {{folders}} 件をインポートしました",
       "templateImported": "テンプレート「{{name}}」をインポートしました",
       "templateExported": "{{path}} にエクスポートしました"
+    },
+    "deeplink": {
+      "title": "リンクからリポジトリを追加しますか？",
+      "body": "このリンクは Atrium にリポジトリを追加しようとしています。確認するまで書き込みません。",
+      "add": "リポジトリを追加",
+      "adding": "追加中…",
+      "fromVcc": "VCC からのリンクです。提供元を確認してください。",
+      "repoAdded": "リポジトリを追加しました",
+      "projectOpened": "プロジェクトを一覧に追加しました"
     }
   }
 }

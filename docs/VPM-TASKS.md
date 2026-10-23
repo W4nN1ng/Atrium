@@ -109,7 +109,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P7-B | 请求头、密钥存储与测试连接 | P7-A/P4-B | `SecretStore`、safeStorage、脱敏 | C7/C15 | todo |
 | P7-C | 本地用户包目录 | P7-B/P4-C | `catalog/local`、信任表 v6、面板、本地安装 | C11 | done |
 | P7-D | VCC 只读导入与模板导入导出 | P2-C/P5-A | `interop/vcc`、settings 读取、模板互操作 | C12/F2/F3/F4/F5/F8/A9/A10 | todo |
-| P7-E | 深链、单实例与互操作 UI | P7-C/P7-D | `atrium://`、`vcc://` 确认、集成 UI | F7/H4/C3–C7 | todo |
+| P7-E | 深链、单实例与互操作 UI | P7-C/P7-D | `interop/deeplink`、协议注册、确认弹窗 | F7/H4/C3–C7 | done |
 | P8-A | UI 收口、按钮纪律与组件边界 | P4-E/P5-D/P6-D/P7-E | 逐屏检查、组件拆分、文案 | I1/I2/A20/B24 | todo |
 | P8-B | 操作记录、诊断导出与配额清理 | P4-A | `log/`、诊断包、缓存/vault/备份用量 | G3/G4/G5/I3 | todo |
 | P8-C | 设置补齐、更新检查与已知限制 | P7-B | 设置项、手动更新、限制文档 | G1/G2/G3/G6 | todo |
@@ -1231,6 +1231,23 @@ Task: P?-?
 - **已验证**：typecheck 0；build 过；`interop/vcc.spec.ts` 7 条 + 通道清单 22 条 +
   renderer 29 files / 202 tests 全绿。
 - **未验证**：真机有 VCC/ALCOM 安装时的导入（这台机器的设置路径可能不同）。
+
+### P7-E（2026-10-23，done）
+
+- **公开 API/契约变化**：
+  - `interop/deeplink.ts`：`parseDeepLink` / `deepLinksInArgv`；
+    意图只有 `open-project` 与 `add-repo`，其余返回 `unknown`。
+  - `main/index.ts`：注册 `atrium://`（开发态带 execPath）；第二实例的 argv 里的深链
+    转发给第一实例；冷启动的深链先攒着，窗口建好 1.5s 后补发（走 `broadcast`）。
+  - 新事件 `vpm:deeplink`。
+  - 渲染层 `DeepLinkHost`（挂在 App）：`open-project` 直接切项目页并加入列表；
+    `add-repo` **必须确认**才写入。
+- **安全边界**：任何带 `headers/token/authorization/password/secret/cookie` 的链接
+  **整条拒绝**（不是忽略参数）；非 https 的仓库 URL 拒绝；`vcc://` 只解析、不落库。
+- **单实例**：第二实例只做"唤醒窗口 + 转发路径/深链"，不重复初始化。
+- **已验证**：typecheck 0；build 过；`deeplink.spec.ts` 7 条 + ipc 通道 22 条 +
+  renderer 33 files / 253 tests 全绿。
+- **未验证**：真机点一个 `atrium://` 链接（需要装包后由系统唤起；开发态注册的是 electron.exe）。
 
 ---
 

@@ -2,6 +2,8 @@ import { app, BrowserWindow, globalShortcut } from 'electron'
 import log from 'electron-log'
 import path from 'node:path'
 import { DEFAULT_HOTKEY, APP_DISPLAY_NAME } from '../shared/constants'
+import { IpcEvent } from '../shared/ipc'
+import { deepLinksInArgv, parseDeepLink, type DeepLinkIntent } from './vpm/interop/deeplink'
 import type { ProjectInfo } from '../shared/types'
 import { createRegistrar } from './ipc/util'
 import { registerSystem } from './ipc/system'
@@ -38,6 +40,43 @@ import { createMainWindow, getMainWindow, markQuitting, showMiniDropAtCursor, wa
 import { createTray, destroyTray, refreshTray } from './tray'
 import { disposeVpm, getVpmStatus, registerVpmGateIpc, startVpmRuntime } from './vpm/gate'
 
+  let detectedProjects: ProjectInfo[] = []
+/** 深链在窗口就绪前到达时先攒着（冷启动被协议拉起很常见）。 */
+const pendingDeepLinks: DeepLinkIntent[] = []
+/** registrar 建好之后注入：深链统一走 broadcast（白名单校验也认这条路径）。 */
+let broadcast: ((event: string, payload?: unknown) => void) | null = null
+
+function dispatchDeepLink(raw: string): void {
+  const { intent, rejection } = parseDeepLink(raw)
+  if (rejection) {
+    log.warn(`深链被拒：${rejection}（${raw.slice(0, 120)}）`)
+    return
+  }
+  if (!intent || intent.kind === 'unknown') {
+    log.info(`深链无法识别，已忽略：${raw.slice(0, 120)}`)
+    return
+  }
+  const win = BrowserWindow.getAllWindows()[0]
+  if (!win || win.webContents.isLoading() || !broadcast) {
+    pendingDeepLinks.push(intent)
+    return
+  }
+  broadcast(IpcEvent.VpmDeepLink, intent)
+}
+
+// 窗口建好之后把冷启动期间攒下的深链补发（渲染层要时间挂监听，给 1.5s 缓冲）
+app.on('browser-window-created', () => {
+  setTimeout(() => flushDeepLinks(), 1500)
+})
+
+function flushDeepLinks(): void {
+  if (!pendingDeepLinks.length) return
+  if (!broadcast) return
+  for (const intent of pendingDeepLinks.splice(0)) {
+    broadcast(IpcEvent.VpmDeepLink, intent)
+  }
+}
+
 const APP_USER_MODEL_ID = 'com.avca.a-manager'
 
 /** 解析 `A.exe --ingest <路径> [<路径>…]`，支持重复出现 --ingest */
@@ -72,14 +111,34 @@ function bootstrap(): void {
 
   app.on('second-instance', (_event, argv) => {
     const paths = parseIngestArgs(argv)
-    log.info(`second-instance：收到 ${paths.length} 个路径（argv=${JSON.stringify(argv.slice(1))}）`)
+    const links = deepLinksInArgv(argv)
+    log.info(
+      `second-instance：收到 ${paths.length} 个路径、${links.length} 条深链` +
+        `（argv=${JSON.stringify(argv.slice(1))}）`
+    )
     const win = createMainWindow()
     if (win.isMinimized()) win.restore()
     win.focus()
     if (paths.length) void ingestFromPaths(paths)
+    // P7-E：深链交给渲染层**确认**，主进程不直接加仓库
+    for (const link of links) dispatchDeepLink(link)
   })
 
+  // P7-E：`atrium://` 注册（开发态要带 execPath，避免注册到 electron.exe 上）
+  try {
+    if (process.defaultApp && process.argv[1]) {
+      app.setAsDefaultProtocolClient('atrium', process.execPath, [path.resolve(process.argv[1])])
+    } else {
+      app.setAsDefaultProtocolClient('atrium')
+    }
+  } catch (error) {
+    log.warn('注册 atrium:// 失败：' + String(error))
+  }
   const registrar = createRegistrar()
+  broadcast = registrar.broadcast
+
+  // 首个实例也可能是被深链拉起来的（要等 registrar 建好才能广播）
+  for (const link of deepLinksInArgv(process.argv)) dispatchDeepLink(link)
   let ingestApi: IngestApi | null = null
   let projectApi: ProjectApi | null = null
   let folderWatcher: FolderWatcher | null = null
@@ -91,7 +150,6 @@ function bootstrap(): void {
   let bridge: BridgeManager | null = null
   let bridgeIpc: BridgeIpcApi | null = null
   let connections: UnityConnections | null = null
-  let detectedProjects: ProjectInfo[] = []
   let covers: CoverService | null = null
 
   /**

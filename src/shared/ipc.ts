@@ -292,6 +292,8 @@ export const IpcEvent = {
   UnityConnectionChanged: 'unity:connection-changed',
   /** M5-A：一条桥接命令的进度/终态（导入大包时界面靠它显示进度） */
   UnityImportProgress: 'unity:import-progress',
+  /** 深链（P7-E）：`atrium://` / `vcc://` 解析后的意图，交给界面确认。 */
+  VpmDeepLink: 'vpm:deeplink',
   /** 备份进度（R2）：收集与压缩两个阶段，压缩阶段带 0-100。 */
   VpmBackupProgress: 'vpm:backup-progress',
   /**

@@ -11,6 +11,7 @@ import { ModelBackfillDialog } from './components/ModelBackfillDialog'
 import { CoverTasks } from './components/CoverTasks'
 import { ProjectBanner } from './components/ProjectBanner'
 import { RemergeNotice } from './components/RemergeNotice'
+import { DeepLinkHost } from './vpm/components/DeepLinkHost'
 import { AutoLaunchAsk } from './components/AutoLaunchAsk'
 import { ImportTargetPicker } from './components/ImportTargetPicker'
 import { FirstRunWizard } from './components/FirstRunWizard'
@@ -212,6 +213,7 @@ export function App(): JSX.Element {
         因为它产生的那一刻用户可能正停在任何页面上，而它要说的事只和"卡片分组"有关。
       */}
       <RemergeNotice />
+      <DeepLinkHost />
       {/*
         导入流程的常驻界面：冲突确认对话框 + 进行中提示 + 上次结果条（带撤销）。
         **必须挂在 App 这一层**，不能挂在发起导入的组件里 ——

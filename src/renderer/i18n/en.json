@@ -1821,6 +1821,15 @@
       "imported": "Imported {{repos}} repositor(ies) and {{folders}} folder(s)",
       "templateImported": "Template \"{{name}}\" imported",
       "templateExported": "Exported to {{path}}"
+    },
+    "deeplink": {
+      "title": "Add a repository from a link?",
+      "body": "This link wants to add a repository to Atrium. Nothing is written until you confirm.",
+      "add": "Add repository",
+      "adding": "Adding…",
+      "fromVcc": "This link comes from VCC, not from Atrium itself — check the source.",
+      "repoAdded": "Repository added",
+      "projectOpened": "Project added to the list"
     }
   }
 }
