@@ -65,14 +65,7 @@ export function VpmMaintenancePanel({
 
   // 备份进度：主进程按阶段广播，这里只认自己这个工程。
   useEffect(() => {
-    return window.a.on('vpm:backup-progress', (payload) => {
-      const data = payload as {
-        projectKey?: string
-        phase?: 'collect' | 'zip'
-        files?: number
-        bytes?: number
-        percent?: number | null
-      }
+    return vpmApi.onBackupProgress((data) => {
       if (!data || data.projectKey !== projectKey || !data.phase) return
       setProgress({
         phase: data.phase,

@@ -26,7 +26,7 @@ export function DeepLinkHost(): JSX.Element | null {
   const toast = useUi((state) => state.toast)
 
   useEffect(() => {
-    return window.a.on('vpm:deeplink', (payload) => {
+    return vpmApi.onDeepLink((payload) => {
       const intent = payload as Intent | null
       if (!intent) return
       if (intent.kind === 'add-repo') {

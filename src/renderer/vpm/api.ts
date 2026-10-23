@@ -275,6 +275,22 @@ export const vpmApi = {
   pickProjectDirectory(title: string): Promise<string | null> {
     return window.a.system.pickDirectory({ title })
   },
+  /** 深链（P7-E）：组件不直接碰 `window.a`，一律走这里。 */
+  onDeepLink(callback: (intent: unknown) => void): () => void {
+    return window.a.on('vpm:deeplink', (payload) => callback(payload))
+  },
+  /** 备份进度（R2）。 */
+  onBackupProgress(
+    callback: (progress: {
+      projectKey?: string
+      phase?: 'collect' | 'zip'
+      files?: number
+      bytes?: number
+      percent?: number | null
+    }) => void
+  ): () => void {
+    return window.a.on('vpm:backup-progress', (payload) => callback(payload as never))
+  },
   onRepoProgress(callback: (event: VpmRepoProgressEvent) => void): () => void {
     return window.a.on('vpm:repo-progress', (payload) => callback(payload as VpmRepoProgressEvent))
   },

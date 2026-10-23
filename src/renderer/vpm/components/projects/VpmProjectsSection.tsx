@@ -569,7 +569,7 @@ export function VpmProjectsSection({
           <div className="text-[12px]">{t('vpm.projects.empty')}</div>
           <div className="faint mt-1 text-[11px]">{t('vpm.projects.emptyHint')}</div>
           <div className="mt-2">
-            <Button variant="accent" onClick={openAdd} disabled={projects.busy}>
+            <Button onClick={openAdd} disabled={projects.busy}>
               {t('vpm.projects.add')}
             </Button>
           </div>

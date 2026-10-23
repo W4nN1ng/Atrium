@@ -110,7 +110,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P7-C | 本地用户包目录 | P7-B/P4-C | `catalog/local`、信任表 v6、面板、本地安装 | C11 | done |
 | P7-D | VCC 只读导入与模板导入导出 | P2-C/P5-A | `interop/vcc`、settings 读取、模板互操作 | C12/F2/F3/F4/F5/F8/A9/A10 | todo |
 | P7-E | 深链、单实例与互操作 UI | P7-C/P7-D | `interop/deeplink`、协议注册、确认弹窗 | F7/H4/C3–C7 | done |
-| P8-A | UI 收口、按钮纪律与组件边界 | P4-E/P5-D/P6-D/P7-E | 逐屏检查、组件拆分、文案 | I1/I2/A20/B24 | todo |
+| P8-A | UI 收口、按钮纪律与组件边界 | P4-E/P5-D/P6-D/P7-E | 逐屏检查、边界测试、文案 | I1/I2/A20/B24 | done |
 | P8-B | 操作记录、诊断导出与配额清理 | P4-A | `log/`、诊断包、缓存/vault/备份用量 | G3/G4/G5/I3 | todo |
 | P8-C | 设置补齐、更新检查与已知限制 | P7-B | 设置项、手动更新、限制文档 | G1/G2/G3/G6 | todo |
 | P8-D | 逐行功能对账与缺口分诊 | P8-A/B/C | 对账证据、差异、后续任务 | 全部 | todo |
@@ -1248,6 +1248,22 @@ Task: P?-?
 - **已验证**：typecheck 0；build 过；`deeplink.spec.ts` 7 条 + ipc 通道 22 条 +
   renderer 33 files / 253 tests 全绿。
 - **未验证**：真机点一个 `atrium://` 链接（需要装包后由系统唤起；开发态注册的是 electron.exe）。
+
+### P8-A（2026-10-23，done）
+
+- **逐屏检查表**：`docs/VPM-P8A-UI-AUDIT.md`（9 屏：入口/主按钮/批量/危险操作/空错状态）。
+- **改了 2 处**：
+  - 项目页空状态的「添加项目」从实心降为文字（和头部「新建项目」同屏会双主按钮）；
+  - `DeepLinkHost` / `VpmMaintenancePanel` 不再直接 `window.a.on(...)`，
+    改走 `vpmApi.onDeepLink()` / `vpmApi.onBackupProgress()`。
+- **新增边界测试** `tests/renderer/vpm-ui.spec.ts`（4 条）：
+  组件不许出现 `window.a`、渲染层不许 import electron、
+  项目页主屏（第一个 `<Modal` 之前）只能有一个 `variant="accent"`、危险操作必须有 Modal。
+- **按钮纪律结论**：一屏一个实心；模态是独立一屏；行内最多三个按钮；危险操作 Modal + 一句后果，不弹两层。
+- **证据**：typecheck 0；build 过；renderer 30 files / 225 tests 全绿；
+  截图 `docs/screenshots/vpm-p8-projects.png`、`vpm-p8-delete-confirm.png`。
+- **已知限制**：包图标只有首字母回退（不新增图标管线）；模板编辑 UI 仍缺（属新功能）；
+  深链未真机点过。
 
 ---
 
