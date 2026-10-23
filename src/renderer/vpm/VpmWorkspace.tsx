@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CatalogDialog } from './components/CatalogDialog'
+import { InteropPanel } from './components/interop/InteropPanel'
 import { LocalPackagesPanel } from './components/local/LocalPackagesPanel'
 import { ReposPanel } from './components/ReposPanel'
 import { useVpmRepos } from './hooks/useVpmRepos'
@@ -30,6 +31,8 @@ export function VpmWorkspace({ enabled }: { enabled: boolean }): JSX.Element {
       />
 
       <LocalPackagesPanel />
+
+      <InteropPanel />
 
       <CatalogDialog
         open={catalogOpen}

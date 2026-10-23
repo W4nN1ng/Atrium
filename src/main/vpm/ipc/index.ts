@@ -23,6 +23,7 @@ import type { RepoDto, RepoRefreshResult } from '../reposService'
 import { registerProjectIpc } from './projects'
 import { registerPlanIpc } from './plan'
 import { registerInstallIpc } from './install'
+import { registerInteropIpc } from './interop'
 import { registerMaintenanceIpc, registerProjectLocationIpc, registerUnityIpc } from './unity'
 import { repoScope, validateSecretHeaders } from '../secrets'
 
@@ -424,6 +425,7 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
   })
   registerUnityIpc({ ipc, getRuntime: options.getRuntime })
   registerProjectLocationIpc({ ipc, getRuntime: options.getRuntime })
+  registerInteropIpc({ ipc, getRuntime: options.getRuntime })
   registerMaintenanceIpc({
     ipc,
     getRuntime: options.getRuntime,

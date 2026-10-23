@@ -237,6 +237,32 @@ export const vpmApi = {
   }> {
     return window.a.vpm.localInstall(input)
   },
+  interopVccPeek(): Promise<{
+    path: string
+    exists: boolean
+    parseError: boolean
+    repos: Array<{ url: string; name: string | null }>
+    packageFolders: string[]
+    unityHint: string | null
+    skipped: Array<{ value: string; reason: string }>
+  }> {
+    return window.a.vpm.interopVccPeek()
+  },
+  interopVccApply(input: { repos: boolean; folders: boolean }): Promise<{
+    addedRepos: number
+    addedFolders: number
+    skipped: Array<{ value: string; reason: string }>
+  }> {
+    return window.a.vpm.interopVccApply(input)
+  },
+  templateImport(input?: { path?: string }): Promise<
+    { cancelled: true } | { cancelled: false; id: string; name: string; source: 'atrium' | 'foreign' }
+  > {
+    return window.a.vpm.templateImport(input ?? {})
+  },
+  templateExport(input: { id: string }): Promise<{ cancelled: true } | { cancelled: false; path: string }> {
+    return window.a.vpm.templateExport(input)
+  },
   templateList(): Promise<VpmTemplateDto[]> {
     return window.a.vpm.templateList()
   },

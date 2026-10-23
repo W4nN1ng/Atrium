@@ -1593,7 +1593,8 @@
       "vpmUnityPackageFailed": "Extraction failed midway and was rolled back ({{moved}} files).",
       "vpmInternal": "Project & package management hit an internal error. Core asset features are unaffected.",
       "vpmUnityAlreadyRunning": "Project \"{{name}}\" is already open in Unity. Close it first, then open this one.",
-      "vpmLocalRootInvalid": "That local package folder cannot be used ({{reason}})."
+      "vpmLocalRootInvalid": "That local package folder cannot be used ({{reason}}).",
+      "vpmInteropNotFound": "No importable settings file (VCC / ALCOM) was found."
     },
     "packages": {
       "title": "Installed packages",
@@ -1802,6 +1803,24 @@
       "installTitle": "Install from local folder",
       "installHint": "From the folders trusted under Settings → Local packages; copied into Packages/, no download.",
       "installOne": "Install"
+    },
+    "interop": {
+      "title": "Interop",
+      "fromVcc": "Import from VCC / ALCOM",
+      "importTemplate": "Import template file",
+      "hint": "Reads the other tool’s settings read-only: repos and local folders are listed, and only written after you tick them.",
+      "exportTemplate": "Export",
+      "peekTitle": "Import from VCC / ALCOM",
+      "notFound": "No settings file found: {{path}}",
+      "parseError": "That settings file cannot be parsed.",
+      "repos": "{{count}} repository(ies)",
+      "folders": "{{count}} local package folder(s)",
+      "skipped": "{{count}} entries skipped (bad URL / duplicate / wrong type)",
+      "apply": "Import",
+      "importing": "Importing…",
+      "imported": "Imported {{repos}} repositor(ies) and {{folders}} folder(s)",
+      "templateImported": "Template \"{{name}}\" imported",
+      "templateExported": "Exported to {{path}}"
     }
   }
 }

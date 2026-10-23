@@ -1593,7 +1593,8 @@
       "vpmUnityPackageFailed": "解包中途失败，已经回滚（已搬 {{moved}} 个文件）。",
       "vpmInternal": "项目与包管理遇到内部错误；核心素材功能未受影响。",
       "vpmUnityAlreadyRunning": "已经有工程「{{name}}」在 Unity 里运行。请先关闭它，再打开这个工程。",
-      "vpmLocalRootInvalid": "这个本地包目录不能用（{{reason}}）。"
+      "vpmLocalRootInvalid": "这个本地包目录不能用（{{reason}}）。",
+      "vpmInteropNotFound": "没找到可导入的设置文件（VCC / ALCOM）。"
     },
     "packages": {
       "title": "已安装的包",
@@ -1802,6 +1803,24 @@
       "installTitle": "从本地装包",
       "installHint": "来自「设置 → 本地包目录」里信任的文件夹；直接拷贝进 Packages/，不下载。",
       "installOne": "安装"
+    },
+    "interop": {
+      "title": "互操作",
+      "fromVcc": "从 VCC / ALCOM 导入",
+      "importTemplate": "导入模板文件",
+      "hint": "只读对方的设置：仓库和本地包目录先列出来，你勾选后才写入 Atrium。",
+      "exportTemplate": "导出",
+      "peekTitle": "从 VCC / ALCOM 导入",
+      "notFound": "没找到设置文件：{{path}}",
+      "parseError": "这个设置文件读不出来（可能不是 JSON）。",
+      "repos": "仓库 {{count}} 个",
+      "folders": "本地包目录 {{count}} 个",
+      "skipped": "另有 {{count}} 条被跳过（坏 URL / 重复 / 类型不对）",
+      "apply": "导入",
+      "importing": "正在导入…",
+      "imported": "已导入仓库 {{repos}} 个、目录 {{folders}} 个",
+      "templateImported": "模板「{{name}}」已导入",
+      "templateExported": "已导出到 {{path}}"
     }
   }
 }

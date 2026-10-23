@@ -398,6 +398,24 @@ export interface AApi {
       version: string
       installedAt: string
     }>
+    interopVccPeek(): Promise<{
+      path: string
+      exists: boolean
+      parseError: boolean
+      repos: Array<{ url: string; name: string | null }>
+      packageFolders: string[]
+      unityHint: string | null
+      skipped: Array<{ value: string; reason: string }>
+    }>
+    interopVccApply(input: { repos: boolean; folders: boolean }): Promise<{
+      addedRepos: number
+      addedFolders: number
+      skipped: Array<{ value: string; reason: string }>
+    }>
+    templateImport(input?: { path?: string }): Promise<
+      { cancelled: true } | { cancelled: false; id: string; name: string; source: 'atrium' | 'foreign' }
+    >
+    templateExport(input: { id: string }): Promise<{ cancelled: true } | { cancelled: false; path: string }>
     templateList(): Promise<VpmTemplateDto[]>
     templateFavorite(input: { id: string; favorite: boolean }): Promise<VpmTemplateDto>
     templateRecent(): Promise<VpmRecentLocationDto[]>

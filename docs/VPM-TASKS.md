@@ -1213,6 +1213,25 @@ Task: P?-?
   `local-install.spec` 5 条；通道清单 18 条。
 - **未验证**：真机装一个本地包进真实工程（需要 Unity 关闭 + 真实包目录）。
 
+### P7-D（2026-10-23，done）
+
+- **公开 API/契约变化**：
+  - `interop/vcc.ts`：`readVccSettings/parseVccSettings`（只读；HTTPS 校验；按值去重；
+    坏条目进 `skipped`；坏 JSON 只标 `parseError`；文件不存在 `exists:false`）。
+  - `interop/templateIO.ts`：`parseTemplateFile/exportTemplate`
+    （认 Atrium 格式与外部形状；缺 name 用文件名兜底；非对象 `vpmTemplateInvalid`）。
+  - IPC：`interop-vcc-peek / interop-vcc-apply / template-import / template-export`。
+  - 新错误码 `vpmInteropNotFound`（三语）。
+- **UI**：设置 → 项目与包 新增「互操作」区：从 VCC/ALCOM 导入（先列仓库数/目录数/跳过数，
+  勾选后才写）、导入模板文件、导出模板（每个用户模板一行「导出」）。
+- **安全边界**：**只读**对方设置、绝不写回；VCC 里的路径只是"读出来"，
+  加进本地信任表要用户勾；模板导出不注册全局文件关联、不复制附件。
+- **刻意没做**：VCC 的 LiteDB 模板只读适配（卡片标"可选"）。读它要额外依赖，
+  而我们自己的模板导入已覆盖需求。
+- **已验证**：typecheck 0；build 过；`interop/vcc.spec.ts` 7 条 + 通道清单 22 条 +
+  renderer 29 files / 202 tests 全绿。
+- **未验证**：真机有 VCC/ALCOM 安装时的导入（这台机器的设置路径可能不同）。
+
 ---
 
 ## 13. 一句话

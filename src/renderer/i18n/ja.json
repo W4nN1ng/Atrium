@@ -1593,7 +1593,8 @@
       "vpmUnityPackageFailed": "展開の途中で失敗し、ロールバックしました（{{moved}} ファイル）。",
       "vpmInternal": "プロジェクトとパッケージ管理で内部エラーが起きました。素材の主要機能には影響しません。",
       "vpmUnityAlreadyRunning": "プロジェクト「{{name}}」が Unity で開いています。先に閉じてから開いてください。",
-      "vpmLocalRootInvalid": "このローカルパッケージフォルダーは使えません（{{reason}}）。"
+      "vpmLocalRootInvalid": "このローカルパッケージフォルダーは使えません（{{reason}}）。",
+      "vpmInteropNotFound": "インポートできる設定ファイル（VCC / ALCOM）が見つかりません。"
     },
     "packages": {
       "title": "インストール済みパッケージ",
@@ -1802,6 +1803,24 @@
       "installTitle": "ローカルからインストール",
       "installHint": "「設定 → ローカルパッケージ」で信頼したフォルダーから直接 Packages/ にコピーします。",
       "installOne": "インストール"
+    },
+    "interop": {
+      "title": "相互運用",
+      "fromVcc": "VCC / ALCOM からインポート",
+      "importTemplate": "テンプレートをインポート",
+      "hint": "相手の設定は読み取りのみ。リポジトリとローカルフォルダーを一覧し、選択したものだけ取り込みます。",
+      "exportTemplate": "エクスポート",
+      "peekTitle": "VCC / ALCOM からインポート",
+      "notFound": "設定ファイルが見つかりません: {{path}}",
+      "parseError": "この設定ファイルは読み取れません。",
+      "repos": "リポジトリ {{count}} 件",
+      "folders": "ローカルフォルダー {{count}} 件",
+      "skipped": "{{count}} 件をスキップ（不正 URL / 重複 / 型違い）",
+      "apply": "インポート",
+      "importing": "インポート中…",
+      "imported": "リポジトリ {{repos}} 件、フォルダー {{folders}} 件をインポートしました",
+      "templateImported": "テンプレート「{{name}}」をインポートしました",
+      "templateExported": "{{path}} にエクスポートしました"
     }
   }
 }
