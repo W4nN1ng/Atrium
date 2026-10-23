@@ -1830,6 +1830,14 @@
       "fromVcc": "This link comes from VCC, not from Atrium itself — check the source.",
       "repoAdded": "Repository added",
       "projectOpened": "Project added to the list"
+    },
+    "log": {
+      "title": "Usage & diagnostics",
+      "export": "Export diagnostics",
+      "clearCache": "Clear cache",
+      "usage": "Cache {{cache}} · vault {{vault}} · backups {{backups}}",
+      "exported": "Diagnostics exported: {{path}}",
+      "cleared": "Cache cleared ({{size}})"
     }
   }
 }

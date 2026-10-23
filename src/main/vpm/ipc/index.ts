@@ -1,5 +1,7 @@
 import { ulid } from '../../../shared/ulid'
 import { VpmError, type VpmErrorCode } from '../../../shared/vpm/errors'
+import { getVpmStatus } from '../gate'
+import { buildDiagnostics, clearUsage, exportDiagnostics, usageOf } from '../log'
 import { IpcInvoke } from '../../../shared/ipc'
 import type {
   VpmCatalogConflictDto,
@@ -362,6 +364,30 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
       if (runtime) await runtime.repos.seedIfEmpty()
     }
     return networkStatus()
+  })
+
+  ipc.handle(IpcInvoke.Vpm.LogRecent, (limit: unknown) => {
+    const count = typeof limit === 'number' && Number.isFinite(limit) ? limit : 20
+    return requireRuntime().log.recent(count)
+  })
+  ipc.handle(IpcInvoke.Vpm.UsageSnapshot, () => usageOf(requireRuntime().dataRoot))
+  ipc.handle(IpcInvoke.Vpm.CacheClear, () => clearUsage(requireRuntime().dataRoot, 'cache'))
+  ipc.handle(IpcInvoke.Vpm.DiagnosticsExport, async () => {
+    const current = requireRuntime()
+    const status = getVpmStatus()
+    const payload = buildDiagnostics({
+      appVersion: status.appVersion,
+      platform: process.platform,
+      dataRoot: current.dataRoot,
+      status: {
+        enabled: status.enabled,
+        safeMode: status.safeMode,
+        degraded: status.degraded
+      },
+      operations: current.log.recent(20),
+      usage: usageOf(current.dataRoot)
+    })
+    return { path: await exportDiagnostics(current.dataRoot, payload) }
   })
 
   ipc.handle(IpcInvoke.Vpm.LocalRoots, () => requireRuntime().local.list())

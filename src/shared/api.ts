@@ -398,6 +398,27 @@ export interface AApi {
       version: string
       installedAt: string
     }>
+    logRecent(limit?: number): Promise<
+      Array<{
+        id: string
+        projectName: string
+        kind: string
+        status: string
+        createdAt: number
+        finishedAt: number | null
+        errorCode: string | null
+        failedStep: string | null
+        stepCount: number
+      }>
+    >
+    usageSnapshot(): Promise<{
+      cache: { bytes: number; files: number }
+      vault: { bytes: number; files: number }
+      backups: { bytes: number; files: number }
+      totalBytes: number
+    }>
+    cacheClear(): Promise<{ removedBytes: number }>
+    diagnosticsExport(): Promise<{ path: string }>
     interopVccPeek(): Promise<{
       path: string
       exists: boolean

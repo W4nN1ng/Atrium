@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { ProjectBackupService, ProjectCopyService, ProjectMigrateService } from './backup'
 import { CatalogService, LocalInstallService, LocalPackageStore } from './catalog'
+import { OperationLogService } from './log'
 import { CacheEntryStore, PackageCacheService, VpmCacheStore } from './cache'
 import { closeVpmDb, openVpmDb, type VpmDb } from './db'
 import { createElectronHttpTransport, createVpmHttpClient, type VpmHttpPort } from './http'
@@ -85,6 +86,7 @@ export interface VpmRuntime {
   dataRoot: string
   local: LocalPackageStore
   localInstall: LocalInstallService
+  log: OperationLogService
   store: RepoStore
   http: VpmHttpPort
   cache: VpmCacheStore
@@ -307,6 +309,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       dataRoot: options.dataRoot,
       local: localStore,
       localInstall: new LocalInstallService({ projects, local: localStore, activity: options.projectActivity }),
+      log: new OperationLogService({ operations, projects }),
       store,
       http,
       cache,

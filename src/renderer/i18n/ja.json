@@ -1830,6 +1830,14 @@
       "fromVcc": "VCC からのリンクです。提供元を確認してください。",
       "repoAdded": "リポジトリを追加しました",
       "projectOpened": "プロジェクトを一覧に追加しました"
+    },
+    "log": {
+      "title": "使用量と診断",
+      "export": "診断パッケージを書き出す",
+      "clearCache": "キャッシュを削除",
+      "usage": "キャッシュ {{cache}} · 保管庫 {{vault}} · バックアップ {{backups}}",
+      "exported": "診断を書き出しました: {{path}}",
+      "cleared": "キャッシュを削除しました（{{size}}）"
     }
   }
 }

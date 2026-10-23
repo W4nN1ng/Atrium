@@ -1830,6 +1830,14 @@
       "fromVcc": "来自 VCC 的链接：不是 Atrium 自己的请求，请确认来源。",
       "repoAdded": "仓库已添加",
       "projectOpened": "工程已加入列表"
+    },
+    "log": {
+      "title": "用量与诊断",
+      "export": "导出诊断包",
+      "clearCache": "清空缓存",
+      "usage": "缓存 {{cache}} · 回滚仓 {{vault}} · 备份 {{backups}}",
+      "exported": "诊断包已导出：{{path}}",
+      "cleared": "已清空缓存（{{size}}）"
     }
   }
 }

@@ -237,6 +237,35 @@ export const vpmApi = {
   }> {
     return window.a.vpm.localInstall(input)
   },
+  logRecent(limit = 20): Promise<
+    Array<{
+      id: string
+      projectName: string
+      kind: string
+      status: string
+      createdAt: number
+      finishedAt: number | null
+      errorCode: string | null
+      failedStep: string | null
+      stepCount: number
+    }>
+  > {
+    return window.a.vpm.logRecent(limit)
+  },
+  usageSnapshot(): Promise<{
+    cache: { bytes: number; files: number }
+    vault: { bytes: number; files: number }
+    backups: { bytes: number; files: number }
+    totalBytes: number
+  }> {
+    return window.a.vpm.usageSnapshot()
+  },
+  cacheClear(): Promise<{ removedBytes: number }> {
+    return window.a.vpm.cacheClear()
+  },
+  diagnosticsExport(): Promise<{ path: string }> {
+    return window.a.vpm.diagnosticsExport()
+  },
   interopVccPeek(): Promise<{
     path: string
     exists: boolean
