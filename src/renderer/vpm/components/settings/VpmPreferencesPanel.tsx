@@ -152,6 +152,7 @@ export function VpmPreferencesPanel(): JSX.Element {
           <Row label={t('vpm.prefs.prerelease')} hint={t('vpm.prefs.prereleaseHint')}>
             <Switch
               checked={prefs.allowPrerelease}
+              ariaLabel={t('vpm.prefs.prerelease')}
               onChange={(value) => {
                 if (!busy) void patch({ allowPrerelease: value })
               }}
@@ -188,6 +189,7 @@ export function VpmPreferencesPanel(): JSX.Element {
           <Row label={t('vpm.prefs.checkUpdates')} hint={t('vpm.prefs.checkUpdatesHint')}>
             <Switch
               checked={prefs.checkUpdates}
+              ariaLabel={t('vpm.prefs.checkUpdates')}
               onChange={(value) => {
                 if (!busy) void patch({ checkUpdates: value })
               }}

@@ -15,8 +15,9 @@
     --line-2: #35353f;
     --text: #e8e8ee;
     --muted: #9494a1;
-    --faint: #6b6b78;
+    --faint: #80808e;
     --accent: #7c6cf2;
+    --accent-strong: #6d5ce5;
     --accent-soft: rgba(124, 108, 242, 0.16);
     --ok: #3fb27f;
     --warn: #d9a13b;
@@ -33,11 +34,12 @@
     --line-2: #d2d2da;
     --text: #1b1b22;
     --muted: #5c5c68;
-    --faint: #8b8b96;
+    --faint: #6c6c78;
     --accent: #5b4bd6;
+    --accent-strong: #5b4bd6;
     --accent-soft: rgba(91, 75, 214, 0.12);
-    --ok: #1f8a5f;
-    --warn: #a8730f;
+    --ok: #187a53;
+    --warn: #986409;
     --bad: #c23a4e;
   }
 
@@ -126,13 +128,13 @@
   }
   .btn-accent {
     @apply font-medium;
-    background: var(--accent);
-    border-color: var(--accent);
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
     color: #fff;
   }
   .btn-accent:hover {
     filter: brightness(1.08);
-    background: var(--accent);
+    background: var(--accent-strong);
   }
   .btn-ghost {
     background: transparent;

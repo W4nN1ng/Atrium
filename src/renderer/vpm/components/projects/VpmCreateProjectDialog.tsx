@@ -201,53 +201,50 @@ export function VpmCreateProjectDialog({
           </div>
           <div className="grid max-h-[34vh] gap-2 overflow-y-auto sm:grid-cols-2" data-vpm-template-cards>
             {templates.map((template) => (
-              <button
+              <div
                 key={template.id}
-                type="button"
-                className="rounded border px-3 py-2 text-left"
+                className="rounded border"
                 style={{
                   borderColor: template.id === templateId ? 'var(--accent)' : 'var(--line)',
                   background: template.id === templateId ? 'var(--raise)' : 'transparent'
                 }}
-                onClick={() => setTemplateId(template.id)}
               >
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[12px] font-medium">{cleanText(template.name, 80)}</span>
-                  {template.builtin ? <Badge>{t('vpm.create.builtin')}</Badge> : null}
-                  {template.favorite ? <Badge tone="accent">{t('vpm.create.favorite')}</Badge> : null}
-                  <span className="faint text-[10px]">
-                    {t('vpm.create.counts', {
-                      deps: Object.keys(template.dependencies).length,
-                      files: template.unitypackages.length
-                    })}
-                  </span>
-                </div>
-                <div className="faint mt-1 line-clamp-2 text-[10px]">
-                  {cleanText(template.description ?? '', 160)}
-                </div>
-                <div className="faint mt-1 flex items-center gap-2 text-[10px]">
-                  <span>{`Unity ${template.unity.min}${template.unity.max ? ` – ${template.unity.max}` : '+'}`}</span>
-                  {template.builtin ? null : (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="underline"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        void toggleFavorite(template)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.stopPropagation()
-                          void toggleFavorite(template)
-                        }
-                      }}
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left"
+                  onClick={() => setTemplateId(template.id)}
+                >
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[12px] font-medium">{cleanText(template.name, 80)}</span>
+                    {template.builtin ? <Badge>{t('vpm.create.builtin')}</Badge> : null}
+                    {template.favorite ? <Badge tone="accent">{t('vpm.create.favorite')}</Badge> : null}
+                    <span className="faint text-[10px]">
+                      {t('vpm.create.counts', {
+                        deps: Object.keys(template.dependencies).length,
+                        files: template.unitypackages.length
+                      })}
+                    </span>
+                  </div>
+                  <div className="faint mt-1 line-clamp-2 text-[10px]">
+                    {cleanText(template.description ?? '', 160)}
+                  </div>
+                  <div className="faint mt-1 flex items-center gap-2 text-[10px]">
+                    <span>{`Unity ${template.unity.min}${template.unity.max ? ` – ${template.unity.max}` : '+'}`}</span>
+                  </div>
+                </button>
+                {template.builtin ? null : (
+                  <div className="px-3 pb-2">
+                    <button
+                      type="button"
+                      className="text-[10px] underline"
+                      aria-pressed={template.favorite}
+                      onClick={() => void toggleFavorite(template)}
                     >
                       {template.favorite ? t('vpm.create.unfavorite') : t('vpm.create.setFavorite')}
-                    </span>
-                  )}
-                </div>
-              </button>
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </section>
@@ -348,12 +345,12 @@ export function VpmCreateProjectDialog({
         ) : null}
 
         {error ? (
-          <div className="rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+          <div className="rounded border px-3 py-2 text-[11px]" role="alert" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
             {error}
           </div>
         ) : null}
         {warning ? (
-          <div className="rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}>
+          <div className="rounded border px-3 py-2 text-[11px]" role="status" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}>
             {warning}
           </div>
         ) : null}

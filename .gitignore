@@ -28,3 +28,7 @@ resources/bin/7z.exe
 resources/bin/7z.dll
 resources/bin/7-zip.dll
 resources/bin/7zr.exe
+
+# tools/preview 的生成产物：由 README 的 esbuild/cp 命令现生成，不入库
+tools/preview/verify.js
+tools/preview/app.css

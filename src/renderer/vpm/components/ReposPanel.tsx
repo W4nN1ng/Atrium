@@ -264,6 +264,7 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
           <span className="faint text-[11px]">{t('vpm.repos.network')}</span>
           <Switch
             checked={networkAllowed}
+            ariaLabel={t('vpm.repos.network')}
             onChange={(value) => void props.onSetNetwork(value)}
           />
           <Button variant="accent" onClick={openAdd} disabled={props.busy}>
@@ -415,6 +416,7 @@ export function ReposPanel(props: ReposPanelProps): JSX.Element {
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                     <Switch
                       checked={repo.enabled}
+                      ariaLabel={repo.name}
                       onChange={(value) => void toggleEnabled(repo, value)}
                     />
                     <Button

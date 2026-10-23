@@ -240,6 +240,7 @@ export function CatalogDialog({
         {error ? (
           <div
             className="rounded border px-3 py-2 text-[11px]"
+            role="alert"
             style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}
           >
             <div>{error}</div>

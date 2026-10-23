@@ -75,7 +75,7 @@ export function VpmOperationDialog({
     >
       <div className="space-y-3 text-[12px]">
         {running ? (
-          <div className="space-y-2" data-vpm-operation-running>
+          <div className="space-y-2" data-vpm-operation-running role="status" aria-live="polite">
             <div className="flex items-center gap-2">
               <Badge tone="accent">{t('vpm.packages.run.running')}</Badge>
               {run?.progress ? (
@@ -91,7 +91,7 @@ export function VpmOperationDialog({
             </div>
             <p className="faint text-[11px] leading-relaxed">{t('vpm.packages.run.hint')}</p>
             {cancelNote ? (
-              <p className="text-[11px]" style={{ color: 'var(--warn)' }}>
+              <p className="text-[11px]" style={{ color: 'var(--warn)' }} role="status">
                 {cancelNote}
               </p>
             ) : null}
@@ -99,7 +99,7 @@ export function VpmOperationDialog({
         ) : null}
 
         {!running && run?.error ? (
-          <div className="rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+          <div className="rounded border px-3 py-2 text-[11px]" role="alert" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
             {run.error}
           </div>
         ) : null}
@@ -115,7 +115,7 @@ export function VpmOperationDialog({
             </div>
 
             {result.errorCode ? (
-              <div className="rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+              <div className="rounded border px-3 py-2 text-[11px]" role="alert" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
                 <div>{vpmCodeLabel(result.errorCode)}</div>
                 {result.errorDetail ? (
                   <div className="faint mt-1 break-all font-mono text-[10px]">{cleanText(result.errorDetail, 600)}</div>

@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 export const TooltipProvider = Tooltip.Provider
@@ -28,26 +28,29 @@ type BtnProps = {
   variant?: 'default' | 'accent' | 'ghost'
   disabled?: boolean
   title?: string
+  /** 图标/符号按钮的无障碍名称；有可见文字时可不传。 */
+  ariaLabel?: string
   className?: string
   /** 危险确认框里要把焦点放在"安全的那一个"上（一键入库 = 仅登记，不移动磁盘） */
   autoFocus?: boolean
 }
 
-export function Button({ children, onClick, variant = 'default', disabled, title, className = '', autoFocus }: BtnProps): ReactNode {
+export function Button({ children, onClick, variant = 'default', disabled, title, ariaLabel, className = '', autoFocus }: BtnProps): ReactNode {
   const cls = variant === 'accent' ? 'btn btn-accent' : variant === 'ghost' ? 'btn btn-ghost' : 'btn'
   return (
-    <button type="button" title={title} disabled={disabled} onClick={onClick} autoFocus={autoFocus} className={`${cls} ${className}`}>
+    <button type="button" title={title} aria-label={ariaLabel} disabled={disabled} onClick={onClick} autoFocus={autoFocus} className={`${cls} ${className}`}>
       {children}
     </button>
   )
 }
 
-export function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }): ReactNode {
+export function Switch({ checked, onChange, ariaLabel }: { checked: boolean; onChange: (v: boolean) => void; ariaLabel?: string }): ReactNode {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
       className={`switch ${checked ? 'switch-on' : ''}`}
     >
@@ -207,6 +210,13 @@ export function MenuButton({
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const anchor = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
+  const labelText = typeof label === 'string' ? label : (title ?? '⋯')
+
+  const closeToAnchor = (): void => {
+    setOpen(false)
+    window.requestAnimationFrame(() => anchor.current?.focus())
+  }
 
   useEffect(() => {
     if (!open) return
@@ -218,12 +228,18 @@ export function MenuButton({
       close()
     }
     const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') close()
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeToAnchor()
+      }
     }
     window.addEventListener('mousedown', onDown)
     window.addEventListener('keydown', onKey)
     window.addEventListener('resize', close)
     window.addEventListener('scroll', close, true)
+    window.requestAnimationFrame(() => {
+      panel.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+    })
     return () => {
       window.removeEventListener('mousedown', onDown)
       window.removeEventListener('keydown', onKey)
@@ -231,6 +247,26 @@ export function MenuButton({
       window.removeEventListener('scroll', close, true)
     }
   }, [open])
+
+  const onMenuKey = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
+    const buttons = Array.from(
+      panel.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []
+    )
+    if (!buttons.length) return
+    const current = buttons.indexOf(document.activeElement as HTMLButtonElement)
+    const move = (next: number): void => {
+      event.preventDefault()
+      buttons[(next + buttons.length) % buttons.length]?.focus()
+    }
+    if (event.key === 'ArrowDown') move(current + 1)
+    else if (event.key === 'ArrowUp') move(current - 1)
+    else if (event.key === 'Home') move(0)
+    else if (event.key === 'End') move(buttons.length - 1)
+    else if (event.key === 'Escape') {
+      event.preventDefault()
+      closeToAnchor()
+    }
+  }
 
   const toggle = (): void => {
     const rect = anchor.current?.getBoundingClientRect()
@@ -253,6 +289,9 @@ export function MenuButton({
         type="button"
         className={`btn btn-ghost ${className}`}
         title={title}
+        aria-label={title ?? labelText}
+        aria-haspopup="menu"
+        aria-expanded={open}
         onClick={toggle}
       >
         {label}
@@ -260,7 +299,11 @@ export function MenuButton({
       {open
         ? createPortal(
             <div
+              ref={panel}
               data-menu-panel
+              role="menu"
+              aria-label={title ?? labelText}
+              onKeyDown={onMenuKey}
               className="fixed z-[60] rounded-md border p-1 shadow-panel"
               style={{
                 top: pos.top,
@@ -274,6 +317,8 @@ export function MenuButton({
                 <button
                   key={item.key}
                   type="button"
+                  role="menuitem"
+                  tabIndex={-1}
                   className="block w-full rounded px-2 py-1.5 text-left text-[12px] hover:bg-[color:var(--raise)]"
                   style={item.danger ? { color: 'var(--bad)' } : undefined}
                   onClick={() => {

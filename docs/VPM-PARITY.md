@@ -39,12 +39,12 @@
 | A10 | 导出模板 | 完整 | P7 | 导出 `.atriumtemplate`；可被 Atrium 再导入 | 实际=完整；证据=tests/vpm/interop/vcc.spec.ts(模板导出)、P7-D；差异=Atrium 自有格式；去向=接受 |
 | A11 | 模板带 unitypackage 附件 | 完整 | P5 | 解包到 Assets，保留包内 `.meta`；真 Unity 验证 | 实际=部分；证据=tests/vpm/domain/unitypackage.spec.ts、tests/vpm/unity/unitypackage.spec.ts；差异=字节级 .meta 保真；未在真 Unity 看导入结果；去向=GAP-01/P5-D |
 | A12 | 启动 Unity | 完整 | P5 | 按工程版本匹配编辑器；detached 启动；错误可见 | 实际=部分；证据=tests/vpm/unity/launch.spec.ts(10)、P5-D；差异=代码/参数/绑定完整；未真启动 Unity；去向=GAP-01/P5-D |
-| A13 | 已在运行时把窗口顶到前台 | 部分 | P8 | 可选；Windows 上按 PID/窗口查找 | 实际=部分；证据=src/main/vpm/unity/launch.ts 返回 alreadyRunning；未找到置顶实现；差异=已运行不重复启动，但不把窗口顶到前台；去向=GAP-09/可接受 |
+| A13 | 已在运行时把窗口顶到前台 | 部分 | P8 | 可选；Windows 上按 PID/窗口查找 | 实际=部分；证据=src/main/vpm/unity/launch.ts 返回 alreadyRunning；P8-E 判定为可选未做；差异=已运行不重复启动，但不把窗口顶到前台；去向=接受差异 |
 | A14 | 打开工程文件夹 | 完整 | P2 | `shell.openPath`，路径校验 | 实际=完整；证据=tests/vpm/ipc/vpm-ipc.spec.ts、P2-D 打开文件夹；差异=路径校验；去向=接受 |
 | A15 | 复制工程 | 完整 | P6 | 排除重型目录；进度/取消；目标非空拒绝 | 实际=完整；证据=tests/vpm/backup/copy.spec.ts(9)、P6-C；差异=排除 Library；未跑 GB 级工程；去向=接受 |
 | A16 | 备份工程 | 完整 | P6 | ZIP + 进度/取消 + 记录；可解压校验 | 实际=完整；证据=tests/vpm/backup/service.spec.ts(10)、P6-B；差异=yauzl 读回校验；未用 7-Zip 目视；去向=接受 |
 | A17 | 从备份新建工程 | 额外 | P6 | 解压到新目录；绝不覆盖；可选补装包 | 实际=部分；证据=tests/vpm/backup/service.spec.ts、P6-B；差异=额外能力；未真机恢复后打开 Unity；去向=GAP-01 |
-| A18 | 从列表移除（不删盘） | 完整 | P2 | 只移除记录；文件仍在；二次确认 | 实际=部分；证据=src/renderer/vpm/components/projects/VpmProjectsSection.tsx:406；P8 R17；差异=只有删除进回收站，没有“只移除台账”入口；去向=GAP-09/R17 产品裁定 |
+| A18 | 从列表移除（不删盘） | 部分 | P2 | 只移除记录；文件仍在；二次确认 | 实际=部分；证据=src/renderer/vpm/components/projects/VpmProjectsSection.tsx:406；P8 R17；差异=只有删除进回收站，没有“只移除台账”入口；去向=接受差异（R17 用户裁定） |
 | A19 | 更换 Unity 版本 | 完整 | P6 | 关闭 Unity；备份/确认；写版本文件；可回退 | 实际=部分；证据=tests/vpm/backup/copy.spec.ts(版本)、P6-C；差异=写版本文件/回退有测试；未真 Unity 验证打开；去向=GAP-01 |
 | A20 | 项目排序/搜索/网格 | 部分 | P8 | 搜索、按名称/最近使用；列表为主 | 实际=部分；证据=P8-A 审计、项目页截图；差异=有搜索/列表；不做网格视图；去向=GAP-09/已知限制 |
 | A21 | 最近工程位置 | 完整 | P5 | 建工程对话框记忆最近 8 个位置 | 实际=完整；证据=tests/vpm/unity/create.spec.ts、RecentLocationStore；差异=最近 8 个位置；去向=接受 |
@@ -165,7 +165,7 @@
 |---|---|---|---|---|---|
 | G1 | 语言/主题/紧凑模式 | 部分 | P8 | 三语齐；主题沿用现有；紧凑模式可选 | 实际=部分；证据=tests/vpm/settings.spec.ts、i18n；P8-C；差异=三语/主题沿用；无紧凑模式/全语言列表；去向=GAP-09/已知限制 |
 | G2 | 预发布/隐藏包设置 | 完整 | P1/P8 | 持久化；影响目录/解析 | 实际=完整；证据=P8-C settings 测试(17)、catalog/plan；差异=持久化；默认关闭；去向=接受 |
-| G3 | VPM 数据根/配额 | 完整 | P0/P8 | 非 C 校验；用量；清理缓存 | 实际=部分；证据=P8-B usage/cleanup、P8-C 配额设置；gate R19；差异=数据根固定 %APPDATA%/Atrium（C），无界面迁移；配额/清理可选；去向=GAP-02/产品裁定 |
+| G3 | VPM 数据根/配额 | 部分 | P0/P8 | 非 C 校验；用量；清理缓存 | 实际=部分；证据=P8-B usage/cleanup、P8-C 配额设置；gate R19；差异=数据根固定 %APPDATA%/Atrium（C），无界面迁移；配额/清理可选；去向=接受差异（R19 用户裁定） |
 | G4 | 日志查看/打开 | 完整 | P8 | 操作日志、脱敏、打开目录 | 实际=完整；证据=tests/vpm/log/diagnostics.spec.ts、MaintenanceLogPanel；差异=操作记录/打开目录/脱敏；去向=接受 |
 | G5 | 诊断导出 | 额外 | P8 | 版本/错误/操作/用量；不含密钥 | 实际=完整；证据=diagnostics.spec.ts、P8-B IPC；差异=zip JSON；无路径/密钥；去向=接受 |
 | G6 | 更新检查/安装 | 部分 | P8 | 手动检查 → 下载 → 校验 → 用户点安装 | 实际=部分；证据=tests/vpm/updater.spec.ts(19)、P8-C UI；差异=手动检查；GitHub/安装器未真跑；去向=GAP-04/P9-E |
@@ -192,15 +192,15 @@
 | # | 能力 | 目标 | 阶段 | 验收证据（计划） | P8 实际状态 / 证据 / 差异 / 去向 |
 |---|---|---|---|---|---|
 | I1 | 按钮少/单一主操作 | 完整 | P8 | 截图复核 + 交互清单 | 实际=完整；证据=docs/VPM-P8A-UI-AUDIT.md、tests/renderer/vpm-ui.spec.ts、截图 vpm-p8-*；差异=一屏一实心；离屏截图；去向=接受 |
-| I2 | 键盘/可访问性 | 完整 | P8 | Esc/Enter/Tab/焦点；不只靠颜色 | 实际=部分；证据=P8-A 审计、vpm-ui 测试；差异=键盘/焦点/ARIA 未系统验收；去向=GAP-06/P8-E |
+| I2 | 键盘/可访问性 | 完整 | P8 | Esc/Enter/Tab/焦点；不只靠颜色 | 实际=部分；证据=tests/renderer/vpm-a11y.spec.ts(5)、vpm-contrast.spec.ts(2)、tools/preview/a11y.cjs(14 项)、截图 vpm-p8e-100/125；差异=菜单/弹窗焦点、方向键/End/Esc、对比度、100/125 无溢出已验；真实屏幕阅读器/真实 DPI/合成 Enter 未验；去向=GAP-06/P9-C |
 | I3 | 操作可恢复 | 完整 | P4/P8 | 崩溃恢复、操作记录、回滚仓 | 实际=完整；证据=P4-D recovery/failure-injection、P8-B log/usage；差异=崩溃恢复/操作记录/回滚仓；去向=接受 |
 | I4 | 永不永久删用户素材 | 完整 | 全部 | 代码审查 + 测试：无 `unlink` 用户文件 | 实际=完整；证据=代码审查：用户文件只移 vault/trash；cache/tmp 例外；transaction/vault 测试；差异=缓存/临时例外；去向=接受 |
 | I5 | 不手写 `.meta` | 完整 | 全部 | 代码审查 + 真 Unity | 实际=完整；证据=unitypackage 测试、源码守卫、P4 真实包 519 .meta 原样；差异=不生成/改写 .meta；去向=接受 |
-| I6 | 缓存不落 C | 完整 | P0/P1 | 数据根校验 + 测试 | 实际=部分；证据=gate.ts R19 defaultVpmDataRoot=%APPDATA%/Atrium；cache/vault/backups 派生；差异=缓存/回滚仓/备份在 C，违反原硬约束；去向=GAP-02/产品裁定 |
+| I6 | 缓存不落 C | 部分 | P0/P1 | 数据根校验 + 测试 | 实际=部分；证据=gate.ts R19 defaultVpmDataRoot=%APPDATA%/Atrium；cache/vault/backups 派生；差异=缓存/回滚仓/备份在 C；去向=接受差异（R19 用户裁定） |
 | I7 | 核心库 schema 不变 | 完整 | 全部 | 断言 `SCHEMA_VERSION=11`；无新迁移 | 实际=完整；证据=SCHEMA_VERSION=11 断言、vpm 独立库 v6；差异=核心库不变；去向=接受 |
 | I8 | 三语文案齐全 | 完整 | 全部 | i18n 测试零漂移 | 实际=完整；证据=tests/renderer/i18n.spec.ts、errors-i18n；差异=zh/en/ja 零漂移；去向=接受 |
 | I9 | 真 Unity 验收 | 完整 | P4/P5/P6 | 2022.3.22f1 沙盒记录 | 实际=部分；证据=P4-E/P5-D/P5-E/P6-D review；P4-VERIFICATION 仅无头；差异=真 Unity 2022.3.22f1 未验；去向=GAP-01/P9-D |
-| I10 | 性能 | 完整 | P8/P9 | 目录/解析/备份基准；不卡 UI | 实际=部分；证据=tests/perf/scale 仅素材库；VPM 5000 包/解析基准未做；差异=性能/可访问性在 P8-E/P9-C；去向=GAP-06 |
+| I10 | 性能 | 完整 | P8/P9 | 目录/解析/备份基准；不卡 UI | 实际=部分；证据=tests/perf/vpm-perf.spec.ts（隔离 3 条）、docs/VPM-PERF.md；差异=5k 版本目录 p95 145ms、200 包解析 25ms、10k 文件收集 597ms 已量；10k 目录/长稳/全量并行下的稳定 p95 未做；去向=GAP-06/P9-C |
 
 ---
 

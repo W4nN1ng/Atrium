@@ -283,7 +283,7 @@ export function VpmPlanSheet({
 
         {state.loading ? <p className="faint">{t('vpm.plan.loading')}</p> : null}
         {state.error ? (
-          <div className="rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+          <div className="rounded border px-3 py-2 text-[11px]" role="alert" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
             {state.error}
           </div>
         ) : null}

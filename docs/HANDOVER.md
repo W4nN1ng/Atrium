@@ -17,6 +17,14 @@
 > **2026-10-23：换工作站接手 VPM，先读 [VPM-P8C-HANDOVER.md](VPM-P8C-HANDOVER.md)。**
 > 那份带新机起步命令、当前进度（P8-A/B/C done，下一张 P8-D 逐行对账）、
 > 未验证清单和已踩过的坑；本文档其余部分（素材管家本体）仍然有效。
+>
+> **2026-10-23 晚更新：P8-D/P8-E 已完成。** 当前 VPM 进度：P0–P8-E done，
+> P8 门禁**未签字**（`docs/VPM-PARITY.md` 124 行里 36 行目标完整但实际部分，
+> 真 Unity/VCC/更新器/安装器仍是 review）。性能与可访问性见
+> [VPM-PERF.md](VPM-PERF.md)，缺口与 P9 范围见 [VPM-GAPS.md](VPM-GAPS.md)。
+> 当前全量基线 **224 files / 2760 passed / 22 skipped**；typecheck/build/worker/taskpack 0。
+> 分支 `codex/vpm-p4d-failure-recovery` 仍**只在本地**，`origin/main` 停在 P4-A。
+> 下面“当前版本 / 主线 HEAD”那段是 2026-10-17 的旧账，以 `package.json` 和 `git log` 为准。
 
 ---
 

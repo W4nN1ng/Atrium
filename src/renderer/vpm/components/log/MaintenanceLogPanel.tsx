@@ -88,9 +88,9 @@ export function MaintenanceLogPanel(): JSX.Element {
           })}
         </p>
       ) : null}
-      {notice ? <p className="text-[11px]" style={{ color: 'var(--ok)' }}>{notice}</p> : null}
+      {notice ? <p className="text-[11px]" role="status" style={{ color: 'var(--ok)' }}>{notice}</p> : null}
       {error ? (
-        <div className="rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+        <div className="rounded border px-3 py-2 text-[11px]" role="alert" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
           {error}
         </div>
       ) : null}

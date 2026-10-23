@@ -114,7 +114,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P8-B | 操作记录、诊断导出与配额清理 | P4-A | `log/`、诊断包、用量与清缓存 | G3/G4/G5/I3 | done |
 | P8-C | 设置补齐、更新检查与已知限制 | P7-B | 设置项、手动更新、限制文档 | G1/G2/G3/G6 | done |
 | P8-D | 逐行功能对账与缺口分诊 | P8-A/B/C | 对账证据、差异、后续任务 | 全部 | done（P8 门禁未签） |
-| P8-E | 性能、可访问性与全量回归 | P8-D | 基准、键盘/焦点、回归记录 | I1/I2/I10/A13 | todo |
+| P8-E | 性能、可访问性与全量回归 | P8-D | 基准、键盘/焦点、回归记录 | I1/I2/I10/A13 | done（I2/I10/A13 仍按部分记录） |
 | P8-F | 模板编辑 UI（A8 缺口） | P5-A/P8-D | 设置页模板新建/编辑/复制/删除引用 | A8 | todo |
 | P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | todo |
 | P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | todo |
@@ -129,9 +129,11 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 > 请求头、测试连接）已补齐。
 > **P8-C**：设置页新增"偏好设置"（预发布 / 隐藏包 / 配额 / 默认 Unity 参数 / 更新检查开关）
 > 与"更新"（手动检查 → 下载 → 校验 → 用户点安装），已知限制写进 `README.md` 与 `docs/DEVELOPMENT.md`。
-> **P8-D**：124 行 A–K 对账已填满；60 完整 / 57 部分 / 7 不做；39 行目标=完整但实际=部分，
+> **P8-D**：124 行 A–K 对账已填满；60 完整 / 57 部分 / 7 不做；36 行目标=完整但实际=部分，
 > **P8 门禁未签字**。缺口与 P9 只修清单见 `docs/VPM-GAPS.md`；A8 模板编辑 UI 新开 **P8-F**。
-> 下一步：先裁定 GAP-02（数据根落 C）与 A18（删除 vs 只移除列表），再做 P8-E/P9-D。
+> GAP-02（R19 数据根在 C）与 A18（R17 删除进回收站）已由用户 2026-10-23 明确接受，
+> 不再改动；**P8-E 已完成**（性能/可访问性/全量回归），下一步 **P8-F**（模板编辑 UI），
+> 再做 P9-D 真 Unity。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1323,14 +1325,16 @@ Task: P?-?
   新增 `docs/VPM-GAPS.md`（GAP-01…GAP-11 + P9 只修清单 + 产品裁定）；
   新增 `tests/vpm/parity-evidence.spec.ts`（5 条：行数/四字段/不做行/部分行去向/
   目标完整但实际部分的行必须在 GAP 文档里）。
-- **统计**：60 实际完整 / 57 实际部分 / 7 不做。**39 行目标=完整但实际=部分**，
-  所以 P8 不能签字；这不是“全部做完”，P9 只修这些缺口。
+- **统计**：60 实际完整 / 57 实际部分 / 7 不做。**36 行目标=完整但实际=部分**，
+  所以 P8 不能签字；这不是“全部做完”，P9 只修这些缺口。GAP-02/A18 已由用户改判为
+  接受差异，不再计入 36 行。
 - **最大缺口**：GAP-01 真 Unity 2022.3.22f1 端到端（装/升/降/重装/卸/撤销、启动、
   双击导入、多实例、创建、附件、备份恢复、迁移、换版本），覆盖 P4-E/P5-D/P5-E/P6-D
   的 review 卡；P4-VERIFICATION 的无头证据不能替代。
-- **产品裁定两条**：GAP-02（R19 把数据根/cache/vault/backups 固定到
-  `%APPDATA%\Atrium`，与原“缓存不落 C”硬约束冲突）；A18（R17 只有“删除进回收站”，
-  没有“只移除台账”）。P9 开工前需要一句明确裁定。
+- **产品裁定（2026-10-23 用户）**：**全部接受**——GAP-02 保持 R19
+  （数据根/cache/vault/backups 在 `%APPDATA%\Atrium`，C 盘）；A18 保持 R17
+  （删除项目 = 整个文件夹进回收站，不做“只移除台账”）。这两条已改为接受差异，
+  **后续 P8-E/P9 不允许再改**。
 - **顺手修复**：`tools/check-worker-deps.cjs` 原来扫 `out/main` 所有 chunk，
   把主进程专用的 VPM 动态 chunk 误报成 worker 依赖；改成从 `worker.js` 出发只检查
   可达图后，`yazl`/`electron-log` 误报消失，`node tools/check-worker-deps.cjs` 通过。
@@ -1342,8 +1346,35 @@ Task: P?-?
 - **流程缺口**：当前分支 `codex/vpm-p4d-failure-recovery` 无 upstream；`origin/main`
   仍在 P4-A `e8c3dcb`，P4-B…P8-C 尚未推送/PR。P9-E 发布前必须处理。
 - **给 P8-E/P8-F/P9**：P8-E 做键盘/可访问性/性能/真机截图；P8-F 补模板编辑 UI；
-  P9-D 做真 Unity/回退演练；P9-E 做更新/安装器/发布。不要在没有 GAP-02/A18 裁定的
-  情况下改数据根或删除入口。
+  P9-D 做真 Unity/回退演练；P9-E 做更新/安装器/发布。GAP-02/A18 已由用户接受，
+  不允许改数据根或删除入口。
+
+### P8-E（2026-10-23，done；I2/I10/A13 仍按部分记录）
+
+- **交付**：新增 `tests/perf/vpm-perf.spec.ts`（隔离 3 条基准）、
+  `tests/renderer/vpm-a11y.spec.ts`(5)、`tests/renderer/vpm-contrast.spec.ts`(2)、
+  `tools/preview/a11y.cjs`（14 项离屏键盘/焦点/缩放探针）、`docs/VPM-PERF.md`、
+  截图 `docs/screenshots/vpm-p8e-100.png` / `vpm-p8e-125.png`。
+- **性能**：5k 包版本目录 p95 **145ms**（预算 200）；单包精确 14ms；200 根解析 p95
+  **25ms**；计划 31ms；200 changes 预检 0.5ms；10k 文件收集 **597ms** / heap +2.4MB。
+  严格计时组默认 skip（全量并行会漂到 ~300ms），用
+  `VPM_PERF_ISOLATED=1 NODE_OPTIONS=--expose-gc npx vitest run tests/perf/vpm-perf.spec.ts`
+  显式跑；阈值未放宽。
+- **可访问性修复**：`MenuButton` 的 menu/menuitem/aria-haspopup/aria-expanded、
+  打开焦点第一项、方向键/Home/End/Esc 回锚点；`Switch` 可传 aria-label；
+  模板卡去掉 button 内嵌 role=button；错误 role=alert、进度 role=status/aria-live；
+  深/浅主题的 faint/ok/warn 对比度与 `--accent-strong` 主按钮修正。
+- **已验证**：14 项离屏检查全过（菜单焦点/方向键/End/Esc、弹窗焦点陷阱 Tab/Shift+Tab/Esc、
+  100%/125% 横向溢出 0）；两套主题 text/muted/faint/bad/warn/ok/accent 与主按钮白字
+  全部 ≥4.5:1；全量 **224 files / 2760 passed / 22 skipped**；typecheck 0；
+  `electron-vite build` 0；`check-worker-deps` 0；`check-vpm-taskpack` 0。
+- **未验证**：真实屏幕阅读器、真实物理 100%/125% DPI、离屏合成 Enter（原生 button
+  语义由静态测试守住）、10k 包目录/长稳、A13 置顶（可选，未做）、E5/H4 真机点击、
+  真 Unity/VCC/更新器/安装器。
+- **给 P8-F**：模板编辑 UI 的按键/焦点沿用 `MenuButton`/`Modal`/`Switch` 的现有语义；
+  新按钮要给原生 button 或 aria-label；错误用 role=alert。
+- **给 P9-C/P9-D**：目录 5k 余量 ~55ms，10k 行要加分页/预聚合；真机补屏幕阅读器、
+  物理 DPI、深链/备份位置点击；A13 若要做，按 PID/窗口查找，失败不影响启动。
 
 ---
 
