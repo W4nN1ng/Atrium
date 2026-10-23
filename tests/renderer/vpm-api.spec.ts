@@ -100,6 +100,13 @@ beforeEach(() => {
     catalogQuery: vi.fn(async () => page),
     packageDetail: vi.fn(async () => detail),
     packageVersions: vi.fn(async () => []),
+    templateList: vi.fn(async () => []),
+    templateFavorite: vi.fn(async () => ({ id: 't1' })),
+    templateCreate: vi.fn(async () => ({ id: 't1' })),
+    templateUpdate: vi.fn(async () => ({ id: 't1' })),
+    templateDuplicate: vi.fn(async () => ({ id: 't2' })),
+    templateRemoveReference: vi.fn(async () => ({ id: 't1', visible: false })),
+    templateRestore: vi.fn(async () => ({ id: 't1', visible: true })),
     projectsList: vi.fn(async () => [projectSummary]),
     projectDetail: vi.fn(async () => projectDetail),
     projectAdd: vi.fn(async () => projectDetail),
@@ -159,6 +166,34 @@ describe('renderer/vpm/api', () => {
     expect(vpm.networkConsent).toHaveBeenCalledWith(true)
     expect(vpm.catalogQuery).toHaveBeenCalledWith({ text: 'foo' })
     expect(openExternal).toHaveBeenCalledWith('https://example.test/docs')
+  })
+
+  it('forwards template editor calls without adding a second target state', async () => {
+    const { vpmApi } = await import('../../src/renderer/vpm/api')
+    const create = {
+      name: 'My Template',
+      base: null,
+      unity: { min: '2022.3', max: null, recommended: null },
+      dependencies: { 'com.example.dep': '^1.0.0' }
+    } as const
+
+    await vpmApi.templateList()
+    await vpmApi.templateList({ includeHidden: true })
+    await vpmApi.templateCreate(create)
+    await vpmApi.templateUpdate({ id: 't1', name: 'Renamed' })
+    await vpmApi.templateDuplicate({ id: 't1', name: 'Copy' })
+    await vpmApi.templateRemoveReference({ id: 't1' })
+    await vpmApi.templateRestore({ id: 't1' })
+    await vpmApi.templateFavorite({ id: 't1', favorite: true })
+
+    expect(vpm.templateList).toHaveBeenNthCalledWith(1, {})
+    expect(vpm.templateList).toHaveBeenNthCalledWith(2, { includeHidden: true })
+    expect(vpm.templateCreate).toHaveBeenCalledWith(create)
+    expect(vpm.templateUpdate).toHaveBeenCalledWith({ id: 't1', name: 'Renamed' })
+    expect(vpm.templateDuplicate).toHaveBeenCalledWith({ id: 't1', name: 'Copy' })
+    expect(vpm.templateRemoveReference).toHaveBeenCalledWith({ id: 't1' })
+    expect(vpm.templateRestore).toHaveBeenCalledWith({ id: 't1' })
+    expect(vpm.templateFavorite).toHaveBeenCalledWith({ id: 't1', favorite: true })
   })
 
   it('wraps progress/done events and unsubscribes with the preload cleanup', async () => {

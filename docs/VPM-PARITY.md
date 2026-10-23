@@ -34,7 +34,7 @@
 | A5 | 角色模板建工程 | 部分 | P5 | 空白骨架 + 官方 SDK 包依赖；装包后 Unity 打开无错 | 实际=部分；证据=tests/vpm/templates/service.spec.ts、P5-A 内置 avatars；差异=缺 VRChat 推荐工程设置/场景；去向=GAP-09/已知限制 |
 | A6 | 世界模板建工程 | 部分 | P5 | 同 A5 | 实际=部分；证据=tests/vpm/templates/service.spec.ts、P5-A 内置 worlds；差异=缺 VRChat 推荐工程设置/场景；去向=GAP-09/已知限制 |
 | A7 | 模板列表/收藏/最近使用 | 完整 | P5 | 设置页模板列表；收藏持久化；上次模板记忆 | 实际=完整；证据=tests/vpm/templates/service.spec.ts、P5-D 模板列表；差异=自有 UI；去向=接受 |
-| A8 | 模板新增/编辑/复制/删除 | 完整 | P5 | 表单 + 校验 + 继承（base）+ 只删列表引用不删文件 | 实际=部分；证据=tests/vpm/templates/service.spec.ts；P8-A 审计 §5；差异=服务层完整，设置页缺模板新建/编辑/复制 UI；去向=GAP-03/P8-F |
+| A8 | 模板新增/编辑/复制/删除 | 完整 | P5 | 表单 + 校验 + 继承（base）+ 只删列表引用不删文件 | 实际=完整；证据=tests/vpm/templates/service.spec.ts(17)、tests/vpm/ipc/templates.spec.ts(5)、tests/renderer/vpm-templates.spec.ts(3)、截图 vpm-p8f-templates/editor；差异=附件只显示引用不编辑，符合本卡；去向=接受 |
 | A9 | 导入 VCC/ALCOM 模板 | 部分 | P7 | 文件选择/拖入；解析失败有错误码 | 实际=部分；证据=tests/vpm/interop/vcc.spec.ts(模板导入)、P7-D；差异=只导入文件，不注册全局关联；去向=GAP-09/已知限制 |
 | A10 | 导出模板 | 完整 | P7 | 导出 `.atriumtemplate`；可被 Atrium 再导入 | 实际=完整；证据=tests/vpm/interop/vcc.spec.ts(模板导出)、P7-D；差异=Atrium 自有格式；去向=接受 |
 | A11 | 模板带 unitypackage 附件 | 完整 | P5 | 解包到 Assets，保留包内 `.meta`；真 Unity 验证 | 实际=部分；证据=tests/vpm/domain/unitypackage.spec.ts、tests/vpm/unity/unitypackage.spec.ts；差异=字节级 .meta 保真；未在真 Unity 看导入结果；去向=GAP-01/P5-D |

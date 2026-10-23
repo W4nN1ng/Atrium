@@ -4,6 +4,7 @@ import { InteropPanel } from './components/interop/InteropPanel'
 import { MaintenanceLogPanel } from './components/log/MaintenanceLogPanel'
 import { LocalPackagesPanel } from './components/local/LocalPackagesPanel'
 import { ReposPanel } from './components/ReposPanel'
+import { TemplateEditorPanel } from './components/settings/TemplateEditorPanel'
 import { VpmPreferencesPanel } from './components/settings/VpmPreferencesPanel'
 import { VpmUpdatePanel } from './components/settings/VpmUpdatePanel'
 import { useVpmRepos } from './hooks/useVpmRepos'
@@ -36,6 +37,8 @@ export function VpmWorkspace({ enabled }: { enabled: boolean }): JSX.Element {
       <LocalPackagesPanel />
 
       <InteropPanel />
+
+      <TemplateEditorPanel />
 
       <VpmPreferencesPanel />
 

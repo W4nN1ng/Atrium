@@ -10,11 +10,18 @@ import type {
   VpmMigrateCandidateInput,
   VpmMigrateResultDto,
   VpmRecentLocationDto,
+  VpmTemplateCreateInput,
   VpmTemplateDto,
+  VpmTemplateDuplicateInput,
+  VpmTemplateListInput,
+  VpmTemplatePatch,
   VpmUnityInstallDto,
   VpmVersionChangeResultDto
 } from '../../../shared/vpm/dto'
 import { VpmError } from '../../../shared/vpm/errors'
+import { isValidTemplateId, normalizeAttachmentPath } from '../../../shared/vpm/domain/template'
+import { normalizePackageId } from '../../../shared/vpm/domain/packageId'
+import { tryParseVpmRange } from '../../../shared/vpm/domain/range'
 import type { IpcApi } from '../../ipc/types'
 import type { VpmRuntime } from '../index'
 import { parseUnityArgs, readVpmSettings } from '../config'
@@ -88,6 +95,105 @@ function templateDto(entry: TemplateListEntry): VpmTemplateDto {
     broken: entry.broken,
     issues: entry.issues
   }
+}
+
+function templateRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new VpmError('vpmTemplateInvalid', { reason: 'input' })
+  }
+  return value as Record<string, unknown>
+}
+
+function templateId(value: unknown): string {
+  if (!isValidTemplateId(value)) {
+    throw new VpmError('vpmTemplateInvalid', { reason: 'id' })
+  }
+  return value
+}
+
+function templateText(value: unknown, field: string, max: number): string {
+  if (typeof value !== 'string') throw new VpmError('vpmTemplateInvalid', { reason: field })
+  const text = value.trim()
+  if (!text || text.length > max || /[\u0000-\u001f\u007f]/.test(text)) {
+    throw new VpmError('vpmTemplateInvalid', { reason: field })
+  }
+  return text
+}
+
+function templateOptionalText(value: unknown, field: string, max: number): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'string') throw new VpmError('vpmTemplateInvalid', { reason: field })
+  const text = value.trim()
+  if (!text) return null
+  if (text.length > max || /[\u0000-\u001f\u007f]/.test(text)) {
+    throw new VpmError('vpmTemplateInvalid', { reason: field })
+  }
+  return text
+}
+
+/** 只把白名单字段交给服务层；id/路径/builtin 等渲染层不能指定。 */
+function templatePatch(value: unknown, requireName: boolean): VpmTemplatePatch {
+  const raw = templateRecord(value)
+  const patch: VpmTemplatePatch = {}
+  if (requireName || raw.name !== undefined) {
+    patch.name = templateText(raw.name, 'name', 120)
+  }
+  if (raw.description !== undefined) {
+    patch.description = templateOptionalText(raw.description, 'description', 2000)
+  }
+  if (raw.base !== undefined) {
+    if (raw.base !== null && !isValidTemplateId(raw.base)) {
+      throw new VpmError('vpmTemplateInvalid', { reason: 'base' })
+    }
+    patch.base = raw.base as string | null
+  }
+  if (raw.unity !== undefined) {
+    const unity = templateRecord(raw.unity)
+    const out: NonNullable<VpmTemplatePatch['unity']> = {}
+    if (unity.min !== undefined) out.min = templateText(unity.min, 'unityMin', 64)
+    if (unity.max !== undefined) out.max = templateOptionalText(unity.max, 'unityMax', 64)
+    if (unity.recommended !== undefined) {
+      out.recommended = templateOptionalText(unity.recommended, 'unityRecommended', 64)
+    }
+    patch.unity = out
+  }
+  if (raw.dependencies !== undefined) {
+    const dependencies = templateRecord(raw.dependencies)
+    const out: Record<string, string> = {}
+    for (const [name, range] of Object.entries(dependencies)) {
+      let normalized: string
+      try {
+        normalized = normalizePackageId(name)
+      } catch {
+        throw new VpmError('vpmTemplateInvalid', { reason: 'dependencyName' })
+      }
+      if (typeof range !== 'string' || !tryParseVpmRange(range)) {
+        throw new VpmError('vpmTemplateInvalid', { reason: 'dependencyRange' })
+      }
+      out[normalized] = range.trim()
+    }
+    patch.dependencies = out
+  }
+  if (raw.unitypackages !== undefined) {
+    if (!Array.isArray(raw.unitypackages) || raw.unitypackages.length > 32) {
+      throw new VpmError('vpmTemplateInvalid', { reason: 'unitypackages' })
+    }
+    patch.unitypackages = raw.unitypackages.map((item) => {
+      const entry = templateRecord(item)
+      const pathValue = normalizeAttachmentPath(entry.path)
+      if (!pathValue) throw new VpmError('vpmTemplateInvalid', { reason: 'unitypackagePath' })
+      const name = templateOptionalText(entry.name, 'unitypackages.name', 120)
+      return { path: pathValue, name }
+    })
+  }
+  if (raw.settings !== undefined) {
+    const settings = templateRecord(raw.settings)
+    if (JSON.stringify(settings).length > 64 * 1024) {
+      throw new VpmError('vpmTemplateInvalid', { reason: 'settings' })
+    }
+    patch.settings = settings
+  }
+  return patch
 }
 
 function installDto(install: {
@@ -210,8 +316,47 @@ export function registerUnityIpc(options: UnityIpcOptions): void {
     }
   })
 
-  ipc.handle(IpcInvoke.Vpm.TemplateList, (): VpmTemplateDto[] => {
-    return runtime().templates.list().map(templateDto)
+  ipc.handle(IpcInvoke.Vpm.TemplateList, (input?: unknown): VpmTemplateDto[] => {
+    const options: VpmTemplateListInput = { includeHidden: false }
+    if (input !== undefined && input !== null) {
+      const raw = templateRecord(input)
+      if (raw.includeHidden !== undefined && typeof raw.includeHidden !== 'boolean') {
+        throw new VpmError('vpmTemplateInvalid', { reason: 'includeHidden' })
+      }
+      options.includeHidden = raw.includeHidden === true
+    }
+    return runtime().templates.list(options).map(templateDto)
+  })
+
+  ipc.handle(IpcInvoke.Vpm.TemplateCreate, (input: unknown): VpmTemplateDto => {
+    const patch = templatePatch(input, true)
+    if (!patch.name) throw new VpmError('vpmTemplateInvalid', { reason: 'name' })
+    const payload: VpmTemplateCreateInput = { ...patch, name: patch.name }
+    return templateDto(runtime().templates.create(payload))
+  })
+
+  ipc.handle(IpcInvoke.Vpm.TemplateUpdate, (input: unknown): VpmTemplateDto => {
+    const raw = templateRecord(input)
+    const id = templateId(raw.id)
+    const patch = templatePatch(raw, false)
+    return templateDto(runtime().templates.update(id, patch))
+  })
+
+  ipc.handle(IpcInvoke.Vpm.TemplateDuplicate, (input: unknown): VpmTemplateDto => {
+    const raw = templateRecord(input)
+    const payload: VpmTemplateDuplicateInput = { id: templateId(raw.id) }
+    if (raw.name !== undefined) payload.name = templateText(raw.name, 'name', 120)
+    return templateDto(runtime().templates.duplicate(payload.id, payload.name))
+  })
+
+  ipc.handle(IpcInvoke.Vpm.TemplateRemoveReference, (input: unknown): VpmTemplateDto => {
+    const id = templateId(templateRecord(input).id)
+    return templateDto(runtime().templates.removeReference(id))
+  })
+
+  ipc.handle(IpcInvoke.Vpm.TemplateRestore, (input: unknown): VpmTemplateDto => {
+    const id = templateId(templateRecord(input).id)
+    return templateDto(runtime().templates.restore(id))
   })
 
   ipc.handle(

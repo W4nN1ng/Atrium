@@ -14,7 +14,7 @@ Atrium 自有模板（`.atriumtemplate` / `template.json`）的**存储与索引
 
 - 不建工程、不解包附件（P5-B/C 消费 `get()` 与 `filesDir()`）。
 - 不做 `.atriumtemplate` ZIP 的导入导出（P7-D）；这里只认 `template.json` 与目录结构。
-- 不做 UI（P5-D）。
+- 不做 UI；P8-F 的 `TemplateEditorPanel` 只通过 IPC 调用本服务。
 - 不删用户文件：`removeReference()` 只把 `visible` 置 0；真要删由用户在资源管理器里做。
 - 不写 Unity YAML / `ProjectSettings.asset`。
 
@@ -74,9 +74,9 @@ Atrium 自有模板（`.atriumtemplate` / `template.json`）的**存储与索引
 
 - `tests/vpm/domain/template.spec.ts`（14 条）：schema、id/name/依赖/附件校验、
   未知字段保留、Unity 范围交集、继承合并、循环/深度/缺失 base、范围重叠。
-- `tests/vpm/templates/service.spec.ts`（16 条）：内置三模板（依赖只写 ID+范围、无附件）、
+- `tests/vpm/templates/service.spec.ts`（17 条）：内置三模板（依赖只写 ID+范围、无附件）、
   base 解析链、只读、原子写不留 .tmp、创建/更新/复制（含 files）、收藏排序、隐藏不删文件、
-  坏文件标 broken、缺文件报 invalid、base 不存在、最近位置有界。
+  坏文件标 broken、缺文件报 invalid、base 不存在/循环、最近位置有界。
 
 ## 谁依赖我 / 我依赖谁
 

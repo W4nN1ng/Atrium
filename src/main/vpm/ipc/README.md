@@ -83,6 +83,15 @@ P1 的只读仓库/目录 IPC：参数校验、DTO 映射、刷新操作/事件�
     （否则这条通道等于"随便执行一个 exe"）。
 - 这三条都受 VPM 联网开关约束（走 `createVpmHttpClient`，关掉就是 `vpmNetworkNotConsented`）。
 
+## P8-F 模板编辑（`ipc/unity.ts`）
+
+- `TemplateList` 可选 `{includeHidden}`；默认不含已移除引用。
+- `TemplateCreate` / `TemplateUpdate`：只接受白名单字段（名称/描述/base/Unity 范围/
+  依赖/附件引用/settings）；`id` 由服务端生成，base 必须合法，依赖名+范围会先校验。
+- `TemplateDuplicate` / `TemplateRemoveReference` / `TemplateRestore`：复制生成新用户模板；
+  移除只隐藏（不删文件），恢复只改可见性。
+- 内置模板只读；服务层对“base 指向自己/后代”直接拒绝，避免写出循环模板。
+
 ## 测试入口
 
 - `tests/vpm/ipc/vpm-ipc.spec.ts`

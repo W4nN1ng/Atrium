@@ -115,7 +115,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P8-C | 设置补齐、更新检查与已知限制 | P7-B | 设置项、手动更新、限制文档 | G1/G2/G3/G6 | done |
 | P8-D | 逐行功能对账与缺口分诊 | P8-A/B/C | 对账证据、差异、后续任务 | 全部 | done（P8 门禁未签） |
 | P8-E | 性能、可访问性与全量回归 | P8-D | 基准、键盘/焦点、回归记录 | I1/I2/I10/A13 | done（I2/I10/A13 仍按部分记录） |
-| P8-F | 模板编辑 UI（A8 缺口） | P5-A/P8-D | 设置页模板新建/编辑/复制/删除引用 | A8 | todo |
+| P8-F | 模板编辑 UI（A8 缺口） | P5-A/P8-D | 设置页模板新建/编辑/复制/删除引用 | A8 | done |
 | P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | todo |
 | P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | todo |
 | P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | todo |
@@ -129,11 +129,10 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 > 请求头、测试连接）已补齐。
 > **P8-C**：设置页新增"偏好设置"（预发布 / 隐藏包 / 配额 / 默认 Unity 参数 / 更新检查开关）
 > 与"更新"（手动检查 → 下载 → 校验 → 用户点安装），已知限制写进 `README.md` 与 `docs/DEVELOPMENT.md`。
-> **P8-D**：124 行 A–K 对账已填满；60 完整 / 57 部分 / 7 不做；36 行目标=完整但实际=部分，
-> **P8 门禁未签字**。缺口与 P9 只修清单见 `docs/VPM-GAPS.md`；A8 模板编辑 UI 新开 **P8-F**。
+> **P8-D**：124 行 A–K 对账已填满；61 完整 / 56 部分 / 7 不做；35 行目标=完整但实际=部分，
+> **P8 门禁未签字**。缺口与 P9 只修清单见 `docs/VPM-GAPS.md`；A8 模板编辑 UI 已由 **P8-F** 关闭。
 > GAP-02（R19 数据根在 C）与 A18（R17 删除进回收站）已由用户 2026-10-23 明确接受，
-> 不再改动；**P8-E 已完成**（性能/可访问性/全量回归），下一步 **P8-F**（模板编辑 UI），
-> 再做 P9-D 真 Unity。
+> 不再改动；**P8-E/P8-F 已完成**，下一张 **P9-A**（安全硬化），真 Unity 仍归 P9-D。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1325,9 +1324,9 @@ Task: P?-?
   新增 `docs/VPM-GAPS.md`（GAP-01…GAP-11 + P9 只修清单 + 产品裁定）；
   新增 `tests/vpm/parity-evidence.spec.ts`（5 条：行数/四字段/不做行/部分行去向/
   目标完整但实际部分的行必须在 GAP 文档里）。
-- **统计**：60 实际完整 / 57 实际部分 / 7 不做。**36 行目标=完整但实际=部分**，
+- **统计**：61 实际完整 / 56 实际部分 / 7 不做。**35 行目标=完整但实际=部分**，
   所以 P8 不能签字；这不是“全部做完”，P9 只修这些缺口。GAP-02/A18 已由用户改判为
-  接受差异，不再计入 36 行。
+  接受差异，GAP-03 已由 P8-F 关闭，不再计入 35 行。
 - **最大缺口**：GAP-01 真 Unity 2022.3.22f1 端到端（装/升/降/重装/卸/撤销、启动、
   双击导入、多实例、创建、附件、备份恢复、迁移、换版本），覆盖 P4-E/P5-D/P5-E/P6-D
   的 review 卡；P4-VERIFICATION 的无头证据不能替代。
@@ -1376,6 +1375,31 @@ Task: P?-?
   新按钮要给原生 button 或 aria-label；错误用 role=alert。
 - **给 P9-C/P9-D**：目录 5k 余量 ~55ms，10k 行要加分页/预聚合；真机补屏幕阅读器、
   物理 DPI、深链/备份位置点击；A13 若要做，按 PID/窗口查找，失败不影响启动。
+
+### P8-F（2026-10-23，done）
+
+- **公开 API/契约**：`IpcInvoke.Vpm` 新增 `TemplateCreate` / `TemplateUpdate` /
+  `TemplateDuplicate` / `TemplateRemoveReference` / `TemplateRestore`；
+  `TemplateList` 接受 `{includeHidden?}`。`shared/vpm/dto/unity.ts` 新增
+  `VpmTemplatePatch/CreateInput/UpdateInput/ListInput/DuplicateInput/IdInput`；
+  `TemplateService.update` 新增“base 指向自己/后代”拒绝（`vpmTemplateInvalid`）。
+- **UI**：设置 → 项目与包新增模板面板：内置/用户列表、收藏/已移除/文件损坏标记、
+  新建/编辑表单（名称、描述、base、Unity min/max/recommended、依赖文本）、复制、
+  移除引用（只隐藏不删文件）、显示已移除后恢复。附件只显示引用，不在本页上传。
+  DTO 不含 settings/磁盘路径；base 下拉排除自己和后代。
+- **文件**：新增 `src/renderer/vpm/components/settings/TemplateEditorPanel.tsx`、
+  `tests/vpm/ipc/templates.spec.ts`、`tests/renderer/vpm-templates.spec.ts`；
+  `VpmWorkspace` 挂载面板；三语文案 `vpm.templates.*`。
+- **已验证**：typecheck 0；全量 **226 files / 2770 passed / 22 skipped**；
+  `electron-vite build` 0；`check-worker-deps` 0；`check-vpm-taskpack` 0；
+  `tests/vpm/templates/service.spec.ts` 17、`tests/vpm/ipc/templates.spec.ts` 5、
+  `tests/renderer/vpm-templates.spec.ts` 3 全绿；三语/i18n、通道清单/API 转发全绿。
+  截图 `docs/screenshots/vpm-p8f-templates.png`、`vpm-p8f-editor.png`（离屏）；
+  本机安装 P8-F 0.9.0 启动正常（VPM enabled）。
+- **未验证**：没有在真实窗口里点完整新建/编辑/复制/恢复流程（截图来自离屏预览）；
+  不做附件上传/编辑；不做永久删除。
+- **给 P9-A**：模板面板只走 IPC；新按钮保持原生 button/aria-label；错误用 role=alert。
+  A8 已关闭，P9 只剩真 Unity/VCC/更新器/回退/性能等缺口。
 
 ---
 

@@ -24,6 +24,8 @@ VPM 在渲染层的界面与数据访问：设置页的“项目与包”面板�
   展示动作/来源/冲突/缺失/下载（`PlanBody` 也复用在应用确认单里）。
 - `components/packages/*`（P4-E）：工程详情里的包管理面板 —— 版本下拉、批量变更条、
   升级全部、变更单、进度/取消/结果、撤销入口、最近操作。
+- `components/settings/TemplateEditorPanel.tsx`（P8-F）：设置里的模板面板 ——
+  内置/用户列表、新建/编辑（base/Unity/依赖）、复制、收藏、移除引用/恢复。
 - `hooks/useVpmOperations.ts`：应用/取消/撤销 + 进度事件 + 历史。
 - `lib/cart.ts`：版本比较、变更单、筛选、请求组装的纯函数（在 Node 里直接单测）。
 
@@ -48,6 +50,7 @@ P1 起（按 `docs/VPM-ARCHITECTURE.md` §4/§11）：
 
 - `tests/renderer/i18n.spec.ts`（VPM 文案/页签）
 - `tests/renderer/vpm-api.spec.ts`（包装转发）
+- `tests/renderer/vpm-templates.spec.ts`（模板表单/依赖/base 纯逻辑）
 - `tests/vpm/architecture.spec.ts`（禁止组件直接调 IPC/静态 import 主进程）
 - 运行：`npm test`；涉及界面时用沙盒启动并截图。
 

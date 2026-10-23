@@ -174,6 +174,9 @@ export class TemplateService {
     })
     // 保留未知字段
     merged.extra = current.extra
+    if (patch.base !== undefined && patch.base !== null) {
+      this.assertNoBaseCycle(id, patch.base)
+    }
     this.assertBaseExists(merged)
     this.writeManifest(id, merged)
     const saved = this.upsertRow(merged, row.source === 'imported' ? 'imported' : 'user')
@@ -425,6 +428,19 @@ export class TemplateService {
     if (!manifest.base) return
     if (!this.raw(manifest.base)) {
       throw new VpmError('vpmTemplateInvalid', { reason: `base missing: ${manifest.base}` })
+    }
+  }
+
+  /** 编辑时禁止把 base 指到自己/自己的后代，否则写进文件后只剩一个坏模板。 */
+  private assertNoBaseCycle(id: string, base: string): void {
+    const seen = new Set<string>([id])
+    let cursor: string | null = base
+    while (cursor) {
+      if (seen.has(cursor)) {
+        throw new VpmError('vpmTemplateInvalid', { reason: 'base cycle' })
+      }
+      seen.add(cursor)
+      cursor = this.raw(cursor)?.base ?? null
     }
   }
 

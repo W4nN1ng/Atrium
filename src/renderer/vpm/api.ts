@@ -33,6 +33,11 @@ import type {
   VpmVersionChangeResultDto,
   VpmRepoProgressEvent,
   VpmTemplateDto,
+  VpmTemplateCreateInput,
+  VpmTemplateDuplicateInput,
+  VpmTemplateIdInput,
+  VpmTemplateListInput,
+  VpmTemplateUpdateInput,
   VpmUnityInstallDto,
   VpmPreferencesDto,
   VpmPreferencesPatch,
@@ -296,11 +301,26 @@ export const vpmApi = {
   templateExport(input: { id: string }): Promise<{ cancelled: true } | { cancelled: false; path: string }> {
     return window.a.vpm.templateExport(input)
   },
-  templateList(): Promise<VpmTemplateDto[]> {
-    return window.a.vpm.templateList()
+  templateList(input?: VpmTemplateListInput): Promise<VpmTemplateDto[]> {
+    return window.a.vpm.templateList(input ?? {})
   },
   templateFavorite(input: { id: string; favorite: boolean }): Promise<VpmTemplateDto> {
     return window.a.vpm.templateFavorite(input)
+  },
+  templateCreate(input: VpmTemplateCreateInput): Promise<VpmTemplateDto> {
+    return window.a.vpm.templateCreate(input)
+  },
+  templateUpdate(input: VpmTemplateUpdateInput): Promise<VpmTemplateDto> {
+    return window.a.vpm.templateUpdate(input)
+  },
+  templateDuplicate(input: VpmTemplateDuplicateInput): Promise<VpmTemplateDto> {
+    return window.a.vpm.templateDuplicate(input)
+  },
+  templateRemoveReference(input: VpmTemplateIdInput): Promise<VpmTemplateDto> {
+    return window.a.vpm.templateRemoveReference(input)
+  },
+  templateRestore(input: VpmTemplateIdInput): Promise<VpmTemplateDto> {
+    return window.a.vpm.templateRestore(input)
   },
   templateRecent(): Promise<VpmRecentLocationDto[]> {
     return window.a.vpm.templateRecent()

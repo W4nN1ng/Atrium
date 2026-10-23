@@ -62,6 +62,38 @@ export interface VpmTemplateDto {
   issues: string[]
 }
 
+/** 新建/编辑模板的公开字段；id 由服务端生成，渲染层不能指定路径。 */
+export interface VpmTemplatePatch {
+  name?: string
+  description?: string | null
+  base?: string | null
+  unity?: { min?: string; max?: string | null; recommended?: string | null }
+  dependencies?: Record<string, string>
+  unitypackages?: Array<{ path: string; name: string | null }>
+  settings?: Record<string, unknown>
+}
+
+export interface VpmTemplateCreateInput extends VpmTemplatePatch {
+  name: string
+}
+
+export interface VpmTemplateUpdateInput extends VpmTemplatePatch {
+  id: string
+}
+
+export interface VpmTemplateListInput {
+  includeHidden?: boolean
+}
+
+export interface VpmTemplateDuplicateInput {
+  id: string
+  name?: string
+}
+
+export interface VpmTemplateIdInput {
+  id: string
+}
+
 export interface VpmRecentLocationDto {
   path: string
   lastUsedAt: number

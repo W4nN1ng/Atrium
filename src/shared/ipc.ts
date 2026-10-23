@@ -281,6 +281,11 @@ export const IpcInvoke = {
     TemplateList: 'vpm:template-list',
     TemplateFavorite: 'vpm:template-favorite',
     TemplateRecent: 'vpm:template-recent',
+    TemplateCreate: 'vpm:template-create',
+    TemplateUpdate: 'vpm:template-update',
+    TemplateDuplicate: 'vpm:template-duplicate',
+    TemplateRemoveReference: 'vpm:template-remove-reference',
+    TemplateRestore: 'vpm:template-restore',
     /** P8-C：偏好设置（预发布/隐藏包/配额/Unity 参数/更新检查开关）。 */
     SettingsGet: 'vpm:settings-get',
     SettingsPatch: 'vpm:settings-patch',

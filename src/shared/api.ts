@@ -64,6 +64,11 @@ import type {
   VpmLaunchResultDto,
   VpmRecentLocationDto,
   VpmTemplateDto,
+  VpmTemplateCreateInput,
+  VpmTemplateDuplicateInput,
+  VpmTemplateIdInput,
+  VpmTemplateListInput,
+  VpmTemplateUpdateInput,
   VpmUnityInstallDto,
   VpmBackupDto,
   VpmCopyResultDto,
@@ -441,9 +446,14 @@ export interface AApi {
       { cancelled: true } | { cancelled: false; id: string; name: string; source: 'atrium' | 'foreign' }
     >
     templateExport(input: { id: string }): Promise<{ cancelled: true } | { cancelled: false; path: string }>
-    templateList(): Promise<VpmTemplateDto[]>
+    templateList(input?: VpmTemplateListInput): Promise<VpmTemplateDto[]>
     templateFavorite(input: { id: string; favorite: boolean }): Promise<VpmTemplateDto>
     templateRecent(): Promise<VpmRecentLocationDto[]>
+    templateCreate(input: VpmTemplateCreateInput): Promise<VpmTemplateDto>
+    templateUpdate(input: VpmTemplateUpdateInput): Promise<VpmTemplateDto>
+    templateDuplicate(input: VpmTemplateDuplicateInput): Promise<VpmTemplateDto>
+    templateRemoveReference(input: VpmTemplateIdInput): Promise<VpmTemplateDto>
+    templateRestore(input: VpmTemplateIdInput): Promise<VpmTemplateDto>
     /** P8-C：VPM 偏好设置（预发布/隐藏包/配额/Unity 参数/更新检查开关）。 */
     settingsGet(): Promise<VpmPreferencesDto>
     settingsPatch(patch: VpmPreferencesPatch): Promise<VpmPreferencesDto>

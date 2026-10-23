@@ -185,6 +185,17 @@ describe('user templates', () => {
     )
   })
 
+  it('refuses self/descendant base edits and leaves the file untouched', () => {
+    const a = service.create({ name: 'A' })
+    const b = service.create({ name: 'B', base: a.id })
+    const c = service.create({ name: 'C', base: b.id })
+
+    expect(codeOf(() => service.update(a.id, { base: c.id }))).toBe('vpmTemplateInvalid')
+    expect(service.raw(a.id)?.base).toBeNull()
+    expect(codeOf(() => service.update(b.id, { base: b.id }))).toBe('vpmTemplateInvalid')
+    expect(service.raw(b.id)?.base).toBe(a.id)
+  })
+
   it('keeps recent locations bounded and newest first', () => {
     service.recordLocation('C:\\a')
     service.recordLocation('C:\\b')
