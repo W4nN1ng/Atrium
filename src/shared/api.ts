@@ -49,6 +49,7 @@ import type {
   VpmNetworkStatus,
   VpmOperationCancelResult,
   VpmOperationDto,
+  VpmOperationRecoveryResultDto,
   VpmOperationStart,
   VpmOperationStartInput,
   VpmOperationSummaryDto,
@@ -378,6 +379,8 @@ export interface AApi {
     operationHistory(projectKey: string): Promise<VpmOperationSummaryDto[]>
     /** 撤销指定操作：只允许最后一次、且工程未变。 */
     operationUndo(operationId: string): Promise<VpmOperationDto>
+    /** 手动重试恢复：动作由主进程按 journal + 磁盘判定，渲染层不能指定。 */
+    operationRecover(operationId: string): Promise<VpmOperationRecoveryResultDto>
     /** 工程里每个已装包在仓库里的可选版本（用于版本下拉/最新版本）。 */
     projectCatalog(projectKey: string): Promise<VpmProjectCatalogDto>
     unityInstalls(): Promise<VpmUnityInstallDto[]>

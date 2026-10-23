@@ -29,8 +29,12 @@ P1 的只读仓库/目录 IPC：参数校验、DTO 映射、刷新操作/事件�
 - `vpm:plan-apply` `{projectKey, planId}` → `VpmOperationDto`（**不接受计划内容**）
 - `vpm:operation-status` `operationId` → `VpmOperationDto`（进度事件丢了也能恢复）
 - `vpm:operation-cancel` `operationId` → `{ok, tooLate}`（提交点之后返回 `tooLate`）
-- `vpm:operation-history` `projectKey` → `VpmOperationSummaryDto[]`（含 `canUndo`/原因）
+- `vpm:operation-history` `projectKey` → `VpmOperationSummaryDto[]`（含 `canUndo`/原因、
+  未收尾操作的 `recovery` 判定）
 - `vpm:operation-undo` `operationId` → `VpmOperationDto`（反向计划走同一事务，`kind='undo'`）
+- `vpm:operation-recover` `operationId` → `VpmOperationRecoveryResultDto`
+  （**只传 id**；回滚/补完由主进程按 journal+磁盘重新判定。正在本进程跑的操作返回
+  `vpmProjectBusy`，证据不足返回 `applied:false` + reason）
 - `vpm:project-catalog` `projectKey` → `{packages:[{name, latestVersion, versions[]}], truncated}`
   （版本下拉/最新版本用；受保护包不返回）
 

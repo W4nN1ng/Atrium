@@ -23,31 +23,43 @@ export function VpmOperationDialog({
   canUndo,
   onClose,
   onCancel,
-  onUndo
+  onUndo,
+  onRecover
 }: {
   run: OperationRun | null
   canUndo: boolean
   onClose: () => void
   onCancel: () => Promise<boolean>
   onUndo: () => void
+  onRecover: () => Promise<unknown>
 }): JSX.Element {
   const { t } = useTranslation()
   const [cancelling, setCancelling] = useState(false)
   const [cancelNote, setCancelNote] = useState<string | null>(null)
+  const [recoverBusy, setRecoverBusy] = useState(false)
 
   const result = run?.result ?? null
   const running = run?.running === true
+  const runRecovering = run?.recovering === true
 
   return (
     <Modal
       open={run !== null}
       onOpenChange={(open) => {
-        if (!open && !running) onClose()
+        if (!open && !running && !runRecovering) onClose()
       }}
-      title={running ? t('vpm.packages.run.title') : t('vpm.packages.run.resultTitle')}
+      title={
+        runRecovering
+          ? t('vpm.packages.run.recoveringTitle')
+          : running
+            ? t('vpm.packages.run.title')
+            : t('vpm.packages.run.resultTitle')
+      }
       footer={
         <>
-          {running ? (
+          {runRecovering ? (
+            <Button disabled>{t('vpm.packages.run.recovering')}</Button>
+          ) : running ? (
             <Button
               variant="ghost"
               disabled={cancelling || !run?.operationId}
@@ -62,6 +74,26 @@ export function VpmOperationDialog({
             </Button>
           ) : (
             <>
+              {result?.recovery ? (
+                <Button
+                  variant="ghost"
+                  disabled={recoverBusy}
+                  onClick={async () => {
+                    setRecoverBusy(true)
+                    try {
+                      await onRecover()
+                    } finally {
+                      setRecoverBusy(false)
+                    }
+                  }}
+                >
+                  {recoverBusy
+                    ? t('vpm.packages.run.recovering')
+                    : result.recovery.canApply
+                      ? t('vpm.packages.run.recover')
+                      : t('vpm.packages.run.recheck')}
+                </Button>
+              ) : null}
               {result?.status === 'committed' && canUndo ? (
                 <Button variant="ghost" onClick={onUndo}>
                   {t('vpm.packages.run.undo')}
@@ -98,13 +130,22 @@ export function VpmOperationDialog({
           </div>
         ) : null}
 
-        {!running && run?.error ? (
+        {runRecovering ? (
+          <div className="space-y-2" role="status" aria-live="polite">
+            <Badge tone="accent">{t('vpm.packages.run.recovering')}</Badge>
+            <p className="faint text-[11px] leading-relaxed">
+              {t('vpm.packages.run.recovery.runningHint')}
+            </p>
+          </div>
+        ) : null}
+
+        {!running && !runRecovering && run?.error ? (
           <div className="rounded border px-3 py-2 text-[11px]" role="alert" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
             {run.error}
           </div>
         ) : null}
 
-        {!running && result ? (
+        {!running && !runRecovering && result ? (
           <div className="space-y-2" data-vpm-operation-result>
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={statusTone(result.status)}>
@@ -149,7 +190,24 @@ export function VpmOperationDialog({
                 {t('vpm.packages.run.rolledBack')}
               </p>
             ) : null}
-            {result.status === 'needs_attention' ? (
+            {result.recovery ? (
+              <div
+                className="rounded border px-3 py-2 text-[11px]"
+                style={{ borderColor: 'var(--line)' }}
+                data-vpm-operation-recovery
+                role="status"
+                aria-live="polite"
+              >
+                <div style={{ color: 'var(--warn)' }}>
+                  {t(`vpm.packages.run.recovery.reason.${result.recovery.reason}`)}
+                </div>
+                <div className="faint mt-1 leading-relaxed">
+                  {result.recovery.canApply
+                    ? t('vpm.packages.run.recovery.canApply')
+                    : t('vpm.packages.run.recovery.needsHelp')}
+                </div>
+              </div>
+            ) : result.status === 'needs_attention' ? (
               <p className="text-[11px]" style={{ color: 'var(--warn)' }}>
                 {t('vpm.packages.run.needsAttention')}
               </p>

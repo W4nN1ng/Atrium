@@ -356,6 +356,14 @@ export class InstallTransactionService {
     }
   }
 
+  /**
+   * 当前进程里是否有事务正在写这个工程。
+   * 恢复/人工重试必须让路，不能和事务同时 rename（备份恢复/建工程/迁移也走这里）。
+   */
+  isProjectBusy(projectKey: string): boolean {
+    return this.activeProjects.has(projectKey)
+  }
+
   private async runApply(
     input: ApplyPlanInput,
     plan: ChangePlan,
@@ -664,6 +672,7 @@ export class InstallTransactionService {
               .slice(0, 1000)
           })
         }
+        await this.point(context, 'legacy:after', 'legacy')
         return { moved: result.moved.length, skipped: result.skipped.length }
       } catch (error) {
         // 模拟进程死亡时继续往外抛；真实清理失败只报告“旧文件还在”，不回滚已提交的包。

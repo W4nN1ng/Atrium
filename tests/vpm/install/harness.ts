@@ -268,12 +268,14 @@ export class TxHarness {
 
   recovery(overrides: {
     isProjectActive?: (projectPath: string) => boolean
+    isProjectBusy?: (projectKey: string, projectPath: string) => boolean
     vault?: VaultStore
   } = {}): RecoveryService {
     return new RecoveryService({
       operations: this.operations,
       vault: overrides.vault ?? this.vault,
-      isProjectActive: overrides.isProjectActive
+      isProjectActive: overrides.isProjectActive,
+      isProjectBusy: overrides.isProjectBusy
     })
   }
 

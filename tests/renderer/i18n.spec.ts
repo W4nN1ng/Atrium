@@ -137,6 +137,7 @@ describe('i18n 三语一致', () => {
           'vpm.projects.confidence.',
           'vpm.packages.step.',
           'vpm.packages.run.status.',
+          'vpm.packages.run.recovery.reason.',
           'vpm.maintenance.status.',
           'vpm.create.reason.',
           'vpm.packages.undoBlocked.',

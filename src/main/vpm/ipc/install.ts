@@ -2,14 +2,16 @@ import { IpcEvent, IpcInvoke } from '../../../shared/ipc'
 import type {
   VpmOperationCancelResult,
   VpmOperationDto,
+  VpmOperationRecoveryResultDto,
   VpmOperationSummaryDto,
   VpmProjectCatalogDto,
+  VpmRecoveryDecisionDto,
   VpmUndoBlockedReason
 } from '../../../shared/vpm/dto'
 import { VpmError } from '../../../shared/vpm/errors'
 import type { IpcApi } from '../../ipc/types'
 import type { VpmRuntime } from '../index'
-import type { ApplyPlanResult, OperationRecord } from '../install'
+import type { ApplyPlanResult, OperationRecord, RecoveryDecision } from '../install'
 
 export interface InstallIpcOptions {
   ipc: IpcApi
@@ -39,6 +41,36 @@ function warningDto(warning: { code: string; params?: Record<string, string | nu
   }
 }
 
+function recoveryDto(decision: RecoveryDecision | null): VpmRecoveryDecisionDto | null {
+  if (!decision) return null
+  return {
+    operationId: decision.operationId,
+    action: decision.action,
+    reason: decision.reason,
+    journalPhase: decision.journalPhase,
+    canApply: decision.action === 'rollback' || decision.action === 'complete'
+  }
+}
+
+/** 未收尾的操作才需要解释；终态一律 null（已结束，不需要恢复）。 */
+function pendingRecovery(
+  runtime: VpmRuntime,
+  operation: OperationRecord
+): VpmRecoveryDecisionDto | null {
+  if (
+    operation.status === 'committed' ||
+    operation.status === 'failed' ||
+    operation.status === 'rolled_back'
+  ) {
+    return null
+  }
+  try {
+    return recoveryDto(runtime.recovery.inspect(operation.id))
+  } catch {
+    return null
+  }
+}
+
 function commitPointOf(runtime: VpmRuntime, operationId: string): 'before' | 'manifest_written' {
   try {
     return runtime.operations.commitPoint(operationId)
@@ -62,7 +94,8 @@ function resultDto(runtime: VpmRuntime, result: ApplyPlanResult): VpmOperationDt
     kept: result.kept,
     vaultPending: result.vaultPending,
     elapsedMs: result.elapsedMs,
-    commitPoint: commitPointOf(runtime, result.operationId)
+    commitPoint: commitPointOf(runtime, result.operationId),
+    recovery: operation ? pendingRecovery(runtime, operation) : null
   }
 }
 
@@ -89,7 +122,8 @@ function recordDto(runtime: VpmRuntime, operation: OperationRecord): VpmOperatio
       operation.finishedAt && operation.startedAt
         ? Math.max(0, operation.finishedAt - operation.startedAt)
         : 0,
-    commitPoint: commitPointOf(runtime, operation.id)
+    commitPoint: commitPointOf(runtime, operation.id),
+    recovery: pendingRecovery(runtime, operation)
   }
 }
 
@@ -208,7 +242,8 @@ export function registerInstallIpc(options: InstallIpcOptions): void {
         errorCode: operation.errorCode,
         changeCount: changeCountOf(operation),
         canUndo: gate.ok,
-        undoBlockedReason: gate.reason as VpmUndoBlockedReason | null
+        undoBlockedReason: gate.reason as VpmUndoBlockedReason | null,
+        recovery: pendingRecovery(current, operation)
       }
     })
   })
@@ -233,6 +268,49 @@ export function registerInstallIpc(options: InstallIpcOptions): void {
       if (nextId) controllers.delete(nextId)
     }
   })
+
+  /**
+   * 手动恢复一个未收尾操作。
+   *
+   * 不接收任何"动作"参数：动作只能由主进程按 journal + 磁盘重新判定，
+   * 渲染层最多表达"重试"，不能指定回滚/补完，更不能指定路径。
+   */
+  ipc.handle(
+    IpcInvoke.Vpm.OperationRecover,
+    async (operationId: unknown): Promise<VpmOperationRecoveryResultDto> => {
+      const current = runtime()
+      const id = requireId(operationId)
+      if (controllers.has(id)) {
+        // 这个操作正在当前进程里跑，恢复会和事务抢文件。
+        throw new VpmError('vpmProjectBusy', { operationId: id })
+      }
+      const operation = current.operations.get(id)
+      if (!operation) throw new VpmError('vpmOperationNotFound')
+
+      const outcome = await current.recovery.recover(id)
+      const updated = current.operations.get(id)
+      if (!updated) throw new VpmError('vpmOperationNotFound')
+      options.broadcast?.(IpcEvent.VpmOperationDone, {
+        operationId: id,
+        projectKey: updated.projectKey,
+        status: updated.status,
+        errorCode: updated.errorCode
+      })
+      return {
+        operation: recordDto(current, updated),
+        decision: recoveryDto(outcome.decision) ?? {
+          operationId: id,
+          action: 'none',
+          reason: 'terminal',
+          journalPhase: null,
+          canApply: false
+        },
+        applied: outcome.applied,
+        resultStatus: outcome.resultStatus,
+        errorCode: outcome.errorCode
+      }
+    }
+  )
 
   ipc.handle(IpcInvoke.Vpm.ProjectCatalog, (projectKey: unknown): VpmProjectCatalogDto => {
     const current = runtime()

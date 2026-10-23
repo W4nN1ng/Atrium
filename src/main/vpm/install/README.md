@@ -20,6 +20,10 @@
 manifest 对账，能证明安全的自动回滚或补完归档，判不了的落 `needs_attention`；
 事务提供**测试专用**注入点覆盖每一步，并用进程内锁 + DB 唯一索引挡住同工程并发。
 
+**P9-B —— 可解释、可重试的恢复**：`RecoveryService.inspect()` 只读单个操作，
+`recover()` 允许人工重试 `needs_attention`；证据不足时只返回原因不动文件。
+同一操作两路恢复互斥；提交后的归档补完做了兜底，任何意外都不会卡住启动/工程。
+
 ## 不负责什么
 
 - 不下载（下载在 `../cache/service.ts`）；事务只消费 `{ path, sha256, size }`。
@@ -42,8 +46,10 @@ manifest 对账，能证明安全的自动回滚或补完归档，判不了的�
   - `setManifestHashes/markCommitPoint/setLegacyPaths/setVaultPending/commitPoint`。
 - `OperationJournalStore`：`pathFor/exists/inspect/read/create/write`；`inspect` 区分
   `ok/missing/invalid`，恢复扫描用它，不抛异常。
-- `RecoveryService`：`scan()`（只读判定）/ `apply(decisions)`（**async**，会动文件）/
-  `scanAndApply()`（**async**）。判定见「恢复语义」一节；P4-D 起会真的回滚/补完归档。
+- `RecoveryService`：`scan()`（只读判定）/ `inspect(operationId)`（只读单操作）/
+  `apply(decisions)`（**async**，会动文件）/ `scanAndApply()`（**async**）/
+  `recover(operationId)`（**async**，人工重试 `needs_attention`/活动操作）。
+  判定见「恢复语义」一节；P4-D 起会真的回滚/补完归档。
 - `transactionLayout(projectPath, opId)` / `ensureTransactionLayout(...)`：
   `.atrium-tx/<op>/{install,trash,trash/packages,trash/legacy,rolledback}` 与
   `manifest.original.json` / `vpm-manifest.new.json` / `journal.json` 的唯一路径来源。
@@ -257,6 +263,26 @@ apply(planId)
   旧 Assets 仍留在工程里，符合"宁可留旧文件"。
 - 恢复在 `initVpm()` 里 `await recovery.scanAndApply()`，早于仓库种子与 IPC 注册。
 
+### 手动恢复（P9-B）
+
+`scan()` **不会**重扫 `needs_attention`：它是等人工/外部修复的终态。UI 通过
+`inspect()` 展示原因，通过 `recover()` 重试：
+
+- `inspect()` 对 `needs_attention` 重新按 journal+磁盘判定，不迷信数据库里的旧结论；
+- 判定为 `rollback`/`complete` 时，`recover()` 才真的动文件；判定仍为
+  `needs_attention`/`wait` 时只返回原因，状态和文件都不变；
+- 外部修复后（恢复 manifest、修复 journal、关闭 Unity）再点一次即可；
+- 同进程事务、素材导入、备份/复制/迁移/换版本的维护租约也会让恢复返回
+  `wait/project_busy`；占用检查抛错按占用处理；
+- 同一操作的 `recover` 在进程内互斥（`vpmProjectBusy`），不会两路同时 rename；
+- 活动操作（如启动时 Unity 还开着而留下的 `applying`）也可手动重试；
+- `inspect/recover` 读不到 journal 时不伪造证据；证据修好后才能解除
+  `findUnresolved` 的工程锁。
+
+**"锁可恢复"的边界**：journal 永久丢失且无法从备份修复时，工程仍会保持
+`needs_attention` 并拒绝新操作；这是为了避免在无法证明现场的情况下继续写。UI 必须把
+`journal_missing/journal_invalid/journal_mismatch` 原样解释给用户，不能提供"强制解锁"。
+
 ## 并发与工程锁（P4-D）
 
 - **进程内锁**：`InstallTransactionService.activeProjects` 按 `projectKey` 占位，
@@ -354,6 +380,18 @@ needs_attention → committed / failed / rolled_back（只能由恢复动作推�
   journal 损坏、遗留 running 步骤收尾。
 - `tests/vpm/install/concurrency.spec.ts`（P4-D）：同工程并发被拒、不同工程并行、
   锁在正常/崩溃恢复后释放、活动闸门拒绝、双击不重复、事务中途外部改动。
+- `tests/vpm/reliability/manual-recovery.spec.ts`（P9-B）：`needs_attention` 后修复
+  manifest/journal 再重试、Unity 占用等待、终态/未知 id。
+- `tests/vpm/reliability/locks.spec.ts`（P9-B）：维护租约在成功/失败/崩溃/批量失败后
+  全部释放；同一操作多轮崩溃恢复后仍可提交。
+- `tests/vpm/reliability/long-run.spec.ts`（P9-B）：40 次连续事务的 active 行、running
+  步骤、journal 提交点与 SQLite 完整性。
+- `tests/vpm/reliability/archive-hardening.spec.ts`（P9-B）：提交后归档检查抛
+  `EACCES` 也只保留 `vault_pending`，不阻塞启动/后续安装。
+- `tests/vpm/reliability/failure-matrix.spec.ts`（P9-B）：24 个注入点唯一且都真的
+  从事务里触发（防"声明了但永远不触发"）。
+- `tests/vpm/reliability/restart.spec.ts`（P9-B）：真实子进程 `exit(37)` 后新连接手动
+  恢复，再由另一个子进程抢同一工程锁。
 - `tests/vpm/install/harness.ts`：三个 P4-D 用例共用的临时工程/DB/回滚仓夹具
   （非 spec，不被收集）。
 - `tests/vpm/install/zip-fixture.ts`：恶意/正常 zip 夹具构造器（非 spec，不被收集）。

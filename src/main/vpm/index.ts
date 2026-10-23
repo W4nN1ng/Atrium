@@ -201,11 +201,6 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
     })
     const operations = new OperationStore(db, options.now)
     const vault = new VaultStore({ dataRoot: options.dataRoot })
-    const recovery = new RecoveryService({
-      operations,
-      vault,
-      isProjectActive: options.isProjectActive
-    })
     const transactions = new InstallTransactionService({
       operations,
       plans,
@@ -221,6 +216,26 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
           const item = projects.get(projectKey)
           if (!item) return null
           return { projectPath: item.path, snapshot: projects.scan(item.path) }
+        }
+      }
+    })
+    const recovery = new RecoveryService({
+      operations,
+      vault,
+      isProjectActive: options.isProjectActive,
+      // 事务、素材导入、备份/复制/迁移/换版本的维护租约都会挡住恢复写盘。
+      // 活动端口自己坏了按“占用”处理（fail closed）。
+      isProjectBusy: (projectKey, projectPath) => {
+        if (transactions.isProjectBusy(projectKey)) return true
+        try {
+          const state = options.projectActivity?.state(projectPath)
+          return (
+            state?.unityRunning === true ||
+            state?.importing === true ||
+            Boolean(state?.maintenance)
+          )
+        } catch {
+          return true
         }
       }
     })

@@ -135,6 +135,7 @@ export type {
   VpmOperationKind,
   VpmOperationProgressEvent,
   VpmOperationDoneEvent,
+  VpmOperationRecoveryResultDto,
   VpmOperationStartInput,
   VpmOperationStatus,
   VpmOperationSummaryDto,
@@ -142,6 +143,9 @@ export type {
   VpmPackageCatalogInfoDto,
   VpmPackageVersionOptionDto,
   VpmProjectCatalogDto,
+  VpmRecoveryAction,
+  VpmRecoveryDecisionDto,
+  VpmRecoveryReason,
   VpmUndoBlockedReason
 } from './install'
 

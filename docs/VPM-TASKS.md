@@ -117,7 +117,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P8-E | 性能、可访问性与全量回归 | P8-D | 基准、键盘/焦点、回归记录 | I1/I2/I10/A13 | done（I2/I10/A13 仍按部分记录） |
 | P8-F | 模板编辑 UI（A8 缺口） | P5-A/P8-D | 设置页模板新建/编辑/复制/删除引用 | A8 | done |
 | P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | done（I6 接受例外） |
-| P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | todo |
+| P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | done |
 | P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | todo |
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
 | P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
@@ -132,8 +132,8 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 > **P8-D**：124 行 A–K 对账已填满；61 完整 / 56 部分 / 7 不做；35 行目标=完整但实际=部分，
 > **P8 门禁未签字**。缺口与 P9 只修清单见 `docs/VPM-GAPS.md`；A8 模板编辑 UI 已由 **P8-F** 关闭。
 > GAP-02（R19 数据根在 C）与 A18（R17 删除进回收站）已由用户 2026-10-23 明确接受，
-> 不再改动；**P8-E/P8-F 已完成**，**P9-A 已完成**（安全硬化；I6/R19 为接受例外），
-> 下一张 **P9-B**（可靠性与并发硬化），真 Unity 仍归 P9-D。
+> 不再改动；**P8-E/P8-F 已完成**，**P9-A/P9-B 已完成**（安全硬化；可靠性与并发硬化），
+> 下一张 **P9-C**（性能、兼容与长路径），真 Unity 仍归 P9-D。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1422,6 +1422,36 @@ Task: P?-?
   极端 zip bomb/TOCTOU；归 P9-D/P9-E。
 - **给 P9-B**：保留 `tests/vpm/security/static.spec.ts` 的删除/网络/.meta 白名单；
   新增删除点先过它；不要为了通过率降低校验，也不要“修”回非 C 数据根。
+
+### P9-B（2026-10-23，done）
+
+- **可靠性报告**：`docs/VPM-RELIABILITY.md`（失败矩阵、崩溃点、锁审计、长稳、未验证）。
+- **恢复路径**：`RecoveryService.inspect()/recover()`；IPC `vpm:operation-recover`；
+  DTO `VpmOperationDto.recovery` + `VpmOperationSummaryDto.recovery`；
+  结果对话框/历史行提供“恢复/重新检查”，三语覆盖 10 种 reason。
+  渲染层只传 `operationId`，回滚/补完由主进程按 journal+磁盘重新判定。
+- **修复**：提交后的 vault 归档补完原来可能从 `scanAndApply()` 抛错并卡住 VPM 启动；
+  现在任何意外只保留 `vault_pending`。恢复增加同操作互斥，避免两路 rename。
+- **新增用例（6 个 reliability 文件）**：
+  - `manual-recovery.spec.ts`（8）：外部修复 manifest/journal 后重试；点击时重新判定；
+    Unity/备份/导入占用等待；占用检查抛错 fail closed；终态/未知 id；
+  - `locks.spec.ts`（7）：租约在成功/失败/模拟崩溃/12 连败后全释放；真实运行中的事务挡住恢复；
+    6 轮崩溃恢复后仍可提交；
+  - `long-run.spec.ts`（1）：40 次连续事务后 active=0、running 步骤=0、journal 全提交、
+    SQLite `integrity_check=ok`（本机约 10s）；
+  - `archive-hardening.spec.ts`（1）：归档阶段 `EACCES` 只留 `vault_pending`，不卡启动；
+  - `restart.spec.ts`（1）：真实子进程 `exit(37)` → 新连接手动恢复 → 另一子进程重新拿锁；
+  - `failure-matrix.spec.ts`（2）：24 个注入点唯一且都真的从事务里触发。
+  - 另加 `tests/renderer/vpm-recovery.spec.ts`（5）、IPC 恢复 4 条、
+    `legacy:after` 回归 1 条。
+- **已验证**：失败注入 24 点、崩溃窗口、真实 EPERM/EBUSY、进程死亡、并发/租约/外改；
+  `npm run typecheck` 0；`npm run build` 0（全量 **237 files / 2820 passed / 22 skipped
+  （2842 tests）**、worker 依赖图自包含、安装包 0.9.0）。安装版已重装并启动
+  （15:44，VPM 运行时加载、degraded=false、窗口 visible=true）。
+- **未验证**：真实窗口点恢复按钮、真 Unity 占用下的生产工程恢复、小时级长稳/
+  断电/杀毒占用/UNC；journal 永久丢失仍只能人工修复，不提供强制解锁（有意）。
+- **给 P9-C**：恢复路径的测试入口在 `tests/vpm/reliability/`；不要改事务语义来“优化”
+  可靠性数字。性能/长路径/版本矩阵从 `docs/VPM-RELIABILITY.md` §7/§8 接。
 
 ---
 

@@ -28,6 +28,11 @@ export interface RecoveryServiceOptions {
    * 返回 true 时只报告 wait，不自动改状态、不碰文件。
    */
   isProjectActive?: (projectPath: string) => boolean
+  /**
+   * 其它占用：同进程事务、素材导入、备份/复制/迁移/换版本的维护租约。
+   * 恢复同样只 wait；回调自己抛错按“占用”处理（fail closed）。
+   */
+  isProjectBusy?: (projectKey: string, projectPath: string) => boolean
   /** 恢复时的 rename 重试次数；默认 3（同步、不睡眠）。 */
   renameRetries?: number
 }
@@ -56,6 +61,10 @@ function hashOfFile(file: string): string | null {
   }
 }
 
+function isTerminalStatus(status: OperationStatus): boolean {
+  return status === 'committed' || status === 'failed' || status === 'rolled_back'
+}
+
 /**
  * 启动恢复扫描与执行。
  *
@@ -81,18 +90,87 @@ export class RecoveryService {
   private readonly journals: OperationJournalStore
   private readonly vault?: VaultStore
   private readonly isProjectActive?: (projectPath: string) => boolean
+  private readonly isProjectBusy?: (projectKey: string, projectPath: string) => boolean
   private readonly renameRetries: number
+  /** 同一操作不允许两路恢复同时动文件（启动恢复 + 用户重试可能撞车）。 */
+  private readonly inFlight = new Set<string>()
 
   constructor(options: RecoveryServiceOptions) {
     this.operations = options.operations
     this.journals = options.journals ?? new OperationJournalStore()
     this.vault = options.vault
     this.isProjectActive = options.isProjectActive
+    this.isProjectBusy = options.isProjectBusy
     this.renameRetries = Math.max(1, Math.trunc(options.renameRetries ?? 3))
   }
 
   scan(): RecoveryDecision[] {
     return this.operations.listActive().map((operation) => this.decide(operation))
+  }
+
+  /**
+   * 单个操作的只读判定，给 UI 解释"为什么停在这里、能不能恢复"。
+   *
+   * - 终态返回 `action:'none' / reason:'terminal'`；
+   * - `needs_attention` 也重新按磁盘/journal 判定，不迷信数据库里的旧结论；
+   * - 读失败不抛异常，交给 UI 当"暂时无法判定"处理。
+   */
+  inspect(operationId: string): RecoveryDecision | null {
+    let operation: OperationRecord | null
+    try {
+      operation = this.operations.get(operationId)
+    } catch {
+      return null
+    }
+    if (!operation) return null
+    if (isTerminalStatus(operation.status)) return this.terminalDecision(operation)
+    try {
+      return this.decide(operation)
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * 用户手动重试恢复。
+   *
+   * 与启动扫描的区别：
+   * - 允许 `needs_attention`（给人工修好证据后重试的机会）；
+   * - 证据不足时只返回判定，不改状态、不动文件；
+   * - Unity 占用时返回 `wait`，不强行恢复；
+   * - 同一操作并发调用直接拒绝，避免两路同时 rename。
+   */
+  async recover(operationId: string): Promise<RecoveryOutcome> {
+    const operation = this.operations.get(operationId)
+    if (!operation) throw new VpmError('vpmOperationNotFound', { operationId })
+
+    if (isTerminalStatus(operation.status)) {
+      return {
+        decision: this.terminalDecision(operation),
+        applied: false,
+        resultStatus: operation.status,
+        errorCode: null
+      }
+    }
+
+    const decision = this.decide(operation)
+    if (decision.action === 'wait') {
+      return { decision, applied: false, resultStatus: operation.status, errorCode: null }
+    }
+    if (decision.action === 'needs_attention') {
+      if (operation.status === 'needs_attention') {
+        return {
+          decision,
+          applied: false,
+          resultStatus: operation.status,
+          errorCode: this.errorCodeFor(decision)
+        }
+      }
+      // 活动操作被判定为不可恢复：补写 needs_attention，释放"活动操作"名额；
+      // 证据缺失时不写 journal，绝不伪造现场。
+      return this.applyOne(decision, false)
+    }
+    return this.applyOne(decision, true)
   }
 
   async apply(decisions: readonly RecoveryDecision[]): Promise<RecoveryOutcome[]> {
@@ -103,6 +181,18 @@ export class RecoveryService {
 
   async scanAndApply(): Promise<RecoveryOutcome[]> {
     return this.apply(this.scan())
+  }
+
+  private terminalDecision(operation: OperationRecord): RecoveryDecision {
+    return {
+      operationId: operation.id,
+      projectKey: operation.projectKey,
+      projectPath: operation.projectPath,
+      status: operation.status,
+      action: 'none',
+      reason: 'terminal',
+      journalPhase: null
+    }
   }
 
   private decide(operation: OperationRecord): RecoveryDecision {
@@ -129,6 +219,19 @@ export class RecoveryService {
     }
     if (active) {
       return { ...base, action: 'wait', reason: 'unity_running' }
+    }
+
+    let busy = false
+    if (this.isProjectBusy) {
+      try {
+        busy = this.isProjectBusy(operation.projectKey, operation.projectPath) === true
+      } catch {
+        // 占用检查自己坏了，按“正在用”处理，绝不自动改现场。
+        busy = true
+      }
+    }
+    if (busy) {
+      return { ...base, action: 'wait', reason: 'project_busy' }
     }
 
     const inspection = this.journals.inspect(operation.projectPath, operation.id)
@@ -177,7 +280,7 @@ export class RecoveryService {
     return 'other'
   }
 
-  private async applyOne(decision: RecoveryDecision): Promise<RecoveryOutcome> {
+  private async applyOne(decision: RecoveryDecision, manual = false): Promise<RecoveryOutcome> {
     if (decision.action === 'wait') {
       return { decision, applied: false, resultStatus: decision.status, errorCode: null }
     }
@@ -192,10 +295,8 @@ export class RecoveryService {
       }
     }
     if (
-      current.status === 'committed' ||
-      current.status === 'failed' ||
-      current.status === 'rolled_back' ||
-      current.status === 'needs_attention'
+      isTerminalStatus(current.status) ||
+      (current.status === 'needs_attention' && !manual)
     ) {
       return {
         decision,
@@ -206,6 +307,15 @@ export class RecoveryService {
     }
 
     if (decision.action === 'needs_attention') {
+      if (current.status === 'needs_attention') {
+        // 已经在这个状态：只报告判定，不要假装"又恢复了一次"。
+        return {
+          decision,
+          applied: false,
+          resultStatus: current.status,
+          errorCode: this.errorCodeFor(decision)
+        }
+      }
       const status = this.tryTransition(
         current.id,
         'needs_attention',
@@ -222,6 +332,15 @@ export class RecoveryService {
 
     const inspection = this.journals.inspect(current.projectPath, current.id)
     if (inspection.status !== 'ok') {
+      if (current.status === 'needs_attention') {
+        // 判定后被外部删/改坏：不重复"成功"，只报告证据已丢失。
+        return {
+          decision,
+          applied: false,
+          resultStatus: current.status,
+          errorCode: 'vpmJournalInvalid'
+        }
+      }
       const status = this.tryTransition(
         current.id,
         'needs_attention',
@@ -232,9 +351,17 @@ export class RecoveryService {
     }
     const journal = inspection.journal
 
-    return decision.action === 'complete'
-      ? this.complete(current, journal, decision)
-      : this.rollback(current, journal, decision)
+    if (this.inFlight.has(current.id)) {
+      throw new VpmError('vpmProjectBusy', { operationId: current.id })
+    }
+    this.inFlight.add(current.id)
+    try {
+      return decision.action === 'complete'
+        ? await this.complete(current, journal, decision)
+        : await this.rollback(current, journal, decision)
+    } finally {
+      this.inFlight.delete(current.id)
+    }
   }
 
   /** 已过提交点：补写提交点（如果缺）→ committed → 补完归档。 */
@@ -361,42 +488,48 @@ export class RecoveryService {
     journal: OperationJournalSnapshot
   ): Promise<boolean> {
     if (!this.vault) return false
-    let layout: ReturnType<typeof transactionLayout>
     try {
-      layout = transactionLayout(operation.projectPath, operation.id)
+      let layout: ReturnType<typeof transactionLayout>
+      try {
+        layout = transactionLayout(operation.projectPath, operation.id)
+      } catch {
+        return false
+      }
+
+      const entries: Array<{ relativePath: string; kind: 'file' | 'dir' }> = []
+      for (const move of journal.moves) {
+        if (move.action !== 'move-out' && move.action !== 'legacy') continue
+        if (!move.vaultPath) continue
+        const stat = lstatOrNull(path.join(layout.trash, move.vaultPath))
+        if (!stat || stat.isSymbolicLink()) continue
+        entries.push({
+          relativePath: move.vaultPath,
+          kind: stat.isDirectory() ? 'dir' : 'file'
+        })
+      }
+
+      if (entries.length === 0) {
+        this.trySetVaultPending(operation, false)
+        return true
+      }
+
+      this.trySetVaultPending(operation, true)
+      try {
+        await this.vault.archive({
+          projectSlug: projectSlugOf(operation.projectPath),
+          opId: operation.id,
+          sourceDir: layout.trash,
+          entries
+        })
+        this.trySetVaultPending(operation, false)
+        return true
+      } catch {
+        // 归档失败：保留事务区与 vault_pending，工程仍然可用。
+        return false
+      }
     } catch {
-      return false
-    }
-
-    const entries: Array<{ relativePath: string; kind: 'file' | 'dir' }> = []
-    for (const move of journal.moves) {
-      if (move.action !== 'move-out' && move.action !== 'legacy') continue
-      if (!move.vaultPath) continue
-      const stat = lstatOrNull(path.join(layout.trash, move.vaultPath))
-      if (!stat || stat.isSymbolicLink()) continue
-      entries.push({
-        relativePath: move.vaultPath,
-        kind: stat.isDirectory() ? 'dir' : 'file'
-      })
-    }
-
-    if (entries.length === 0) {
-      this.trySetVaultPending(operation, false)
-      return true
-    }
-
-    this.trySetVaultPending(operation, true)
-    try {
-      await this.vault.archive({
-        projectSlug: projectSlugOf(operation.projectPath),
-        opId: operation.id,
-        sourceDir: layout.trash,
-        entries
-      })
-      this.trySetVaultPending(operation, false)
-      return true
-    } catch {
-      // 归档失败：保留事务区与 vault_pending，工程仍然可用。
+      // 提交后任何意外都不能把启动恢复/工程卡死；保留 pending，留给后续重试。
+      this.trySetVaultPending(operation, true)
       return false
     }
   }

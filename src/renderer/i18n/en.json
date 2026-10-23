@@ -1657,6 +1657,27 @@
         "removed": "Removed",
         "rolledBack": "Rolled back; the project is back to its previous state.",
         "needsAttention": "The operation did not finish cleanly and needs a manual check. Nothing was deleted.",
+        "recover": "Try recovery",
+        "recovering": "Recovering…",
+        "recoveringTitle": "Recovering operation",
+        "recheck": "Check again",
+        "recovery": {
+          "canApply": "Recovery can run safely now: the main process will roll back, or finish the committed change, based on the transaction record.",
+          "needsHelp": "Recovery cannot run yet. Fix the condition above, then check again. Nothing is deleted.",
+          "runningHint": "Recovery is following the transaction record. It cannot be cancelled and does not delete user files.",
+          "reason": {
+            "terminal": "This operation is already finished.",
+            "manifest_committed": "The manifest on disk already contains this operation's new version; recovery will finish the commit and archive the old package.",
+            "before_commit": "The operation never reached the commit point; recovery will roll the project back.",
+            "journal_missing": "The operation journal is missing, so the on-disk state cannot be proven; recovery will not touch project files.",
+            "journal_invalid": "The operation journal is corrupt, so recovery is unsafe; it will not touch project files.",
+            "journal_mismatch": "The journal does not match the operation record, so recovery is unsafe; it will not touch project files.",
+            "project_missing": "The project directory is gone, so it cannot be recovered.",
+            "project_changed": "vpm-manifest.json was changed by something else, so there is no safe side to keep; recovery will not overwrite anything.",
+            "project_busy": "A backup, copy, migration, Unity version change, or package transaction is using this project. Try again after it finishes.",
+            "unity_running": "Unity is using this project. Close Unity, then try recovery again."
+          }
+        },
         "vaultPending": "Old files are still in the project transaction area and were not archived to the vault yet.",
         "status": {
           "planned": "Planned",
@@ -1686,7 +1707,8 @@
         "refresh": "Refresh",
         "empty": "No operations yet.",
         "changes": "{{count}} change(s)",
-        "undo": "Undo"
+        "undo": "Undo",
+        "recover": "Recover"
       },
       "undoBlocked": {
         "notCommitted": "Only successful operations can be undone",

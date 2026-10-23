@@ -32,6 +32,7 @@
 | 深链凭据 | headers/token/authorization/password/secret/cookie 整条拒绝 | `tests/vpm/security/deeplink.spec.ts`、`interop/deeplink.spec.ts` | 通过 |
 | 模板路径 | id/base/附件路径白名单；base 循环拒绝；删除只隐藏 | `protected-and-templates.spec.ts`、`templates/service.spec.ts` | 通过 |
 | 启动绑定/目标 | 先绑定再 spawn；失败/关闭/移除清理；不跨重启持久化 | `launch.spec.ts`、`launch-target.spec.ts`、核心 connections 测试 | 通过 |
+| 手动恢复 IPC | 只接受 `operationId`；动作/路径由主进程按 journal+磁盘判定；正在跑的操作拒绝；证据不足不动文件 | `tests/vpm/ipc/install.spec.ts`、`reliability/manual-recovery.spec.ts` | 通过（P9-B） |
 
 ## 3. 静态闸门
 

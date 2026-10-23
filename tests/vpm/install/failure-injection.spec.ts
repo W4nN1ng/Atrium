@@ -192,6 +192,36 @@ describe('failure injection: every transaction step', () => {
     expect(fs.existsSync(asset)).toBe(true)
     expect(h.exists(h.packageDir(project, 'com.example.old'))).toBe(false)
   })
+
+  it('archives legacy assets and reports a warning when legacy:after fails', async () => {
+    h.writeInstalledPackage(project, 'com.example.old', '1.0.0')
+    const asset = path.join(project, 'Assets', 'OldThing', 'model.prefab')
+    fs.mkdirSync(path.dirname(asset), { recursive: true })
+    fs.writeFileSync(asset, 'prefab')
+    const handle = h.makePlan(project, {
+      manifest: {
+        dependencies: { 'com.example.old': '1.0.0' },
+        locked: { 'com.example.old': { version: '1.0.0', dependencies: {} } },
+        legacyFolders: { 'com.example.old': 'Assets/OldThing' }
+      },
+      installed: [{ name: 'com.example.old', version: '1.0.0' }],
+      requests: [{ kind: 'remove', name: 'com.example.old' }]
+    })
+
+    const result = await h.apply(project, handle.planId, { hooks: failAt(['legacy:after']) })
+
+    expect(result.status).toBe('committed')
+    expect(result.warnings.map((warning) => warning.code)).toContain('vpmLegacyCleanupFailed')
+    expect(fs.existsSync(asset)).toBe(false)
+    expect(h.exists(h.packageDir(project, 'com.example.old'))).toBe(false)
+    // 清理已经发生：旧资源进回滚仓，而不是被"失败"抹掉。
+    expect(
+      fs.readFileSync(
+        path.join(h.vaultOpDir(project, result.operationId), 'legacy', 'Assets', 'OldThing', 'model.prefab'),
+        'utf8'
+      )
+    ).toBe('prefab')
+  })
 })
 
 describe('crash simulation leaves a recoverable scene', () => {

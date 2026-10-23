@@ -1657,6 +1657,27 @@
         "removed": "已移除",
         "rolledBack": "已经回滚，工程回到操作前的状态。",
         "needsAttention": "操作没有完全收尾，需要人工确认；现场已保留，没有删除任何文件。",
+        "recover": "尝试恢复",
+        "recovering": "正在恢复…",
+        "recoveringTitle": "正在恢复操作",
+        "recheck": "重新检查",
+        "recovery": {
+          "canApply": "现在可以安全恢复：主进程会按事务记录自动回滚，或补完已提交的改动。",
+          "needsHelp": "当前不能自动恢复；请先按上面的原因处理外部条件，再点“重新检查”。现场不会删除任何文件。",
+          "runningHint": "正在按事务记录恢复；恢复完成前不能取消，也不会删除用户文件。",
+          "reason": {
+            "terminal": "操作已经结束，不需要恢复。",
+            "manifest_committed": "磁盘上的 manifest 已经是这次操作写入的新版本，恢复会补完提交并归档旧包。",
+            "before_commit": "操作还没过提交点，恢复会把工程回滚到操作前。",
+            "journal_missing": "找不到这次操作的 journal，无法证明现场状态；恢复不会动任何文件。",
+            "journal_invalid": "这次操作的 journal 已损坏，无法安全恢复；恢复不会动任何文件。",
+            "journal_mismatch": "journal 与操作记录对不上，无法安全恢复；恢复不会动任何文件。",
+            "project_missing": "工程目录不在了，无法恢复。",
+            "project_changed": "vpm-manifest.json 被外部改过，无法判断该保留哪一边；恢复不会覆盖任何内容。",
+            "project_busy": "工程正在备份、复制、迁移、换版本，或有包事务在跑；等它结束后再恢复。",
+            "unity_running": "Unity 正在使用这个工程；关闭 Unity 后再点恢复。"
+          }
+        },
         "vaultPending": "旧文件还在工程的事务区，尚未归档到回滚仓；可以稍后重试归档。",
         "status": {
           "planned": "已计划",
@@ -1686,7 +1707,8 @@
         "refresh": "刷新",
         "empty": "还没有操作记录。",
         "changes": "{{count}} 项变更",
-        "undo": "撤销"
+        "undo": "撤销",
+        "recover": "恢复"
       },
       "undoBlocked": {
         "notCommitted": "只有成功的操作可以撤销",

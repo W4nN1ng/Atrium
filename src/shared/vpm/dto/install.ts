@@ -18,6 +18,36 @@ export interface VpmOperationWarningDto {
   detail: string | null
 }
 
+/** 恢复动作；`none` = 已结束，不需要恢复。 */
+export type VpmRecoveryAction = 'none' | 'rollback' | 'complete' | 'needs_attention' | 'wait'
+
+export type VpmRecoveryReason =
+  | 'terminal'
+  | 'manifest_committed'
+  | 'before_commit'
+  | 'journal_missing'
+  | 'journal_invalid'
+  | 'journal_mismatch'
+  | 'project_missing'
+  | 'project_changed'
+  | 'project_busy'
+  | 'unity_running'
+
+/**
+ * `needs_attention`/未收尾操作的可解释判定。
+ *
+ * - `canApply=true`：现在点"恢复"会真的动文件（回滚或补完）；
+ * - `canApply=false`：先按原因处理外部条件（关 Unity、修复 manifest/journal），再重试；
+ * - `applied` 等结果只在 `OperationRecover` 返回值里，不存 DB。
+ */
+export interface VpmRecoveryDecisionDto {
+  operationId: string
+  action: VpmRecoveryAction
+  reason: VpmRecoveryReason
+  journalPhase: VpmOperationStatus | null
+  canApply: boolean
+}
+
 /** 一次操作的结果/状态；`OperationStatus` 与 `PlanApply` 返回同一个形状。 */
 export interface VpmOperationDto {
   operationId: string
@@ -34,6 +64,17 @@ export interface VpmOperationDto {
   elapsedMs: number
   /** `before` = 还没写 manifest；`manifest_written` = 已提交。 */
   commitPoint: 'before' | 'manifest_written'
+  /** 未收尾操作才给；committed/failed/rolled_back 为 null。 */
+  recovery: VpmRecoveryDecisionDto | null
+}
+
+/** 手动恢复的结果：操作本身 + 这次实际执行的判定。 */
+export interface VpmOperationRecoveryResultDto {
+  operation: VpmOperationDto
+  decision: VpmRecoveryDecisionDto
+  applied: boolean
+  resultStatus: VpmOperationStatus | null
+  errorCode: VpmErrorCode | null
 }
 
 export interface VpmOperationStartInput {
@@ -70,6 +111,8 @@ export interface VpmOperationSummaryDto {
   /** 这次操作能不能撤销；不能时给原因。 */
   canUndo: boolean
   undoBlockedReason: VpmUndoBlockedReason | null
+  /** 未收尾操作可点"恢复"；已结束为 null。 */
+  recovery: VpmRecoveryDecisionDto | null
 }
 
 export interface VpmOperationProgressEvent {

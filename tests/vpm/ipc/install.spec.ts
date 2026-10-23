@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { IpcEvent, IpcInvoke } from '../../../src/shared/ipc'
-import type { VpmOperationDto } from '../../../src/shared/vpm/dto'
+import type { VpmOperationDto, VpmOperationRecoveryResultDto } from '../../../src/shared/vpm/dto'
 import { registerInstallIpc } from '../../../src/main/vpm/ipc/install'
 import type { VpmRuntime } from '../../../src/main/vpm'
-import type { ApplyPlanInput, ApplyPlanResult, OperationRecord } from '../../../src/main/vpm/install'
+import type {
+  ApplyPlanInput,
+  ApplyPlanResult,
+  OperationRecord,
+  RecoveryDecision,
+  RecoveryOutcome
+} from '../../../src/main/vpm/install'
 import type { IpcApi } from '../../../src/main/ipc/types'
 
 const OP_ID = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
@@ -16,6 +22,8 @@ let broadcast: ReturnType<typeof vi.fn>
 let records: Map<string, OperationRecord>
 let commitPoints: Map<string, 'before' | 'manifest_written'>
 let applyImpl: (input: ApplyPlanInput) => Promise<ApplyPlanResult>
+let inspectDecision: RecoveryDecision | null
+let recoverOutcome: RecoveryOutcome | null
 let runtime: VpmRuntime
 
 function operation(overrides: Partial<OperationRecord> = {}): OperationRecord {
@@ -97,6 +105,8 @@ beforeEach(() => {
     input.onProgress?.({ operationId: OP_ID, step: 'manifest', phase: 'done', index: 6, total: 9 })
     return result()
   }
+  inspectDecision = null
+  recoverOutcome = null
 
   runtime = {
     operations: {
@@ -104,6 +114,23 @@ beforeEach(() => {
       list: (projectKey: string) => [...records.values()].filter((item) => item.projectKey === projectKey),
       findActive: () => null,
       commitPoint: (id: string) => commitPoints.get(id) ?? 'before'
+    },
+    recovery: {
+      inspect: (id: string) => (id === OP_ID ? inspectDecision : null),
+      recover: async (id: string) => {
+        if (!recoverOutcome) throw new Error('unexpected recovery')
+        if (recoverOutcome.resultStatus) {
+          records.set(
+            id,
+            operation({
+              id,
+              status: recoverOutcome.resultStatus,
+              errorCode: recoverOutcome.errorCode ?? null
+            })
+          )
+        }
+        return recoverOutcome
+      }
     },
     transactions: {
       apply: (input: ApplyPlanInput) => applyImpl(input)
@@ -255,6 +282,112 @@ describe('install IPC: status and history', () => {
     expect(committed).toMatchObject({ canUndo: true, changeCount: 1, undoBlockedReason: null })
     const failed = history.find((item) => item.operationId === OTHER_ID)
     expect(failed).toMatchObject({ canUndo: false, undoBlockedReason: 'notCommitted' })
+  })
+
+  it('explains a needs_attention operation in both status and history', () => {
+    records.set(
+      OP_ID,
+      operation({
+        status: 'needs_attention',
+        errorCode: 'vpmRecoveryRequired',
+        errorDetail: 'project_changed'
+      })
+    )
+    inspectDecision = {
+      operationId: OP_ID,
+      projectKey: PROJECT,
+      projectPath: 'C:\\demo',
+      status: 'needs_attention',
+      action: 'rollback',
+      reason: 'before_commit',
+      journalPhase: 'applying'
+    }
+
+    const dto = call<VpmOperationDto>(IpcInvoke.Vpm.OperationStatus, OP_ID)
+    expect(dto.recovery).toEqual({
+      operationId: OP_ID,
+      action: 'rollback',
+      reason: 'before_commit',
+      journalPhase: 'applying',
+      canApply: true
+    })
+    expect(dto.commitPoint).toBe('manifest_written')
+
+    const history = call<Array<{ operationId: string; recovery: unknown }>>(
+      IpcInvoke.Vpm.OperationHistory,
+      PROJECT
+    )
+    expect(history.find((item) => item.operationId === OP_ID)?.recovery).toMatchObject({
+      action: 'rollback',
+      reason: 'before_commit'
+    })
+  })
+
+  it('runs a manual recovery and broadcasts the resulting terminal state', async () => {
+    records.set(
+      OP_ID,
+      operation({ status: 'needs_attention', errorCode: 'vpmRecoveryRequired' })
+    )
+    inspectDecision = {
+      operationId: OP_ID,
+      projectKey: PROJECT,
+      projectPath: 'C:\\demo',
+      status: 'needs_attention',
+      action: 'rollback',
+      reason: 'before_commit',
+      journalPhase: 'applying'
+    }
+    recoverOutcome = {
+      decision: inspectDecision,
+      applied: true,
+      resultStatus: 'rolled_back',
+      errorCode: null
+    }
+
+    const dto = await call<Promise<VpmOperationRecoveryResultDto>>(
+      IpcInvoke.Vpm.OperationRecover,
+      OP_ID
+    )
+    expect(dto).toMatchObject({
+      applied: true,
+      resultStatus: 'rolled_back',
+      decision: { action: 'rollback', canApply: true }
+    })
+    expect(dto.operation.status).toBe('rolled_back')
+    expect(dto.operation.recovery).toBeNull()
+    expect(broadcast.mock.calls.map((entry) => entry[0])).toContain(IpcEvent.VpmOperationDone)
+    expect(broadcast.mock.calls.at(-1)?.[1]).toMatchObject({
+      operationId: OP_ID,
+      status: 'rolled_back'
+    })
+  })
+
+  it('refuses recovery while the same operation is running in this process', async () => {
+    const gate: { release: ((value: ApplyPlanResult) => void) | null } = { release: null }
+    records.set(OP_ID, operation({ status: 'applying' }))
+    applyImpl = (input) => {
+      input.onStarted?.(OP_ID)
+      return new Promise((resolve) => {
+        gate.release = resolve
+      })
+    }
+
+    const pending = call<Promise<VpmOperationDto>>(IpcInvoke.Vpm.PlanApply, {
+      projectKey: PROJECT,
+      planId: PLAN_ID
+    })
+    await Promise.resolve()
+    await expect(
+      call<Promise<VpmOperationRecoveryResultDto>>(IpcInvoke.Vpm.OperationRecover, OP_ID)
+    ).rejects.toMatchObject({ code: 'vpmProjectBusy' })
+    gate.release?.(result())
+    await pending
+  })
+
+  it('rejects unknown recovery ids', async () => {
+    await expect(
+      call<Promise<VpmOperationRecoveryResultDto>>(IpcInvoke.Vpm.OperationRecover, 'missing')
+    ).rejects.toMatchObject({ code: 'vpmOperationNotFound' })
   })
 
   it('runs undo through the service and broadcasts a done event', async () => {

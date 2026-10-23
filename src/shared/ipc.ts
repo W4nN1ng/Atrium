@@ -259,6 +259,7 @@ export const IpcInvoke = {
     OperationCancel: 'vpm:operation-cancel',
     OperationHistory: 'vpm:operation-history',
     OperationUndo: 'vpm:operation-undo',
+    OperationRecover: 'vpm:operation-recover',
     ProjectCatalog: 'vpm:project-catalog',
     UnityInstalls: 'vpm:unity-installs',
     UnityRefresh: 'vpm:unity-refresh',

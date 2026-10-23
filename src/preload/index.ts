@@ -132,6 +132,7 @@ const api: AApi = {
     operationCancel: (operationId) => invoke('vpm:operation-cancel', operationId),
     operationHistory: (projectKey) => invoke('vpm:operation-history', projectKey),
     operationUndo: (operationId) => invoke('vpm:operation-undo', operationId),
+    operationRecover: (operationId) => invoke('vpm:operation-recover', operationId),
     projectCatalog: (projectKey) => invoke('vpm:project-catalog', projectKey),
     unityInstalls: () => invoke('vpm:unity-installs'),
     unityRefresh: () => invoke('vpm:unity-refresh'),

@@ -21,6 +21,8 @@ export interface OperationRun {
   result: VpmOperationDto | null
   error: string | null
   running: boolean
+  /** 正在执行主进程的恢复（不是安装事务，不能取消）。 */
+  recovering?: boolean
 }
 
 export interface VpmOperationsState {
@@ -31,6 +33,7 @@ export interface VpmOperationsState {
   apply: (planId: string) => Promise<VpmOperationDto | null>
   cancel: () => Promise<boolean>
   undo: (operationId: string) => Promise<VpmOperationDto | null>
+  recover: (operationId: string) => Promise<VpmOperationDto | null>
   reloadHistory: () => Promise<void>
   dismiss: () => void
 }
@@ -198,5 +201,58 @@ export function useVpmOperations(projectKey: string): VpmOperationsState {
 
   const dismiss = useCallback((): void => setRun(null), [])
 
-  return { run, history, historyLoading, historyError, apply, cancel, undo, reloadHistory, dismiss }
+  /**
+   * 手动恢复：主进程重新读 journal + 磁盘后决定回滚/补完。
+   * 这里只负责把结果放回同一个结果对话框，绝不自己猜动作。
+   */
+  const recover = useCallback(
+    async (operationId: string): Promise<VpmOperationDto | null> => {
+      setRun({
+        operationId,
+        projectKey,
+        progress: null,
+        result: null,
+        error: null,
+        running: false,
+        recovering: true
+      })
+      try {
+        const recovery = await vpmApi.operationRecover(operationId)
+        setRun({
+          operationId,
+          projectKey,
+          progress: null,
+          result: recovery.operation,
+          error: null,
+          running: false
+        })
+        await reloadHistory()
+        return recovery.operation
+      } catch (cause) {
+        setRun({
+          operationId,
+          projectKey,
+          progress: null,
+          result: null,
+          error: errorText(cause),
+          running: false
+        })
+        return null
+      }
+    },
+    [projectKey, reloadHistory]
+  )
+
+  return {
+    run,
+    history,
+    historyLoading,
+    historyError,
+    apply,
+    cancel,
+    undo,
+    recover,
+    reloadHistory,
+    dismiss
+  }
 }

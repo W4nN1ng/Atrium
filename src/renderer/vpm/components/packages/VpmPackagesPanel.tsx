@@ -192,7 +192,8 @@ export function VpmPackagesPanel({
   const updates = countUpdates(rows)
   const safeCart = useMemo(() => sanitizeCart(cart, rows), [cart, rows])
   const cartSize = safeCart.size
-  const locked = detail.running || ops.run?.running === true
+  const operationBusy = ops.run?.running === true || ops.run?.recovering === true
+  const locked = detail.running || operationBusy
   // P7-C：从本地信任目录装包（不下载，直接拷贝）
   const [localOpen, setLocalOpen] = useState(false)
   const [localList, setLocalList] = useState<Array<{ name: string; version: string; unity: string | null }>>([])
@@ -434,9 +435,22 @@ export function VpmPackagesPanel({
                   {t('vpm.packages.history.changes', { count: item.changeCount })}
                 </span>
                 {item.errorCode ? <span className="faint text-[10px]">{vpmCodeLabel(item.errorCode)}</span> : null}
+                {item.recovery ? (
+                  <span className="faint text-[10px]">
+                    {t(`vpm.packages.run.recovery.reason.${item.recovery.reason}`)}
+                  </span>
+                ) : null}
                 <div className="ml-auto">
-                  {item.canUndo ? (
-                    <Button variant="ghost" disabled={ops.run?.running === true} onClick={() => void ops.undo(item.operationId)}>
+                  {item.recovery ? (
+                    <Button
+                      variant="ghost"
+                      disabled={operationBusy}
+                      onClick={() => void ops.recover(item.operationId)}
+                    >
+                      {t('vpm.packages.history.recover')}
+                    </Button>
+                  ) : item.canUndo ? (
+                    <Button variant="ghost" disabled={operationBusy} onClick={() => void ops.undo(item.operationId)}>
                       {t('vpm.packages.history.undo')}
                     </Button>
                   ) : item.status === 'committed' ? (
@@ -493,6 +507,7 @@ export function VpmPackagesPanel({
         onClose={ops.dismiss}
         onCancel={ops.cancel}
         onUndo={undo}
+        onRecover={() => ops.recover(ops.run?.operationId ?? '')}
       />
 
       <Modal

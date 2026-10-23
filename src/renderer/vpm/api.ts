@@ -8,6 +8,7 @@ import type {
   VpmOperationCancelResult,
   VpmOperationDoneEvent,
   VpmOperationDto,
+  VpmOperationRecoveryResultDto,
   VpmOperationProgressEvent,
   VpmOperationStart,
   VpmOperationStartInput,
@@ -202,6 +203,9 @@ export const vpmApi = {
   },
   operationUndo(operationId: string): Promise<VpmOperationDto> {
     return window.a.vpm.operationUndo(operationId)
+  },
+  operationRecover(operationId: string): Promise<VpmOperationRecoveryResultDto> {
+    return window.a.vpm.operationRecover(operationId)
   },
   projectCatalog(projectKey: string): Promise<VpmProjectCatalogDto> {
     return window.a.vpm.projectCatalog(projectKey)
