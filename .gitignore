@@ -6,6 +6,7 @@ dist-r9b/
 # P9-E 构建产物（带日期的输出目录，别提交 87MB 安装包）
 dist-rel/
 dist-new/
+dist-fix/
 # 下载缓存：Electron 本体 zip(112MB) / 7-Zip 安装器 / sqlite 预编译 tar.gz
 # 全部由 tools/setup-native.cjs 与 tools/fetch-7z.cjs 按需重下，不进仓库
 vendor/cache/
