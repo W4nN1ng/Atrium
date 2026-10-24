@@ -1604,6 +1604,7 @@
       "title": "インストール済みパッケージ",
       "installedCount": "{{count}} 個インストール済み",
       "updatesCount": "{{count}} 個更新可能",
+      "add": "パッケージを追加",
       "upgradeAll": "すべて最新へ",
       "lockedHint": "Unity が実行中か、別の操作が進行中です",
       "unityRunning": "Unity がこのプロジェクトを開いています。パッケージを変更する前に閉じてください。",
@@ -1624,6 +1625,7 @@
       "empty": "該当するパッケージはありません。",
       "system": "システムパッケージ",
       "systemHint": "Atrium のブリッジインストーラーが管理しています。ここから更新・ダウングレード・削除はできません。",
+      "embeddedSource": "プロジェクト内",
       "updateAvailable": "更新あり",
       "conflict": "複数ソースの競合",
       "current": "（現在）",
@@ -1725,6 +1727,15 @@
         "upgrade": "更新",
         "undo": "取り消し"
       }
+    },
+    "addPackage": {
+      "title": "パッケージを追加",
+      "intro": "有効なリポジトリからパッケージとバージョンを選びます。プロジェクトに書き込む前に変更内容を確認できます。",
+      "cancel": "キャンセル",
+      "add": "追加",
+      "installed": "インストール済み {{version}}",
+      "version": "インストールするバージョン",
+      "select": "左の一覧からパッケージを選ぶと、利用できるバージョンが表示されます。"
     },
     "templates": {
       "title": "テンプレート",

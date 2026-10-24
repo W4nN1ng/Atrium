@@ -30,6 +30,29 @@ describe('buildManifest', () => {
     expect(data.dependencies).toEqual({ 'com.a': '^2.0.0', 'com.z': '*' })
   })
 
+  it('preserves VCC/ALCOM object-form dependencies instead of downgrading them to strings', () => {
+    const built = buildManifest({
+      before: {
+        dependencies: {
+          'com.a': { version: '1.0.0', custom: 'keep-me' },
+          'com.b': { version: '2.0.0' }
+        },
+        locked: {}
+      },
+      roots: { 'com.a': '1.2.0', 'com.c': '*' },
+      finalPackages: [
+        { name: 'com.a', version: '1.2.0' },
+        { name: 'com.c', version: '3.0.0' }
+      ]
+    })
+    const data = JSON.parse(built.text) as { dependencies: Record<string, unknown> }
+    expect(data.dependencies).toEqual({
+      'com.a': { version: '1.2.0', custom: 'keep-me' },
+      'com.c': { version: '*' }
+    })
+    expect(built.dependencies).toEqual({ 'com.a': '1.2.0', 'com.c': '*' })
+  })
+
   it('drops removed packages and keeps locked entries outside the final set', () => {
     const built = buildManifest({
       before: {

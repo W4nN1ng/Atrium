@@ -1604,6 +1604,7 @@
       "title": "Installed packages",
       "installedCount": "{{count}} installed",
       "updatesCount": "{{count}} updatable",
+      "add": "Add package",
       "upgradeAll": "Upgrade all (latest)",
       "lockedHint": "Unity is running or another operation is in progress; packages are locked",
       "unityRunning": "Unity is running this project. Close Unity before installing or removing packages.",
@@ -1624,6 +1625,7 @@
       "empty": "No matching packages.",
       "system": "System package",
       "systemHint": "Maintained by the Atrium bridge installer; it cannot be upgraded, downgraded or removed here.",
+      "embeddedSource": "In project",
       "updateAvailable": "Update",
       "conflict": "Multi-source conflict",
       "current": "(current)",
@@ -1725,6 +1727,15 @@
         "upgrade": "Upgrade",
         "undo": "Undo"
       }
+    },
+    "addPackage": {
+      "title": "Add package",
+      "intro": "Pick a package and version from enabled repositories. You will see a change preview before anything is written to the project.",
+      "cancel": "Cancel",
+      "add": "Add",
+      "installed": "Installed {{version}}",
+      "version": "Version to install",
+      "select": "Select a package on the left to see available versions."
     },
     "templates": {
       "title": "Templates",

@@ -1604,6 +1604,7 @@
       "title": "已安装的包",
       "installedCount": "已装 {{count}} 个",
       "updatesCount": "可更新 {{count}} 个",
+      "add": "添加软件包",
       "upgradeAll": "升级全部（最新）",
       "lockedHint": "Unity 正在运行或已有操作在进行，暂时不能改包",
       "unityRunning": "Unity 正在运行这个工程。关闭 Unity 之后才能装包或卸载包。",
@@ -1624,6 +1625,7 @@
       "empty": "没有匹配的包。",
       "system": "系统包",
       "systemHint": "由 Atrium 桥接安装器维护，不能在这里升级、降级或卸载。",
+      "embeddedSource": "工程内包",
       "updateAvailable": "有更新",
       "conflict": "多源冲突",
       "current": "（当前）",
@@ -1725,6 +1727,15 @@
         "upgrade": "升级",
         "undo": "撤销"
       }
+    },
+    "addPackage": {
+      "title": "添加软件包",
+      "intro": "从已启用的仓库里选一个包和版本；下一步会先给出变更预览，不会立即写入工程。",
+      "cancel": "取消",
+      "add": "添加",
+      "installed": "已安装 {{version}}",
+      "version": "要安装的版本",
+      "select": "在左边选择一个包，查看可安装的版本。"
     },
     "templates": {
       "title": "模板",

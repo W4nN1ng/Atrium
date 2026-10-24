@@ -16,6 +16,7 @@ import {
 function pkg(overrides: Partial<VpmProjectPackageDto> = {}): VpmProjectPackageDto {
   return {
     name: 'com.example.a',
+    displayName: 'Example A',
     version: '1.0.0',
     source: 'embedded',
     state: 'installed',
@@ -29,6 +30,8 @@ function pkg(overrides: Partial<VpmProjectPackageDto> = {}): VpmProjectPackageDt
 
 const catalog = {
   name: 'com.example.a',
+  displayName: 'Example A',
+  sourceName: 'Official',
   latestVersion: '2.0.0',
   versions: [
     { version: '2.0.0', latest: true, yanked: false, deprecated: false, unityMin: null, repoName: 'official' },
@@ -48,6 +51,25 @@ describe('compareVersions', () => {
 })
 
 describe('row model and actions', () => {
+  it('shows display name and repository source, falling back to the package id', () => {
+    const row = rowModel(pkg(), catalog)
+    expect(row.displayName).toBe('Example A')
+    expect(row.repoName).toBe('Official')
+    expect(rowModel(pkg({ displayName: null }), { ...catalog, displayName: 'Catalog Name' }).displayName).toBe(
+      'Catalog Name'
+    )
+    const unknown = rowModel(pkg({ displayName: null }), undefined)
+    expect(unknown.displayName).toBeNull()
+    expect(unknown.repoName).toBeNull()
+  })
+
+  it('searches both display name and package id', () => {
+    const rows = [rowModel(pkg(), catalog)]
+    expect(filterRows(rows, { text: 'example', only: 'all' })).toHaveLength(1)
+    expect(filterRows(rows, { text: 'com.example', only: 'all' })).toHaveLength(1)
+    expect(filterRows(rows, { text: 'missing', only: 'all' })).toHaveLength(0)
+  })
+
   it('marks updates only when the catalog is newer', () => {
     const row = rowModel(pkg(), catalog)
     expect(row.updateAvailable).toBe(true)

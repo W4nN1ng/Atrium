@@ -98,6 +98,26 @@ function lowerSet(values: readonly string[] | undefined): Set<string> {
   return new Set((values ?? []).map((value) => value.trim().toLowerCase()).filter(Boolean))
 }
 
+/**
+ * VCC/ALCOM 新版 manifest 的 dependencies 是对象数组：
+ *   `"com.vrchat.avatars": { "version": "3.10.5" }`
+ * 旧版是字符串。写回时沿用原来的形状；对象里除 version 外的未知字段原样保留。
+ */
+function buildDependencies(
+  before: unknown,
+  roots: Record<string, string>
+): Record<string, unknown> {
+  const objectFormat =
+    isRecord(before) && Object.values(before).some((value) => isRecord(value))
+  if (!objectFormat) return roots
+  const out: Record<string, unknown> = {}
+  for (const [name, range] of Object.entries(roots)) {
+    const previous = isRecord(before) ? before[name] : undefined
+    out[name] = isRecord(previous) ? { ...previous, version: range } : { version: range }
+  }
+  return sortKeys(out)
+}
+
 export function buildManifest(input: BuildManifestInput): BuiltManifest {
   const before = isRecord(input.before) ? input.before : {}
   const removed = lowerSet(input.removed)
@@ -137,7 +157,7 @@ export function buildManifest(input: BuildManifestInput): BuiltManifest {
 
   const data: Record<string, unknown> = {
     ...before,
-    dependencies: roots,
+    dependencies: buildDependencies(before.dependencies, roots),
     locked: sortKeys(locked)
   }
   const text = JSON.stringify(data, null, 2)

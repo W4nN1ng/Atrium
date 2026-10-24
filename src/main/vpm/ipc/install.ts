@@ -321,16 +321,33 @@ export function registerInstallIpc(options: InstallIpcOptions): void {
       (pkg) => pkg.source === 'embedded' && pkg.state !== 'protected'
     )
     const names = eligible.map((pkg) => pkg.name).slice(0, 80)
+    // P9 修复：工程页的"最新版本"跟随设置里的预发布偏好；
+    // 关掉预发布时不能再把 3.10.6-beta.2 当成最新（ALCOM 显示稳定版 3.10.5）。
+    const allowPrerelease = current.catalog.defaultAllowPrerelease()
 
     const packages = names.map((name) => {
       const pkg = current.catalog.getPackage(name)
-      if (!pkg) return { name, latestVersion: null, versions: [], hasConflict: false }
+      if (!pkg) {
+        return {
+          name,
+          displayName: null,
+          sourceName: null,
+          latestVersion: null,
+          versions: [],
+          hasConflict: false
+        }
+      }
+      const stable = pkg.versions.filter((version) => !version.version.includes('-'))
+      const versions = allowPrerelease || stable.length === 0 ? pkg.versions : stable
+      const latestVersion = versions[0]?.version ?? null
       return {
         name,
-        latestVersion: pkg.latestVersion ?? null,
-        versions: pkg.versions.slice(0, 200).map((version) => ({
+        displayName: pkg.displayName,
+        sourceName: pkg.sources[0]?.repoName ?? null,
+        latestVersion,
+        versions: versions.slice(0, 200).map((version) => ({
           version: version.version,
-          latest: version.version === pkg.latestVersion,
+          latest: version.version === latestVersion,
           yanked: version.yanked,
           deprecated: version.deprecated,
           unityMin: version.unityMin,

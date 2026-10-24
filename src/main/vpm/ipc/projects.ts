@@ -45,6 +45,7 @@ function stateOf(value: string): VpmProjectPackageState {
 function ledgerPackage(row: ProjectPackageRow): VpmProjectPackageDto {
   return {
     name: row.name,
+    displayName: null,
     version: row.version,
     source: row.source,
     state: stateOf(row.state),
@@ -58,6 +59,7 @@ function ledgerPackage(row: ProjectPackageRow): VpmProjectPackageDto {
 function snapshotPackage(pkg: ProjectSnapshot['packages'][number]): VpmProjectPackageDto {
   return {
     name: pkg.name,
+    displayName: pkg.displayName,
     version: pkg.version,
     source: pkg.source,
     state: stateOf(pkg.state),

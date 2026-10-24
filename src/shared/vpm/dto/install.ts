@@ -143,6 +143,8 @@ export interface VpmPackageVersionOptionDto {
 /** 单个包在仓库里的可选版本；工程包里没有的字段不回传。 */
 export interface VpmPackageCatalogInfoDto {
   name: string
+  displayName: string | null
+  sourceName: string | null
   latestVersion: string | null
   versions: VpmPackageVersionOptionDto[]
   hasConflict: boolean

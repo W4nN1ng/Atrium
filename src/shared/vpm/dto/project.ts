@@ -32,6 +32,7 @@ export interface VpmProjectSummaryDto {
 
 export interface VpmProjectPackageDto {
   name: string
+  displayName: string | null
   version: string | null
   source: string
   state: VpmProjectPackageState
