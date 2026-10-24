@@ -1556,8 +1556,8 @@ Task: P?-?
 > `docs/HANDOVER-2026-10-24.md`。
 
 - 分支 `codex/vpm-package-display-names`，代码 HEAD `b00b6f5`，相对 `origin/main`
-  领先“4 个修复 + 交接文档”；分支**未推送**，没有 upstream。
-  新机器从 GitHub 只能拿到 0.9.0。
+  领先“4 个修复 + 交接文档”；**分支已推送**，upstream 已设置，但尚未合并到 main。
+  新机器可直接 fetch 这个分支。
 - 4 个提交：包列表显示名/来源/稳定版/对象式 manifest/添加软件包（6cdd9a9）；
   启动清假绿灯（7d97f97）；旧资源扫描不误报（163994b）；封面补拍（b00b6f5）。
 - 本机已安装 0.9.1；`dist-fix/` 是 14:09 的最新构建，`dist/` 的 Setup/Portable 与它同哈希；
