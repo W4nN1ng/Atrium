@@ -120,7 +120,7 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 | P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | done |
 | P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | done（D10/H1 仍按部分记录） |
 | P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | review（无界面四层已验；安装版/真 Unity 待人工） |
-| P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | 进行中（本地安装包更新已做） |
+| P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | review（本地准备完成，待推送/Release） |
 
 > P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
 > （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
@@ -133,9 +133,12 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 > **P8 门禁未签字**。缺口与 P9 只修清单见 `docs/VPM-GAPS.md`；A8 模板编辑 UI 已由 **P8-F** 关闭。
 > GAP-02（R19 数据根在 C）与 A18（R17 删除进回收站）已由用户 2026-10-23 明确接受，
 > 不再改动；**P8-E/P8-F 已完成**，**P9-A/P9-B/P9-C 已完成**（安全、可靠性、性能/兼容）。
+> **P9-D/P9-E 为 review**：回退演练/安装版已做可自动验证的部分，真 Unity 与正式 Release 待人工/确认。
 > **P9-D 是 review**：回退演练的无界面四层（L1 现状/L2 安全模式/L3 移走目录/L4 前提）
-> 已跑并留证据（`docs/VPM-ROLLBACK-EVIDENCE.md`），**安装版点按钮、L4 真装回 0.8.0、
-> 真 Unity 回归**需要人工，操作单在同文档 §5。做完那五项才能进 **P9-E（发布）**。
+> 已跑并留证据（`docs/VPM-ROLLBACK-EVIDENCE.md`），安装版启动与安全模式已于 2026-10-24
+> 复验；**L4 真装回 0.8.0、真 Unity 回归、真机撤销**仍需要人工，操作单在同文档 §5。
+> **P9-E 是 review**：发布说明、干净构建、本机 0.9.0 安装/启动/安全模式已完成；
+> `v0.9.0` tag/Release 未创建，92 个本地提交未推送。发布前要处理 PR/合并并请用户确认。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1485,7 +1488,7 @@ Task: P?-?
 - **给 P9-D**：性能余量已经很大（10k 行 16ms），别再为"更快"改分页语义；
   真机回归时重点看备份的 `longPath` 警告是否真的显示给用户。
 
-### P9-D（2026-10-23，review：无界面四层已验，安装版/真 Unity 待人工）
+### P9-D（2026-10-24，review：无界面四层 + 安装版启动/安全模式已验）
 
 - **回退证据**：`docs/VPM-ROLLBACK-EVIDENCE.md`（演练表 + 代码回退面 + 未验证 + 给用户的操作单）。
 - **演练用例**：`tests/rollback/drill.spec.ts`（9 条，全绿）。
@@ -1497,14 +1500,15 @@ Task: P?-?
   不是"启用时选的目录"）、§3 L1 整节重写、§5 L3 加"会被自动重建"。
 - **核心无损的根证据**：`git diff pre-vpm HEAD -- src/main/db/schema.ts` **零行**；
   `library.db` 里 `vpm_*` 表数量 0；移走 VPM 目录前后 `user_version=11`/表清单/行数/样例行完全一致。
-- **已验证**：L1 现状、L2（两种写法 + 不加载运行时 + 拒绝启用）、L3（移走目录核心无损）、
-  L4 前提（核心库无 vpm 表、设置坏/写不进都不影响核心）、L5 静态面（`pre-vpm` 标签 + schema 零改动）。
-- **未验证（需要人工，操作单见证据文档 §5）**：安装版关键路径、L4 真装回 0.8.0 再装回、
-  真 Unity 回归（K1/K2/K4/K5）、真机撤销一次装包、Windows 10。
-- **给 P9-E**：发布前先跑证据文档 §5.1/§5.3；`dist/Atrium-Setup-0.8.0.exe` 不进仓库，
+- **已验证（2026-10-24 补）**：L1 现状、L2 安全模式（安装版启动日志 `safeMode=true`，
+  VPM 运行时未加载）、L3（移走目录核心无损）、L4 前提与 L5 静态面；安装版正常启动
+  （`visible=true`、VPM 运行时加载、`degraded=false`）。
+- **未验证（需要人工，操作单见证据文档 §5）**：L4 真装回 0.8.0 再装回、真 Unity 回归
+  （K1/K2/K4/K5）、真机撤销一次装包、Windows 10。
+- **给 P9-E**：发布前先跑证据文档 §5.3/§5.5；`dist/Atrium-Setup-0.8.0.exe` 不进仓库，
   换机器要重新构建或从备份取。
 
-### P9-E（进行中，2026-10-23 第一批：本地安装包更新）
+### P9-E（review：本地发布准备完成，待推送/PR/Release）
 
 > 起因：用户看到"请你自己去装 0.9.0"之后说了一句 ——
 > **"你就不能自己帮我把这里的更新好吗……我要做什么为什么不在这里就告诉我，还得我去开文档"**。
@@ -1518,12 +1522,27 @@ Task: P?-?
 - **不做**：仍然不静默安装、不在启动时自动装；GitHub 那条路不变（有发布才走）。
 - **已验证**：`tests/vpm/updater.spec.ts` +4 条（排序/空目录/无法解析版本/updatesDir）；
   通道白名单 +2；三语文案齐全；typecheck 0。
-- **本机已执行**：用当前 HEAD 构建 `dist/Atrium-Setup-0.9.0.exe`（23:23），
-  就地更新了 `%LOCALAPPDATA%\Programs\Atrium`（app.asar 里能查到"本地安装包"），
-  并把安装包放进 `E:\ALCOMprojects\updates\` 供面板列出。
-  > 注：`electron-builder` 的 `/S` 静默安装在这台机器上跑完了却没落盘
-  > （退出码 0、文件时间不变），所以这次是直接覆盖 `win-unpacked` 的内容完成的更新；
-  > 这条差异记在这里，P9-E 正式发布前要再验一次安装器的静默参数。
+- **发布说明**：`docs/release-body-0.9.0.md`（大白话、无内部术语、含已知限制/数据位置）。
+- **干净构建（2026-10-24）**：`npm run build` 0；全量 **240 files / 2851 passed /
+  26 skipped（2877 tests）**；`tools/pkg-version.cjs` 通过（0.9.0、MIT、asar 不比源码旧）。
+  - 第一次全量在并行负载下 `tests/bridge/lockfile.spec.ts` 的 WMI 兜底命令失败一次；
+    单跑 17/17 通过，第二次全量全绿；这是已知的环境型 flake，发布记录保留两次结果。
+- **产物**：
+  - `Atrium-Setup-0.9.0.exe` 83.3 MB
+    `3af6e55e9caacae0562d186d1b36e1499ea81657de4b95c85db87cd3ed13ed69`
+  - `Atrium-portable-0.9.0.exe` 83.1 MB
+    `217d5b3ef6385d2489176282de594bcd8d8bd172ef4d90758ff0c059c2b9667e`
+- **本机安装版**：用 `Atrium-Setup-0.9.0.exe /S /currentuser` 正式覆盖安装
+  （时间 10:32:34，安装后的 `app.asar` 与 `dist/win-unpacked` 的 SHA-256 完全一致）；
+  `tools/installed-version.cjs --expect=0.9.0` 返回注册表 `DisplayVersion=0.9.0`。
+  正常启动与 `--safe-mode` 启动都已验证（安全模式日志 `safeMode=true`，无 VPM 运行时加载）。
+  > ⚠ 辅助安装器只带 `/S` 会停在安装模式页；**必须带 `/currentuser`**（2026-10-24 实测）。
+- **未验证/待办**：`v0.9.0` tag/Release 尚未创建（`gh-release.cjs --check` 已确认）；当前分支
+  92 个提交仍未推送，发布前必须走 PR/合并；Release 正文/资产的远端核对与“更新器真网下载”未做；
+  真 Unity 装包/启动/双击导入仍归 P9-D。
+- **给发布的人**：先补齐/确认 P9-D 的 §5.3–5.5，再推送并合并，然后
+  `node tools/gh-release.cjs --check` → 用户确认 → `--create` → `verify-release-page.cjs`。
+  不要用 `dist-rel/`、`dist-new/` 的旧产物；以本次 `dist/` 的哈希为准。
 
 ---
 

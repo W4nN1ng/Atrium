@@ -138,14 +138,19 @@ $ git diff --stat pre-vpm HEAD -- src/main/db/
 ```powershell
 # 1) 装 0.9.0 —— 现在不用手动装：应用里 设置 → 项目与包 → 更新 → 本地安装包
 #    点"安装"即可（把 Atrium-Setup-*.exe 放进 <数据根>\updates\ 就会列出来）。
-#    命令行等价写法：
-& "C:\程序\A素材管家\dist\Atrium-Setup-0.9.0.exe"
+#    命令行等价写法（辅助安装器必须带 /currentuser，否则只带 /S 会停在安装模式页）：
+& "C:\程序\A素材管家\dist\Atrium-Setup-0.9.0.exe" /S /currentuser
 
 # 2) 正常启动，确认：项目页有"项目与包"、设置页有偏好设置/更新面板
 & "$env:LOCALAPPDATA\Programs\Atrium\Atrium.exe"
 ```
 
 验收：项目列表能出来、包管理面板能打开、没有报错弹窗。
+
+> **2026-10-24 已补验**：用 `Atrium-Setup-0.9.0.exe /S /currentuser` 正式覆盖安装
+> （只带 `/S` 会停在安装模式页，文件不落盘），安装后 `app.asar` 与 `dist/win-unpacked`
+> 的 SHA-256 一致；`tools/installed-version.cjs --expect=0.9.0` 显示注册表
+> `DisplayVersion=0.9.0`；正常启动日志 `visible=true`、VPM 运行时加载、`degraded=false`。
 
 ### 5.2 安全模式（约 2 分钟）
 
@@ -156,6 +161,11 @@ Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
 
 验收：应用能开；项目页**没有**"项目与包"；日志里没有 VPM 运行时加载那一行
 （`%APPDATA%\A\logs\`）。
+
+> **2026-10-24 已补验**：安装版以 `--safe-mode` 启动，日志出现
+> `VPM 状态：enabled=true safeMode=true degraded=false`，且没有 `VPM 运行时已加载`；
+> 窗口 `visible=true`。安全模式下的项目页仍会调用 VPM IPC 并记录
+> `vpmRuntimeNotReady`（界面不崩，但属于已知噪声）。
 
 ### 5.3 L4 装回 0.8.0（约 10 分钟，**会覆盖安装**）
 
@@ -188,7 +198,8 @@ Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
 
 ## 6. 结论与去向
 
-- **G8/G9（回退/发布门禁）**：可自动化部分通过；L4 真装与安装版回归未做 → **P9-D 保持 review**。
+- **G8/G9（回退/发布门禁）**：可自动化部分通过；安装版启动与安全模式已于 2026-10-24
+  补验；L4 真装回 0.8.0、真 Unity、真机撤销未做 → **P9-D 保持 review**。
 - **I9（真 Unity）**：仍未验，与 P5-D/P5-E/P6-D 一起归 P9-D 的 §5.4。
 - **K1/K2/K4/K5（素材联动真机）**：同上。
 - 给 P9-E：发布前必须先把 §5.1/5.3 跑完；`Atrium-Setup-0.8.0.exe` 已在 `dist/`，

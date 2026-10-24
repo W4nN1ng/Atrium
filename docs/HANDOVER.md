@@ -25,6 +25,17 @@
 > 当前全量基线 **230 files / 2790 passed / 22 skipped**；typecheck/build/worker/taskpack 0。
 > 分支 `codex/vpm-p4d-failure-recovery` 仍**只在本地**，`origin/main` 停在 P4-A。
 > 下面“当前版本 / 主线 HEAD”那段是 2026-10-17 的旧账，以 `package.json` 和 `git log` 为准。
+>
+> **2026-10-24：P9-C 完成、P9-D 无界面四层已验、P9-E 发布准备完成。** 当前版本 **0.9.0**；
+> P9-C（性能/兼容）done；P9-D 仍是 review（L4 装回 0.8.0、真 Unity、真机撤销需要人工）；
+> P9-E 的发布说明、干净构建、本机安装/启动/安全模式已完成；**正式 Release 尚未创建**。
+> 发布前请先看 [VPM-ROLLBACK-EVIDENCE.md](VPM-ROLLBACK-EVIDENCE.md) §5 与
+> `docs/release-body-0.9.0.md`。`origin/main` 仍停在 P4-A，发布前必须处理 92 个本地提交。
+> 本机安装版已是 0.9.0；`tools/installed-version.cjs --expect=0.9.0` 可复核。
+> **安装器静默安装需要 `/S /currentuser`**：只带 `/S` 会停在安装模式页，文件不会落盘
+> （2026-10-24 实测）。全量 **240 files / 2851 passed / 26 skipped（2877）**；
+> 第一次全量唯一失败是 `tests/bridge/lockfile.spec.ts` 的 WMI 命令在并行负载下超时/失败，
+> 单跑 17/17，第二次全量全绿；这是已知环境型 flake，不要把它当产品回归。
 
 ---
 
@@ -35,12 +46,12 @@
 | 产品名 / 内部名 | **Atrium**（显示名）/ `avca`（运行时数据目录是 `%APPDATA%\A`） |
 | 仓库 | `https://github.com/W4nN1ng/Atrium`（**仓库本身就是这个项目**，不是上游 fork） |
 | 本地检出 | `C:\程序\A素材管家`（新工作站换成你自己的路径） |
-| 当前版本 | `package.json` → **0.7.0**；`SCHEMA_VERSION` → **11** |
-| 主线 HEAD | `15115be`（PR #17 合并后） |
-| 已发布 Release | **v0.7.0**（`latest`，2 个资产），历史还有 v0.2.0 / 0.3.0 / 0.4.0 / 0.4.1 / 0.5.0 |
+| 当前版本 | `package.json` → **0.9.0**；`SCHEMA_VERSION` → **11** |
+| 主线 HEAD | 分支 `codex/vpm-p4d-failure-recovery` → `f45cfde`（**尚未推送**；`origin/main` 停在 P4-A） |
+| 已发布 Release | **v0.7.0**（`latest`）；**v0.9.0 已本地构建/安装，尚未创建 Release** |
 | 技术栈 | Electron 33.4.11 + TypeScript（strict）+ React 18 + better-sqlite3 + Vitest |
-| 测试基线 | **2028–2029 通过 / 19–20 跳过**（156 个文件，退出码 0）；`typecheck` 干净；i18n 三语各 1097 key、零漂移 |
-| 形态 | Windows 桌面应用，纯本地，**不做任何联网请求** |
+| 测试基线 | **240 files / 2851 passed / 26 skipped（2877）**，0 failed；`typecheck` 干净 |
+| 形态 | Windows 桌面应用；素材分析本地完成，项目与包/更新相关功能会按用户操作联网 |
 
 一句话定位：给 VRChat 改模玩家用的**本地素材管家** —— 把下载来的压缩包/模型/服装/贴图收进来、
 自动分类、打封面、一键导入 Unity 工程。**内容驱动**（读 `.unitypackage` 内部路径），
