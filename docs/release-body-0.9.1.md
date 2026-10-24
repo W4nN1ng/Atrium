@@ -57,8 +57,8 @@
 certutil -hashfile "下载文件的完整路径" SHA256
 ```
 
-- `Atrium-Setup-0.9.1.exe`：`8c64ee0e6c32ea789735c0c31fecdb1b458dcdd2cbde9d5750905d7131cf9f81`
-- `Atrium-portable-0.9.1.exe`：`00729d899b51a0d84f91926300bff0537d47c5bb8951c0870dea787ba3853af4`
+- `Atrium-Setup-0.9.1.exe`：`b06ca953cee115837bb8183e936f664bc7210d48f701afc10399b993e9fdc7cc`
+- `Atrium-portable-0.9.1.exe`：`ca01711a999ff078b2b39cdb17e56785abab042b32ebcb296d62d6f35d3043dd`
 
 </details>
 
