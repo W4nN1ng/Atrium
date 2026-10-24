@@ -26,12 +26,12 @@
 > 分支 `codex/vpm-p4d-failure-recovery` 仍**只在本地**，`origin/main` 停在 P4-A。
 > 下面“当前版本 / 主线 HEAD”那段是 2026-10-17 的旧账，以 `package.json` 和 `git log` 为准。
 >
-> **2026-10-24：P9-C 完成、P9-D 无界面四层已验、P9-E 发布准备完成。** 当前版本 **0.9.0**；
-> P9-C（性能/兼容）done；P9-D 仍是 review（L4 装回 0.8.0、真 Unity、真机撤销需要人工）；
-> P9-E 的发布说明、干净构建、本机安装/启动/安全模式已完成；**正式 Release 尚未创建**。
-> 发布前请先看 [VPM-ROLLBACK-EVIDENCE.md](VPM-ROLLBACK-EVIDENCE.md) §5 与
-> `docs/release-body-0.9.0.md`。`origin/main` 仍停在 P4-A，发布前必须处理 92 个本地提交。
-> 本机安装版已是 0.9.0；`tools/installed-version.cjs --expect=0.9.0` 可复核。
+> **2026-10-24：P9-C 完成、P9-D 无界面四层已验、P9-E 发布完成。** 当前版本 **0.9.0**；
+> 已合并到 `main`（PR #39，合并提交 `b433240`），tag `v0.9.0` 与
+> [GitHub Release](https://github.com/W4nN1ng/Atrium/releases/tag/v0.9.0) 已创建并核对
+> （2 个资产、正文与哈希一致）。P9-C/P9-E done；**P9-D 仍是 review**：
+> L4 装回 0.8.0、真 Unity、真机撤销需要人工，见 [VPM-ROLLBACK-EVIDENCE.md](VPM-ROLLBACK-EVIDENCE.md) §5。
+> 本机安装版已是 0.9.0（正式安装器更新，注册表与 `app.asar` 都核对过）。
 > **安装器静默安装需要 `/S /currentuser`**：只带 `/S` 会停在安装模式页，文件不会落盘
 > （2026-10-24 实测）。全量 **240 files / 2851 passed / 26 skipped（2877）**；
 > 第一次全量唯一失败是 `tests/bridge/lockfile.spec.ts` 的 WMI 命令在并行负载下超时/失败，
@@ -47,8 +47,8 @@
 | 仓库 | `https://github.com/W4nN1ng/Atrium`（**仓库本身就是这个项目**，不是上游 fork） |
 | 本地检出 | `C:\程序\A素材管家`（新工作站换成你自己的路径） |
 | 当前版本 | `package.json` → **0.9.0**；`SCHEMA_VERSION` → **11** |
-| 主线 HEAD | 分支 `codex/vpm-p4d-failure-recovery` → `f45cfde`（**尚未推送**；`origin/main` 停在 P4-A） |
-| 已发布 Release | **v0.7.0**（`latest`）；**v0.9.0 已本地构建/安装，尚未创建 Release** |
+| 主线 HEAD | `origin/main` → `b433240`（PR #39 合并后）；旧分支 `codex/vpm-p4d-failure-recovery` 也已推送 |
+| 已发布 Release | **v0.9.0**（`latest`，2 个资产）；历史 v0.2.0 / 0.3.0 / 0.4.0 / 0.4.1 / 0.5.0 / 0.7.0 |
 | 技术栈 | Electron 33.4.11 + TypeScript（strict）+ React 18 + better-sqlite3 + Vitest |
 | 测试基线 | **240 files / 2851 passed / 26 skipped（2877）**，0 failed；`typecheck` 干净 |
 | 形态 | Windows 桌面应用；素材分析本地完成，项目与包/更新相关功能会按用户操作联网 |
