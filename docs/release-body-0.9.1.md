@@ -21,6 +21,11 @@
 - **先预览再写入：** 会先显示会新增哪些包、会带入哪些依赖、要下载多少；确认并关闭 Unity 后才真正修改工程。
 - **已安装的包也能选版本：** 选更高版本是升级，选更低版本是降级，选当前版本是重装。
 
+### 工程扫描不再误报“结果不完整”
+
+- **普通工程不再被旧资源扫描打扰：** 提高了 Assets 旧资源扫描的条目/层级上限；像深层 Animation/Controller 目录不会再触发“工程扫描达到上限”。
+- **不影响包管理：** 这条提示原本只影响“旧式资源迁移”的建议列表，和已安装包、装包/升级/卸载无关。
+
 ### 兼容 ALCOM/VCC 工程
 
 - **读取 ALCOM/VCC 的工程包清单：** 支持新版 `vpm-manifest.json` 中带版本对象的依赖写法；已有项目不会再因此显示成“全部未列出”。
@@ -47,8 +52,8 @@
 certutil -hashfile "下载文件的完整路径" SHA256
 ```
 
-- `Atrium-Setup-0.9.1.exe`：`6712b42ebc9e490ac84baed0caab7da709aa921aa70961a7b8e45c5adc03b35f`
-- `Atrium-portable-0.9.1.exe`：`dfc7543982fafb9b9f15e74a92dfc07d27e03612b80e3567a8a5bf0e6b3a5e2f`
+- `Atrium-Setup-0.9.1.exe`：`cc9d5c96241f25f5656b161dd789b65b5a9b73c889fda0fbe5819aef6744cbb4`
+- `Atrium-portable-0.9.1.exe`：`35e5ef405237a0cc79be53018c1182bfc62c1169d794ae76a4b0f43cd6c01f8d`
 
 </details>
 

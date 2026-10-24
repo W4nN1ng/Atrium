@@ -4,8 +4,8 @@ import { sha256Hex } from './hash'
 export const PROTECTED_PROJECT_PACKAGE = 'com.avca.bridge'
 const MAX_PACKAGE_JSON_BYTES = 256 * 1024
 const DEFAULT_MAX_PACKAGES = 500
-const DEFAULT_MAX_LEGACY_ENTRIES = 2000
-const DEFAULT_MAX_LEGACY_DEPTH = 4
+const DEFAULT_MAX_LEGACY_ENTRIES = 10000
+const DEFAULT_MAX_LEGACY_DEPTH = 12
 const IGNORED_LEGACY_DIRS = new Set(['library', 'temp', 'logs', 'obj', '.git', 'node_modules'])
 
 export type ProjectWarningCode = VpmErrorCode | VpmWarningCode
@@ -505,8 +505,9 @@ function readLegacy(
     for (const entry of entries) {
       if (truncated) return
       if (scanned >= maxEntries) {
+        // 旧资源扫描只用于迁移建议；不要在工程页报“结果不完整”。
+        // 真实截断仍记在 legacy.truncated，迁移逻辑可以自行判断。
         truncated = true
-        addWarning(warnings, 'vpmProjectScanTruncated', relativePath)
         return
       }
       scanned++
@@ -518,7 +519,6 @@ function readLegacy(
       if (entry.kind === 'dir') {
         if (depth >= maxDepth) {
           truncated = true
-          addWarning(warnings, 'vpmProjectScanTruncated', child)
           continue
         }
         if (IGNORED_LEGACY_DIRS.has(entry.name.toLowerCase()) || entry.name.startsWith('.')) continue

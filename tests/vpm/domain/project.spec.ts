@@ -255,10 +255,25 @@ describe('project snapshot', () => {
     expect(result.legacy.candidates.every((item) => item.risk === 'backupRequired')).toBe(true)
   })
 
-  it('truncates legacy scans at the configured limit', () => {
+  it('truncates legacy scans at the configured limit without a project warning', () => {
     const result = snapshot(normalFiles(), {}, { maxLegacyEntries: 1 })
     expect(result.legacy.truncated).toBe(true)
-    expect(result.warnings.map((item) => item.code)).toContain('vpmProjectScanTruncated')
+    // 旧资源扫描只影响迁移建议；工程页不应显示“结果不完整”的警告。
+    expect(result.warnings.map((item) => item.code)).not.toContain('vpmProjectScanTruncated')
+  })
+
+  it('scans deep asset folders without a project warning', () => {
+    const deep = {
+      ...normalFiles(),
+      'Assets/Amatousagi/Lime/Animation/Controller/FX_LipSync_Ctrl/package.json': JSON.stringify({
+        name: 'com.deep.legacy',
+        version: '1.0.0'
+      })
+    }
+    const result = snapshot(deep)
+    expect(result.legacy.truncated).toBe(false)
+    expect(result.legacy.candidates.some((item) => item.name === 'com.deep.legacy')).toBe(true)
+    expect(result.warnings.map((item) => item.code)).not.toContain('vpmProjectScanTruncated')
   })
 
   it('changes the fingerprint when manifest or package.json changes', () => {
