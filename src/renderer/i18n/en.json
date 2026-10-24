@@ -44,7 +44,8 @@
     "newCollection": "New collection",
     "collectionName": "Collection name",
     "allAssets": "All assets",
-    "bundles": "Collections"
+    "bundles": "Collections",
+    "importNames": "Import history"
   },
   "library": {
     "grid": "Grid",
@@ -1401,7 +1402,10 @@
       "scanAdding": "Adding…",
       "scanning": "Scanning…",
       "trashFallback": "Moved to Atrium trash on C:; you can restore it manually.",
-      "setTarget": "Set as import target"
+      "setTarget": "Set as import target",
+      "dragHint": "Drag to reorder",
+      "pin": "Pin to top",
+      "unpin": "Unpin"
     },
     "plan": {
       "title": "Change plan (read-only)",
@@ -1973,5 +1977,15 @@
       "localInstall": "Install",
       "localEmpty": "No local installer yet ({{dir}})"
     }
+  },
+  "importNames": {
+    "count": "{{count}} entries",
+    "clear": "Clear",
+    "clearConfirm": "Clear all?",
+    "clearHint": "Clears this list only; per-project import records and undo stay",
+    "empty": "No imports yet",
+    "emptyHint": "After you import an asset into Unity, its name inside the project shows up here.",
+    "today": "Today",
+    "yesterday": "Yesterday"
   }
 }

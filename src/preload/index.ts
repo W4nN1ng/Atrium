@@ -86,6 +86,12 @@ const api: AApi = {
     setMany: (patch) => invoke('settings:set-many', patch),
     reset: () => invoke('settings:reset')
   },
+  uiPrefs: {
+    projectLayoutGet: () => invoke('ui:project-layout-get'),
+    projectLayoutSet: (layout) => invoke('ui:project-layout-set', layout),
+    importNames: () => invoke('ui:import-names'),
+    importNamesClear: () => invoke('ui:import-names-clear')
+  },
   vpm: {
     status: () => invoke('vpm:status'),
     enable: (dataRoot) => invoke('vpm:enable', { dataRoot }),

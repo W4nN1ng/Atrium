@@ -237,6 +237,17 @@ export function Sidebar(): JSX.Element {
         >
           {t('nav.project')}
         </button>
+        {/*
+         * 导入历史紧贴「项目」下面：它回答的是"导进工程以后那个文件夹是谁"，
+         * 属于同一个心智（工程 → 导入了什么），不该混到素材那边的收件箱/全部素材里。
+         */}
+        <button
+          type="button"
+          className={`nav-item ${nav === 'importNames' ? 'nav-active' : ''}`}
+          onClick={() => setNav('importNames')}
+        >
+          {t('nav.importNames')}
+        </button>
         <div className="my-1.5 h-px" style={{ background: 'var(--line)' }} />
         {QUICK.map((q) => {
           const c = count(q.key)

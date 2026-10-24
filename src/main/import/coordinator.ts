@@ -16,6 +16,7 @@ import { readBackupManifest, type BackupSaved } from './backupManifest'
 export { readBackupManifest, type BackupSaved, type BackupManifest } from './backupManifest'
 import { appendJournal, insertImportLog, patchImportLog } from '../db/repos/journal'
 import { getProject } from '../db/repos/unity'
+import { recordImportName } from '../db/repos/uiPrefs'
 import { isBridgeInstalled, isHeartbeatStale, readHeartbeat } from '../bridge/mailbox'
 import { parseUnitypackage } from '../unpack/unitypackage'
 import { listContainerMembers, sortableMembers, type ContainerListing, type ContainerMember } from './containerPackages'
@@ -505,6 +506,23 @@ async function importUnitypackageInner(
         },
         { batchId: opts.batchId ?? importId }
       )
+      /**
+       * 「导进去以后在 Unity 里叫什么」——用户反馈里最烦的一件事：
+       * 素材叫"糖果"，进工程以后变成 `Assets/shinano Candy/`，回头分不清哪个文件夹是谁。
+       * 名字取**这个包真实落盘路径的一级目录**（`pre.paths` 在预检时已整包解析），
+       * 不是从素材名猜。失败/取消不会走到这里；名字为空（纯代码包）也不记。
+       */
+      try {
+        recordImportName(db, {
+          assetId,
+          projectId,
+          unityPaths: pre.paths.values(),
+          packagePath
+        })
+      } catch (e) {
+        /** 记历史失败绝不能把一次**已经成功了**的导入判成失败 */
+        log.warn('[import] 记导入名字失败：' + (e instanceof Error ? e.message : String(e)))
+      }
     }
 
     await pruneBackups(opts.trashFn ?? defaultTrash).catch(() => undefined)

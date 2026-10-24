@@ -19,6 +19,7 @@ import { dropEmptyKey, type DropEmptyInfo } from '../shared/dropDiagnostics'
 import { Inbox } from './pages/Inbox'
 import { Library } from './pages/Library'
 import { Project } from './pages/Project'
+import { ImportNames } from './pages/ImportNames'
 import { Collections } from './pages/Collections'
 import { Settings } from './pages/Settings'
 
@@ -253,6 +254,7 @@ export function App(): JSX.Element {
         <main className="flex min-w-0 flex-1 flex-col">
           {nav === 'inbox' ? <Inbox /> : null}
           {nav === 'project' ? <Project /> : null}
+          {nav === 'importNames' ? <ImportNames /> : null}
           {nav === 'collections' ? <Collections /> : null}
           {nav === 'settings' ? <Settings /> : null}
           {useLibrary ? <Library /> : null}

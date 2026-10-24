@@ -42,6 +42,17 @@ export const IpcInvoke = {
     SetMany: 'settings:set-many',
     Reset: 'settings:reset'
   },
+  /**
+   * 界面偏好（存在 `setting` 表，不动 schema）：
+   *  - 项目列表的顺序与 📌 固定
+   *  - 导入历史：素材导进 Unity 后叫什么名字（最多 100 条）
+   */
+  UiPrefs: {
+    ProjectLayoutGet: 'ui:project-layout-get',
+    ProjectLayoutSet: 'ui:project-layout-set',
+    ImportNames: 'ui:import-names',
+    ImportNamesClear: 'ui:import-names-clear'
+  },
   Categories: {
     List: 'categories:list',
     Save: 'categories:save'

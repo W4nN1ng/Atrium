@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { VpmProjectDetailDto, VpmProjectSummaryDto } from '../../../../shared/vpm/dto'
+import {
+  EMPTY_PROJECT_LAYOUT,
+  PROJECT_DRAG_MIME,
+  applyProjectLayout,
+  dropKey,
+  togglePinned,
+  type ProjectLayout
+} from '../../../../shared/projectLayout'
 import { Badge, Button, Field, MenuButton, Modal } from '../../../components/ui'
 import { errorText } from '../../../lib/msg'
 import { cleanText, formatTimestamp, vpmCodeLabel } from '../../lib/view'
@@ -264,6 +272,31 @@ export function VpmProjectsSection({
   const [planProjectKey, setPlanProjectKey] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
 
+  /**
+   * 列表顺序与 📌（存在 `setting` 表的 `ui.projectLayout`）。
+   * 拖拽只在同一组内生效，钉住/取消钉住走 📌，规则全在 `shared/projectLayout.ts` 里，
+   * 这里只负责“点/拖 → 存”。
+   */
+  const [layout, setLayout] = useState<ProjectLayout>(EMPTY_PROJECT_LAYOUT)
+  const [dragKey, setDragKey] = useState<string | null>(null)
+  const [dropHint, setDropHint] = useState<{ key: string; position: 'before' | 'after' } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    void vpmApi
+      .projectLayoutGet()
+      .then((next) => {
+        if (!cancelled) setLayout(next)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  const saveLayout = (next: ProjectLayout): void => {
+    setLayout(next)
+    void vpmApi.projectLayoutSet(next).catch(() => undefined)
+  }
+
   // R18：进页面时给"核心表里有、VPM 台账没有"的老工程补建台账，然后刷新列表。
   const ensured = useRef(false)
   useEffect(() => {
@@ -298,7 +331,9 @@ export function VpmProjectsSection({
 
   // R18：不再按 hasLedger 过滤——R11 之后这一页是唯一的工程列表，
   // 早先接桥进核心表的老工程也要显示（它们的台账会在打开页面时自动补建）。
-  const visible = projects.items
+  const allKeys = projects.items.map((item) => item.projectKey)
+  // 顺序在这里定：固定项永远在最上面，其余按用户拖出来的顺序
+  const visible = applyProjectLayout(projects.items, (item) => item.projectKey, layout)
   // R21：同时开多个工程时，才出现「设为导入目标」——平时不占位置。
   const runningCount = visible.filter((item) => item.running).length
   const filtered = visible.filter((item) => {
@@ -466,13 +501,93 @@ export function VpmProjectsSection({
 
       {filtered.length ? (
         <div className="mt-2 rounded border" style={{ borderColor: 'var(--line)' }}>
-          {filtered.map((item) => (
+          {filtered.map((item) => {
+            const pinned = layout.pinned.includes(item.projectKey)
+            const hint = dropHint?.key === item.projectKey ? dropHint.position : null
+            return (
             <div
               key={item.projectKey}
               className="flex min-h-[56px] items-center gap-3 border-b px-3 py-3 text-[13px] last:border-b-0"
-              style={{ borderColor: 'var(--line)' }}
+              style={{
+                borderColor: 'var(--line)',
+                /**
+                 * 落点指示线画在行上（不是单独一个 div）：行内插入一个元素会改变行高，
+                 * 拖过 10 行就抖 10 次。`boxShadow: inset` 不占布局。
+                 */
+                boxShadow: hint
+                  ? hint === 'before'
+                    ? 'inset 0 2px 0 0 var(--accent)'
+                    : 'inset 0 -2px 0 0 var(--accent)'
+                  : undefined,
+                opacity: dragKey === item.projectKey ? 0.45 : 1
+              }}
               data-vpm-project={item.projectKey}
+              /**
+               * **整行可拖**（不只 ⠿ 手柄）。原来只有手柄能拖，用户按着行标题拖，
+               * 浏览器起的是一次文本拖动 —— 会点亮「松手即自动分类」遮罩，顺序却纹丝不动。
+               * 搜索时关掉：`filtered` 只是子集，落点算在全表上，边搜边拖会对不上。
+               */
+              draggable={!query.trim()}
+              onDragStart={(event) => {
+                const origin = event.target as HTMLElement | null
+                /** 按在按钮/输入框上时不抢拖拽，否则"点打开"会变成"拖这一行" */
+                if (origin?.closest('button, input, textarea, select, a')) {
+                  event.preventDefault()
+                  return
+                }
+                setDragKey(item.projectKey)
+                event.dataTransfer.effectAllowed = 'move'
+                /** Firefox 必须写一条数据才肯起拖 */
+                event.dataTransfer.setData('text/plain', item.projectKey)
+                /** 让全窗口的"拖文件即自动分类"认出这是内部拖动，别接管 */
+                event.dataTransfer.setData(PROJECT_DRAG_MIME, item.projectKey)
+              }}
+              onDragEnd={() => {
+                setDragKey(null)
+                setDropHint(null)
+              }}
+              onDragOver={(event) => {
+                if (!dragKey || dragKey === item.projectKey) return
+                event.preventDefault()
+                event.stopPropagation()
+                event.dataTransfer.dropEffect = 'move'
+                const rect = event.currentTarget.getBoundingClientRect()
+                const position = event.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
+                if (hint !== position) setDropHint({ key: item.projectKey, position })
+              }}
+              onDragLeave={(event) => {
+                /**
+                 * 只有指针真的离开这一行才灭指示线。行里有子元素，鼠标从行移到子元素上
+                 * 也会触发 dragleave —— 不判 relatedTarget 的话指示线会一路闪。
+                 */
+                const next = event.relatedTarget
+                if (next instanceof Node && event.currentTarget.contains(next)) return
+                if (dropHint?.key === item.projectKey) setDropHint(null)
+              }}
+              onDrop={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                const position = dropHint?.key === item.projectKey ? dropHint.position : 'before'
+                if (dragKey && dragKey !== item.projectKey) {
+                  saveLayout(dropKey(allKeys, layout, dragKey, item.projectKey, position))
+                }
+                setDragKey(null)
+                setDropHint(null)
+              }}
             >
+              {/*
+               * 拖拽手柄只是**视觉提示**（真正起拖在整行上，见上面的 onDragStart）。
+               * 不给它挂 button 的 ARIA 角色：P8-E 闸门禁止在卡片里造伪按钮
+               * （键盘可达性走 📌 和 ⋯ 菜单，不靠拖）。
+               */}
+              <span
+                aria-hidden="true"
+                title={t('vpm.projects.dragHint')}
+                className="shrink-0 cursor-grab select-none px-0.5 text-[14px] leading-none"
+                style={{ color: 'var(--faint)' }}
+              >
+                ⠿
+              </span>
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ background: item.running ? 'var(--ok)' : 'var(--faint)' }}
@@ -531,6 +646,19 @@ export function VpmProjectsSection({
                 <Button variant="ghost" onClick={() => void openDetail(item.projectKey)}>
                   {t('vpm.projects.manage')}
                 </Button>
+                {/*
+                 * 📌：钉住就永远排在最上面（新扫描出来的工程不会插到它前面）。
+                 * 用 unicode 图钉而不是图标库：少一个依赖，深浅色都跟着文字走。
+                 */}
+                <Button
+                  variant="ghost"
+                  className={pinned ? 'vpm-pin-on' : 'vpm-pin-off'}
+                  title={pinned ? t('vpm.projects.unpin') : t('vpm.projects.pin')}
+                  ariaLabel={pinned ? t('vpm.projects.unpin') : t('vpm.projects.pin')}
+                  onClick={() => saveLayout(togglePinned(allKeys, layout, item.projectKey))}
+                >
+                  📌
+                </Button>
                 <MenuButton
                   title={t('vpm.projects.more')}
                   items={[
@@ -562,7 +690,8 @@ export function VpmProjectsSection({
                 />
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       ) : visible.length === 0 ? (
         <div className="mt-3 rounded border px-3 py-4 text-center" style={{ borderColor: 'var(--line)' }}>

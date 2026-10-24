@@ -37,6 +37,8 @@ import type { HealthReport,
   VariantRow
 } from './types'
 import type { DirectoryProbe } from './wizardState'
+import type { ProjectLayout } from './projectLayout'
+import type { ImportNameEntry } from './importNames'
 import type { ProjectConnection, UnityConnectionSnapshot, UnityTargetResolution } from './unityConnection'
 import type { CoverBatch, CoverDiscovery, CoverPreview, CoverRecord, CoverRequest, CoverStatus, PreviewTarget, PackageCoverStatus, PackageCoverProgress, PackageCoverSetup } from './covers'
 import type { CoverTask, CoverTaskRequest, CoverTaskChoices, CoverTaskUndoResult } from './coverTasks'
@@ -313,6 +315,17 @@ export interface AApi {
     set<K extends keyof AppSettings>(key: K, value: AppSettings[K]): Promise<AppSettings>
     setMany(patch: Partial<AppSettings>): Promise<AppSettings>
     reset(): Promise<AppSettings>
+  }
+  /**
+   * 界面偏好：项目列表的顺序/📌固定、导入名字历史。
+   * 存在 `setting` 表（`ui.projectLayout` / `ui.importNames`），不动 schema。
+   */
+  uiPrefs: {
+    projectLayoutGet(): Promise<ProjectLayout>
+    projectLayoutSet(layout: ProjectLayout): Promise<ProjectLayout>
+    importNames(): Promise<ImportNameEntry[]>
+    /** 只清这张表，不碰 `import_log`（撤销功能的地基） */
+    importNamesClear(): Promise<ImportNameEntry[]>
   }
   /**
    * VPM 子系统（默认关闭）。P0 只暴露状态/启用/停用/选目录；
