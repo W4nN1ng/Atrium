@@ -145,6 +145,10 @@ P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成�
 > 共 4 个修复提交合并进 `main` 并发布 `v0.9.1`（2 个资产，页面与哈希已核对），本机安装版已更新。
 > 发布正文见 [release-body-0.9.1.md](release-body-0.9.1.md)；**热修复不新增任务卡**，
 > 任务板仍是 45 张（40 done / 5 review），P9-D 不因发版改变状态。
+> **0.9.2 封面修复已发布（2026-10-24）**：导入整个文件夹后封面一张都不出——压缩包素材改为
+> 打开包取预览图（`.unitypackage` / `.zip` / `.rar` + 包中包），并清掉历史误记的
+> `cover_image='none'`。PR #43 合并进 `main`（`d7b6344`），发布 `v0.9.2`。同样是热修复，
+> **任务板不变**，仍是 45 张（40 done / 5 review）。细节见交接文档 §9。
 > P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
 > 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
@@ -1570,6 +1574,22 @@ Task: P?-?
 - `docs/release-body-0.9.1.md` 已写好并含最终 SHA-256；`v0.9.1` tag/Release 尚未创建。
 - 收尾顺序：推分支 → PR → 合并 main → 干净构建 → tag/Release → 页面核对 →
   本机安装 → README/HANDOVER/TASKS 更新。P9-D 仍 review，不能拿 0.9.1 发布来关闭它。
+
+### 0.9.2 封面修复（2026-10-24，已发布）
+
+> 用户反馈“导入一整个文件夹，一个封面都不加载”。热修复，不新增任务卡。
+> 根因、改动与实机证据全部写在 `docs/HANDOVER-2026-10-24.md` §9。
+
+- 分支 `codex/cover-from-archives`，PR #43 → 合并 `main` 的 `d7b6344`。
+- 三条根因叠加：非批量导入只补主素材、压缩包被当图片解码、`opts.packages` 缺省时
+  误记 `cover_image='none'` 导致永不补拍。
+- `SCHEMA_VERSION` **保持 11**：改用 `setting` 键 `cover.pipeline=2` 做一次性数据订正
+  （`repairUntrustedNoneCovers`），不动库结构，也就不碰 `tests/rollback/drill.spec.ts` 的 L4。
+- 实机：用户真实库 53 条素材 → 48 张封面 / 5 条确实无图 / 0 条待补；
+  另加 `tests/library/thumb-cover-sources.spec.ts` 12 条。
+- 已发布 `v0.9.2`（2 个资产），本机安装版 `DisplayVersion=0.9.2`。
+- 教训记一条：**“没有检查过”和“检查过但没图”必须是两种状态**，
+  任何“补拍只捞 NULL”的游标式补齐，都不能由未翻完的路径写入终态。
 
 ---
 
