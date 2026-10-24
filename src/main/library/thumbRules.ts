@@ -102,6 +102,31 @@ export function pickCoverCandidate(files: Array<{ absPath: string; size: number 
   return best
 }
 
+/**
+ * 压缩包里的"哪张图当封面"——和 `pickCoverCandidate` 同一套偏好，
+ * 只是候选不是磁盘上的绝对路径，而是包内条目清单。
+ *
+ * 单独一个函数的理由：zip / rar / 7z / unitypackage 四种容器都需要这道判断，
+ * 而它不碰文件系统，能单测（真容器在 thumbs.ts 里才拆）。
+ */
+export function pickArchiveCoverEntry<T extends { path: string; size: number; isDir?: boolean }>(
+  entries: T[]
+): T | null {
+  let best: T | null = null
+  let bestScore: number[] | null = null
+  for (const e of entries) {
+    if (e.isDir) continue
+    if (!isImageName(e.path)) continue
+    if (e.size < THUMB_MIN_SOURCE_BYTES || e.size > THUMB_MAX_SOURCE_BYTES) continue
+    const s = coverScore(e.path, e.size)
+    if (!bestScore || better(s, bestScore)) {
+      best = e
+      bestScore = s
+    }
+  }
+  return best
+}
+
 /** 列目录里的图片（只往下走两层，别为了一张封面把 5 万文件的包扫穿） */
 export function listImageFiles(
   dir: string,

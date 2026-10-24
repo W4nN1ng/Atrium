@@ -34,7 +34,7 @@ import { closeDatabase, getDb, openDatabase } from './db'
 import { deleteProject, getProjectByPath, listProjects, toProjectInfo, upsertProject } from './db/repos/unity'
 import { bridgeTemplateRoot, ensureRuntimeDirs, initAppPaths, P } from './services/paths'
 import { installThumbProtocol, registerThumbSchemePrivileges } from './services/thumb-protocol'
-import { backfillThumbs } from './library/thumbs'
+import { backfillThumbs, repairUntrustedNoneCovers } from './library/thumbs'
 import { getSettings, onSettingsChanged } from './services/settings'
 import { createMainWindow, getMainWindow, markQuitting, showMiniDropAtCursor, wakeForProject } from './window'
 import { createTray, destroyTray, refreshTray } from './tray'
@@ -393,6 +393,12 @@ function bootstrap(): void {
       }
       // 封面补一批就走（有预算），剩下的等下次启动 / 维护页手动跑
       try {
+        /**
+         * 先做一次性修复：0.9.2 之前的取图流程会把"压缩包素材"错记成没图（'none'），
+         * 而 'none' 是终态、不会被再补 —— 不清回来的话这批卡片永远没有封面。
+         */
+        const cleared = repairUntrustedNoneCovers(getDb())
+        if (cleared) log.info(`封面口径修复：${cleared} 条"确认没图"的记号被重新打开，等补齐重看`)
         const t = await backfillThumbs(getDb(), 150, { deadlineMs: 1500 })
         if (t.made) {
           log.info(`缩略图补齐：查了 ${t.checked} 条，新出 ${t.made} 张封面`)
@@ -401,6 +407,26 @@ function bootstrap(): void {
       } catch (e) {
         log.warn('缩略图补批失败：' + (e instanceof Error ? e.message : String(e)))
       }
+      /**
+       * 第二趟：**允许伸进压缩包**的补齐。
+       *
+       * 第一趟为了快，只看目录里的散图；可 VRChat 素材一大半就是"一个 zip / 一个
+       * unitypackage"，这类素材在第一趟里永远出不了图，`cover_image` 会一直停在 NULL ——
+       * 每 150 条里都塞满它们，后面的素材反而轮不上。
+       *
+       * 所以延后两秒、用更小的条数和更宽的预算再跑一趟：解包要 CPU 和磁盘，
+       * 放在首屏之后，不和窗口抢。
+       */
+      const packTimer = setTimeout(() => {
+        void backfillThumbs(getDb(), 40, { packages: true, deadlineMs: 10000 })
+          .then((t2) => {
+            if (!t2.made) return
+            log.info(`缩略图补齐（含包内图）：查了 ${t2.checked} 条，新出 ${t2.made} 张封面`)
+            registrar.broadcast('data:changed', {})
+          })
+          .catch((e: unknown) => log.warn('缩略图补批（含包内图）失败：' + (e instanceof Error ? e.message : String(e))))
+      }, 2000)
+      ;(packTimer as { unref?: () => void }).unref?.()
     })
     createTray({
       showMain: () => void createMainWindow(),

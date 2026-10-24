@@ -27,7 +27,7 @@ import { reindexAsset } from '../search'
 import { dirNames, loadCategories } from '../services/categories'
 import { resolveDirNames } from '../library/dirAliases'
 import { commitAsset, commitBundleAsset, type CommitDeps, type CommitUnit } from '../library/commit'
-import { backfillThumbs, ensureThumb, scheduleThumbRetry } from '../library/thumbs'
+import { backfillThumbsFor, ensureThumb, scheduleThumbRetry } from '../library/thumbs'
 import { checkIngestPath, type RejectedPath } from '../security/paths'
 import { ensureDir } from '../library/fsx'
 import { on, EV_UNDONE } from '../lib/events'
@@ -206,6 +206,15 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
   /** 批量入库时置为 true：只发进度事件，不逐条重发整份队列快照 */
   let quiet = false
   let flushTimer: NodeJS.Timeout | null = null
+
+  /**
+   * 批量入库时攒下来的"待补封面"素材 id。
+   *
+   * 批量路径逐条 `commit` 时故意不补封面（228 件各开一次解码会把批处理拖成分钟级），
+   * 所以这里记账、批尾一次补。以前批尾补的是**全库** `cover_image IS NULL` 的前 400 条，
+   * 既会把旧素材重解一遍，又和"这批到底补全了没有"没有对应关系。
+   */
+  const pendingThumbIds = new Set<string>()
 
   const push = (): void => {
     if (disposed) return
@@ -587,9 +596,14 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     }
     // 顺手把封面也做了：这时候文件刚落地、目录还热着，比下次启动再扫一遍便宜。
     // 但一键入库 228 项时不能每张都开一次解码 —— 那会把批处理拖成分钟级，
-    // 批量走完后端统一 backfillThumbs 一次。
-    if (skipThumb) return
-    void ensureThumb(getDb(), primaryId, { packages: true })
+    // 批量走完后端统一补一次（见下面 `pendingThumbIds`）。
+    if (skipThumb) {
+      for (const id of allIds) pendingThumbIds.add(id)
+      return
+    }
+    const db = getDb()
+    const onMade = (id: string): void => registrar.broadcast('data:changed', { reason: 'thumb', id })
+    void ensureThumb(db, primaryId, { packages: true })
       .then((t) => {
         if (t.ok) {
           registrar.broadcast('data:changed', { reason: 'thumb', id: primaryId })
@@ -602,11 +616,27 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
          * 现在给它两次补拍机会（1.5s / 5s），成了就广播刷新。
          */
         log.info(`封面暂缺，稍后补拍：${primaryId}（${t.why ?? '未知'}）`)
-        scheduleThumbRetry(getDb(), primaryId, {
-          onMade: (id) => registrar.broadcast('data:changed', { reason: 'thumb', id })
-        })
+        scheduleThumbRetry(db, primaryId, { onMade })
       })
       .catch((e: unknown) => log.warn('封面生成失败：' + (e instanceof Error ? e.message : String(e))))
+    /**
+     * ⚠ 一次落 N 行的情况（整筐、合集拆分）**只做第一行是不够的**。
+     *
+     * 2026-10-24 16:49 用户拖进「插件17件」：一次建了 27 条素材，`finishCommit` 只拿到
+     * `primaryId`，另外 26 条的 `cover_image` 一直是 NULL —— 界面上整屏首字母方块，
+     * 而且这条路径**不在批量入库里**，连批尾的补齐也不会跑，只能等下次启动。
+     * 所以这里把剩下的按这批 id 一起补，不扫全库。
+     */
+    const rest = allIds.filter((id) => id !== primaryId)
+    if (!rest.length) return
+    void backfillThumbsFor(db, rest, { packages: true })
+      .then((r) => {
+        if (r.made) registrar.broadcast('data:changed', { reason: 'thumb-backfill', made: r.made })
+        // 仍然 NULL 的才是"文件还没落稳"，给它们排补拍；已被确认没图（none）的不排
+        for (const id of r.missed) scheduleThumbRetry(db, id, { onMade })
+        if (r.missed.length) log.info(`本批还有 ${r.missed.length} 件封面没出，已排补拍`)
+      })
+      .catch((e: unknown) => log.warn('本批封面补齐失败：' + (e instanceof Error ? e.message : String(e))))
   }
 
   async function commit(
@@ -1001,30 +1031,24 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       log.info(
         `一键入库：${summary.committed}/${total} 成功（其中 ${summary.bundles} 个合集），失败 ${summary.failed.length}，${i.move ? '已移动文件' : '未移动文件'}`
       )
-      // 批量补封面：一次扫，比 228 次各开一次解码便宜得多
-      void backfillThumbs(getDb(), 400, { packages: false })
+      // 批量补封面：只补这一批新入库的（旧素材留给启动时的全库补齐，
+      // 免得每次整筐入库都把 400 条旧素材重解一遍）
+      const batchThumbIds = [...pendingThumbIds]
+      pendingThumbIds.clear()
+      void backfillThumbsFor(getDb(), batchThumbIds, { packages: true })
         .then((r) => {
-          if (r.made) {
-            registrar.broadcast('data:changed', { reason: 'thumb-backfill', made: r.made })
-            return
-          }
+          if (r.made) registrar.broadcast('data:changed', { reason: 'thumb-backfill', made: r.made })
+          if (!r.missed.length) return
           /**
-           * 一条都没出图 = 多半是文件还没落稳（刚解压完就拖进来）。
-           * 3 秒后再来一轮，这次允许伸进 .unitypackage 抠 preview.png；
+           * 没出图的 = 文件还没落稳（刚解压完就拖进来），给每件排两次补拍；
            * 以前这种情况要等用户下次启动，卡片会一直空着。
            */
-          if (r.checked === 0) return
-          log.info(`批量补封面 0/${r.checked}，3 秒后重试一次`)
-          const timer = setTimeout(() => {
-            void backfillThumbs(getDb(), 400, { packages: true })
-              .then((again) => {
-                if (again.made) {
-                  registrar.broadcast('data:changed', { reason: 'thumb-backfill', made: again.made })
-                }
-              })
-              .catch((e: unknown) => log.warn('批量补封面重试失败：' + (e instanceof Error ? e.message : String(e))))
-          }, 3000)
-          ;(timer as { unref?: () => void }).unref?.()
+          log.info(`批量补封面：${r.made}/${r.checked}，${r.missed.length} 件没出图，已排补拍`)
+          for (const id of r.missed) {
+            scheduleThumbRetry(getDb(), id, {
+              onMade: (made) => registrar.broadcast('data:changed', { reason: 'thumb', id: made })
+            })
+          }
         })
         .catch((e: unknown) => log.warn('批量补封面失败：' + (e instanceof Error ? e.message : String(e))))
       registrar.broadcast('data:changed', { reason: 'ingest-commit-all' })
