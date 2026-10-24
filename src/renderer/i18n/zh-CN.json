@@ -44,7 +44,8 @@
     "newCollection": "新建集合",
     "collectionName": "集合名称",
     "allAssets": "全部素材",
-    "bundles": "合集"
+    "bundles": "合集",
+    "importNames": "导入历史"
   },
   "library": {
     "grid": "网格",
@@ -1401,7 +1402,10 @@
       "scanAdding": "正在添加…",
       "scanning": "正在扫描…",
       "trashFallback": "已移到 Atrium 回收站（C 盘），可手动还原。",
-      "setTarget": "设为导入目标"
+      "setTarget": "设为导入目标",
+      "dragHint": "按住拖动排序",
+      "pin": "固定到最上面",
+      "unpin": "取消固定"
     },
     "plan": {
       "title": "变更计划（只读）",
@@ -1973,5 +1977,15 @@
       "localInstall": "安装",
       "localEmpty": "还没有本地安装包（{{dir}}）"
     }
+  },
+  "importNames": {
+    "count": "共 {{count}} 条",
+    "clear": "清空",
+    "clearConfirm": "确认清空？",
+    "clearHint": "只清这张列表，不影响项目的导入记录与撤销",
+    "empty": "还没有导入记录",
+    "emptyHint": "把素材导入 Unity 后，这里会显示它在工程里变成了什么名字。",
+    "today": "今天",
+    "yesterday": "昨天"
   }
 }

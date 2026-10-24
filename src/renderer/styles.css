@@ -250,3 +250,16 @@
     opacity: 0.7;
   }
 }
+
+/* 项目列表的 📌：未固定时灰着，钉住后跟着主题色亮起来（只改不透明度，不换图标） */
+.vpm-pin-off {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+.vpm-pin-off:hover {
+  opacity: 1;
+  filter: none;
+}
+.vpm-pin-on {
+  opacity: 1;
+}

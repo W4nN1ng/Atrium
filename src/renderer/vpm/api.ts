@@ -1,4 +1,5 @@
 import type { VpmDataRootPick, VpmStatus } from '../../shared/vpm/types'
+import type { ProjectLayout } from '../../shared/projectLayout'
 import type {
   VpmCatalogPage,
   VpmCatalogPackageDetail,
@@ -394,5 +395,16 @@ export const vpmApi = {
   },
   openExternal(url: string): Promise<void> {
     return window.a.system.openExternal(url)
+  },
+  /**
+   * 项目列表的顺序与 📌 固定。
+   * 走 `vpm/api.ts` 而不是让组件直接摸 `window.a`：`tests/renderer/vpm-ui.spec.ts`
+   * 的组件边界闸门（P8-A）就是查这个。
+   */
+  projectLayoutGet(): Promise<ProjectLayout> {
+    return window.a.uiPrefs.projectLayoutGet()
+  },
+  projectLayoutSet(layout: ProjectLayout): Promise<ProjectLayout> {
+    return window.a.uiPrefs.projectLayoutSet(layout)
   }
 }

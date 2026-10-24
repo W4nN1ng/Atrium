@@ -44,7 +44,8 @@
     "newCollection": "新規コレクション",
     "collectionName": "コレクション名",
     "allAssets": "すべてのアセット",
-    "bundles": "コレクション"
+    "bundles": "コレクション",
+    "importNames": "取り込み履歴"
   },
   "library": {
     "grid": "グリッド",
@@ -1401,7 +1402,10 @@
       "scanAdding": "追加中…",
       "scanning": "スキャン中…",
       "trashFallback": "C ドライブの Atrium ごみ箱に移動しました。手動で復元できます。",
-      "setTarget": "インポート先に設定"
+      "setTarget": "インポート先に設定",
+      "dragHint": "ドラッグで並べ替え",
+      "pin": "先頭に固定",
+      "unpin": "固定を解除"
     },
     "plan": {
       "title": "変更計画（読み取り専用）",
@@ -1973,5 +1977,15 @@
       "localInstall": "インストール",
       "localEmpty": "ローカルのインストーラーはまだありません（{{dir}}）"
     }
+  },
+  "importNames": {
+    "count": "{{count}} 件",
+    "clear": "クリア",
+    "clearConfirm": "クリアしますか？",
+    "clearHint": "この一覧だけを消します。プロジェクトの取り込み記録と取り消しは残ります",
+    "empty": "まだ取り込み履歴がありません",
+    "emptyHint": "素材を Unity に取り込むと、プロジェクト内での名前がここに表示されます。",
+    "today": "今日",
+    "yesterday": "昨日"
   }
 }

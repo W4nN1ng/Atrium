@@ -8,6 +8,7 @@ import type { ProjectInfo } from '../shared/types'
 import { createRegistrar } from './ipc/util'
 import { registerSystem } from './ipc/system'
 import { registerSettings } from './ipc/settings'
+import { registerUiPrefs } from './ipc/uiPrefs'
 import { registerSecrets } from './ipc/secrets'
 import { registerAssets } from './ipc/assets'
 import { registerStubs } from './ipc/stubs'
@@ -172,6 +173,7 @@ function bootstrap(): void {
 
   registerSystem(registrar.ipc, () => getMainWindow(), isPrimary)
   registerSettings(registrar)
+  registerUiPrefs(registrar)
   registerSecrets(registrar)
   registerAssets(registrar)
   registerStubs(registrar)

@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DropEmptyInfo } from '../../shared/dropDiagnostics'
+import { PROJECT_DRAG_MIME } from '../../shared/projectLayout'
+
+/**
+ * 这是不是"应用内部"发起的拖动（目前只有项目列表排序）。
+ *
+ * 窗口任意位置都能接收拖放，内部拖动如果不排除，拖动项目行就会点亮
+ * 「松手即自动分类」遮罩、松手还会走一遍摄取流程 —— 2026-10-24 实测就串成这样。
+ */
+function isInternalDrag(dt: DataTransfer | null | undefined): boolean {
+  if (!dt) return false
+  return Array.from(dt.types ?? []).includes(PROJECT_DRAG_MIME)
+}
 
 export interface DropHandlers {
   onDragOver(e: React.DragEvent): void
@@ -66,6 +78,7 @@ export function useDropZone(
 
   const onDragOver = useCallback(
     (e: React.DragEvent) => {
+      if (isInternalDrag(e.dataTransfer)) return
       e.preventDefault()
       e.stopPropagation()
       if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
@@ -77,6 +90,7 @@ export function useDropZone(
 
   const onDragEnter = useCallback(
     (e: React.DragEvent) => {
+      if (isInternalDrag(e.dataTransfer)) return
       e.preventDefault()
       e.stopPropagation()
       seen.current.enter++
@@ -97,6 +111,8 @@ export function useDropZone(
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
+      /** 内部拖动（项目排序）由行自己处理；这里连"没读到文件"都不该说一句 */
+      if (isInternalDrag(e.dataTransfer)) return
       e.preventDefault()
       e.stopPropagation()
       seen.current.drop++
