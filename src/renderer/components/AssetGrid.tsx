@@ -148,7 +148,7 @@ function AssetCardView({ card }: { card: AssetCard }): JSX.Element {
           {card.isBundle ? (
             <span
               className="rounded px-1.5 py-0.5 text-[11px] font-medium"
-              style={{ background: 'var(--accent)', color: '#fff' }}
+              style={{ background: 'var(--accent-strong)', color: '#fff' }}
             >
               {card.containerKind === 'merged'
                 ? t('library.containerMerged', { count: Math.max(card.unitCount, card.childCount) })
@@ -158,7 +158,7 @@ function AssetCardView({ card }: { card: AssetCard }): JSX.Element {
           {card.variantCount > 1 ? (
             <span
               className="rounded px-1.5 py-0.5 text-[11px] font-medium"
-              style={{ background: 'var(--accent)', color: '#fff' }}
+              style={{ background: 'var(--accent-strong)', color: '#fff' }}
             >
               {t('library.variants', { count: card.variantCount })}
             </span>

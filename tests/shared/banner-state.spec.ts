@@ -124,11 +124,9 @@ describe('平手与"没切"也要看得见（Q1 留痕的另一半）', () => {
     expect(v.buttons).toContain('switch-now')
   })
 
-  it('wake-only（每次都弹但没匹配到集合）→ 只报一句，不给"以后都这样"', () => {
+  it('wake-only（没匹配到集合）→ R5 之后什么都不显示', () => {
     const v = bannerRenderState(input({ event: ev({ action: 'wake-only', reason: 'no-match-always', collectionId: null, collectionName: null }) }))
-    expect(v.shown).toBe(true)
-    if (!v.shown) return
-    expect(v.titleKey).toBe('project.bannerNoMatch')
-    expect(v.buttons).toEqual(['choose', 'ignore'])
+    // 用户明确要求删掉"没匹配到集合"这条提示：视图没动就不该通知。
+    expect(v.shown).toBe(false)
   })
 })

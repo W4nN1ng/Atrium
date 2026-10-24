@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, shell } from 'electron'
 import log from 'electron-log'
 import Database from 'better-sqlite3'
 import { createHash } from 'node:crypto'
@@ -8,7 +8,7 @@ import type { Db } from '../db'
 import { createDatabaseBackup } from '../db/backup'
 import type { IpcApi } from '../ipc/types'
 import { P } from '../services/paths'
-import { validateVpmDataRoot } from '../../shared/vpm/dataRoot'
+import { normalizeVpmDataRoot, validateVpmDataRoot } from '../../shared/vpm/dataRoot'
 import { VpmError, type VpmErrorCode } from '../../shared/vpm/errors'
 import { IpcInvoke } from '../../shared/ipc'
 import { registerVpmIpc } from './ipc'
@@ -18,7 +18,8 @@ import type {
   CoreProjectSummary,
   VccProjectsRead
 } from './projects'
-import type { ProjectLinkagePort } from '../../shared/vpm/linkage'
+import type { LegacyGuardPort, ProjectActivityPort, ProjectLinkagePort } from '../../shared/vpm/linkage'
+import { projectKeyOf } from '../../shared/vpm/domain/project'
 import {
   VPM_SETTINGS_SCHEMA_VERSION,
   type VpmDataRootContext,
@@ -36,6 +37,16 @@ import {
   writeVpmSettings
 } from './config'
 
+/**
+ * 深链解析（P7-E）从 gate 转出去。
+ *
+ * 核心（`src/main/index.ts`）**只允许静态引 `vpm/gate`** —— 这是架构闸门写死的规矩，
+ * 所以深链这种"启动时就要用、且完全纯函数"的东西走 gate 的再导出，
+ * 而不是让主进程直接 `import './vpm/interop/deeplink'`（那样闸门会红）。
+ */
+export { deepLinksInArgv, parseDeepLink } from './interop'
+export type { DeepLinkIntent } from './interop'
+
 export interface VpmGateDeps {
   ipc: IpcApi
   getDb(): Db
@@ -44,11 +55,17 @@ export interface VpmGateDeps {
   /** 核心工程发现/运行状态；P2-C 的台账合并用。 */
   getCoreProjects?(): CoreProjectSummary[]
   /** 添加已有工程时写核心 `project` 表（DML，不改 schema）。 */
+  /** R17：用户明确删除工程时，把核心工程表里的那一行也删掉。 */
+  forgetCoreProject?(path: string): void
   registerCoreProject?(input: CoreProjectInput): CoreProjectSummary
   /** VCC settings.json 的只读 userProjects。 */
   readVccProjects?(): VccProjectsRead
   /** 核心当前导入目标/启动绑定；P5-D 启动工程前调用。 */
   projectLinkage?: ProjectLinkagePort
+  /** P4-F 工程活动闸门（素材写入 vs 维护写）。 */
+  projectActivity?: ProjectActivityPort
+  /** P4-F 旧 Assets 保护集合（`import_log` 已知资产）。 */
+  legacyGuard?: LegacyGuardPort
   appVersion?(): string
   appInstallDirs?(): string[]
   /** 主进程事件广播；P1-E 的刷新进度用。 */
@@ -198,6 +215,8 @@ async function ensureRuntime(): Promise<void> {
       const handle = await initVpm({
         dataRoot: status.dataRoot as string,
         userAgent: `Atrium/${status.appVersion || '0.0.0'}`,
+        // 更新检查要跟当前版本比，别用占位版本号。
+        appVersion: status.appVersion || '0.0.0',
         isNetworkAllowed: () => isNetworkEnabled(),
         coreProjects: readCoreProjects
           ? {
@@ -210,7 +229,33 @@ async function ensureRuntime(): Promise<void> {
         vccProjects: readVccProjects
           ? { read: () => readVccProjects() }
           : undefined,
-        projectLinkage: gateDeps.projectLinkage
+        projectLinkage: gateDeps.projectLinkage,
+        projectActivity: gateDeps.projectActivity,
+        legacyGuard: gateDeps.legacyGuard,
+        revealPath: (target: string) => shell.showItemInFolder(target),
+        // 删除工程时把整个文件夹移进回收站（不是永久删）
+        trashPath: (target: string) => shell.trashItem(target),
+        forgetCoreProject: (target: string) => gateDeps?.forgetCoreProject?.(target),
+        // 启动前判断"这个工程是不是已经在跑"：不接这个端口的话，每点一次都会再拉起一个 Unity。
+        // R12：同时只开一个工程——别的工程在跑就直接拒绝启动。
+        runningProject: () => {
+          try {
+            const running = (gateDeps.getCoreProjects?.() ?? []).find((project) => project.running)
+            return running ? { name: running.name, path: running.path } : null
+          } catch {
+            return null
+          }
+        },
+        isProjectActive: (projectPath: string) => {
+          try {
+            const key = projectKeyOf(projectPath)
+            return (gateDeps.getCoreProjects?.() ?? []).some(
+              (project) => projectKeyOf(project.path) === key && project.running === true
+            )
+          } catch {
+            return false
+          }
+        }
       })
       if (generation !== runtimeGeneration) {
         handle.dispose()
@@ -238,7 +283,54 @@ async function ensureRuntime(): Promise<void> {
 /** 应用启动/启用后调用；disabled/safe mode 不加载重模块。 */
 export async function startVpmRuntime(): Promise<void> {
   if (!deps || deps.enableRuntime === false) return
+  await ensureAutoEnabled()
   await ensureRuntime()
+}
+
+/** R19：默认数据根——`%APPDATA%\Atrium`（不再问用户，也不允许改）。 */
+export function defaultVpmDataRoot(): string {
+  return path.join(app.getPath('appData'), 'Atrium')
+}
+
+/**
+ * R19：启动时如果没启用，就**自己启用**（固定 `%APPDATA%\Atrium`）。
+ * 如果老的数据根里已经有 `vpm.db`，先复制过来（旧的不删，可回滚）。
+ */
+async function ensureAutoEnabled(): Promise<void> {
+  if (isSafeMode()) return
+  const status = getVpmStatus()
+  if (status.enabled && status.dataRootValid) return
+
+  const target = defaultVpmDataRoot()
+  let previousRoot: string | null = null
+  try {
+    previousRoot = readVpmSettings().settings.dataRoot
+  } catch {
+    previousRoot = null
+  }
+
+  if (previousRoot && previousRoot.toLowerCase() !== target.toLowerCase()) {
+    try {
+      const oldDb = path.join(previousRoot, 'vpm.db')
+      const newDb = path.join(target, 'vpm.db')
+      if (fs.existsSync(oldDb) && !fs.existsSync(newDb)) {
+        fs.mkdirSync(target, { recursive: true })
+        for (const suffix of ['', '-wal', '-shm']) {
+          if (fs.existsSync(oldDb + suffix)) fs.copyFileSync(oldDb + suffix, newDb + suffix)
+        }
+        log.info(`VPM 数据库已迁移到系统盘：${oldDb} → ${newDb}`)
+      }
+    } catch (error) {
+      log.warn('VPM 数据库迁移失败（继续用新库）：' + String(error))
+    }
+  }
+
+  try {
+    await enableVpm({ dataRoot: target, systemDefault: true })
+    log.info(`VPM 已自动启用：dataRoot=${target}`)
+  } catch (error) {
+    log.warn('VPM 自动启用失败：' + (error instanceof Error ? error.message : String(error)))
+  }
 }
 
 /**
@@ -368,7 +460,11 @@ export async function enableVpm(input: VpmEnableInput): Promise<VpmStatus> {
     throw new VpmError('vpmDataRootRequired')
   }
 
-  const evaluated = validateVpmDataRoot(input.dataRoot, context())
+  // R19：系统默认根（%APPDATA%\Atrium）只放索引/密钥，体积很小，
+  // 所以跳过"必须非系统盘"那条规则；用户自己选的目录仍然按原规则校验。
+  const evaluated = input.systemDefault
+    ? { ok: true as const, normalized: normalizeVpmDataRoot(input.dataRoot, process.platform) }
+    : validateVpmDataRoot(input.dataRoot, context())
   if (!evaluated.ok) throw new VpmError(evaluated.code, evaluated.params)
 
   ensureWritableDataRoot(evaluated.normalized)

@@ -102,7 +102,11 @@ describe('IPC 通道白名单', () => {
     const fired = new Set<string>()
     for (const file of sources(path.join(ROOT, 'src/main'))) {
       const text = fs.readFileSync(file, 'utf8')
-      for (const m of text.matchAll(/broadcast\(\s*'([^']+)'/g)) fired.add(m[1])
+      // 既认字面量，也认 `IpcEvent.X`（后者更不容易写错，没理由不认）。
+      for (const m of text.matchAll(/broadcast\??\.?\(\s*(?:'([^']+)'|IpcEvent\.([A-Za-z0-9_]+))/g)) {
+        const name = m[1] ?? (IpcEvent as Record<string, string>)[m[2] ?? '']
+        if (name) fired.add(name)
+      }
     }
     const dead = [...allowedEvents].filter((e) => !fired.has(e))
     expect(dead, '这些事件白名单里有、主进程一次都没广播：' + dead.join(', ')).toEqual([])

@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 export const TooltipProvider = Tooltip.Provider
 
@@ -27,26 +28,29 @@ type BtnProps = {
   variant?: 'default' | 'accent' | 'ghost'
   disabled?: boolean
   title?: string
+  /** 图标/符号按钮的无障碍名称；有可见文字时可不传。 */
+  ariaLabel?: string
   className?: string
   /** 危险确认框里要把焦点放在"安全的那一个"上（一键入库 = 仅登记，不移动磁盘） */
   autoFocus?: boolean
 }
 
-export function Button({ children, onClick, variant = 'default', disabled, title, className = '', autoFocus }: BtnProps): ReactNode {
+export function Button({ children, onClick, variant = 'default', disabled, title, ariaLabel, className = '', autoFocus }: BtnProps): ReactNode {
   const cls = variant === 'accent' ? 'btn btn-accent' : variant === 'ghost' ? 'btn btn-ghost' : 'btn'
   return (
-    <button type="button" title={title} disabled={disabled} onClick={onClick} autoFocus={autoFocus} className={`${cls} ${className}`}>
+    <button type="button" title={title} aria-label={ariaLabel} disabled={disabled} onClick={onClick} autoFocus={autoFocus} className={`${cls} ${className}`}>
       {children}
     </button>
   )
 }
 
-export function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }): ReactNode {
+export function Switch({ checked, onChange, ariaLabel }: { checked: boolean; onChange: (v: boolean) => void; ariaLabel?: string }): ReactNode {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
       className={`switch ${checked ? 'switch-on' : ''}`}
     >
@@ -147,27 +151,188 @@ export function Modal({
   onOpenChange,
   title,
   children,
-  footer
+  footer,
+  width = 680
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   title: string
   children: ReactNode
   footer?: ReactNode
+  /** 内容多的弹窗（工程详情）给更宽的框；默认 680。 */
+  width?: number
 }): ReactNode {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,.55)' }} />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-50 w-[min(680px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-lg border p-4 shadow-panel"
-          style={{ background: 'var(--panel)', borderColor: 'var(--line-2)' }}
+          className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-lg border p-4 shadow-panel"
+          style={{
+            width: `min(${width}px, 92vw)`,
+            background: 'var(--panel)',
+            borderColor: 'var(--line-2)'
+          }}
         >
           <Dialog.Title className="mb-3 text-[14px] font-medium">{title}</Dialog.Title>
           <Dialog.Description asChild>{children}</Dialog.Description>
-          {footer ? <div className="mt-4 flex justify-end gap-2">{footer}</div> : null}
+          {footer ? <div className="mt-4 flex flex-wrap justify-end gap-2">{footer}</div> : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  )
+}
+
+export interface MenuItemSpec {
+  key: string
+  label: string
+  onSelect: () => void
+  danger?: boolean
+}
+
+/**
+ * 行内 `⋯` 菜单。
+ *
+ * **必须用 portal 渲染到 body**：列表容器是 `overflow-y-auto`，绝对定位的菜单会被
+ * 裁在框里（用户实测：菜单在项目框里滚动）。portal + fixed 定位不受任何祖先裁剪影响。
+ */
+export function MenuButton({
+  items,
+  label = '⋯',
+  title,
+  className = ''
+}: {
+  items: MenuItemSpec[]
+  label?: ReactNode
+  title?: string
+  className?: string
+}): ReactNode {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const anchor = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
+  const labelText = typeof label === 'string' ? label : (title ?? '⋯')
+
+  const closeToAnchor = (): void => {
+    setOpen(false)
+    window.requestAnimationFrame(() => anchor.current?.focus())
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const close = (): void => setOpen(false)
+    const onDown = (event: MouseEvent): void => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('[data-menu-panel]')) return
+      if (anchor.current && target && anchor.current.contains(target)) return
+      close()
+    }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeToAnchor()
+      }
+    }
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', close, true)
+    window.requestAnimationFrame(() => {
+      panel.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+    })
+    return () => {
+      window.removeEventListener('mousedown', onDown)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', close, true)
+    }
+  }, [open])
+
+  const onMenuKey = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
+    const buttons = Array.from(
+      panel.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []
+    )
+    if (!buttons.length) return
+    const current = buttons.indexOf(document.activeElement as HTMLButtonElement)
+    const move = (next: number): void => {
+      event.preventDefault()
+      buttons[(next + buttons.length) % buttons.length]?.focus()
+    }
+    if (event.key === 'ArrowDown') move(current + 1)
+    else if (event.key === 'ArrowUp') move(current - 1)
+    else if (event.key === 'Home') move(0)
+    else if (event.key === 'End') move(buttons.length - 1)
+    else if (event.key === 'Escape') {
+      event.preventDefault()
+      closeToAnchor()
+    }
+  }
+
+  const toggle = (): void => {
+    const rect = anchor.current?.getBoundingClientRect()
+    if (rect) {
+      const width = 184
+      const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8))
+      const top =
+        rect.bottom + 4 + 8 * items.length > window.innerHeight
+          ? Math.max(8, rect.top - 8 * items.length - 12)
+          : rect.bottom + 4
+      setPos({ top, left })
+    }
+    setOpen((current) => !current)
+  }
+
+  return (
+    <>
+      <button
+        ref={anchor}
+        type="button"
+        className={`btn btn-ghost ${className}`}
+        title={title}
+        aria-label={title ?? labelText}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={toggle}
+      >
+        {label}
+      </button>
+      {open
+        ? createPortal(
+            <div
+              ref={panel}
+              data-menu-panel
+              role="menu"
+              aria-label={title ?? labelText}
+              onKeyDown={onMenuKey}
+              className="fixed z-[60] rounded-md border p-1 shadow-panel"
+              style={{
+                top: pos.top,
+                left: pos.left,
+                width: 184,
+                background: 'var(--panel)',
+                borderColor: 'var(--line-2)'
+              }}
+            >
+              {items.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  className="block w-full rounded px-2 py-1.5 text-left text-[12px] hover:bg-[color:var(--raise)]"
+                  style={item.danger ? { color: 'var(--bad)' } : undefined}
+                  onClick={() => {
+                    setOpen(false)
+                    item.onSelect()
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
+    </>
   )
 }

@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { closeVpmDb, openVpmDb, type VpmDb } from '../../../src/main/vpm/db'
-import { VPM_MIGRATIONS } from '../../../src/main/vpm/db/migrations'
+import { VPM_MIGRATIONS, VPM_REQUIRED_TABLES, VPM_SCHEMA_VERSION } from '../../../src/main/vpm/db/migrations'
 import { P, setAppPathsForTest } from '../../../src/main/services/paths'
 
 let root: string
@@ -43,13 +43,29 @@ function tableNames(target: Database.Database): string[] {
   return rows.map((row) => row.name)
 }
 
+describe('schema 常量', () => {
+  /**
+   * 这两条是"漂移报警"：`VPM_SCHEMA_VERSION` 曾经硬编码 3、迁移表已经到 6，
+   * `VPM_REQUIRED_TABLES` 也漏过 6 —— 两个 bug 都是靠别的测试红才发现，
+   * 而且都表现成"断言在测别的东西"。以后加 v7 忘了同步，这里当场红。
+   */
+  it('VPM_SCHEMA_VERSION 等于迁移表最后一版', () => {
+    expect(VPM_SCHEMA_VERSION).toBe(VPM_MIGRATIONS[VPM_MIGRATIONS.length - 1].version)
+  })
+
+  it('每个迁移版本都有对应的必需表清单', () => {
+    const missing = VPM_MIGRATIONS.map((m) => m.version).filter((v) => !VPM_REQUIRED_TABLES[v])
+    expect(missing, `这些版本没有 VPM_REQUIRED_TABLES：${missing.join(', ')}`).toEqual([])
+  })
+})
+
 describe('vpm.db connection and migrations', () => {
-  it('creates schema v3 in the VPM state directory with WAL and foreign keys', async () => {
+  it('creates schema v6 in the VPM state directory with WAL and foreign keys', async () => {
     db = await openVpmDb()
 
     expect(fs.existsSync(file)).toBe(true)
     expect(file).toBe(path.join(root, 'vpm', 'vpm.db'))
-    expect(db.pragma('user_version', { simple: true })).toBe(3)
+    expect(db.pragma('user_version', { simple: true })).toBe(6)
     expect(String(db.pragma('journal_mode', { simple: true })).toLowerCase()).toBe('wal')
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1)
     expect(tableNames(db)).toEqual(
@@ -62,7 +78,11 @@ describe('vpm.db connection and migrations', () => {
         'vpm_operation',
         'vpm_operation_step',
         'vpm_operation_file',
-        'vpm_cache_entry'
+        'vpm_cache_entry',
+        'vpm_template',
+        'vpm_recent_location',
+        'vpm_backup',
+        'vpm_local_root'
       ])
     )
     expect(fs.existsSync(backupsDir) ? fs.readdirSync(backupsDir) : []).toEqual([])
@@ -74,17 +94,17 @@ describe('vpm.db connection and migrations', () => {
     db = null
     db = await openVpmDb()
 
-    expect(db.pragma('user_version', { simple: true })).toBe(3)
+    expect(db.pragma('user_version', { simple: true })).toBe(6)
     expect(fs.existsSync(backupsDir) ? fs.readdirSync(backupsDir) : []).toEqual([])
   })
 
   it('refuses a database newer than this build instead of downgrading or rebuilding', async () => {
-    makeRawDb((raw) => raw.pragma('user_version = 4'))
+    makeRawDb((raw) => raw.pragma('user_version = 7'))
 
     await expect(openVpmDb()).rejects.toMatchObject({ code: 'vpmDbVersionTooNew' })
     const raw = new Database(file, { readonly: true, fileMustExist: true })
     try {
-      expect(raw.pragma('user_version', { simple: true })).toBe(4)
+      expect(raw.pragma('user_version', { simple: true })).toBe(7)
     } finally {
       raw.close()
     }
@@ -128,7 +148,7 @@ describe('vpm.db connection and migrations', () => {
 
     const blocked = path.join(root, 'not-a-directory')
     fs.writeFileSync(blocked, 'x')
-    const migrations = [...VPM_MIGRATIONS, { version: 4, sql: 'CREATE TABLE vpm_v4 (id TEXT);' }]
+    const migrations = [...VPM_MIGRATIONS, { version: 7, sql: 'CREATE TABLE vpm_v7 (id TEXT);' }]
 
     await expect(openVpmDb({ file, backupsDir: blocked, migrations })).rejects.toMatchObject({
       code: 'vpmDbBackupFailed'
@@ -136,14 +156,14 @@ describe('vpm.db connection and migrations', () => {
 
     const raw = new Database(file, { readonly: true, fileMustExist: true })
     try {
-      expect(raw.pragma('user_version', { simple: true })).toBe(3)
-      expect(tableNames(raw)).not.toContain('vpm_v4')
+      expect(raw.pragma('user_version', { simple: true })).toBe(6)
+      expect(tableNames(raw)).not.toContain('vpm_v7')
     } finally {
       raw.close()
     }
   })
 
-  it('backs up a populated v1 database before applying v2/v3, and verifies the backup', async () => {
+  it('backs up a populated v1 database before applying v2..v5, and verifies the backup', async () => {
     db = await openVpmDb({ file, backupsDir, migrations: [VPM_MIGRATIONS[0]] })
     db.prepare(
       'INSERT INTO vpm_repo (id, url, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
@@ -156,7 +176,7 @@ describe('vpm.db connection and migrations', () => {
 
     const backup = path.join(backupsDir, 'vpm.db.bak-v1-20261021-123456')
     expect(fs.existsSync(backup)).toBe(true)
-    expect(db.pragma('user_version', { simple: true })).toBe(3)
+    expect(db.pragma('user_version', { simple: true })).toBe(6)
     expect(tableNames(db)).toContain('vpm_unity_install')
     expect(tableNames(db)).toContain('vpm_project')
     expect(tableNames(db)).toContain('vpm_operation')
@@ -173,7 +193,7 @@ describe('vpm.db connection and migrations', () => {
     }
   })
 
-  it('rolls back a failed v4 migration and keeps v3 plus the backup', async () => {
+  it('rolls back a failed v7 migration and keeps v6 plus the backup', async () => {
     db = await openVpmDb()
     db.prepare(
       'INSERT INTO vpm_repo (id, url, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
@@ -184,8 +204,8 @@ describe('vpm.db connection and migrations', () => {
     const migrations = [
       ...VPM_MIGRATIONS,
       {
-        version: 4,
-        sql: 'CREATE TABLE vpm_v4 (id TEXT); INSERT INTO missing_table VALUES (1);'
+        version: 7,
+        sql: 'CREATE TABLE vpm_v7 (id TEXT); INSERT INTO missing_table VALUES (1);'
       }
     ]
     const fixed = new Date('2026-10-21T12:35:00')
@@ -195,17 +215,17 @@ describe('vpm.db connection and migrations', () => {
 
     const raw = new Database(file, { readonly: true, fileMustExist: true })
     try {
-      expect(raw.pragma('user_version', { simple: true })).toBe(3)
-      expect(tableNames(raw)).not.toContain('vpm_v4')
+      expect(raw.pragma('user_version', { simple: true })).toBe(6)
+      expect(tableNames(raw)).not.toContain('vpm_v7')
       expect(raw.prepare('SELECT COUNT(*) AS n FROM vpm_repo').get()).toEqual({ n: 1 })
     } finally {
       raw.close()
     }
     const backups = fs.readdirSync(backupsDir)
-    expect(backups).toContain('vpm.db.bak-v3-20261021-123500')
+    expect(backups).toContain('vpm.db.bak-v6-20261021-123500')
     const backup = new Database(path.join(backupsDir, backups[0]), { readonly: true })
     try {
-      expect(backup.pragma('user_version', { simple: true })).toBe(3)
+      expect(backup.pragma('user_version', { simple: true })).toBe(6)
       expect(backup.pragma('integrity_check', { simple: true })).toBe('ok')
     } finally {
       backup.close()
@@ -221,7 +241,7 @@ describe('vpm.db connection and migrations', () => {
 
   it('refuses a version-current database whose required tables are missing', async () => {
     makeRawDb((raw) => {
-      raw.pragma('user_version = 3')
+      raw.pragma('user_version = 6')
       raw.exec('CREATE TABLE vpm_repo (id TEXT PRIMARY KEY)')
     })
 

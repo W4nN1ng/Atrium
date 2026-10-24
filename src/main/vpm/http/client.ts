@@ -361,6 +361,8 @@ export function createVpmHttpClient(options: VpmHttpClientOptions): VpmHttpPort 
           response.body.destroy()
           throw new VpmError('vpmHttpTooLarge')
         }
+        const total =
+          Number.isFinite(contentLength) && contentLength >= 0 ? contentLength : null
 
         const hash = createHash('sha256')
         let size = 0
@@ -396,6 +398,13 @@ export function createVpmHttpClient(options: VpmHttpClientOptions): VpmHttpPort 
               return
             }
             hash.update(buffer)
+            if (opts.onProgress) {
+              try {
+                opts.onProgress({ downloaded: size, total })
+              } catch {
+                /* 进度回调不能影响下载本身 */
+              }
+            }
             if (!ws.write(buffer)) {
               response.body.pause()
               ws.once('drain', () => response.body.resume())

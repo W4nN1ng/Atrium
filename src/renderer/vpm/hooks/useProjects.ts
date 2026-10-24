@@ -21,7 +21,7 @@ export interface VpmProjectsState {
   refresh: () => Promise<void>
   select: (projectKey: string) => Promise<void>
   closeDetail: () => void
-  add: (path: string) => Promise<VpmProjectDetailDto>
+  add: (path: string, options?: { select?: boolean }) => Promise<VpmProjectDetailDto>
   remove: (projectKey: string) => Promise<boolean>
   rescan: (projectKey: string) => Promise<VpmProjectDetailDto>
   openFolder: (projectKey: string) => Promise<void>
@@ -83,6 +83,19 @@ export function useVpmProjects(): VpmProjectsState {
     void refresh()
   }, [refresh])
 
+  /**
+   * 运行状态（绿点 + 「已打开」）由主进程的三路探测（心跳/锁文件/wmi）决定，
+   * 关掉 Unity 后它要过几秒才会翻。列表如果只在挂载时拉一次，就会一直显示"已打开"。
+   * 这里每 5 秒轻量重拉一次列表（只在 VPM 启用时跑）。
+   */
+  useEffect(() => {
+    if (!status?.enabled) return
+    const timer = setInterval(() => {
+      void loadItems()
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [status?.enabled, loadItems])
+
   const select = useCallback(async (projectKey: string): Promise<void> => {
     const id = ++detailSeq.current
     setSelectedKey(projectKey)
@@ -107,14 +120,17 @@ export function useVpmProjects(): VpmProjectsState {
   }, [])
 
   const add = useCallback(
-    async (path: string): Promise<VpmProjectDetailDto> => {
+    async (path: string, options?: { select?: boolean }): Promise<VpmProjectDetailDto> => {
       setBusy(true)
       setError(null)
       setNotice(null)
       try {
         const next = await vpmApi.projectAdd({ path })
-        setSelectedKey(next.projectKey)
-        setDetail(next)
+        // 批量添加时不要每次都把详情弹窗顶出来（R15）。
+        if (options?.select !== false) {
+          setSelectedKey(next.projectKey)
+          setDetail(next)
+        }
         await loadItems()
         return next
       } finally {

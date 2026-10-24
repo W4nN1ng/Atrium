@@ -561,7 +561,8 @@ function initialNav(): NavKey {
   } catch {
     /* 非浏览器环境 */
   }
-  return 'inbox'
+  // R4：默认落在「项目」——用户打开应用第一件事是开工程，不是翻素材。
+  return 'project'
 }
 
 let toastSeq = 1

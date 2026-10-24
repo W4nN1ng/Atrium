@@ -1,5 +1,9 @@
 # P5-D 启动 Unity、工程/模板 UI 与真机
 
+> ⚠️ **UI 部分已被 `../VPM-UX-RESET.md` 取代（2026-10-22）**：本卡只保留服务层要求，
+> 界面按 UX-RESET 的 R1–R7 施工；两处冲突时以 UX-RESET 为准。
+
+
 > 阶段规格：`../VPM-P5.md`（只读 §7、§8）
 > 任务板：`../../VPM-TASKS.md` · 共同规则：`../_COMMON.md` · 架构合同：`../../VPM-ARCHITECTURE.md`
 > 前置：P5-B、P5-C

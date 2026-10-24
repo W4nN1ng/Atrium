@@ -47,13 +47,42 @@ import type {
   VpmCatalogQuery,
   VpmCatalogVersionDto,
   VpmNetworkStatus,
+  VpmOperationCancelResult,
+  VpmOperationDto,
+  VpmOperationRecoveryResultDto,
   VpmOperationStart,
+  VpmOperationStartInput,
+  VpmOperationSummaryDto,
   VpmPlanDto,
   VpmPlanExplainDto,
   VpmPlanResolveInput,
+  VpmProjectCatalogDto,
   VpmProjectDetailDto,
   VpmProjectSummaryDto,
-  VpmRepoDto
+  VpmRepoDto,
+  VpmCreateProjectInput,
+  VpmCreateProjectResultDto,
+  VpmLaunchResultDto,
+  VpmRecentLocationDto,
+  VpmTemplateDto,
+  VpmTemplateCreateInput,
+  VpmTemplateDuplicateInput,
+  VpmTemplateIdInput,
+  VpmTemplateListInput,
+  VpmTemplateUpdateInput,
+  VpmUnityInstallDto,
+  VpmBackupDto,
+  VpmCopyResultDto,
+  VpmMigrateCandidateInput,
+  VpmMigrateResultDto,
+  VpmRepoHeadersDto,
+  VpmRepoTestDto,
+  VpmVersionChangeResultDto,
+  VpmPreferencesDto,
+  VpmPreferencesPatch,
+  VpmUpdateCheckDto,
+  VpmUpdateDownloadDto,
+  VpmLocalBuildsDto
 } from './vpm/dto'
 
 export interface AppInfo {
@@ -297,6 +326,36 @@ export interface AApi {
     reposList(): Promise<VpmRepoDto[]>
     repoAdd(input: { url: string; name?: string }): Promise<VpmRepoDto>
     repoRemove(id: string): Promise<{ ok: boolean }>
+    repoUpdate(input: { id: string; name?: string; url?: string; enabled?: boolean }): Promise<VpmRepoDto>
+    repoReorder(ids: string[]): Promise<VpmRepoDto[]>
+    repoImport(text: string): Promise<{ added: VpmRepoDto[]; skipped: Array<{ url: string; reason: 'duplicate' | 'invalid' }> }>
+    repoExport(): Promise<string>
+    repoHeaders(id: string): Promise<VpmRepoHeadersDto>
+    repoHeadersSet(input: { id: string; headers: Record<string, string> }): Promise<VpmRepoHeadersDto>
+    repoHeadersClear(id: string): Promise<{ ok: boolean }>
+    repoTest(id: string): Promise<VpmRepoTestDto>
+    backupCreate(input: {
+      projectKey: string
+      compression?: 'store' | 'fast' | 'normal'
+      excludeVpmPackages?: boolean
+    }): Promise<VpmBackupDto>
+    backupList(projectKey: string): Promise<VpmBackupDto[]>
+    backupReveal(id: string): Promise<{ ok: boolean }>
+    projectCopy(input: { projectKey: string; targetDir: string }): Promise<VpmCopyResultDto>
+    projectVersionChange(input: {
+      projectKey: string
+      unityVersion: string
+      backupFirst?: boolean
+    }): Promise<VpmVersionChangeResultDto>
+    projectParentCheck(path: string): Promise<{ parent: string; adjustedFrom: string | null }>
+    projectScanRoot(path: string): Promise<{
+      root: string
+      candidates: Array<{ path: string; name: string; unityVersion: string | null; added: boolean }>
+    }>
+    projectMigrate(input: {
+      projectKey: string
+      candidates: VpmMigrateCandidateInput[]
+    }): Promise<VpmMigrateResultDto>
     repoRefresh(id: string): Promise<VpmOperationStart>
     repoRefreshAll(): Promise<VpmOperationStart>
     networkStatus(): Promise<VpmNetworkStatus>
@@ -308,10 +367,107 @@ export interface AApi {
     projectDetail(projectKey: string): Promise<VpmProjectDetailDto>
     projectAdd(input: { path: string }): Promise<VpmProjectDetailDto>
     projectRemove(projectKey: string): Promise<{ ok: boolean }>
+    projectsEnsureLedgers(): Promise<{ created: number; failed: string[] }>
+    projectTrash(projectKey: string): Promise<{ ok: boolean }>
     projectRescan(projectKey: string): Promise<VpmProjectDetailDto>
     projectOpenFolder(projectKey: string): Promise<{ ok: boolean }>
     planResolve(input: VpmPlanResolveInput): Promise<VpmPlanDto>
     planExplain(planId: string, name?: string): Promise<VpmPlanExplainDto>
+    /** 应用计划：只传 planId，主进程重新校验后执行。 */
+    planApply(input: VpmOperationStartInput): Promise<VpmOperationDto>
+    operationStatus(operationId: string): Promise<VpmOperationDto>
+    operationCancel(operationId: string): Promise<VpmOperationCancelResult>
+    operationHistory(projectKey: string): Promise<VpmOperationSummaryDto[]>
+    /** 撤销指定操作：只允许最后一次、且工程未变。 */
+    operationUndo(operationId: string): Promise<VpmOperationDto>
+    /** 手动重试恢复：动作由主进程按 journal + 磁盘判定，渲染层不能指定。 */
+    operationRecover(operationId: string): Promise<VpmOperationRecoveryResultDto>
+    /** 工程里每个已装包在仓库里的可选版本（用于版本下拉/最新版本）。 */
+    projectCatalog(projectKey: string): Promise<VpmProjectCatalogDto>
+    unityInstalls(): Promise<VpmUnityInstallDto[]>
+    unityRefresh(): Promise<VpmUnityInstallDto[]>
+    projectLaunch(input: {
+      projectKey: string
+      editorPath?: string | null
+      extraArgs?: string[]
+    }): Promise<VpmLaunchResultDto>
+    projectLaunchArgs(input: { projectKey: string; extraArgs?: string[] }): Promise<string[]>
+    projectCreate(input: VpmCreateProjectInput): Promise<VpmCreateProjectResultDto>
+    localRoots(): Promise<
+      Array<{ id: string; path: string; label: string | null; lastScanAt: number | null; packageCount: number }>
+    >
+    localAdd(input: { path: string; label?: string }): Promise<{
+      id: string
+      path: string
+      label: string | null
+      packageCount: number
+    }>
+    localRemove(id: string): Promise<{ ok: boolean }>
+    localScan(): Promise<
+      Array<{ name: string; version: string; path: string; unity: string | null; rootId: string }>
+    >
+    localInstall(input: { projectKey: string; packageName: string }): Promise<{
+      name: string
+      version: string
+      installedAt: string
+    }>
+    logRecent(limit?: number): Promise<
+      Array<{
+        id: string
+        projectName: string
+        kind: string
+        status: string
+        createdAt: number
+        finishedAt: number | null
+        errorCode: string | null
+        failedStep: string | null
+        stepCount: number
+      }>
+    >
+    usageSnapshot(): Promise<{
+      cache: { bytes: number; files: number }
+      vault: { bytes: number; files: number }
+      backups: { bytes: number; files: number }
+      totalBytes: number
+    }>
+    cacheClear(): Promise<{ removedBytes: number }>
+    diagnosticsExport(): Promise<{ path: string }>
+    interopVccPeek(): Promise<{
+      path: string
+      exists: boolean
+      parseError: boolean
+      repos: Array<{ url: string; name: string | null }>
+      packageFolders: string[]
+      unityHint: string | null
+      skipped: Array<{ value: string; reason: string }>
+    }>
+    interopVccApply(input: { repos: boolean; folders: boolean }): Promise<{
+      addedRepos: number
+      addedFolders: number
+      skipped: Array<{ value: string; reason: string }>
+    }>
+    templateImport(input?: { path?: string }): Promise<
+      { cancelled: true } | { cancelled: false; id: string; name: string; source: 'atrium' | 'foreign' }
+    >
+    templateExport(input: { id: string }): Promise<{ cancelled: true } | { cancelled: false; path: string }>
+    templateList(input?: VpmTemplateListInput): Promise<VpmTemplateDto[]>
+    templateFavorite(input: { id: string; favorite: boolean }): Promise<VpmTemplateDto>
+    templateRecent(): Promise<VpmRecentLocationDto[]>
+    templateCreate(input: VpmTemplateCreateInput): Promise<VpmTemplateDto>
+    templateUpdate(input: VpmTemplateUpdateInput): Promise<VpmTemplateDto>
+    templateDuplicate(input: VpmTemplateDuplicateInput): Promise<VpmTemplateDto>
+    templateRemoveReference(input: VpmTemplateIdInput): Promise<VpmTemplateDto>
+    templateRestore(input: VpmTemplateIdInput): Promise<VpmTemplateDto>
+    /** P8-C：VPM 偏好设置（预发布/隐藏包/配额/Unity 参数/更新检查开关）。 */
+    settingsGet(): Promise<VpmPreferencesDto>
+    settingsPatch(patch: VpmPreferencesPatch): Promise<VpmPreferencesDto>
+    /** 手动检查更新；`force` 忽略 1 小时缓存。 */
+    updateCheck(input?: { force?: boolean }): Promise<VpmUpdateCheckDto>
+    updateDownload(): Promise<VpmUpdateDownloadDto>
+    updateInstall(input: { path: string }): Promise<{ ok: boolean; errorCode: string | null }>
+    /** P9-E：本地投放目录里的安装包（不依赖 GitHub）。 */
+    updateLocal(): Promise<VpmLocalBuildsDto>
+    updateOpenFolder(): Promise<{ ok: boolean }>
   }
   categories: {
     list(): Promise<CategoryConfig>

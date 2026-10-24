@@ -57,6 +57,14 @@ export interface VpmJsonResponse {
 export interface VpmDownloadRequest {
   headers?: Record<string, string>
   signal?: AbortSignal
+  /** 每收到一块数据调用；调用方负责节流（cache 的进度事件 ≥100ms）。 */
+  onProgress?: (progress: VpmDownloadProgress) => void
+}
+
+export interface VpmDownloadProgress {
+  downloaded: number
+  /** Content-Length；服务器没给就是 null。 */
+  total: number | null
 }
 
 export interface VpmDownloadResult {

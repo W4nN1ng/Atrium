@@ -221,6 +221,24 @@ export const IpcInvoke = {
     ReposList: 'vpm:repos-list',
     RepoAdd: 'vpm:repo-add',
     RepoRemove: 'vpm:repo-remove',
+    RepoUpdate: 'vpm:repo-update',
+    RepoReorder: 'vpm:repo-reorder',
+    RepoImport: 'vpm:repo-import',
+    RepoExport: 'vpm:repo-export',
+    RepoHeaders: 'vpm:repo-headers',
+    RepoHeadersSet: 'vpm:repo-headers-set',
+    RepoHeadersClear: 'vpm:repo-headers-clear',
+    RepoTest: 'vpm:repo-test',
+    BackupCreate: 'vpm:backup-create',
+    BackupList: 'vpm:backup-list',
+    BackupReveal: 'vpm:backup-reveal',
+    ProjectCopy: 'vpm:project-copy',
+    ProjectVersionChange: 'vpm:project-version-change',
+    ProjectMigrate: 'vpm:project-migrate',
+    ProjectsEnsureLedgers: 'vpm:projects-ensure-ledgers',
+    ProjectTrash: 'vpm:project-trash',
+    ProjectParentCheck: 'vpm:project-parent-check',
+    ProjectScanRoot: 'vpm:project-scan-root',
     RepoRefresh: 'vpm:repo-refresh',
     RepoRefreshAll: 'vpm:repo-refresh-all',
     NetworkConsent: 'vpm:network-consent',
@@ -235,7 +253,50 @@ export const IpcInvoke = {
     ProjectRescan: 'vpm:project-rescan',
     ProjectOpenFolder: 'vpm:project-open-folder',
     PlanResolve: 'vpm:plan-resolve',
-    PlanExplain: 'vpm:plan-explain'
+    PlanExplain: 'vpm:plan-explain',
+    PlanApply: 'vpm:plan-apply',
+    OperationStatus: 'vpm:operation-status',
+    OperationCancel: 'vpm:operation-cancel',
+    OperationHistory: 'vpm:operation-history',
+    OperationUndo: 'vpm:operation-undo',
+    OperationRecover: 'vpm:operation-recover',
+    ProjectCatalog: 'vpm:project-catalog',
+    UnityInstalls: 'vpm:unity-installs',
+    UnityRefresh: 'vpm:unity-refresh',
+    ProjectLaunch: 'vpm:project-launch',
+    ProjectLaunchArgs: 'vpm:project-launch-args',
+    ProjectCreate: 'vpm:project-create',
+    LogRecent: 'vpm:log-recent',
+    UsageSnapshot: 'vpm:usage',
+    CacheClear: 'vpm:cache-clear',
+    DiagnosticsExport: 'vpm:diagnostics-export',
+    InteropVccPeek: 'vpm:interop-vcc-peek',
+    InteropVccApply: 'vpm:interop-vcc-apply',
+    TemplateImport: 'vpm:template-import',
+    TemplateExport: 'vpm:template-export',
+    LocalRoots: 'vpm:local-roots',
+    LocalAdd: 'vpm:local-add',
+    LocalRemove: 'vpm:local-remove',
+    LocalScan: 'vpm:local-scan',
+    LocalInstall: 'vpm:local-install',
+    TemplateList: 'vpm:template-list',
+    TemplateFavorite: 'vpm:template-favorite',
+    TemplateRecent: 'vpm:template-recent',
+    TemplateCreate: 'vpm:template-create',
+    TemplateUpdate: 'vpm:template-update',
+    TemplateDuplicate: 'vpm:template-duplicate',
+    TemplateRemoveReference: 'vpm:template-remove-reference',
+    TemplateRestore: 'vpm:template-restore',
+    /** P8-C：偏好设置（预发布/隐藏包/配额/Unity 参数/更新检查开关）。 */
+    SettingsGet: 'vpm:settings-get',
+    SettingsPatch: 'vpm:settings-patch',
+    /** P8-C：手动更新检查 → 下载 → 运行安装包（每一步都要用户点）。 */
+    UpdateCheck: 'vpm:update-check',
+    UpdateDownload: 'vpm:update-download',
+    UpdateInstall: 'vpm:update-install',
+    /** P9-E：本地投放目录里的安装包（不依赖 GitHub）。 */
+    UpdateLocal: 'vpm:update-local',
+    UpdateOpenFolder: 'vpm:update-open-folder'
   }
 } as const
 
@@ -251,6 +312,10 @@ export const IpcEvent = {
   UnityConnectionChanged: 'unity:connection-changed',
   /** M5-A：一条桥接命令的进度/终态（导入大包时界面靠它显示进度） */
   UnityImportProgress: 'unity:import-progress',
+  /** 深链（P7-E）：`atrium://` / `vcc://` 解析后的意图，交给界面确认。 */
+  VpmDeepLink: 'vpm:deeplink',
+  /** 备份进度（R2）：收集与压缩两个阶段，压缩阶段带 0-100。 */
+  VpmBackupProgress: 'vpm:backup-progress',
   /**
    * R4 ①：一批里**每跑完一条**报一次（`{batchId, index, ok, status, …}`）。
    *
@@ -275,7 +340,10 @@ export const IpcEvent = {
   SettingsChanged: 'settings:changed',
   Toast: 'ui:toast',
   VpmRepoProgress: 'vpm:repo-progress',
-  VpmRepoDone: 'vpm:repo-done'
+  VpmRepoDone: 'vpm:repo-done',
+  VpmOperationStarted: 'vpm:operation-started',
+  VpmOperationProgress: 'vpm:operation-progress',
+  VpmOperationDone: 'vpm:operation-done'
 } as const
 
 /** 渲染进程允许订阅的事件通道 */

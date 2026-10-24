@@ -1,0 +1,255 @@
+# Atrium VPM · P8-D 缺口清单与 P9 只修范围
+
+> 写于 **2026-10-23**。对账源：`docs/VPM-PARITY.md`（124 行，A–K 全组）。
+> 这张表回答三件事：**哪些真的完成了、哪些只是代码完成、P9 只允许修什么**。
+>
+> 结论先行：**P8 对账完成，但 P8 门禁未签字。** 代码面基本齐了；主要缺口是
+> 真 Unity 端到端、VCC 真机、更新/安装器，以及版本矩阵的真机证据。
+> 模板编辑 UI（GAP-03）已由 P8-F 关闭。
+
+---
+
+## 0. 统计与结论
+
+| 指标 | 数量 |
+|---|---|
+| 对账行 | **124**（A23 + B29 + C15 + D10 + E9 + F8 + G9 + H5 + I10 + K6） |
+| 实际=完整 | **61** |
+| 实际=部分 | **56** |
+| 实际=不做 | **7** |
+| 目标=完整但实际=部分（P9 前必须补齐或产品明确接受） | **35** |
+| 目标=部分且实际=部分（已接受差异，写进已知限制） | 18 |
+| 目标=额外且实际=部分（Atrium 增强，不阻塞 ALCOM 对等） | 3（A17/B23/E7） |
+
+**一句话**：不能把 P8-D 当成“全部做完了”。35 行“目标=完整、实际=部分”里，
+21 行是同一个真 Unity 缺口（GAP-01，另覆盖 5 行目标=部分/额外的真机项），
+6 行是 VCC 真机（GAP-07），其余是更新/安装器、回退演练、可访问性/性能、版本矩阵。
+GAP-02（R19 数据根落 C）和 A18（R17 删除进回收站）已由用户明确接受，
+GAP-03（模板编辑 UI）已由 P8-F 关闭，不再作为 P9 必修项。
+
+---
+
+## 1. 缺口索引
+
+| ID | 类别 | 覆盖行 | 结论 | 去向 |
+|---|---|---|---|---|
+| **GAP-01** | 真 Unity 2022.3.22f1 端到端 | A4 A11 A12 A17 A19 B4 B5 B6 B7 B8 B9 B18 B23 B27 C11 D5 D6 E7 E8 E9 I9 K1 K2 K3 K4 K5 | 代码/失败注入/恢复有强证据；装包、启动、双击导入、迁移、换版本、旧 Assets 没有真机终态 | P9-D + P4-E/P5-D/P5-E/P6-D review |
+| **GAP-02** | 数据根/缓存落 C | G3 I6 | **用户 2026-10-23 接受 R19**：数据根/cache/vault/backups 固定在 `%APPDATA%\Atrium`，不再改 | 接受差异，不改代码 |
+| **GAP-03** | 模板编辑 UI | A8 | **已解决（P8-F）**：列表/新建/编辑/复制/删除引用/恢复 + 测试/截图 | 关闭，不再列入 P9 |
+| **GAP-04** | 更新检查/安装器真机 | G6 H5 | 只有假 HTTP 测试；GitHub 检查、下载、hash、`runInstaller` 未真跑 | P9-E |
+| **GAP-05** | 回退演练 | G8 | 回退手册/开关/安全模式有；演练未做 | P9-D |
+| **GAP-06** | 键盘/可访问性/真机 UI/性能 | E5 H4 I2 I10 | 放大镜/深链/焦点/ARIA/5000 包基准未系统验收 | **性能已收（P9-C：10k 行 548→16ms）；键盘/ARIA 真窗口归 P9-D** |
+| **GAP-07** | VCC/ALCOM 真机只读 | A23 C12 F1 F2 F3 F4 | 测试全部用注入 source；真实 VCC 设置路径未跑 | P9-D 真机，或接受部分 |
+| **GAP-08** | 版本/locked/Windows 矩阵 | B12 D10 H1 | 只有 Unity 2022.3.22f1 + Windows 11；真实 locked 对比未做 | **解析侧已补（P9-C：2019/2021/2022/6000 精确匹配矩阵）；真机与 Win10 归 P9-D** |
+| **GAP-09** | 已接受差异 | A5 A6 A9 A13 A18 A20 B24 B26 F5 F7 F8 G1 G3 I6 | 目标本来就是部分，或用户已明确接受（A18/G3/I6）；写进 README/DEVELOPMENT 即可 | 文档收口 |
+| **GAP-10** | 交付/流程 | — | 本分支无 upstream，P4-B…P9-A 没有 PR；`check-worker-deps` 误报已在 P8-D 修 | 推送/PR/发布前核对 |
+| **GAP-11** | 文档缺口 | — | `docs/VPM-TASKS.md` 缺 P8-B 交接段 | 本卡补上 |
+
+> A18（从列表移除、不删盘）已由用户在 2026-10-23 明确接受 R17：删除就是整个文件夹进回收站。
+> GAP-02（数据根在 C）也已被用户接受；本文件只记录，不再要求改代码。
+
+---
+
+## 2. 详细缺口
+
+### GAP-01 真 Unity 2022.3.22f1 端到端（最大缺口）
+
+**覆盖行**：A4、A11、A12、A17、A19、B4–B9、B18、B23、B27、C11、D5、D6、E7、E8、E9、I9、K1–K5。
+
+**已经有的证据**
+
+- P4-B/P4-C/P4-D：事务顺序、manifest 最后写、24 个失败注入点、崩溃恢复、跨进程并发、
+  真实仓库下载（`com.vrchat.base@3.7.0`，13.82 MiB，SHA-256 一致）、真实 zip 解压
+  （936 条目 / 32.09 MiB / 519 个 `.meta`）、真实 EBUSY/EPERM、进程被杀后恢复；
+  见 `docs/VPM-P4-VERIFICATION.md`。
+- 包管理 UI/IPC：`tests/vpm/ipc/install.spec.ts`、`tests/vpm/renderer/cart.spec.ts`、
+  `tests/vpm/domain/undo.spec.ts`；P4-E 代码完成。
+- 启动/绑定：`tests/vpm/unity/launch.spec.ts`、`launch-target.spec.ts`、
+  `tests/renderer/vpm-launch-target.spec.ts`；P5-E 验收脚本
+  `docs/VERIFY-2026-10-22-VPM-MATERIAL-LINK.md`。
+- 工程创建/附件/备份/迁移/换版本：P5-B/P5-C/P6-B/P6-C/P6-D 的单元与失败注入用例。
+
+**缺什么**
+
+1. 在 Unity 2022.3.22f1 沙盒里真的装/升/降/重装/卸一个真实包，确认 Unity 打开无错、
+   `Packages/` 与 `vpm-manifest.json` 正确。
+2. 确认 Unity 打开工程时**忽略** `.atrium-tx`；如果会干扰，换同卷隐藏目录并记录。
+3. 旧 Assets 清理后没有丢引用；日志/回滚仓/vault 内容可人工恢复。
+4. 真机撤销、从备份新建、旧式迁移、换版本。
+5. 真机启动绑定 → 双击素材导入到刚启动工程；多实例优先级；启动中/连接中等待。
+6. 真机创建工程（空白 + 模板 + unitypackage 附件）后 Unity 能打开。
+
+**去向**：P9-D 真机回归；P4-E / P5-D / P5-E / P6-D 保持 **review**，不能提前标 done。
+步骤已在 `docs/VPM-P4-VERIFICATION.md` §10.1 和
+`docs/VERIFY-2026-10-22-VPM-MATERIAL-LINK.md`，不需要重新设计。
+
+---
+
+### GAP-02 数据根/缓存落 C（已由用户接受 R19）
+
+**覆盖行**：G3、I6。
+
+**事实**
+
+- `src/main/vpm/gate.ts` 的 `defaultVpmDataRoot()` 返回 `%APPDATA%\Atrium`；
+  `ensureAutoEnabled()` 首次启动自动启用，`enableVpm({ systemDefault: true })`
+  跳过“非系统盘”校验。
+- `VpmCacheStore`、`VpmRuntime` 的 cache/vault/backups/templates 都从 dataRoot 派生，
+  所以包缓存、回滚仓、备份实际在 C 盘。
+- 原 P0 规则和对账表 I6/G3 写的是“缓存不落 C”“无 C 回退”。P4-VERIFICATION 的
+  `statfsSync`/缓存验证当时用的是非 C 沙盒，不能证明现在的 C 根。
+
+**裁定（2026-10-23，用户）**：**接受 R19**，数据根和 cache/vault/backups 保持
+`%APPDATA%\Atrium`，不改为非 C，不再作为 P9 必修。G3/I6 目标改为部分，
+README/DEVELOPMENT 写清 C 盘位置；P8-E/P9 不再改数据布局。
+
+---
+
+### GAP-03 模板编辑 UI（A8）——已解决（P8-F）
+
+**原缺口**：`TemplateService` 的 create/update/duplicate/removeReference/restore 都有测试，
+但设置页只有模板列表/收藏/最近使用；P8-A 审计 §5 明确“模板编辑 UI 仍缺”。
+
+**P8-F 完成**：设置 → 项目与包新增模板面板（内置/用户列表、新建/编辑表单、
+base 下拉、Unity 范围、依赖文本、复制、收藏、移除引用、显示已移除后恢复）；
+IPC 新增 create/update/duplicate/remove-reference/restore，服务层补 base 循环拒绝。
+证据：`tests/vpm/templates/service.spec.ts`(17)、`tests/vpm/ipc/templates.spec.ts`(5)、
+`tests/renderer/vpm-templates.spec.ts`(3)、截图 `vpm-p8f-templates.png`/
+`vpm-p8f-editor.png`。**不再列入 P9。**
+
+---
+
+### GAP-04 更新检查/安装器真机（G6/H5）
+
+**事实**
+
+- `updater.ts` + `tests/vpm/updater.spec.ts`(19) 覆盖版本比较、资产选择、正文 hash
+  解析、hash 不匹配、错误映射；但 GitHub 真实请求没有跑（本机网络策略/代理），
+  `runInstaller` 只做路径白名单，没有真跑 `.exe`。
+- H5 安装/卸载/静默升级属于 P9-E，尚未执行。
+
+**去向**：P9-E 在 release 前真跑：GitHub Release 检查、下载、SHA-256、安装器可见 UI、
+退出 Atrium 后重启核对版本、卸载不删用户库。G6 目标本来就是部分（手动检查），
+但“手动检查”本身仍需真机证据。
+
+---
+
+### GAP-05 回退演练（G8）
+
+**事实**：`docs/VPM-ROLLBACK.md` 有开关/安全模式/回退手册；P9-D 的演练（禁用、
+删除数据根、恢复快照、旧 DB 回退）未做。P8-D 不执行破坏性演练。
+
+**去向**：P9-D 按手册逐项演练并记录截图/日志；演练前备份。
+
+---
+
+### GAP-06 键盘/可访问性/真机 UI/性能（I2/I10 + E5/H4）
+
+**事实（P8-E 后更新）**
+
+- 已做：`tests/perf/vpm-perf.spec.ts`（隔离跑：5k 目录 p95 145ms、200 包解析 25ms、
+  10k 文件收集 597ms）、`tests/renderer/vpm-a11y.spec.ts`(5)、`vpm-contrast.spec.ts`(2)、
+  `tools/preview/a11y.cjs`（菜单/弹窗焦点、方向键/End/Esc、Tab/Shift+Tab、100%/125% 无溢出，
+  14 项全过）；截图 `vpm-p8e-100/125.png`。
+- 已修：菜单/弹窗语义与焦点、Switch 名称、伪 button role、错误 alert/进度 live region、
+  `--faint`/浅色 `--ok`/`--warn` 对比度、`--accent-strong` 主按钮。
+- 仍未验：真实屏幕阅读器、真实物理 100%/125% DPI、离屏合成 Enter（原生 button 语义已由
+  静态测试守住）、10k 包目录与长稳、E5“打开备份位置”/H4 深链真机点击。
+- A13（Unity 已运行置顶）在 P8-E 判定为可选未做，已接受部分。
+
+**去向**：P9-C 目录 10k/长稳/性能；P9-D 真机 UI/深链/备份位置。P8-E 不再扩功能。
+
+---
+
+### GAP-07 VCC/ALCOM 真机只读（A23/C12/F1–F4）
+
+**事实**：所有 VCC 读取测试都用注入的 `VccProjectSource` 或 fake settings；
+真实 VCC/ALCOM 安装目录下的 `settings.json` 没有跑过。代码只读、不写回，已有测试
+证明不会写 VCC。
+
+**去向**：P9-D 在一台装了 VCC 的机器上真读一次（工程/仓库/用户包目录/Unity 偏好），
+或产品接受“只保证注入契约、真实 VCC 未验”的部分状态。
+
+---
+
+### GAP-08 版本/locked/Windows 矩阵（B12/D10/H1）
+
+**事实**：真实环境只覆盖 Unity 2022.3.22f1 + Windows 11；P3-B 的真实 locked 快照对比
+未做；其他 Unity 版本（2019/2021/6000）只有解析逻辑，没有真机。H1 目标完整但 Win10
+未实机。
+
+**去向**：P9-C 版本矩阵/长路径/性能；P9-D 真机回归。B12 需要至少一个真实工程的
+locked 快照长期对比。
+
+---
+
+### GAP-09 已接受差异（写进 README/DEVELOPMENT 即可）
+
+| 行 | 差异 |
+|---|---|
+| A5/A6 | 模板不含 VRChat 推荐工程设置/场景，只有骨架 + SDK 依赖 |
+| A9 | 只导入模板文件，不注册 `.alcomtemplate` 全局关联 |
+| A13 | Unity 已运行时不把窗口顶到前台（只保证不重复启动并绑定目标） |
+| A20 | 只做搜索/列表，不做完整网格视图 |
+| B24 | 包图标只有首字母回退，无远程图标管线 |
+| B26 | Unity 运行中刻意拒绝装包（比 ALCOM 保守） |
+| F5 | 不读 VCC LiteDB 模板；只读 settings.json |
+| F7 | `vcc://` 只在用户显式接管时解析/确认，不默认抢协议 |
+| F8 | 不注册 `.alcomtemplate` 全局文件关联 |
+| G1 | 三语/主题沿用；没有 ALCOM 全语言列表/紧凑模式 |
+
+---
+
+## 3. P9 只修清单（按顺序）
+
+1. **GAP-01 真 Unity 2022.3.22f1 E2E**（P9-D）：装/升/降/重装/卸/撤销、启动、双击导入、
+   多实例、创建、附件、备份恢复、迁移、换版本；记录截图/日志/Unity Console。
+2. **GAP-04 更新/安装器**（P9-E）：GitHub 检查、下载、hash、安装器、重启版本核对。
+3. **GAP-05 回退演练**（P9-D）：禁用/删根/快照恢复/旧 DB 回退。
+4. **GAP-06 键盘/可访问性/性能**（P8-E/P9-C）：100%/125% 真窗口、Tab/Esc/Enter、
+   ARIA、5000 包目录/200 包解析基准。
+5. **GAP-07 VCC 真机只读**（P9-D）：真实 VCC/ALCOM 设置路径。
+6. **GAP-08 版本矩阵**（P9-C/D）：locked 对比、Win10、其他 Unity 版本。
+7. **GAP-09 文档收口**：已接受差异写进 README/DEVELOPMENT（A18/G3/I6 已由用户接受）。
+8. **GAP-10 交付**：推送当前分支/建 PR（P4-B…P9-A 尚未上远端）；P9-E 前确认
+   `npm run build` 四段都过。P8-F 已关闭模板 UI，不再单列。
+
+---
+
+## 4. 产品裁定（已解决，2026-10-23）
+
+用户明确：**全部接受，这些是本人要求的更改，不允许再改。**
+
+1. **A18**：接受 R17——“删除项目 = 整个文件夹进回收站”，不补“只移除列表”入口。
+   A18 目标改为部分，写进 README/DEVELOPMENT。
+2. **GAP-02**：接受 R19——数据根/cache/vault/backups 固定在 `%APPDATA%\Atrium`，
+   不恢复非 C 重数据；G3/I6 目标改为部分。
+
+这两条不再出现在 P9 必修清单；P8-E/P9 不得改回。
+
+---
+
+## 5. 流程与交付缺口（GAP-10/11）
+
+- **分支/PR**：当前 `codex/vpm-p4d-failure-recovery` 没有 upstream，`origin/main`
+  还停在 P4-A 的 `e8c3dcb`；P4-B…P9-A 全部只在本地。P9 发布前必须推送并走 PR/合并。
+- **P8-C 交接文档**：`docs/VPM-P8C-HANDOVER.md` 写“P8-C 未提交、HEAD 689d8e2”，
+  实际已提交 `709a990`；接手时以 git 和本文件为准。
+- **P8-B 交接**：`docs/VPM-TASKS.md` 缺 P8-B 段；本卡补一条，证据来自
+  `src/main/vpm/log/` 与 `tests/vpm/log/diagnostics.spec.ts`。
+- **构建闸门**：`tools/check-worker-deps.cjs` 原来把主进程专用的 VPM 动态 chunk
+  当成 worker chunk，误报 `yazl`/`electron-log`；P8-D 已改成只检查 worker 可达图，
+  修复后 `node tools/check-worker-deps.cjs` 通过。完整 `npm run build` 仍需重跑。
+
+---
+
+## 6. 签字结论
+
+- **P8-D 对账本身：完成**（124 行全部有实际状态/证据/差异/去向；无空白/待定）。
+- **P8 门禁：未签字**。35 行目标=完整但实际=部分；其中 21 行是 GAP-01 真 Unity，
+  不能靠单元测试冒充。GAP-02/A18 已按用户裁定改为接受差异，GAP-03 已由 P8-F 关闭，
+  不再计入这 35 行。
+- **P9 范围：本文件 §3**。P9 只修这些缺口，不再扩大功能面；已接受差异走
+  GAP-09 文档收口。
+- **下一步**：P8-E（性能/可访问性/全量回归）→ P8-F（模板 UI）→ P9-D 真 Unity；
+  P9-E 发布前推送/PR 并跑完整 `npm run build`。

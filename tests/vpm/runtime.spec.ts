@@ -4,18 +4,25 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { initVpm, type VpmRuntime } from '../../src/main/vpm'
+import { VPM_SCHEMA_VERSION } from '../../src/main/vpm/db'
 import { P, setAppPathsForTest } from '../../src/main/services/paths'
 import { projectKeyOf } from '../../src/shared/vpm/domain/project'
+import { sha256Hex } from '../../src/shared/vpm/domain/hash'
 
 let root: string
 let dataRoot: string
 let runtime: VpmRuntime | null
+/** 空的发现根：测试**绝不能**扫到这台机器上真实的 Unity Hub。 */
+let discovery: { appDataDir: string; localAppData: string; programFiles: string[]; extraRoots: string[] }
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'atrium-vpm-runtime-'))
   setAppPathsForTest(root)
   dataRoot = path.join(root, 'data')
   fs.mkdirSync(dataRoot, { recursive: true })
+  const empty = path.join(root, 'no-unity-here')
+  fs.mkdirSync(empty, { recursive: true })
+  discovery = { appDataDir: empty, localAppData: empty, programFiles: [], extraRoots: [] }
   runtime = null
 })
 
@@ -30,6 +37,7 @@ describe('VPM composition root', () => {
     runtime = await initVpm({
       dataRoot,
       userAgent: 'Atrium/test',
+      unityDiscovery: discovery,
       isNetworkAllowed: () => false
     })
 
@@ -39,12 +47,15 @@ describe('VPM composition root', () => {
     expect(runtime.repos.listRepos()).toEqual([])
     expect(runtime.catalog.query()).toMatchObject({ items: [], total: 0 })
     expect(runtime.unity.list()).toEqual([])
+    expect(runtime.cacheEntries.list()).toEqual([])
+    expect(runtime.packageCache.usage()).toMatchObject({ bytes: 0, files: 0 })
   })
 
   it('seeds official/curated only when consent is already granted', async () => {
     runtime = await initVpm({
       dataRoot,
       userAgent: 'Atrium/test',
+      unityDiscovery: discovery,
       isNetworkAllowed: () => true
     })
 
@@ -64,6 +75,7 @@ describe('VPM composition root', () => {
     runtime = await initVpm({
       dataRoot,
       userAgent: 'Atrium/test',
+      unityDiscovery: discovery,
       isNetworkAllowed: () => false,
       projectLinkage: linkage
     })
@@ -74,6 +86,7 @@ describe('VPM composition root', () => {
     runtime = await initVpm({
       dataRoot,
       userAgent: 'Atrium/test',
+      unityDiscovery: discovery,
       isNetworkAllowed: () => false,
       coreProjects: {
         list: () => [
@@ -108,14 +121,22 @@ describe('VPM composition root', () => {
     })
   })
 
-  it('scans unfinished operations during startup and lands them in needs_attention', async () => {
+  it('rolls back an unfinished operation during startup', async () => {
     const project = path.join(root, 'project')
     fs.mkdirSync(path.join(project, 'Packages'), { recursive: true })
+    fs.mkdirSync(path.join(project, 'ProjectSettings'), { recursive: true })
+    fs.writeFileSync(
+      path.join(project, 'ProjectSettings', 'ProjectVersion.txt'),
+      'm_EditorVersion: 2022.3.22f1\n'
+    )
+    const manifestText = '{\n  "dependencies": {},\n  "locked": {}\n}'
+    fs.writeFileSync(path.join(project, 'Packages', 'vpm-manifest.json'), manifestText)
     const real = fs.realpathSync.native(project)
 
     runtime = await initVpm({
       dataRoot,
       userAgent: 'Atrium/test',
+      unityDiscovery: discovery,
       isNetworkAllowed: () => false
     })
     const op = runtime.operations.create({
@@ -124,7 +145,7 @@ describe('VPM composition root', () => {
       kind: 'install',
       plan: { changes: [] },
       planHash: 'a'.repeat(64),
-      manifestBeforeHash: 'b'.repeat(64),
+      manifestBeforeHash: sha256Hex(manifestText),
       manifestAfterHash: 'c'.repeat(64)
     })
     runtime.operations.transition(op.id, 'preflight')
@@ -135,20 +156,25 @@ describe('VPM composition root', () => {
     runtime = await initVpm({
       dataRoot,
       userAgent: 'Atrium/test',
+      unityDiscovery: discovery,
       isNetworkAllowed: () => false
     })
+    // 没有任何文件被移动过 → 恢复判定 failed，工程不需要人工确认就能继续用。
     expect(runtime.operations.get(op.id)).toMatchObject({
-      status: 'needs_attention',
-      errorCode: 'vpmRecoveryRequired',
-      errorDetail: 'before_commit'
+      status: 'failed',
+      errorCode: null
     })
     expect(runtime.recovery.scan()).toEqual([])
+    expect(fs.readFileSync(path.join(project, 'Packages', 'vpm-manifest.json'), 'utf8')).toBe(
+      manifestText
+    )
   })
 
   it('can reopen after dispose and keeps the schema valid', async () => {
     runtime = await initVpm({
       dataRoot,
       userAgent: 'Atrium/test',
+      unityDiscovery: discovery,
       isNetworkAllowed: () => false
     })
     runtime.dispose()
@@ -157,16 +183,21 @@ describe('VPM composition root', () => {
     runtime = await initVpm({
       dataRoot,
       userAgent: 'Atrium/test',
+      unityDiscovery: discovery,
       isNetworkAllowed: () => false
     })
     expect(runtime.repos.listRepos()).toEqual([])
   })
 
   it('rejects a newer vpm.db schema instead of rebuilding it', async () => {
+    // 必须比当前 schema **真的更新**：以前这里写死 `user_version = 6`，
+    // P7-C 把版本推到 6 之后这条就变成了"版本正好相等但一张表都没有"，
+    // 断言跟着变味（拿到的是一条 SQLITE_ERROR 而不是 vpmDbVersionTooNew）。
+    const tooNew = VPM_SCHEMA_VERSION + 1
     fs.mkdirSync(path.dirname(P.vpmDb()), { recursive: true })
     const raw = new Database(P.vpmDb())
     try {
-      raw.pragma('user_version = 4')
+      raw.pragma(`user_version = ${tooNew}`)
     } finally {
       raw.close()
     }
@@ -175,12 +206,14 @@ describe('VPM composition root', () => {
       initVpm({
         dataRoot,
         userAgent: 'Atrium/test',
+        unityDiscovery: discovery,
         isNetworkAllowed: () => false
       })
     ).rejects.toMatchObject({ code: 'vpmDbVersionTooNew' })
     const check = new Database(P.vpmDb(), { readonly: true })
     try {
-      expect(check.pragma('user_version', { simple: true })).toBe(4)
+      // 拒绝后必须原样保留"更新版本"，不能悄悄降级
+      expect(check.pragma('user_version', { simple: true })).toBe(tooNew)
     } finally {
       check.close()
     }
@@ -191,6 +224,7 @@ describe('VPM composition root', () => {
       initVpm({
         dataRoot: path.join(root, 'missing'),
         userAgent: 'Atrium/test',
+        unityDiscovery: discovery,
         isNetworkAllowed: () => false
       })
     ).rejects.toMatchObject({ code: 'vpmCachePathInvalid' })

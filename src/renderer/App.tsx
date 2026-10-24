@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { lazy, Suspense, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useUi } from './stores/ui'
 import { Sidebar, StatusBar, Toasts, TopBar } from './components/chrome'
@@ -21,6 +21,15 @@ import { Library } from './pages/Library'
 import { Project } from './pages/Project'
 import { Collections } from './pages/Collections'
 import { Settings } from './pages/Settings'
+
+/**
+ * 深链宿主（P7-E）**必须懒加载**：`renderer/vpm/*` 不允许被核心静态引
+ * （架构闸门 `tests/vpm/static-imports.spec.ts` 会红）。
+ * 它只订阅主进程的 `vpm:deeplink` 事件，晚一拍加载没有任何影响。
+ */
+const DeepLinkHost = lazy(() =>
+  import('./vpm/components/DeepLinkHost').then((m) => ({ default: m.DeepLinkHost }))
+)
 
 /**
  * 第 10 轮 E：拖进来了、却没解析出本地路径时**必须说一句**。
@@ -212,6 +221,9 @@ export function App(): JSX.Element {
         因为它产生的那一刻用户可能正停在任何页面上，而它要说的事只和"卡片分组"有关。
       */}
       <RemergeNotice />
+      <Suspense fallback={null}>
+        <DeepLinkHost />
+      </Suspense>
       {/*
         导入流程的常驻界面：冲突确认对话框 + 进行中提示 + 上次结果条（带撤销）。
         **必须挂在 App 这一层**，不能挂在发起导入的组件里 ——

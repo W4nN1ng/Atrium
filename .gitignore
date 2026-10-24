@@ -3,6 +3,9 @@ out/
 dist/
 # 活体临时换的第二个产物目录（`-c.directories.output=dist-r9b`，见 tools/live-r9-remerge.cjs 头注）
 dist-r9b/
+# P9-E 构建产物（带日期的输出目录，别提交 87MB 安装包）
+dist-rel/
+dist-new/
 # 下载缓存：Electron 本体 zip(112MB) / 7-Zip 安装器 / sqlite 预编译 tar.gz
 # 全部由 tools/setup-native.cjs 与 tools/fetch-7z.cjs 按需重下，不进仓库
 vendor/cache/
@@ -28,3 +31,8 @@ resources/bin/7z.exe
 resources/bin/7z.dll
 resources/bin/7-zip.dll
 resources/bin/7zr.exe
+
+# tools/preview 的生成产物：由 README 的 esbuild/cp 命令现生成，不入库
+tools/preview/verify.js
+tools/preview/app.css
+tools/preview/templates.js

@@ -217,6 +217,14 @@ function ConfirmRow({ item, config }: { item: IngestItemState; config: CategoryC
   )
 }
 
+/** R6：素材选择器统一过滤器（unitypackage + 常见压缩包 + 所有文件）。 */
+function assetFilters(t: (key: string) => string): Array<{ name: string; extensions: string[] }> {
+  return [
+    { name: t('inbox.assetFiles'), extensions: ['unitypackage', 'zip', 'rar', '7z'] },
+    { name: t('inbox.allFiles'), extensions: ['*'] }
+  ]
+}
+
 export function Inbox(): JSX.Element {
   const { t, i18n } = useTranslation()
   const items = useUi((s) => s.ingestItems)
@@ -298,7 +306,11 @@ export function Inbox(): JSX.Element {
             {t('inbox.emptyHint')}
           </div>
           <Button variant="accent" className="mt-3" onClick={async () => {
-            const picked = await window.a.system.pickFiles()
+            const picked = await window.a.system.pickFiles({
+              multiple: true,
+              title: t('inbox.pickFiles'),
+              filters: assetFilters(t)
+            })
             if (picked.length) await ingestPaths(picked)
           }}>{t('inbox.pickFiles')}</Button>
           <div className="mt-4 max-w-md text-[12px] leading-relaxed" style={{ color: 'var(--muted)' }}>{t('inbox.nextStepHint')}</div>

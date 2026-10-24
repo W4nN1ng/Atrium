@@ -176,7 +176,9 @@ describe('parseUnitypackage', () => {
     const ms = Date.now() - t0
     const grew = process.memoryUsage().heapUsed - before
     expect(r.ok).toBe(true)
-    expect(ms).toBeLessThan(5000)
+    // 时间上限只当"没有变成 O(正文)"的粗筛：真跑全量测试时这台机器同时在压 200+ 个文件，
+    // 单跑 200ms 的操作会被抢到 6 秒以上（实测 6711ms）。真正的不变量是下面那条内存断言。
+    expect(ms).toBeLessThan(15000)
     // 32MB 主体若被读进内存，这里会直接涨过 32MB
     expect(grew).toBeLessThan(16 * 1024 * 1024)
     // 但 size 要从 tar 头里拿到，不用读正文

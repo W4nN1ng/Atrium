@@ -117,18 +117,13 @@ export function bannerRenderState(input: BannerInput): BannerRenderState {
       autoHide: !input.pinned
     }
   }
-  /** wake-only（behavior=always 且没匹配上）：只报一句"没匹配到集合"，不给"以后都这样" */
-  return {
-    shown: true,
-    tone: 'info',
-    titleKey: 'project.bannerNoMatch',
-    titleParams: { project: e.projectName },
-    bodyKey: queryNote ? queryNote.key : null,
-    bodyParams: queryNote ? queryNote.params : null,
-    buttons: ['choose', 'ignore'],
-    choices: input.otherCollections,
-    autoHide: !input.pinned
-  }
+  /**
+   * R5：**没匹配到集合就什么都不显示**。
+   *
+   * 用户原话："这个未匹配到集合是什么东西？还在这里反复跳来跳去，出现又消失，把这东西删了。"
+   * 视图本来就没动，通知用户"没动"是纯噪音；真要换集合，用户会自己去点。
+   */
+  return { shown: false }
 }
 
 /** 横幅出现多久之后自动淡出（规格："10 秒后自动淡出"） */

@@ -7,5 +7,6 @@
 - 满足上述条件后，AI 协作者自行合并 PR，无需再向用户请求合并确认。使用正常 PR 合并流程，不绕过分支保护，不强制推送 `main`。
 - 报告实际测试结果和仍未验证的行为；不要把条件跳过的测试说成已通过，也不要把可启动等同于所有功能都完成。
 - **每一次修复、每一次更新，都必须同时把用户本机安装的 Atrium 也更新掉。** 只改源码、只发 Release 都不算做完 —— 用户是在**装好的那个程序**里用功能的，源码里修好了而他机器上还是旧行为，对他等于没修。
-  收尾时必须：`npm run build` → 静默覆盖安装（`Start-Process dist\Atrium-Setup-<版本>.exe -ArgumentList '/S' -Wait`）→ 用 `node tools/installed-version.cjs --expect=<版本>` 核实注册表里的 `DisplayVersion` 真的变了。
+  收尾时必须：`npm run build` → 静默覆盖安装（`Start-Process dist\Atrium-Setup-<版本>.exe -ArgumentList '/S','/currentuser' -Wait`）→ 用 `node tools/installed-version.cjs --expect=<版本>` 核实注册表里的 `DisplayVersion` 真的变了。
+  > 2026-10-24 实测：辅助安装器只带 `/S` 会停在安装模式页，进程退出 0 但文件不落盘；必须带 `/currentuser`。
   ⚠ 起装好的程序时**必须清掉 `ELECTRON_RUN_AS_NODE`**（有些 agent/harness 环境会设它，Electron 会退化成 Node 直接退出，看起来像"程序崩了"，其实什么事都没有）。`tools/dev.cjs` 里有同样的护栏。

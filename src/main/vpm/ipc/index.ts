@@ -1,5 +1,7 @@
 import { ulid } from '../../../shared/ulid'
 import { VpmError, type VpmErrorCode } from '../../../shared/vpm/errors'
+import { getVpmStatus } from '../gate'
+import { buildDiagnostics, clearUsage, exportDiagnostics, usageOf } from '../log'
 import { IpcInvoke } from '../../../shared/ipc'
 import type {
   VpmCatalogConflictDto,
@@ -22,6 +24,11 @@ import type { VpmRuntime } from '../index'
 import type { RepoDto, RepoRefreshResult } from '../reposService'
 import { registerProjectIpc } from './projects'
 import { registerPlanIpc } from './plan'
+import { registerInstallIpc } from './install'
+import { registerInteropIpc } from './interop'
+import { registerSettingsIpc } from './settings'
+import { registerMaintenanceIpc, registerProjectLocationIpc, registerUnityIpc } from './unity'
+import { repoScope, validateSecretHeaders } from '../secrets'
 
 export interface VpmIpcOptions {
   ipc: IpcApi
@@ -288,6 +295,61 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
     requireRuntime().repos.removeRepo(requireId(id))
     return { ok: true }
   })
+  ipc.handle(IpcInvoke.Vpm.RepoUpdate, async (input: unknown) => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmRepoInvalid', { field: 'input' })
+    }
+    const raw = input as Record<string, unknown>
+    const id = requireId(raw.id)
+    const patch: { name?: string; url?: string; enabled?: boolean } = {}
+    if (raw.name !== undefined) {
+      if (typeof raw.name !== 'string') throw new VpmError('vpmRepoInvalid', { field: 'name' })
+      patch.name = raw.name
+    }
+    if (raw.url !== undefined) {
+      if (typeof raw.url !== 'string') throw new VpmError('vpmRepoInvalid', { field: 'url' })
+      patch.url = raw.url
+    }
+    if (raw.enabled !== undefined) {
+      if (typeof raw.enabled !== 'boolean') throw new VpmError('vpmRepoInvalid', { field: 'enabled' })
+      patch.enabled = raw.enabled
+    }
+    return repoDto(await requireRuntime().repos.updateRepo(id, patch))
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoReorder, (ids: unknown) => {
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) {
+      throw new VpmError('vpmRepoInvalid', { field: 'ids' })
+    }
+    return requireRuntime().repos.reorderRepos(ids as string[]).map(repoDto)
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoImport, async (text: unknown) => {
+    if (typeof text !== 'string') throw new VpmError('vpmRepoInvalid', { field: 'text' })
+    const result = await requireRuntime().repos.importRepos(text)
+    return { added: result.added.map(repoDto), skipped: result.skipped }
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoExport, () => requireRuntime().repos.exportRepos())
+  ipc.handle(IpcInvoke.Vpm.RepoHeaders, (id: unknown) => {
+    const current = requireRuntime()
+    const headers = current.secrets.get(repoScope(requireId(id)))
+    return { available: current.secrets.available(), names: headers ? Object.keys(headers).sort() : [] }
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoHeadersSet, (input: unknown) => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmSecretInvalid', { field: 'input' })
+    }
+    const raw = input as { id?: unknown; headers?: unknown }
+    const current = requireRuntime()
+    const scope = repoScope(requireId(raw.id))
+    // validateSecretHeaders 在 store 里再跑一次；这里先拿归一化结果做返回。
+    const normalized = validateSecretHeaders(raw.headers)
+    current.secrets.set(scope, normalized)
+    return { available: current.secrets.available(), names: Object.keys(normalized).sort() }
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoHeadersClear, (id: unknown) => {
+    requireRuntime().secrets.clear(repoScope(requireId(id)))
+    return { ok: true }
+  })
+  ipc.handle(IpcInvoke.Vpm.RepoTest, (id: unknown) => requireRuntime().repos.testRepo(requireId(id)))
   ipc.handle(IpcInvoke.Vpm.RepoRefresh, (id: unknown) => startSingle(requireId(id)))
   ipc.handle(IpcInvoke.Vpm.RepoRefreshAll, () => startAll())
 
@@ -303,6 +365,65 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
       if (runtime) await runtime.repos.seedIfEmpty()
     }
     return networkStatus()
+  })
+
+  ipc.handle(IpcInvoke.Vpm.LogRecent, (limit: unknown) => {
+    const count = typeof limit === 'number' && Number.isFinite(limit) ? limit : 20
+    return requireRuntime().log.recent(count)
+  })
+  ipc.handle(IpcInvoke.Vpm.UsageSnapshot, () => usageOf(requireRuntime().dataRoot))
+  ipc.handle(IpcInvoke.Vpm.CacheClear, () => clearUsage(requireRuntime().dataRoot, 'cache'))
+  ipc.handle(IpcInvoke.Vpm.DiagnosticsExport, async () => {
+    const current = requireRuntime()
+    const status = getVpmStatus()
+    const payload = buildDiagnostics({
+      appVersion: status.appVersion,
+      platform: process.platform,
+      dataRoot: current.dataRoot,
+      status: {
+        enabled: status.enabled,
+        safeMode: status.safeMode,
+        degraded: status.degraded
+      },
+      operations: current.log.recent(20),
+      usage: usageOf(current.dataRoot)
+    })
+    return { path: await exportDiagnostics(current.dataRoot, payload) }
+  })
+
+  ipc.handle(IpcInvoke.Vpm.LocalRoots, () => requireRuntime().local.list())
+  ipc.handle(IpcInvoke.Vpm.LocalAdd, (input: unknown) => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'input' })
+    }
+    const raw = input as { path?: unknown; label?: unknown }
+    if (typeof raw.path !== 'string' || !raw.path.trim()) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'path' })
+    }
+    return requireRuntime().local.add({
+      path: raw.path,
+      ...(typeof raw.label === 'string' ? { label: raw.label } : {})
+    })
+  })
+  ipc.handle(IpcInvoke.Vpm.LocalRemove, (id: unknown) => {
+    if (typeof id !== 'string' || !id.trim()) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'id' })
+    }
+    return { ok: requireRuntime().local.remove(id.trim()) }
+  })
+  ipc.handle(IpcInvoke.Vpm.LocalScan, () => requireRuntime().local.scanAll())
+  ipc.handle(IpcInvoke.Vpm.LocalInstall, (input: unknown) => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'input' })
+    }
+    const raw = input as { projectKey?: unknown; packageName?: unknown }
+    if (typeof raw.projectKey !== 'string' || typeof raw.packageName !== 'string') {
+      throw new VpmError('vpmLocalRootInvalid', { reason: 'input' })
+    }
+    return requireRuntime().localInstall.install({
+      projectKey: raw.projectKey,
+      packageName: raw.packageName
+    })
   })
 
   ipc.handle(IpcInvoke.Vpm.CatalogQuery, (query: unknown) => {
@@ -324,6 +445,20 @@ export function registerVpmIpc(options: VpmIpcOptions): { dispose(): void } {
 
   registerProjectIpc({ ipc, getRuntime: options.getRuntime })
   registerPlanIpc({ ipc, getRuntime: options.getRuntime })
+  registerInstallIpc({
+    ipc,
+    getRuntime: options.getRuntime,
+    broadcast: options.broadcast
+  })
+  registerUnityIpc({ ipc, getRuntime: options.getRuntime })
+  registerProjectLocationIpc({ ipc, getRuntime: options.getRuntime })
+  registerInteropIpc({ ipc, getRuntime: options.getRuntime })
+  registerSettingsIpc({ ipc, getRuntime: options.getRuntime })
+  registerMaintenanceIpc({
+    ipc,
+    getRuntime: options.getRuntime,
+    ...(options.broadcast ? { broadcast: options.broadcast } : {})
+  })
 
   return {
     dispose(): void {

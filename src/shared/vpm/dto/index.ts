@@ -128,3 +128,58 @@ export interface VpmCatalogPage {
   limit: number
   offset: number
 }
+
+export type {
+  VpmOperationCancelResult,
+  VpmOperationDto,
+  VpmOperationKind,
+  VpmOperationProgressEvent,
+  VpmOperationDoneEvent,
+  VpmOperationRecoveryResultDto,
+  VpmOperationStartInput,
+  VpmOperationStatus,
+  VpmOperationSummaryDto,
+  VpmOperationWarningDto,
+  VpmPackageCatalogInfoDto,
+  VpmPackageVersionOptionDto,
+  VpmProjectCatalogDto,
+  VpmRecoveryAction,
+  VpmRecoveryDecisionDto,
+  VpmRecoveryReason,
+  VpmUndoBlockedReason
+} from './install'
+
+export type {
+  VpmPreferencesDto,
+  VpmPreferencesPatch,
+  VpmUpdateAssetDto,
+  VpmUpdateCheckDto,
+  VpmUpdateDownloadDto,
+  VpmUpdateDownloadStatus,
+  VpmUpdateStatus,
+  VpmLocalBuildDto,
+  VpmLocalBuildsDto
+} from './settings'
+
+export type {
+  VpmCreateIssueDto,
+  VpmCreateProjectInput,
+  VpmCreateProjectResultDto,
+  VpmLaunchResultDto,
+  VpmRecentLocationDto,
+  VpmTemplateDto,
+  VpmTemplateCreateInput,
+  VpmTemplateDuplicateInput,
+  VpmTemplateIdInput,
+  VpmTemplateListInput,
+  VpmTemplatePatch,
+  VpmTemplateUpdateInput,
+  VpmUnityInstallDto,
+  VpmBackupDto,
+  VpmCopyResultDto,
+  VpmVersionChangeResultDto,
+  VpmMigrateCandidateInput,
+  VpmMigrateResultDto,
+  VpmRepoHeadersDto,
+  VpmRepoTestDto
+} from './unity'

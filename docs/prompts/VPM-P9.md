@@ -246,11 +246,13 @@ node tools/verify-release-page.cjs
 
 ```powershell
 Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
-Start-Process dist\Atrium-Setup-0.9.0.exe -ArgumentList '/S' -Wait
+Start-Process dist\Atrium-Setup-0.9.0.exe -ArgumentList '/S','/currentuser' -Wait
 node tools/installed-version.cjs --expect=0.9.0
 ```
 
 - Git Bash 下 `/S` 前加 `MSYS_NO_PATHCONV=1`，否则会被当成路径 `S:/` 弹 UI。
+- 辅助安装器（`oneClick:false`）只带 `/S` 会停在安装模式页，退出码 0 但文件不落盘；
+  必须带 `/currentuser`（2026-10-24 实测）。
 - 安装后启动一次（VPM 默认关闭）；确认核心正常。
 - 保留 0.8.0 安装包与 `pre-vpm` 标签。
 

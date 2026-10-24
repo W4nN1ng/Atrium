@@ -32,6 +32,35 @@ function inside(parent: string, candidate: string): boolean {
   return isSameOrInside(parent, candidate, process.platform)
 }
 
+/** cache 子目录必须是真实目录；预先存在的 symlink/junction 直接拒绝，防写穿。 */
+function ensureSubdir(cacheRoot: string, name: string): string {
+  const dir = path.join(cacheRoot, name)
+  let stat: fs.Stats | null = null
+  try {
+    stat = fs.lstatSync(dir)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw pathError()
+  }
+  if (stat) {
+    if (stat.isSymbolicLink() || !stat.isDirectory()) throw pathError()
+  } else {
+    try {
+      fs.mkdirSync(dir)
+    } catch (error) {
+      throw writeError(error)
+    }
+  }
+  let real: string
+  try {
+    real = fs.realpathSync(dir)
+    if (!fs.statSync(real).isDirectory()) throw new Error('not a directory')
+  } catch (error) {
+    throw pathError()
+  }
+  if (real === cacheRoot || !inside(cacheRoot, real)) throw pathError()
+  return real
+}
+
 /**
  * VPM 包缓存。
  *
@@ -49,6 +78,7 @@ export class VpmCacheStore {
   readonly cacheRoot: string
   readonly packagesRoot: string
   readonly tmpRoot: string
+  readonly corruptRoot: string
 
   constructor(options: VpmCacheOptions) {
     const dataRoot = normalizeRoot(options?.dataRoot)
@@ -75,8 +105,9 @@ export class VpmCacheStore {
 
     this.dataRoot = dataReal
     this.cacheRoot = cacheReal
-    this.packagesRoot = path.join(cacheReal, 'packages')
-    this.tmpRoot = path.join(cacheReal, 'tmp')
+    this.packagesRoot = ensureSubdir(cacheReal, 'packages')
+    this.tmpRoot = ensureSubdir(cacheReal, 'tmp')
+    this.corruptRoot = ensureSubdir(cacheReal, 'corrupt')
   }
 
   createTempPath(prefix = 'download'): string {
@@ -199,6 +230,88 @@ export class VpmCacheStore {
     if (!fs.existsSync(file)) return false
     fs.rmSync(file, { force: true })
     return true
+  }
+
+  /**
+   * 把损坏/不匹配的缓存或临时文件移到 `cache/corrupt/` 保留，便于诊断。
+   * 只接受 cacheRoot 内、且不在 corrupt/ 里的常规文件；返回新路径。
+   */
+  quarantine(file: string, sha256: string): string | null {
+    const sha = normalizeSha(sha256)
+    if (typeof file !== 'string' || !path.isAbsolute(file)) throw pathError()
+    let real: string
+    try {
+      real = fs.realpathSync(file)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+      throw writeError(error)
+    }
+    if (!inside(this.cacheRoot, real)) throw pathError()
+    if (inside(this.corruptRoot, real)) return real
+    let stat: fs.Stats
+    try {
+      stat = fs.statSync(real)
+    } catch (error) {
+      throw writeError(error)
+    }
+    if (!stat.isFile()) throw pathError()
+
+    try {
+      fs.mkdirSync(this.corruptRoot, { recursive: true })
+      const suffix = path.extname(real).toLowerCase()
+      const ext = suffix === '.zip' || suffix === '.part' ? suffix : '.bin'
+      const destination = path.join(this.corruptRoot, `${sha}-${ulid()}${ext}`)
+      if (!inside(this.corruptRoot, destination)) throw pathError()
+      fs.renameSync(real, destination)
+      return destination
+    } catch (error) {
+      if (error instanceof VpmError) throw error
+      throw writeError(error)
+    }
+  }
+
+  quarantinePackage(sha256: string): string | null {
+    return this.quarantine(this.pathForPackage(sha256), sha256)
+  }
+
+  /** 扫描正式包缓存；只认 `<前两位>/<64hex>.zip` 常规文件，不跟随 symlink。 */
+  listPackages(): Array<{ sha256: string; path: string; size: number; mtimeMs: number }> {
+    const out: Array<{ sha256: string; path: string; size: number; mtimeMs: number }> = []
+    let dirs: fs.Dirent[]
+    try {
+      dirs = fs.readdirSync(this.packagesRoot, { withFileTypes: true })
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return out
+      throw writeError(error)
+    }
+    for (const dir of dirs) {
+      if (!dir.isDirectory() || dir.isSymbolicLink()) continue
+      const dirPath = path.join(this.packagesRoot, dir.name)
+      if (!inside(this.packagesRoot, dirPath)) continue
+      let files: fs.Dirent[]
+      try {
+        files = fs.readdirSync(dirPath, { withFileTypes: true })
+      } catch {
+        continue
+      }
+      for (const entry of files) {
+        if (!entry.isFile() || entry.isSymbolicLink()) continue
+        const match = /^([a-f0-9]{64})\.zip$/.exec(entry.name)
+        if (!match) continue
+        const sha = match[1]
+        if (sha.slice(0, 2) !== dir.name.toLowerCase()) continue
+        const file = path.join(dirPath, entry.name)
+        if (!inside(this.packagesRoot, file)) continue
+        try {
+          const stat = fs.statSync(file)
+          if (!stat.isFile()) continue
+          out.push({ sha256: sha, path: file, size: stat.size, mtimeMs: stat.mtimeMs })
+        } catch {
+          /* 扫描期间被清理/锁定：跳过，不影响其他行 */
+        }
+      }
+    }
+    return out
   }
 
   /** 只清 tmp，不动正式缓存；启动/失败恢复用。 */

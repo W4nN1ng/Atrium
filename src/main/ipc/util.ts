@@ -21,7 +21,10 @@ export function createRegistrar(): { ipc: IpcApi; broadcast: (event: string, pay
           const data = await (fn as unknown as (...a: unknown[]) => R | Promise<R>)(...args)
           return { ok: true, data } as IpcResult<R>
         } catch (err) {
-          const error = err instanceof Error ? err.message : String(err)
+          const base = err instanceof Error ? err.message : String(err)
+          // 把 VpmError 的 params 一起带过去，渲染层才能把 {{reason}} 这类占位符填上。
+          const params = (err as { params?: Record<string, unknown> }).params
+          const error = params ? `${base}|${JSON.stringify(params)}` : base
           const name = err instanceof Error ? err.name : 'Error'
           log.error('[ipc] ' + channel + ' 失败：' + error)
           return { ok: false, error, name } as IpcResult<R>

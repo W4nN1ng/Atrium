@@ -71,6 +71,8 @@ function legacyFrom(snapshot: ProjectSnapshot): string[] {
 export interface PlanServiceDeps {
   projects: ProjectsService
   catalog: CatalogService
+  /** P8-C：解析请求没指定时，预发布偏好取这里的默认值。 */
+  defaultAllowPrerelease?: () => boolean
   now?: () => number
   ttlMs?: number
 }
@@ -119,7 +121,8 @@ export class PlanService {
       requests,
       preset: input.preset,
       options: {
-        allowPrerelease: input.allowPrerelease === true,
+        // P8-C：请求里没显式给 allowPrerelease 时，跟随设置里的全局偏好。
+        allowPrerelease: input.allowPrerelease ?? this.deps.defaultAllowPrerelease?.() ?? false,
         protectedPackages: [PROTECTED_PACKAGE],
         legacyPackages: legacyFrom(snapshot)
       },
@@ -131,16 +134,26 @@ export class PlanService {
     return { planId, ...plan }
   }
 
-  explain(planId: string, name?: string | null): VpmPlanExplainDto {
+  /**
+   * 只按 planId 取回主进程缓存里的计划。
+   *
+   * P4-C 事务的唯一入口：不接受渲染层回传的计划内容，
+   * 过期或不存在都拒绝，由调用方转成“请重新预览”。
+   */
+  get(planId: string): ChangePlan {
     const cached = this.cache.get(planId)
-    if (cached && cached.expiresAt <= this.now()) {
+    if (!cached) throw new VpmError('vpmPlanNotFound')
+    if (cached.expiresAt <= this.now()) {
       this.cache.delete(planId)
       throw new VpmError('vpmPlanExpired')
     }
-    if (!cached) throw new VpmError('vpmPlanNotFound')
+    return cached.plan
+  }
+
+  explain(planId: string, name?: string | null): VpmPlanExplainDto {
+    const plan = this.get(planId)
     this.prune()
     const filter = typeof name === 'string' && name.trim() ? name.trim() : null
-    const plan = cached.plan
     return {
       planId,
       name: filter,

@@ -181,6 +181,21 @@ describe('VPM HTTP client', () => {
     })
   })
 
+  it('reports streamed download progress with content length', async () => {
+    const data = Buffer.from('progress bytes')
+    transport.handler = () =>
+      reply(200, data, { 'content-length': String(data.length) })
+    const dest = path.join(root, 'progress.zip')
+    const progress: Array<{ downloaded: number; total: number | null }> = []
+
+    await makeClient().downloadToFile('https://example.test/pkg.zip', dest, {
+      onProgress: (item) => progress.push(item)
+    })
+
+    expect(progress.length).toBeGreaterThan(0)
+    expect(progress.at(-1)).toEqual({ downloaded: data.length, total: data.length })
+  })
+
   it('removes the partial download when the size limit is exceeded', async () => {
     transport.handler = () => reply(200, Buffer.from('0123456789'))
     const dest = path.join(root, 'pkg.zip')

@@ -157,4 +157,35 @@ describe('VpmCacheStore', () => {
     expect(fs.existsSync(entry.path)).toBe(false)
     expect(cache.removePackage(temp.hash)).toBe(false)
   })
+
+  it('quarantines corrupt cache/temp files into cache/corrupt and preserves bytes', () => {
+    const temp = tempFile('quarantine me')
+    const destination = cache.quarantine(temp.file, temp.hash)
+    expect(destination).not.toBeNull()
+    expect(destination?.startsWith(cache.corruptRoot + path.sep)).toBe(true)
+    expect(fs.readFileSync(destination as string, 'utf8')).toBe('quarantine me')
+    expect(fs.existsSync(temp.file)).toBe(false)
+
+    const outside = path.join(root, 'outside.bin')
+    fs.writeFileSync(outside, 'keep')
+    expect(codeOf(() => cache.quarantine(outside, temp.hash))).toBe('vpmCachePathInvalid')
+    expect(fs.readFileSync(outside, 'utf8')).toBe('keep')
+  })
+
+  it('lists only valid package files under packages/<prefix>/', () => {
+    const temp = tempFile('list me')
+    const entry = cache.commitDownload({ tempPath: temp.file, sha256: temp.hash, size: temp.size })
+    fs.writeFileSync(path.join(cache.packagesRoot, 'not-a-package.zip'), 'x')
+    const wrongPrefix = path.join(cache.packagesRoot, 'zz')
+    fs.mkdirSync(wrongPrefix, { recursive: true })
+    fs.writeFileSync(path.join(wrongPrefix, `${temp.hash}.zip`), 'wrong prefix')
+
+    expect(cache.listPackages()).toEqual([
+      expect.objectContaining({
+        sha256: temp.hash,
+        path: entry.path,
+        size: temp.size
+      })
+    ])
+  })
 })

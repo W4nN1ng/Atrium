@@ -188,12 +188,17 @@ describe('VPM architecture boundaries', () => {
     expect(failures, failures.join('\n')).toEqual([])
   })
 
+  /** 与 static-imports 同一条豁免：`shared/vpm/{linkage,errors}` 是纯契约。 */
+  const isSharedVpmContract = (spec: string): boolean =>
+    /(?:^|\/)shared\/vpm\/(?:linkage|errors)(?:\.ts)?$/.test(spec)
+
   it('keeps vpm/gate as the only VPM module statically imported by core', () => {
     const failures: string[] = []
     for (const file of walk(path.join(ROOT, 'src/main'))) {
       if (isUnder(file, MAIN)) continue
       for (const spec of staticSpecifiers(read(file))) {
         if (!spec.includes('vpm/')) continue
+        if (isSharedVpmContract(spec)) continue
         if (rel(file) === 'src/main/index.ts' && spec === './vpm/gate') continue
         failures.push(`${rel(file)} -> ${spec}`)
       }

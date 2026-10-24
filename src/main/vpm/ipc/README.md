@@ -26,11 +26,26 @@ P1 的只读仓库/目录 IPC：参数校验、DTO 映射、刷新操作/事件�
 - `vpm:package-detail` `name` → detail | null
 - `vpm:package-versions` `name` → versions[]
 
+- `vpm:plan-apply` `{projectKey, planId}` → `VpmOperationDto`（**不接受计划内容**）
+- `vpm:operation-status` `operationId` → `VpmOperationDto`（进度事件丢了也能恢复）
+- `vpm:operation-cancel` `operationId` → `{ok, tooLate}`（提交点之后返回 `tooLate`）
+- `vpm:operation-history` `projectKey` → `VpmOperationSummaryDto[]`（含 `canUndo`/原因、
+  未收尾操作的 `recovery` 判定）
+- `vpm:operation-undo` `operationId` → `VpmOperationDto`（反向计划走同一事务，`kind='undo'`）
+- `vpm:operation-recover` `operationId` → `VpmOperationRecoveryResultDto`
+  （**只传 id**；回滚/补完由主进程按 journal+磁盘重新判定。正在本进程跑的操作返回
+  `vpmProjectBusy`，证据不足返回 `applied:false` + reason）
+- `vpm:project-catalog` `projectKey` → `{packages:[{name, latestVersion, versions[]}], truncated}`
+  （版本下拉/最新版本用；受保护包不返回）
+
 事件：
 
 - `vpm:repo-progress`：`{operationId, phase:'start'|'repo', repoId?, repoIds?, result?}`；
   按 ≥100ms 节流，`start/done` 立即发。
 - `vpm:repo-done`：`{operationId, results[]}`；UI 收到后重新拉 `repos-list`。
+- `vpm:operation-started`：`{operationId, projectKey}`；让界面在 invoke 返回前就能显示进度/取消。
+- `vpm:operation-progress`：`{operationId, projectKey, step, phase, index, total}`；事务每步发一次。
+- `vpm:operation-done`：`{operationId, projectKey, status, errorCode}`。
 
 刷新操作返回 `operationId` 后异步执行；单仓库并发去重，`refresh-all` 同时只跑一个。
 事件可能早于 invoke 返回，UI 以 `operationId` 去重；拉取式 `repos-list` 是最终事实。
@@ -54,9 +69,32 @@ P1 的只读仓库/目录 IPC：参数校验、DTO 映射、刷新操作/事件�
 
 - `PlanResolve`：只接受 `projectKey` + 可选 `preset:'upgradeAll'`/requests/allowPrerelease；
   主进程重新读取工程、manifest、目录并生成 `ChangePlan`，返回 `planId`。
+  没传 `allowPrerelease` 时跟随设置里的全局偏好（`PlanService.defaultAllowPrerelease`）。
 - `PlanExplain`：按 `planId` 返回（可按包名过滤的）changes/conflicts/missing/warnings；
   计划缓存仅内存 10 分钟，不持久化。
 - 计划不写工程、不下载；P3 的 UI 应用按钮始终禁用。
+
+## P8-C 设置与更新（`ipc/settings.ts`）
+
+- `SettingsGet` / `SettingsPatch`：只走 `VpmPreferencesDto` 的白名单字段
+  （预发布 / 隐藏包 / 两个配额 / 默认 Unity 参数 / 更新检查开关）。
+  `SettingsPatch` **逐字段校验，任何一项不合法就整次拒绝**，不做"部分生效"；
+  落盘用 `patchVpmSettings`（原子写 + 整体 schema 校验）。
+- `UpdateCheck` / `UpdateDownload` / `UpdateInstall`：手动更新三步，一步一次 IPC。
+  - 检查结果缓存 1 小时（`force` 可绕过）；
+  - 下载后必须命中发布正文里的 SHA-256，否则删文件并返回 `vpmUpdateHashMismatch`；
+  - `UpdateInstall` 只接受 `<数据根>/updates/Atrium-Setup-*.exe`，不接受渲染层传任意路径
+    （否则这条通道等于"随便执行一个 exe"）。
+- 这三条都受 VPM 联网开关约束（走 `createVpmHttpClient`，关掉就是 `vpmNetworkNotConsented`）。
+
+## P8-F 模板编辑（`ipc/unity.ts`）
+
+- `TemplateList` 可选 `{includeHidden}`；默认不含已移除引用。
+- `TemplateCreate` / `TemplateUpdate`：只接受白名单字段（名称/描述/base/Unity 范围/
+  依赖/附件引用/settings）；`id` 由服务端生成，base 必须合法，依赖名+范围会先校验。
+- `TemplateDuplicate` / `TemplateRemoveReference` / `TemplateRestore`：复制生成新用户模板；
+  移除只隐藏（不删文件），恢复只改可见性。
+- 内置模板只读；服务层对“base 指向自己/后代”直接拒绝，避免写出循环模板。
 
 ## 测试入口
 

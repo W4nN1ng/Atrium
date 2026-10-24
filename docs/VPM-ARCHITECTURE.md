@@ -443,6 +443,29 @@ idle → fetching → ready
 - 素材写入：目标必须等于当前绑定工程；导入计划固定 `projectId`，中途切换目标不转投。
 - 拿不到锁时返回可解释错误，不排队到用户不知道。
 
+### 7.3.1 实现（P4-F，`src/main/project/activity.ts`）
+
+- **身份是归一化工程路径**（小写、去尾分隔符），不是数据库 `project.id`：
+  导入/桥接上报的都是路径，用 id 反而要多查一次表；VPM 的 `projectKey` 也是路径派生，两边天然对齐。
+- `ProjectActivityRegistry`
+  - `state(path)` → `{ unityRunning, importing, maintenance }`；`unityRunning` **每次现问**桥接心跳，不缓存；
+    探针自己抛错时按"可能在跑"处理（fail closed）。
+  - `beginImport(path)` → 返回**幂等**释放函数；嵌套按计数（成员导入逐项调用时就是嵌套）。
+  - `acquireMaintenance(path, kind)` → 独占租约；已有租约抛 `vpmProjectBusy`，
+    导入中抛 `vpmProjectImporting`，Unity 在跑抛 `vpmUnityRunning`。**不排队**。
+    释放只删自己那一个（防御过期租约误删后来者）。
+  - `diagnose()` 给诊断用（谁占着、占了多久）。
+- 注入：`src/main/index.ts` 建注册表 → `registerVpmGateIpc({ projectActivity, legacyGuard })`
+  → `initVpm({ projectActivity, legacyGuard })`。
+- 素材写入上报：`import/coordinator.ts` 的 `setImportActivityHook()`，`importUnitypackage` /
+  `rollbackImport` 用 `try/finally` 包住原实现（**不改导入算法**）。
+- 包事务：预检通过后立刻 `acquireMaintenance(path,'install')`，`finally` 释放；
+  拿不到就按错误码失败，一个字节都不写。
+- 旧 Assets 保护：`createLegacyGuard(getDb)` 读 `Assets/.../x.meta` 的 guid，
+  与 `import_log` 的 `created_guids_json` / `overwritten_json` 比对；命中即保护。
+  `cleanupLegacyAssets` 开始前调 `guard.prime()` 刷新缓存；`com.avca.bridge` 的 legacy 声明
+  即使出现在移除集合里也一律跳过（`protectedPackage`）。
+
 ---
 
 ## 8. 错误、日志与诊断
@@ -509,6 +532,8 @@ idle → fetching → ready
 7. `renderer/vpm` 的 `window.a` 只在 `api.ts`；
 8. 事务/备份/版本服务之外不得写工程文件（用路径/函数白名单检查，允许误报白名单但要有注释）；
 9. VPM 不得直接 import 核心 `project`/`bridge`/`import` 模块；只能通过 gate 注入的联动端口；
+   反过来，核心只能静态 import `vpm/gate`（以及 `shared/vpm/linkage`、`shared/vpm/errors`
+   这两个纯契约模块：端口定义与错误码，没有 IO），不得静态拉起 VPM 运行时；
 10. `com.avca.bridge` 不得出现在解析计划、变更集合、旧 Assets 清理白名单或备份排除的“可删”一侧。
 
 规则可以随任务增加，但不能减少；减少必须在架构文档的决策记录里写原因。

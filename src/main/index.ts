@@ -2,6 +2,8 @@ import { app, BrowserWindow, globalShortcut } from 'electron'
 import log from 'electron-log'
 import path from 'node:path'
 import { DEFAULT_HOTKEY, APP_DISPLAY_NAME } from '../shared/constants'
+import { IpcEvent } from '../shared/ipc'
+import { deepLinksInArgv, parseDeepLink, type DeepLinkIntent } from './vpm/gate'
 import type { ProjectInfo } from '../shared/types'
 import { createRegistrar } from './ipc/util'
 import { registerSystem } from './ipc/system'
@@ -12,6 +14,12 @@ import { registerStubs } from './ipc/stubs'
 import { registerIntegration } from './ipc/integration'
 import { startIngest, type IngestApi } from './ingest/api'
 import { BridgeManager } from './bridge/manager'
+import { setImportActivityHook } from './import/coordinator'
+import {
+  ProjectActivityRegistry,
+  createLegacyGuard,
+  createProjectActivityPort
+} from './project/activity'
 import { registerCoverIpc } from './covers/ipc'
 import type { CoverService } from './covers/service'
 import { registerBridgeIpc, type BridgeIpcApi } from './bridge/ipc'
@@ -23,7 +31,7 @@ import { readVccManifest, startProjectWatcher, type ProjectApi } from './project
 import { UnityConnections } from './project/connections'
 import { installBridge } from './bridge/installer'
 import { closeDatabase, getDb, openDatabase } from './db'
-import { listProjects, toProjectInfo, upsertProject } from './db/repos/unity'
+import { deleteProject, getProjectByPath, listProjects, toProjectInfo, upsertProject } from './db/repos/unity'
 import { bridgeTemplateRoot, ensureRuntimeDirs, initAppPaths, P } from './services/paths'
 import { installThumbProtocol, registerThumbSchemePrivileges } from './services/thumb-protocol'
 import { backfillThumbs } from './library/thumbs'
@@ -31,6 +39,43 @@ import { getSettings, onSettingsChanged } from './services/settings'
 import { createMainWindow, getMainWindow, markQuitting, showMiniDropAtCursor, wakeForProject } from './window'
 import { createTray, destroyTray, refreshTray } from './tray'
 import { disposeVpm, getVpmStatus, registerVpmGateIpc, startVpmRuntime } from './vpm/gate'
+
+  let detectedProjects: ProjectInfo[] = []
+/** 深链在窗口就绪前到达时先攒着（冷启动被协议拉起很常见）。 */
+const pendingDeepLinks: DeepLinkIntent[] = []
+/** registrar 建好之后注入：深链统一走 broadcast（白名单校验也认这条路径）。 */
+let broadcast: ((event: string, payload?: unknown) => void) | null = null
+
+function dispatchDeepLink(raw: string): void {
+  const { intent, rejection } = parseDeepLink(raw)
+  if (rejection) {
+    log.warn(`深链被拒：${rejection}（${raw.slice(0, 120)}）`)
+    return
+  }
+  if (!intent || intent.kind === 'unknown') {
+    log.info(`深链无法识别，已忽略：${raw.slice(0, 120)}`)
+    return
+  }
+  const win = BrowserWindow.getAllWindows()[0]
+  if (!win || win.webContents.isLoading() || !broadcast) {
+    pendingDeepLinks.push(intent)
+    return
+  }
+  broadcast(IpcEvent.VpmDeepLink, intent)
+}
+
+// 窗口建好之后把冷启动期间攒下的深链补发（渲染层要时间挂监听，给 1.5s 缓冲）
+app.on('browser-window-created', () => {
+  setTimeout(() => flushDeepLinks(), 1500)
+})
+
+function flushDeepLinks(): void {
+  if (!pendingDeepLinks.length) return
+  if (!broadcast) return
+  for (const intent of pendingDeepLinks.splice(0)) {
+    broadcast(IpcEvent.VpmDeepLink, intent)
+  }
+}
 
 const APP_USER_MODEL_ID = 'com.avca.a-manager'
 
@@ -66,14 +111,34 @@ function bootstrap(): void {
 
   app.on('second-instance', (_event, argv) => {
     const paths = parseIngestArgs(argv)
-    log.info(`second-instance：收到 ${paths.length} 个路径（argv=${JSON.stringify(argv.slice(1))}）`)
+    const links = deepLinksInArgv(argv)
+    log.info(
+      `second-instance：收到 ${paths.length} 个路径、${links.length} 条深链` +
+        `（argv=${JSON.stringify(argv.slice(1))}）`
+    )
     const win = createMainWindow()
     if (win.isMinimized()) win.restore()
     win.focus()
     if (paths.length) void ingestFromPaths(paths)
+    // P7-E：深链交给渲染层**确认**，主进程不直接加仓库
+    for (const link of links) dispatchDeepLink(link)
   })
 
+  // P7-E：`atrium://` 注册（开发态要带 execPath，避免注册到 electron.exe 上）
+  try {
+    if (process.defaultApp && process.argv[1]) {
+      app.setAsDefaultProtocolClient('atrium', process.execPath, [path.resolve(process.argv[1])])
+    } else {
+      app.setAsDefaultProtocolClient('atrium')
+    }
+  } catch (error) {
+    log.warn('注册 atrium:// 失败：' + String(error))
+  }
   const registrar = createRegistrar()
+  broadcast = registrar.broadcast
+
+  // 首个实例也可能是被深链拉起来的（要等 registrar 建好才能广播）
+  for (const link of deepLinksInArgv(process.argv)) dispatchDeepLink(link)
   let ingestApi: IngestApi | null = null
   let projectApi: ProjectApi | null = null
   let folderWatcher: FolderWatcher | null = null
@@ -85,8 +150,23 @@ function bootstrap(): void {
   let bridge: BridgeManager | null = null
   let bridgeIpc: BridgeIpcApi | null = null
   let connections: UnityConnections | null = null
-  let detectedProjects: ProjectInfo[] = []
   let covers: CoverService | null = null
+
+  /**
+   * P4-F 工程活动闸门：素材写入（导入/撤销/成员导入）与维护写（装包/备份/迁移…）互斥。
+   * 身份用归一化工程路径；Unity 运行状态现问桥接心跳，不缓存。
+   */
+  const projectActivity = new ProjectActivityRegistry({
+    isUnityRunning: (projectPath) => {
+      try {
+        return bridge?.statusOf(projectPath).running === true
+      } catch {
+        // 状态自己坏了：按"可能在跑"处理（调用方会拒绝写）。
+        return true
+      }
+    }
+  })
+  setImportActivityHook({ begin: (projectPath) => projectActivity.beginImport(projectPath) })
 
   const isPrimary = (): boolean => true
 
@@ -120,6 +200,16 @@ function bootstrap(): void {
       for (const project of detectedProjects) byId.set(project.id, project)
       return [...byId.values()]
     },
+    forgetCoreProject: (pathValue: string) => {
+      const target = pathValue.toLowerCase()
+      detectedProjects = detectedProjects.filter((project) => project.path.toLowerCase() !== target)
+      try {
+        const row = getProjectByPath(getDb(), pathValue)
+        if (row) deleteProject(getDb(), row.id)
+      } catch {
+        /* 数据库没就绪时只清内存 */
+      }
+    },
     registerCoreProject: (input) => {
       const db = getDb()
       const existing = listProjects(db).find(
@@ -136,6 +226,8 @@ function bootstrap(): void {
       const manifest = readVccManifest()
       return { paths: manifest.projects, error: manifest.error }
     },
+    projectActivity: createProjectActivityPort(projectActivity),
+    legacyGuard: createLegacyGuard(() => getDb()),
     projectLinkage: {
       currentTarget: () => {
         const snapshot = connections?.snapshot()

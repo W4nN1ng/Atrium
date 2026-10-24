@@ -8,6 +8,39 @@
 
 ---
 
+## 0. 当前队列：UX-RESET（2026-10-22 起，优先于下面所有 UI 卡）
+
+用户实测反馈：界面臃肿、字小、废话多；新建工程打不开 Unity；备份没反馈；
+拖放/选择文件退化。完整规格见 **`prompts/VPM-UX-RESET.md`**。
+
+| 顺序 | 任务 | 状态 |
+|---|---|---|
+| R1 | Unity 启动带 Hub 许可参数 + 启动验证 + 失败给出口 | **done（用户已确认能打开）** |
+| R2 | 备份进度与结果卡 + 打开所在位置 | **review（代码完成，待用户确认）** |
+| R3 | 项目列表 ALCOM 化（大行、三动作、⋯） | **review（代码完成）** |
+| R4 | 导航：项目置顶、默认落地页 | **review（置顶 + 默认落地页都做了）** |
+| R5 | 删除"未匹配到集合"及连带逻辑 | **review（代码完成）** |
+| R6 | 拖放文件夹/压缩包 + 多选 + 选文件夹 | **review（代码完成）** |
+| R7 | 全量清理废话小字 | **done（两批共 10 处）** |
+| R8 | 工程详情重排（大框 / 两按钮 footer / 高级折叠） | **review（代码完成）** |
+| R9 | 字号与宽度再放大（列表 17px / 详情 1080px） | **review（代码完成）** |
+| R10 | 详情标题去重 | **review（代码完成）** |
+| R11 | 「当前工程」页换成纯「项目」页，删核心 Unity 工程面板 | **review（代码完成）** |
+| R12 | 单工程启动拒绝 | **作废（R21 取代：允许多开）** |
+| R13 | `⋯` 菜单 portal 浮层 | **review（代码完成）** |
+| R14 | 新建工程：选到工程目录自动上移一级 | **review（代码完成）** |
+| R15 | 添加已有工程：选根目录批量扫描 | **review（代码完成）** |
+| R16 | 删除工程：弹窗置顶 + 回收站选项 | **review（代码完成，R17 会简化）** |
+| R17 | 删除项目：只有「删除项目」，默认进回收站，无勾选 | **review（代码完成）** |
+| R18 | 项目列表显示全部工程（核心 ∪ 台账） | **review（代码完成）** |
+| R19 | 数据库固定 `%APPDATA%\Atrium`，不再问数据根 | **review（代码完成）** |
+| R20 | 「项目与包」常开，去掉启用/停用 | **review（代码完成）** |
+| R21 | 允许多开；2 个以上显示「设为导入目标」 | **review（代码完成）** |
+
+P5-D / P6-D / P7-A / P7-B 的 UI 部分以 UX-RESET 为准；服务层已完成，不重做。
+
+---
+
 ## 1. 三层文档
 
 | 层 | 文件 | 作用 | 执行时怎么用 |
@@ -58,39 +91,56 @@
 | P3-C | 变更计划、卸载、升级全部与解释 | P3-B | `domain/plan.ts`、mark-and-sweep、upgradeAll | B5/B7/B8/B9/B11/B27 | done |
 | P3-D | 解析测试矩阵与只读计划 UI/IPC | P3-C/P2-D | 冲突矩阵、计划预览、解释面板 | B9/B11/B27/I9 | done |
 | P4-A | vpm.db v3、journal 与操作状态机 | P3-C | `install/journal`、operations 表、恢复骨架 | B19/I3 | done |
-| P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | todo |
-| P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | todo |
-| P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | todo |
-| P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | todo |
-| P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | todo |
-| P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | todo |
-| P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | todo |
-| P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | todo |
-| P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10/K1 | todo |
-| P5-E | 启动即绑定目标与双击素材真机验收 | P5-D/P4-F/P2-E | 启动绑定、双击导入真机、多实例回归 | K1/K2/K3/K6 | todo |
-| P6-A | 文件收集器、排除规则与取消 | P2-B | `backup/collector`、排除表、进度/取消 | E1/E3/E4 | todo |
-| P6-B | ZIP 备份、记录与从备份新建 | P6-A | `backup/service`、备份记录、恢复、打开位置 | A16/A17/E1–E7 | todo |
-| P6-C | 复制工程与更换 Unity 版本 | P6-B/P5-D | `backup/copy`、`unity/version`、回滚 | A15/A19/D6/E9 | todo |
-| P6-D | 旧式迁移、备份/迁移 UI 与真机 | P2-B/P6-C | `backup/migrate`、迁移向导、UI | B18/E8/K4/K5 | todo |
-| P7-A | 仓库治理：编辑/启停/排序/导入导出 | P1-E | 仓库编辑、拖拽排序、lists | C3/C4/C5/C6/C13 | todo |
-| P7-B | 请求头、密钥存储与测试连接 | P7-A/P4-B | `SecretStore`、safeStorage、脱敏 | C7/C15 | todo |
-| P7-C | 本地用户包目录 | P7-B/P4-C | `localPackages`、信任/扫描、local 源 | C11 | todo |
-| P7-D | VCC 只读导入与模板导入导出 | P2-C/P5-A | `interop/vcc`、settings 读取、模板互操作 | C12/F2/F3/F4/F5/F8/A9/A10 | todo |
-| P7-E | 深链、单实例与互操作 UI | P7-C/P7-D | `atrium://`、`vcc://` 确认、集成 UI | F7/H4/C3–C7 | todo |
-| P8-A | UI 收口、按钮纪律与组件边界 | P4-E/P5-D/P6-D/P7-E | 逐屏检查、组件拆分、文案 | I1/I2/A20/B24 | todo |
-| P8-B | 操作记录、诊断导出与配额清理 | P4-A | `log/`、诊断包、缓存/vault/备份用量 | G3/G4/G5/I3 | todo |
-| P8-C | 设置补齐、更新检查与已知限制 | P7-B | 设置项、手动更新、限制文档 | G1/G2/G3/G6 | todo |
-| P8-D | 逐行功能对账与缺口分诊 | P8-A/B/C | 对账证据、差异、后续任务 | 全部 | todo |
-| P8-E | 性能、可访问性与全量回归 | P8-D | 基准、键盘/焦点、回归记录 | I1/I2/I10/A13 | todo |
-| P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | todo |
-| P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | todo |
-| P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | todo |
-| P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | todo |
-| P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | todo |
+| P4-B | 缓存、下载、hash 与解压安全 | P1-C | `cache/`、流式下载、zip 安全、原子落盘 | B20/B21/C9 | done |
+| P4-C | 单包安装事务、manifest 最后写与 vault | P4-A/P4-B/P3-D | `install/transaction`、vault、预检/回滚 | B4/B5/B6/B8/B19/B22/B25/B29/K4/K5 | done |
+| P4-D | 失败注入、崩溃恢复与并发 | P4-C | 每步失败用例、recovery、工程锁 | B19/B23/B29/I3/K4 | done |
+| P4-E | 包管理 UI、批量与真 Unity E2E | P4-D/P2-D | 装/升/降/重装/卸、批量条、撤销入口 | B2/B4–B9/B26/B27/B28/I1/I9/K5 | review |
+| P4-F | 工程活动闸门与素材/包冲突防护 | P4-D/P2-E | 核心 activity 端口、包事务/清理保护、冲突测试 | K4/K5 | done |
+| P5-A | 模板格式、存储与原创内置模板 | P1-B | `domain/template`、模板库、版本化 | A4/A5/A6/A7/A8/A11 | done |
+| P5-B | 新建工程、校验与最近路径 | P5-A/P4-C | `unity/create`、骨架、vpm.db 最近路径 | A4/A5/A6/A21/A22 | done |
+| P5-C | unitypackage 读取与模板附件 | P5-A | `domain/unitypackage`、附件落盘、meta 原样 | A11/I5 | done |
+| P5-D | 启动 Unity、工程/模板 UI 与真机 | P5-B/P5-C | `unity/launch`、创建对话框、项目详情 | A4–A7/A12/A20/A21/D5/D10/K1 | review |
+| P5-E | 启动即绑定目标与双击素材真机验收 | P5-D/P4-F/P2-E | 启动绑定、双击导入真机、多实例回归 | K1/K2/K3/K6 | review |
+| P6-A | 文件收集器、排除规则与取消 | P2-B | `backup/collector`、排除表、进度/取消 | E1/E3/E4 | done |
+| P6-B | ZIP 备份、记录与从备份新建 | P6-A | `backup/service`、备份记录、恢复、打开位置 | A16/A17/E1–E7 | done |
+| P6-C | 复制工程与更换 Unity 版本 | P6-B/P5-D | `backup/copy`、`unity/version`、回滚 | A15/A19/D6/E9 | done |
+| P6-D | 旧式迁移、备份/迁移 UI 与真机 | P2-B/P6-C | `backup/migrate`、迁移向导、UI | B18/E8/K4/K5 | review |
+| P7-A | 仓库治理：编辑/启停/排序/导入导出 | P1-E | 仓库编辑、拖拽排序、lists | C3/C4/C5/C6/C13 | done |
+| P7-B | 请求头、密钥存储与测试连接 | P7-A/P4-B | `SecretStore`、safeStorage、脱敏 | C7/C15 | done |
+| P7-C | 本地用户包目录 | P7-B/P4-C | `catalog/local`、信任表 v6、面板、本地安装 | C11 | done |
+| P7-D | VCC 只读导入与模板导入导出 | P2-C/P5-A | `interop/vcc`、settings 读取、模板互操作 | C12/F2/F3/F4/F5/F8/A9/A10 | done |
+| P7-E | 深链、单实例与互操作 UI | P7-C/P7-D | `interop/deeplink`、协议注册、确认弹窗 | F7/H4/C3–C7 | done |
+| P8-A | UI 收口、按钮纪律与组件边界 | P4-E/P5-D/P6-D/P7-E | 逐屏检查、边界测试、文案 | I1/I2/A20/B24 | done |
+| P8-B | 操作记录、诊断导出与配额清理 | P4-A | `log/`、诊断包、用量与清缓存 | G3/G4/G5/I3 | done |
+| P8-C | 设置补齐、更新检查与已知限制 | P7-B | 设置项、手动更新、限制文档 | G1/G2/G3/G6 | done |
+| P8-D | 逐行功能对账与缺口分诊 | P8-A/B/C | 对账证据、差异、后续任务 | 全部 | done（P8 门禁未签） |
+| P8-E | 性能、可访问性与全量回归 | P8-D | 基准、键盘/焦点、回归记录 | I1/I2/I10/A13 | done（I2/I10/A13 仍按部分记录） |
+| P8-F | 模板编辑 UI（A8 缺口） | P5-A/P8-D | 设置页模板新建/编辑/复制/删除引用 | A8 | done |
+| P9-A | 安全硬化 | P8-E | 路径/zip/网络/密钥静态检查 | I4/I5/I6/I7 | done（I6 接受例外） |
+| P9-B | 可靠性与并发硬化 | P9-A | 失败注入全集、恢复/锁、长稳 | I3/I9 | done |
+| P9-C | 性能、兼容与长路径 | P9-B | 基准、长路径、版本矩阵 | I10/D10/H1 | done（D10/H1 仍按部分记录） |
+| P9-D | 回退演练与真机回归 | P9-C | L1–L5 演练记录、安装版回归 | G8/G9/I9/K1/K2/K4/K5 | review（启动/安全模式已验；L4/真 Unity/撤销待人工） |
+| P9-E | 0.9.0 发布与安装版更新 | P9-D | Release、安装包、核对 | H5/G8 | review（本地准备完成，待推送/Release） |
 
-> P0、P1-A、P1-B、P1-C、P1-D、P1-E、P2-A、P2-B、P2-C、P2-D、P2-E、P3-A、P3-B、P3-C、P3-D、P4-A 已完成，
-> 下一个执行任务是 **P4-B**（缓存、下载、hash 与解压安全）；P4-A 只落 journal/状态机，未执行真实安装。
-> 开工前先读 §12 的 P1-A…P3-D 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
+> P0、P1-A…P1-E、P2-A…P2-E、P3-A…P3-D、P4-A、P4-B、P4-C、P4-D 已完成；**P4-E 代码完成、状态 review**
+> （缺真 Unity 2022.3.22f1 沙盒验收，需要开 Unity 才能补）。
+> **P5-D / P5-E / P6-D 代码完成、状态 review**（启动绑定、双击导入、旧工程迁移的真机验收还没做）。
+> P6-A…P6-C、P7-A…P7-E、P8-A…P8-C 已完成；P7-A/P7-B 的 UI（仓库编辑/启停/排序/导入导出、
+> 请求头、测试连接）已补齐。
+> **P8-C**：设置页新增"偏好设置"（预发布 / 隐藏包 / 配额 / 默认 Unity 参数 / 更新检查开关）
+> 与"更新"（手动检查 → 下载 → 校验 → 用户点安装），已知限制写进 `README.md` 与 `docs/DEVELOPMENT.md`。
+> **P8-D**：124 行 A–K 对账已填满；61 完整 / 56 部分 / 7 不做；35 行目标=完整但实际=部分，
+> **P8 门禁未签字**。缺口与 P9 只修清单见 `docs/VPM-GAPS.md`；A8 模板编辑 UI 已由 **P8-F** 关闭。
+> GAP-02（R19 数据根在 C）与 A18（R17 删除进回收站）已由用户 2026-10-23 明确接受，
+> 不再改动；**P8-E/P8-F 已完成**，**P9-A/P9-B/P9-C 已完成**（安全、可靠性、性能/兼容）。
+> **P9-D/P9-E 为 review**：回退演练/安装版已做可自动验证的部分，真 Unity 与正式 Release 待人工/确认。
+> **P9-D 是 review**：回退演练的无界面四层（L1 现状/L2 安全模式/L3 移走目录/L4 前提）
+> 已跑并留证据（`docs/VPM-ROLLBACK-EVIDENCE.md`），安装版启动与安全模式已于 2026-10-24
+> 复验；**L4 真装回 0.8.0、真 Unity 回归、真机撤销**仍需要人工，操作单在同文档 §5。
+> **P9-E 是 review**：发布说明、干净构建、本机 0.9.0 安装/启动/安全模式已完成；
+> `v0.9.0` tag/Release 未创建，92 个本地提交未推送。发布前要处理 PR/合并并请用户确认。
+> P4-C/P4-D 已经把“预检 → 暂存 → 换入 → manifest 最后写 → 旧 Assets → vault → 崩溃恢复”跑通并做了全步骤失败注入。
+> 开工前先读 §12 的 P1-A…P4-E 交接；如果发现与现有代码冲突，先改任务卡，不直接改代码。
 > **素材联动是跨阶段硬需求**：P2-E 先做目标绑定核心，P4-F 做工程活动闸门，
 > P5-E 用真 Unity 验“启动工程 → 设为导入目标 → 双击素材导入”。
 
@@ -646,6 +696,853 @@ Task: P?-?
   `transition(preflight/applying)`；每步 `beginStep/finishStep`，文件用 `upsertFile`；
   manifest rename 成功后 `markCommitPoint` 再 `committed`；失败在提交点前走 `failed/
   rolled_back`，提交点后只能 `needs_attention`/补完。不要信任渲染层 Plan 内容。
+
+### P4-B（2026-10-22，done）
+
+- **公开 API/契约**：`src/main/vpm/cache` 导出 `VpmCacheStore`（原有）、
+  **`CacheEntryStore`**（`vpm_cache_entry` 表的唯一 SQL 入口）、
+  **`PackageCacheService`**（下载 + 缓存编排）。`VpmRuntime` 新增
+  `cacheEntries` / `packageCache`；`InitVpmOptions` 新增 `cacheQuotaBytes`（默认 20 GiB）。
+  `src/main/vpm/install` 新增导出 **`extractPackageZip`**、`DEFAULT_ARCHIVE_LIMITS`
+  及类型 `ArchiveLimits`/`ExtractPackageZipInput`/`ExtractedPackage`/`PreparedPackage`。
+  `VpmHttpPort.downloadToFile` 新增 `onProgress`（调用方负责节流）。
+- **缓存不变量**：包路径只由 64 位 hex SHA-256 派生；`cacheRoot` 必须是 dataRoot 的
+  **严格子目录**（词法 + realpath 双检）；临时文件必须在 `tmp/` 内，`tmp/` 外的临时文件
+  **拒绝且不删**；提交用同卷 `rename`；清理只动 `cache/packages`，
+  绝不碰 `vault/`/`backups/`/工程文件。
+- **下载流程**：无 SHA-256 → `vpmCacheHashMissing`（不触网）；同 hash 并发**共享一个下载**；
+  命中缓存仍**完整重算 hash**，损坏则隔离到 `cache/corrupt`（保留字节）+ 删行后重下；
+  下载边写边算 SHA-256；**只重试** `vpmHttpNetwork`/`vpmHttpTimeout`/5xx（最多 2 次），
+  4xx 与 hash 不匹配**不重试**；落盘后**再完整校验一次**；进度节流 ≥100ms，
+  回调抛异常不中断下载。
+- **配额**：默认 20 GiB；下载前按 LRU 淘汰到配额内，淘汰时保护当前 hash；
+  单包超过配额 → `vpmCacheQuotaExceeded`；磁盘可用 < size + 64 MiB → `vpmCacheNoSpace`。
+- **解压安全**：逐条目拒绝 `..`/绝对路径/盘符/UNC/Windows 保留名/非法字符 `<>:"|?*`/
+  控制字符/尾点空格/NFC+小写归一后的重复路径/文件-目录冲突/超长路径；
+  符号链接条目 → `vpmArchiveSymlink`；压缩炸弹按**条目数/单条目/展开总量/压缩比/
+  zip 文件大小**五维判定；写入用 `flags:'wx'` + `mode:0o600`，每步 `realpathSync` 复核
+  仍在目标根内；流式计量器实时核对实际字节不超过声明值。
+- **包根识别**：根有 `package.json` 则为根；否则**恰好一个**直接子目录含 `package.json`
+  则为包根（兼容单层 wrapper）；0 个或多个 → `vpmArchivePackageInvalid`。
+  校验 `name`/`version`/`vpmDependencies`；提供 `expected` 时精确匹配 name 与 `version.raw`。
+- **失败取舍**：解压失败**保留目标目录与已解出的前缀文件**，不删除、不回滚工程文件——
+  现场是诊断证据，清理由 P4-C 按 journal 决定。
+- **已记录错误码**（三语齐全）：`vpmCacheHashMissing`、`vpmCacheQuotaExceeded`、
+  `vpmCacheNoSpace`、`vpmArchiveInvalid`、`vpmArchiveUnsafePath`、`vpmArchiveSymlink`、
+  `vpmArchiveBomb`、`vpmArchivePackageInvalid`、`vpmArchiveWriteFailed`（共 9 个）。
+- **已验证**：`npm run typecheck` 干净；全量测试
+  **185 passed / 9 skipped files（194）**、**2378 passed / 20 skipped tests（2398）**；
+  定向 `tests/vpm/cache` + `tests/vpm/install` **44 条全绿**
+  （store 11 / download 12 / archive 8 / journal 13）。覆盖 zip-slip、绝对/盘符/UNC/
+  保留名/ADS/尾点/重复路径、symlink、炸弹四维、损坏包、已存在目标、失败保留现场；
+  下载侧覆盖命中/损坏重下、无 hash 与大小不符、重试策略（4xx 不重试）、abort 清理、
+  LRU 淘汰保护当前包、超配额拒绝、磁盘满、并发去重与进度节流。
+- **未验证**：**真实仓库下载与真实包解压**（所有用例走假 HTTP 端口与夹具 zip）；
+  真机 `statfsSync` 行为；真实 NTFS 长路径（>260）；与 P4-C 事务的实际衔接
+  （"事务只消费 hash/路径"目前是设计意图）；`vpm_cache_entry` 与并发淘汰的一致性压测；
+  真 Unity 下 `.atrium-tx` 是否被忽略（P4-C 真机项）。
+- **给 P4-C**：用 `packageCache.ensurePackage({ url, sha256, size })` 拿包，
+  用 `extractPackageZip({ zipPath, targetDir, expected })` 解到
+  `<project>/.atrium-tx/<op>/install/<pkg>`；**缓存写入的唯一写入者是 `PackageCacheService`**，
+  事务只消费 `{ sha256, size, path }`，不要自己写 `cache/` 或 `vpm_cache_entry`；
+  `vpm_cache_entry` 表已在 P4-A 的 v3 建好，**不要再加迁移抢这张表**；
+  `extractPackageZip` 失败会把现场留在目标目录，事务按 journal 决定清理或保留；
+  `PreparedPackage` 已预留 `local` 分支（P7 接入），**不要写死 zip**。
+- **备查**：本站的详细交接见 `docs/VPM-P4B-HANDOVER.md`，
+  可直接复制的下站提示词见 `docs/PROMPT-P4B-HANDOVER.md`。
+
+### P4-C（2026-10-22，done）
+
+- **公开 API/契约**：`src/main/vpm/install` 新增导出 `InstallTransactionService`、
+  `evaluatePreflight`/`collectPreflightFacts`/`requiredBytesFor`、
+  `cleanupLegacyAssets`、`transactionLayout`/`ensureTransactionLayout`，
+  以及类型 `ApplyPlanInput`/`ApplyPlanResult`/`TransactionProgress`/`TransactionWarning`/
+  `ProjectActivityPort`/`LegacyGuardPort`/`PreflightFacts`。
+  新增 `src/main/vpm/vault`（`VaultStore`）；新增 `src/shared/vpm/domain/manifest.ts`
+  （`buildManifest` 纯函数）。`VpmRuntime` 新增 `vault`/`transactions`；
+  `InitVpmOptions` 新增 `projectActivity`/`legacyGuard`（P4-F 注入真实实现）。
+  `PlanService` 新增 `get(planId)`（事务唯一取计划的入口，过期/不存在都拒绝）。
+  **没有新增 vpm.db 迁移**：P4-C 只用 P4-A 的 v3 表。
+- **事务顺序**：`prepare → download → extract → move-out → move-in → manifest（提交点）→
+  legacy → vault → cleanup`。`.atrium-tx/<op>/{install,trash/packages,trash/legacy,rolledback}`
+  与 `manifest.original.json`/`vpm-manifest.new.json` 同卷。
+- **提交点**：manifest 先在事务区写完 + fsync + 校验 hash，再 `rename` 覆盖
+  `Packages/vpm-manifest.json`，然后 `markCommitPoint`（3 次重试）。
+  rename 之前任何失败都反向恢复（新包进 `rolledback/`、旧包从 trash 移回、manifest 未动）；
+  rename 之后（含 `markCommitPoint` 失败）一律 `needs_attention`，**不假装回滚**。
+  回滚本身失败 → `needs_attention` + `vpmRollbackFailed`，现场不删。
+- **预检拒绝矩阵**：计划 hash/工程键不符、计划 blocked/冲突/缺依赖、manifest 缺失或不可解析、
+  manifest hash 被外部改、Unity 运行中、素材导入中、受保护包、缺 URL/缺 SHA-256、
+  工程卷/数据根空间不足、回滚仓不可写、`.atrium-tx` 不可用、`Packages/<id>` 是文件/符号链接、
+  “计划说新装但目录已存在”。移除目标不存在只给警告 `vpmProjectMissingPackage`。
+- **manifest 规则**：未知顶层字段保留；`dependencies = plan.roots`；`locked` = 最终包精确版本 +
+  依赖范围；**不在最终集合且未被显式移除的旧 locked 条目保留**（受保护/旧式/unlisted 包靠这条不被抹掉）；
+  提交前再读一次原 manifest 算 hash 比对。
+- **旧 Assets 清理**：只处理 `legacyFolders`/`legacyFiles` 声明且 `packageId` 属于本次移除的包；
+  必须在 `Assets/` 下、不是 `Assets` 本身；遇到符号链接/受保护资产整条（目录则整目录）跳过；
+  文件与目录都连同同名 `.meta` 一起移到 `trash/legacy/Assets/...`，不生成/不改写 `.meta`；
+  失败只记 warning（`vpmLegacyCleanupFailed`），不回滚已提交的包。
+  `LegacyGuardPort` 目前默认不保护任何路径，**`import_log` 已知资产要等 P4-F 注入**。
+- **回滚仓**：`<dataRoot>/vault/<projectSlug>/<opId>/`；复制 + 逐文件 hash/大小校验，
+  全部成功后才删事务区副本；目录用树摘要（`rel\0size\0fileHash` 排序后 SHA-256）；
+  失败保留源目录；`vault_pending` 在归档前置 1、成功后置 0，失败保留 1 并给 warning。
+- **已记录错误码**（三语齐全）：`vpmPlanBlocked`、`vpmProjectChanged`、`vpmUnityRunning`、
+  `vpmProjectImporting`、`vpmProtectedPackage`、`vpmProjectNoSpace`、`vpmProjectPathUnsafe`、
+  `vpmTransactionFailed`、`vpmRollbackFailed`、`vpmVaultUnavailable`、`vpmVaultArchiveFailed`；
+  警告 `vpmLegacyCleanupSkipped`、`vpmLegacyCleanupFailed`、`vpmVaultPending`。
+- **已验证**：`npm run typecheck` exit 0；定向 `tests/vpm/install` + `tests/vpm/vault` +
+  `tests/vpm/domain/manifest.spec.ts` **5 files / 63 tests 全绿**
+  （transaction 29 / journal 13 / archive 8 / vault 7 / manifest 6）；全量
+  **187 passed / 1 failed / 9 skipped files（197）**、
+  **2420 passed / 1 failed / 19 skipped tests（2440）**，唯一红的是
+  `tests/classify/unitypackage.spec.ts` 的性能阈值（5005ms vs 5000ms，单独重跑 21 passed，
+  与 P4-C 代码路径零重叠，属并行 perf 噪声）。
+  覆盖：安装/升级/降级/重装/卸载成功路径、未知字段与 locked 保留、vault 归档内容、
+  预检矩阵、下载/解压/移入失败注入、回滚成功、`needs_attention` 两条路径、
+  vault 失败保留 `vault_pending`、legacy 路径级清理与三种保护。
+- **未验证**：**没有在真 Unity 沙盒里装过包**（全部用临时工程 + 夹具 zip + 假包源）；
+  没有对真实 VRChat 官方仓库跑过完整“下载→解压→换入”；
+  真实 NTFS 上 rename 被占用（EBUSY/EPERM）的退避重试未实测；
+  `markCommitPoint` 与 rename 之间崩溃的恢复（需要 P4-D 用 `afterHash` 对账）；
+  并发/多工程并行未压测；长路径 >260 未实测。
+- **给 P4-D**：`RecoveryService` 现在对“未过提交点”只判 `rollback` 并落 `needs_attention`，
+  P4-D 要用 journal 的 `moves` + `manifest.afterHash` 做真实反向恢复；
+  **建议先补一条判据**：磁盘 manifest hash == `manifest.afterHash` 时，即使 journal 还写
+  `before`，也应判 `complete`（rename 与 markCommitPoint 之间的崩溃窗口）。
+  `transactionLayout()` 已经给出 `rolledback/`、`manifest.original.json` 的位置，直接复用。
+  失败注入可以直接注入 `extract`/`packages`/`operations`（测试里已有三种写法）。
+- **已知偏差**：`evaluatePreflight` 的 `expectedPlanHash` 目前由 `plan.planHash` 传入，
+  它防的是“缓存里的计划对象被替换/改坏”，不构成对渲染层的信任边界（渲染层只能给 planId）；
+  P4-E 接 IPC 时如需更强校验，可在 DTO 里带 `planHash` 再比对。
+  另外 P3 的解析器在 `vpm-manifest.json` 的 `dependencies` 里出现 `com.avca.bridge` 时会产出
+  `protectedPackage` 冲突并阻断计划（P4-C 未改 P3，记录给 P3 复查；核心桥接安装器不写
+  `vpm-manifest.json`，所以正常工程不会踩到）。
+- **备查**：本站的详细交接见 `docs/VPM-P4C-HANDOVER.md`。
+
+### P4-D（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - `RecoveryService.apply()` / `scanAndApply()` 改为 **async**（现在真的动文件）；
+    `scan()` 仍是同步只读判定。`initVpm()` 里 `await recovery.scanAndApply()`。
+  - `RecoveryServiceOptions` 新增 `vault`（补完归档）与 `renameRetries`。
+  - `RecoveryReason` 新增 `project_changed`。
+  - `InstallTransactionOptions` 新增 **测试专用** `hooks`；新增
+    `TRANSACTION_HOOK_POINTS`（24 个点）与类型 `TransactionHookPoint`/`TransactionHookContext`/
+    `TransactionHooks`。`crashOnError: true` 时 hook 抛错模拟进程死亡（不写状态、不 finishStep、不回滚）。
+  - `InstallTransactionService` 增加进程内工程锁（`activeProjects`），同工程第二个 `apply()`
+    直接 `vpmProjectBusy`。
+  - `fsUtil` 新增 `renameSyncWithRetry`（启动恢复用，同步、不睡眠）。
+- **恢复判定**（`scan`）：工程不存在/journal 缺失/损坏/键不符 → `needs_attention`；
+  Unity/导入活动中 → `wait`；`commitPoint=manifest_written` → `complete`；
+  **journal 还写 `before` 但磁盘 manifest hash == `afterHash` → `complete`**（P4-C 交接里那条
+  rename↔markCommitPoint 崩溃窗口）；磁盘 manifest 既非 before 也非 after → `needs_attention`
+  （`project_changed`）；其余 → `rollback`。
+- **恢复执行**（`apply`）：`complete` 关掉遗留 running 步骤 → 缺提交点先补 `markCommitPoint`
+  → `committed` → 补完 vault 归档；`rollback` 撤销 move-in（新包进 `rolledback/`）、恢复
+  move-out（trash → `Packages/`）、恢复 legacy、用 `manifest.original.json` 还原 manifest，
+  移动过文件 → `rolled_back`，一步没动 → `failed`；回滚失败 → `needs_attention` +
+  `vpmRollbackFailed`。每步先看磁盘现状，**幂等**；已终态操作 `apply` 返回 `applied:false`。
+  恢复**不重跑** legacy 清理（前进操作，不是回滚）。
+- **失败矩阵**：`TRANSACTION_HOOK_POINTS` 24 个点逐个注入，结果表在
+  `src/main/vpm/install/README.md` 的「失败矩阵（P4-D）」；提交点前失败时整棵工程树
+  与操作前**逐字节一致**（按内容 hash 比较），提交点后失败只 `needs_attention` 不回滚。
+- **并发**：同工程并发 → 一个 committed、一个 `vpmProjectBusy`（进程内锁先拦，DB 唯一索引兜底）；
+  不同工程可并行；正常/崩溃恢复后锁都会释放；活动闸门抛错按 `vpmUnityRunning` 拒绝（fail closed）；
+  同一 `planId` 第二次应用 → `vpmProjectChanged`（不重复安装）。
+- **已验证**：`npm run typecheck` exit 0；定向 `tests/vpm/install` **6 files / 103 tests 全绿**
+  （archive 8 / journal 13 / transaction 29 / failure-injection 29 / recovery 15 / concurrency 9）；
+  全量 **189 passed / 1 failed / 9 skipped files（199）**、
+  **2442 passed / 1 failed / 19 skipped tests（2462）**。唯一红的是
+  `tests/classify/unitypackage.spec.ts` 的内存/耗时阈值（这次是 heap 增长越界，单独重跑
+  21 passed），与 P4-D 代码路径零重叠，属并行 perf 噪声（P4-B/P4-C 交接已记录同一现象）。
+- **未验证**：**仍然没有在真 Unity 沙盒里装过包**；真实 NTFS 上 rename 被占用（EBUSY/EPERM）
+  的恢复路径未实测（恢复用的是同步立即重试）；跨进程并发（两个 Atrium 实例）未实测，
+  只有 DB 唯一索引兜底；恢复期间的断电/再次崩溃只做了"重复执行"幂等验证，没有做真断电；
+  长路径 >260 未实测。
+- **给 P4-E**：`runtime.transactions.apply({ projectKey, planId, onProgress })` 可以直接接 IPC；
+  `TransactionProgress` 已经给到 `step/phase/index/total`；失败结果里的 `warnings` 要原样透传
+  （`vpmLegacyCleanupSkipped`/`vpmVaultArchiveFailed` 的 detail 是诊断明细）。
+  `runtime.recovery.scan()` 给恢复 UI 用，`apply(decisions)` 是 async。
+  **不要**在渲染层判断"是否需要恢复"——判定在 `scan()`，UI 只展示和确认。
+- **已知偏差**：`RecoveryService` 的 `apply` 从同步变 async 是 P4-D 的公开 API 变更，
+  `tests/vpm/install/journal.spec.ts` 与 `tests/vpm/runtime.spec.ts` 已同步改为新语义
+  （未提交前失败 → 恢复为 `failed`/`rolled_back`，不再一律 `needs_attention`）。
+- **备查**：详细交接见 `docs/VPM-P4D-HANDOVER.md`。
+
+### P4 未验证项验证（2026-10-22，done）
+
+- 报告：`docs/VPM-P4-VERIFICATION.md`（全部无头执行，不启动 Unity/Electron）。
+- 已验证：真实仓库下载（官方 `com.vrchat.base@3.7.0`，13.82 MiB，SHA-256 一致）、真实 zip 解压
+  （936 条目 / 32.09 MiB / 519 个 `.meta`）、`statfsSync` 真盘、长路径（248/374 字符可操作、
+  ≥260 按策略拒绝）、真实 EPERM（只读 manifest）与 EBUSY（目录被占用）、跨进程并发、
+  进程被杀后恢复、缓存配额与 `vpm_cache_entry` 一致性。
+- 顺带修了两个 bug：`SQLITE_BUSY` 泄漏成裸错误码（→ 重试一次并映射 `vpmProjectBusy`）、
+  并发淘汰在 `verifyFile` 异步窗口里留下"有行没文件"的孤儿缓存行。
+- 仍未验证：真 Unity 装包、`.atrium-tx` 是否被 Unity 忽略、Electron `net` 传输、真断电
+  （步骤写在验证报告 §10）。
+
+### P4-E（2026-10-22，review：代码完成，缺真 Unity 验收）
+
+- **公开 API/契约变化**：
+  - `IpcInvoke.Vpm` 新增 `PlanApply` / `OperationStatus` / `OperationCancel` /
+    `OperationHistory` / `OperationUndo` / `ProjectCatalog`；
+    `IpcEvent` 新增 `VpmOperationStarted` / `VpmOperationProgress` / `VpmOperationDone`。
+  - `shared/vpm/dto/install.ts`：`VpmOperationDto` / `VpmOperationSummaryDto` /
+    `VpmOperationProgressEvent` / `VpmProjectCatalogDto` 等。
+  - `ApplyPlanInput` 新增 `onStarted` 与 `kind`（撤销时 `kind='undo'`）。
+  - 新增 `src/main/vpm/undoService.ts`（`UndoService.canUndo/undo`）与
+    `shared/vpm/domain/undo.ts`（`reverseRequests`，纯函数）。
+  - `VpmRuntime` 新增 `undo`。
+- **UI**：工程详情里的包管理面板 —— 已装数量/可更新数量、搜索 + 筛选（全部/已安装/可更新/有冲突）、
+  每行版本下拉（含当前标记）、最新版本、状态、移除（二次确认，说明"移到回滚仓不永久删除"）、
+  重装、勾选后底部变更条（不常驻）、"升级全部（最新）"走 `preset:'upgradeAll'`、
+  变更单复用 `PlanBody` 并带风险确认、进度/取消/结果/`needs_attention` 说明、撤销入口、最近操作。
+  受保护包显示"系统包"且没有勾选/版本/移除入口；Unity 运行中禁用并说明。
+- **撤销**：只允许"该工程最后一次 + 已提交 + manifest hash == 那次 afterHash + Unity 未运行"，
+  反向请求由 `reverseRequests` 推导，再走同一事务（`kind='undo'`）；不安全的撤销抛
+  `vpmUndoUnsafe` 并在历史里显示原因。
+- **已验证**：`npm run typecheck` exit 0；`npx electron-vite build` 通过
+  （`VpmProjectsSection` chunk 75.97 kB）；`tests/renderer` + `tests/vpm`
+  **70 files / 650 tests 全绿**；新增
+  `tests/vpm/ipc/install.spec.ts`（9）/ `tests/vpm/domain/undo.spec.ts`（4）/
+  `tests/vpm/renderer/cart.spec.ts`（9）。
+  覆盖：只传 planId、进度/开始/完成事件、提交点前取消会 abort 且提交点后返回 `tooLate`、
+  状态/历史映射与 `canUndo`、catalog 过滤受保护包、反向请求推导、变更单/筛选/受保护包不入单。
+- **未验证（本卡不能算 done 的原因）**：**没有在真 Unity 2022.3.22f1 沙盒里装过包**，
+  因此"装/升/卸后工程能打开""`.atrium-tx` 被 Unity 忽略""旧 Assets 清理后不丢引用"三条都没有证据，
+  也没有沙盒截图。步骤写在 `docs/VPM-P4E-HANDOVER.md` §5，需要开 Unity 由用户执行。
+  另外没有做 100%/125% 缩放的目视检查（需要真实窗口）。
+- **给 P4-F**：`ProjectActivityPort` 已经贯穿预检与撤销闸门；把真实实现注入
+  `initVpm({ projectActivity })` 即可，UI 侧 `detail.running` 已经能禁用入口。
+  包事务的 `importing=true` 目前只能靠预检报 `vpmProjectImporting`，P4-F 接上端口后界面可提前禁用。
+
+### P4-F（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - `shared/vpm/linkage.ts` 新增 `MaintenanceKind` / `ProjectActivitySnapshot` /
+    `MaintenanceLease` / `ProjectActivityPort` / `LegacyGuardPort`（从 `install` 迁过来，
+    `install` 仍 re-export，老引用不受影响）。
+  - `ProjectActivityPort.acquireMaintenance(path, kind)` 是**必需**方法；`LegacyGuardPort`
+    改为 `isProtected(projectPath, relativePath)` 并新增可选 `prime(projectPath)`。
+  - `import/coordinator.ts` 新增 `setImportActivityHook()`；`importUnitypackage` /
+    `rollbackImport` 用 try/finally 包住原实现（不改算法）。
+  - 新错误码沿用 `vpmProjectBusy` / `vpmProjectImporting` / `vpmUnityRunning`（带 `kind` 参数）。
+- **实现**：`src/main/project/activity.ts` 的 `ProjectActivityRegistry`（纯状态机，无 IO）+
+  `createProjectActivityPort` + `createLegacyGuard`；组合根注入 gate → `initVpm`。
+  身份是**归一化工程路径**（不是 project id），理由与细节写进 `VPM-ARCHITECTURE.md` §7.3.1。
+- **互斥规则**：一个工程同时最多一个维护租约；导入计数 >0 或 Unity 在跑时拿不到租约；
+  包事务在**预检通过后立刻**拿租约、`finally` 释放；释放幂等、只删自己那一个。
+- **保护规则**：`com.avca.bridge` 的 legacy 声明即使进了移除集合也跳过（`protectedPackage`）；
+  旧 Assets 清理按 `.meta` guid 与 `import_log` 的 created/overwritten 比对，命中即保留。
+- **已验证**：`npm run typecheck` exit 0；`tests/project/activity.spec.ts` **14 条**、
+  `tests/vpm/install/activity-gate.spec.ts` **6 条**全绿。覆盖：租约获取/重入/幂等释放/
+  异常释放、导入计数与嵌套、Unity 运行（含探针抛错 fail closed）、不同工程并行、
+  导入中拒绝安装（不写盘）、他人持租约时 `vpmProjectBusy`、成功/失败后租约都释放、
+  预检失败不残留租约、`import_log` guid 保护（created/overwritten/无 meta/prime 刷新）、
+  真实 `importUnitypackage`/`rollbackImport` 期间的 importing 上报与释放。
+- **未验证**：**真 Unity 并发**（导入进行中点安装、安装进行中双击素材）没有真机证据；
+  P6 的备份/复制/迁移还没接租约（那是 P6-D 的活）；跨进程（两个 Atrium 实例）不覆盖。
+- **给 P5-A / P6-D**：所有维护动作先 `acquireMaintenance(path, kind)`，`finally` 释放；
+  备份/复制在 `importing=true` 时必须拒绝（现在闸门已经会抛 `vpmProjectImporting`）。
+
+### P5-A（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/shared/vpm/domain/template.ts`（纯逻辑）：`parseTemplateManifest` /
+    `serializeTemplateManifest` / `resolveTemplate` / `mergeTemplate` /
+    `intersectUnityRange` / `rangesOverlap` / `normalizeAttachmentPath` / `isValidTemplateId`，
+    常量 `TEMPLATE_SCHEMA_VERSION=1`、`TEMPLATE_MAX_DEPTH=8`、`TEMPLATE_MAX_ATTACHMENTS=32`。
+  - 新增 `src/main/vpm/templates/`：`TemplateService`（list/get/raw/create/update/duplicate/
+    setFavorite/removeReference/restore/markUsed/recentLocations/recordLocation）、
+    `TemplateStore`、`BUILTIN_TEMPLATES`。`VpmRuntime` 新增 `templates`。
+  - **vpm.db v4**：`vpm_template`、`vpm_recent_location` 两张表（`VPM_REQUIRED_TABLES[4]` 已更新）。
+  - 新错误码：`vpmTemplateNotFound` / `vpmTemplateInvalid` / `vpmTemplateReadOnly` /
+    `vpmTemplateWriteFailed`（三语文案齐全）。
+- **模板格式**：`template.json`（schemaVersion=1），`base` 继承（Unity 范围取交集、依赖同名覆盖、
+  附件追加、settings 浅合并、深度 ≤8、检测循环），未知顶层字段原样保留。
+  附件路径必须是 `files/` 下的相对路径（拒绝绝对路径/`..`/反斜杠/重复）。
+- **存储**：用户模板 `<dataRoot>/templates/<id>/template.json`（原子写）+ 可选 `files/`；
+  内置模板代码生成、不落盘不入库；删模板 = `visible=0`，**不动用户文件**。
+- **内置模板**：`builtin.blank`（无依赖）/ `builtin.avatars`（`com.vrchat.avatars >=3.0.0 <4.0.0`）/
+  `builtin.worlds`（`com.vrchat.worlds >=3.0.0 <4.0.0`），推荐 Unity 2022.3.22f1，无任何附件。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/domain/template.spec.ts` 14 条 +
+  `tests/vpm/templates/service.spec.ts` 16 条全绿；`tests/vpm` 44 files / 439 tests 全绿
+  （含把 db 迁移测试整体升到 v4）。
+- **未验证**：`.atriumtemplate` ZIP 的打包/解包没做（P7-D）；模板被建工程真正消费要等 P5-B；
+  没有 UI 目视。
+- **给 P5-B**：用 `runtime.templates.get(id)` 拿合并后的清单（`dependencies`/`unitypackages`），
+  附件从 `filesDir(id)` 读；建完工程后用 `markUsed(id)` + `recordLocation(父目录)`。
+
+### P5-B（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/main/vpm/unity/create.ts`：`ProjectCreateService`（`validate` / `create`）、
+    `TemplateAttachmentPort`（P5-C 注入）、`CreateIssueCode` 拒绝矩阵。
+  - 新增 `src/main/vpm/projects/recent.ts`：`RecentLocationStore`（`vpm_recent_location`
+    的唯一 SQL 入口，最近 8 条）；`TemplateService.recentLocations/recordLocation` 改为委托它。
+  - `VpmRuntime` 新增 `create`。
+  - 新错误码 `vpmCreateRejected` / `vpmCreateFailed`（三语）。
+- **校验矩阵**：父目录存在/是目录/非链接/可写、不在已有 Unity 工程内、不在禁用根内；
+  名称非法字符/保留名（CON、COM1…）/结尾点或空格/≤80/`.`/`..`/不逃逸；
+  目标必须不存在（**空目录也算存在**）；路径 <260；空间 ≥ 估算×1.2+512 MiB；
+  Unity 版本必须在已安装列表（没探测到编辑器时只给"未验证"警告）。
+- **创建流程**：隐藏临时目录 `.atrium-create-<op>` → 骨架（`Assets/`、`Packages/`、
+  `ProjectSettings/ProjectVersion.txt`、初始 `vpm-manifest.json`）→ 同卷 rename →
+  `projects.addExisting` → 装模板依赖（P3/P4 事务）→ `markUsed` + `recordLocation`。
+  **不写 `ProjectSettings.asset`、不写任何 `.meta`。**
+- **失败策略**：rename 之前失败 → 临时目录移到回滚仓 `create-failed/`（回滚仓不可用时
+  退到父目录旁的 `.atrium-create-failed-<op>`），**不永久删**；依赖安装失败 → **保留工程**，
+  `dependencyStatus='failed'` 并给错误码，可重试。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/unity/create.spec.ts` **18 条**全绿
+  （校验矩阵、骨架内容、无 `.meta`、依赖安装成功/失败、失败现场归档、附件端口、
+  最近路径有界）。
+- **未验证**：**没有用真 Unity 打开过新建的工程**（本工作站不启动 GUI，这是本卡唯一缺口）；
+  模板附件解包（P5-C）；`kind=create` 的操作记录没做（`vpm_operation.kind` 有 CHECK 约束，
+  要改就得重建表，收益不大；依赖安装本身有 `install` 操作记录）。
+- **给 P5-C**：实现 `TemplateAttachmentPort` 后传给 `ProjectCreateService`，
+  带附件的模板就能直接建；解包目标就是临时工程的 `Assets/`。
+
+### P5-C（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/shared/vpm/domain/unitypackage.ts`（纯逻辑）：`normalizeUnityPathname` /
+    `planUnityPackage` / `isValidGuid`，常量 `UNITYPACKAGE_MAX_ENTRIES=100000`、
+    `UNITYPACKAGE_MAX_BYTES=2 GiB`、`UNITYPACKAGE_MAX_PATH=260`。
+  - 新增 `src/main/vpm/unity/unitypackage.ts`：`extractUnityPackage`、
+    `createTemplateAttachmentPort`（P5-B 的 `TemplateAttachmentPort` 实现）。
+  - 新错误码：`vpmUnityPackageInvalid` / `Unsafe` / `Conflict` / `TooLarge` / `Failed`（三语）。
+  - `initVpm` 现在把附件端口注入 `ProjectCreateService`——带附件的模板可以直接建工程了。
+- **规则**：只接受 `<32位guid>/<pathname|asset|asset.meta|preview.png>`；`pathname` 必须在
+  `Assets/` 下（拒绝绝对路径/盘符/`..`/反斜杠/控制字符/保留名/结尾点空格/≥260）；
+  同一目标大小写不敏感去重；**只搬 asset 与 asset.meta，绝不生成/补写 `.meta`**；
+  缺 meta 只给 `missingMeta` 警告。
+- **安全**：两段式（临时目录 → 校验 → 搬入），冲突/逃逸/超限时工程一个字节都没动；
+  中途 IO 失败回滚已搬文件与本次建的空目录；条目/字节限额超了不写盘。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/domain/unitypackage.spec.ts` 7 条 +
+  `tests/vpm/unity/unitypackage.spec.ts` 10 条全绿。覆盖：路径归一拒绝矩阵、
+  计划去重/缺 meta/无效 guid、真实 tar.gz 的字节级 meta 保真、preview 忽略、
+  冲突整体拒绝与 skip、路径逃逸、坏包、条目限额、"不写 meta" 源码守卫、附件端口。
+- **未验证**：**没有在真 Unity 里看过导入结果**（P5-D 验证）；符号链接条目只在过滤层拒绝，
+  没有构造真实符号链接包（Windows 建链接要权限）；没有用超大真实包压过。
+- **给 P5-D**：`extractUnityPackage` 可直接用于"把 unitypackage 导进已有工程"；
+  真机要确认 Unity 能识别搬进去的 `.meta`（字节原样，理论上是同一份）。
+
+### P5-D（2026-10-22，review：代码完成，缺真机验收）
+
+- **公开 API/契约变化**：
+  - 新增 `src/main/vpm/unity/launch.ts`：`UnityLaunchService`（`resolveEditor` / `buildArgs` /
+    `launch`）、`sanitizeArgs`；`VpmRuntime.launch`。
+  - 新增 `src/main/vpm/ipc/unity.ts` + 7 个通道：`UnityInstalls` / `ProjectLaunch` /
+    `ProjectLaunchArgs` / `ProjectCreate` / `TemplateList` / `TemplateFavorite` / `TemplateRecent`。
+  - 新增 `shared/vpm/dto/unity.ts`：编辑器/启动/创建/模板/最近位置 DTO。
+  - 新错误码 `vpmUnityLaunchFailed`（三语）。
+- **启动规则**：编辑器解析顺序 = 本次指定 → 工程台账 `unity_exe_path` → 按
+  `ProjectVersion.txt` 的 base 版本匹配（精确版本优先）；找不到报 `vpmUnityNotFound`，
+  **不自动换版本**。参数只作为数组传 `spawn`，拒绝空字节/换行/超长，`shell: false`、
+  `detached + stdio:'ignore' + unref()`、`windowsHide`。**先 `bindLaunchTarget` 再 spawn**，
+  spawn 失败/异步 error 都 `clearLaunchTarget`；已在运行不重复启动但仍绑定目标。
+- **UI**：工程页主按钮改为"新建工程"（添加已有降为次要）；新建对话框 = 模板卡片
+  （内置/收藏/依赖数/附件数/Unity 范围）+ 名称/位置（最近位置快捷）/Unity 版本 + 创建；
+  工程详情底部新增"打开 Unity"（编辑器下拉 + 自动按版本）；启动/已运行都有提示。
+  当前导入目标徽标沿用核心 `isTarget`（P2-E 已有）。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/unity/launch.spec.ts` **10 条**全绿
+  （版本匹配/精确优先/显式路径/工程台账/找不到/参数拒绝/绑定先于 spawn/detached 选项/
+  已运行不重复启动/spawn 失败清绑定/缺版本文件拒绝）；`tests/vpm` 48 files / 486 tests。
+- **未验证（本卡不能算 done 的原因）**：**没有真的启动 Unity、也没有用 Unity 打开过新建工程**；
+  没有截图；`ProjectLaunchArgs` 的自定义参数编辑 UI 没做（只有 IPC 与参数校验）；
+  设置页的模板编辑器（新建/编辑/复制模板）没做——本卡只做了创建对话框里的模板列表/收藏。
+- **给 P5-E**：双击素材导入要依赖 P4-F 的活动闸门 + 本卡的启动绑定；
+  真机验收时重点看"启动中/连接中"的徽标与"已运行也绑定目标"。
+
+### P5-E（2026-10-22，review：代码完成，缺真机验收）
+
+- **改动**：
+  - `renderer/vpm/lib/target.ts`：目标徽标纯逻辑 `targetBadge()`（非目标 → null、
+    启动/连接中 → `targetWaiting` warn、就绪 → `isTarget` accent）；
+    `VpmProjectsSection` 改用它，不再内联两个 `&&`。
+  - `docs/VERIFY-2026-10-22-VPM-MATERIAL-LINK.md`：14 步真机验收脚本
+    （单工程链路 / 多实例优先级 / 失败路径 / 回归），带结果列。
+- **不需要真机就能确认的不变量**（都有测试）：
+  - 先 `bindLaunchTarget` 再 `spawn`；spawn 失败/异步 error 都 `clearLaunchTarget`；
+  - 已运行不重复启动但仍绑定目标；没有 coreId 时不假装绑定；
+  - 目标优先级 `manualId ?? launchId` 由核心 `connections` 固定；
+  - 工程关闭/消失后 `pruneLaunchBinding()` 清绑定（核心已有）。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/unity/launch-target.spec.ts` 5 条 +
+  `tests/renderer/vpm-launch-target.spec.ts` 3 条。
+- **未验证（本卡不能算 done）**：真 Unity 2022.3.22f1 下"打开 Unity → 自动成为导入目标 →
+  双击素材导入"的完整链路；多实例真机优先级；启动中双击等待的体验。**没有截图、没有
+  `import_log` 证据**。
+- **给 P6-A**：本卡没改导入/冲突/撤销算法，也没做跨重启目标持久化（刻意不做）。
+
+### P6-A（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/main/vpm/backup/collector.ts`：`collectProjectFiles(options)`、
+    `isExcluded(relativePath, depth, managedPackages)`（纯函数）、`readManagedPackages(root)`。
+  - `CollectOptions`：`root` / `mode`（backup|copy）/ `excludeVpmPackages` / `maxFiles` /
+    `maxBytes` / `maxDepth` / `signal` / `onProgress`。
+  - `CollectResult`：`files`（相对+绝对路径+大小）、`directories`、`fileCount`、`byteCount`、
+    `warnings`、`truncated`、`elapsedMs`。
+  - 新错误码 `vpmCollectCancelled`（三语）。
+- **排除表**：根级 `Logs`/`obj`/`Temp`/`.git`/`.atrium-tx`（大小写不敏感，只在根）；
+  任意层级 `.git`；`Library*` 整棵排除但**保留** `Library/LastSceneManagerSetup.txt`；
+  可选排除 `vpm-manifest.json` 受管的 `Packages/<id>`（未知/本地包保留）；
+  三个必须保留的文件任何规则都不能排除；隐藏文件保留。
+- **安全**：不跟随符号链接/junction（记 `symlink` warning）；取消立刻抛
+  `vpmCollectCancelled`；文件数 200k / 64 GiB / 深度 32 / 路径 260 命中即 `truncated`；
+  权限不足记 warning 继续；只读、不改源文件。
+- **稳定性**：`files` / `directories` 按相对路径排序，同输入同输出（压缩包可复现）。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/backup/collector.spec.ts` **14 条**全绿
+  （排除表 5 组、真实目录收集、受管包排除、坏 manifest、junction 不跟随、取消、稳定排序、
+  截断、进度、缺根拒绝）。
+- **未验证**：没有在超大真实工程（>10 万文件）上压过；长路径只做了字符串策略，没有真造
+  260+ 的路径；junction 用 `fs.symlinkSync(..., 'junction')` 造的，没覆盖其他 reparse point。
+- **给 P6-B**：压缩直接用 `CollectResult.files` 的顺序写 zip，别再自己遍历；
+  `truncated=true` 必须当失败处理，不能压一个残缺包。
+
+### P6-B（2026-10-22，done）
+
+- **公开 API/契约变化**：
+  - 新增 `src/main/vpm/backup/zip.ts`：`writeZip`（`.part` 原子写 + 真三档压缩）、
+    `readZipEntries`（写完读回校验）、`extractZip`（解压，拒绝逃逸/符号链接）、`safeZipPath`。
+  - 新增 `src/main/vpm/backup/service.ts`：`ProjectBackupService`（`create` / `list` / `get` /
+    `reveal` / `restore`）、`sanitizeFileStem`。
+  - **vpm.db v5**：`vpm_backup` 表（状态 running/ok/failed/cancelled + error_code）。
+  - `VpmRuntime.backup`；`initVpm` 新增 `revealPath`（gate 注入 `shell.showItemInFolder`）。
+  - 新错误码 `vpmBackupCancelled/Failed/Invalid/Unsafe/TooLarge/Conflict`（三语）。
+  - 新依赖：`yazl`（+ `@types/yazl`）——因为它支持 `compressionLevel`，三档才是真的。
+- **备份**：先拿 P4-F 维护租约（导入/装包中拒绝）→ 收集 → `.part` 写 zip → rename →
+  sha256 → yauzl 读回校验 → 写记录；取消/失败删 `.part` 并留 `cancelled`/`failed` 记录。
+  Unity 运行中默认拒绝（`allowUnityRunning` 可覆盖）。
+- **从备份新建**：目标必须不存在（`vpmBackupConflict`）；解压拒绝路径逃逸/符号链接；
+  可选 `installPackages` 走同一条计划 + 事务补装。
+- **已验证**：`npm run typecheck` exit 0；`tests/vpm/backup/service.spec.ts` **10 条** +
+  collector 14 条；`tests/vpm/backup` + `tests/vpm/db` 20 条全绿。覆盖：zip 可读/内容正确/
+  排除生效、store 与 normal 体积差异（真压缩）、取消留 cancelled 且无 `.part`、失败留 failed、
+  未知工程/Unity 运行拒绝、从备份新建、非空目标拒绝、未知备份拒绝、installer 回调、路径安全。
+- **未验证**：**没有用标准解压工具（7-Zip/资源管理器）真的解过**；没有在真机大工程（GB 级）
+  上跑过；`revealPath` 没有在 Electron 里点过；从备份新建后的"补装依赖"没有真机跑过。
+- **给 P6-C**：复制可以直接复用 `collectProjectFiles` + `copyTreeWithDigest`；
+  换版本前记得先 `backup.create` 再动工程（P6-D 的 UI 会要求）。
+
+### P6-C（2026-10-22，done）
+
+- **新增**：`backup/copy.ts`（`ProjectCopyService.copy`）、`unity/version.ts`
+  （`UnityVersionService.change`、`readProjectVersionFile`、`renderProjectVersionFile`）。
+  `VpmRuntime` 新增 `copy` / `version`。
+- **复制**：目标必须不存在、不能在源工程内、Unity 运行中拒绝；拿 `copy` 租约；
+  复用收集器；先复制到 `.atrium-copy-<op>` 再 rename；失败改名保留现场；取消不留目标。
+- **换版本**：Unity 运行中拒绝；目标编辑器必须已安装（不自动装）；默认先 `backup.create`；
+  原子写 `ProjectVersion.txt`；写失败恢复旧内容并抛 `vpmUnityVersionChangeFailed`；
+  返回 `downgrade` 与 `backupSkipped` 供 UI 警告。
+- **新错误码**：`vpmCopyConflict` / `vpmCopyFailed` / `vpmUnityVersionChangeFailed`（三语）。
+- **已验证**：typecheck exit 0；`tests/vpm/backup/copy.spec.ts` 9 条（复制内容/排除/非空/
+  源内/运行中/取消、版本文件读写、备份调用、跳过备份、运行中/未安装/非法版本拒绝、
+  写失败恢复）。
+- **未验证**：真 Unity 换版本后能否打开（需要 GUI）；复制 GB 级工程；时间戳保留（没做）。
+
+### P6-D（2026-10-22，review：迁移服务完成，UI 与真机未做）
+
+- **新增** `backup/migrate.ts`：`ProjectMigrateService.migrate`。
+  - 拒绝矩阵：Unity 运行中 / 未识别包 id / 低置信度 / 已在台账 / 仓库解析不到；
+  - 每个包：默认先备份 → P3 计划 → P4 事务（旧 Assets 由 legacy 步骤进 vault）；
+  - 逐条返回 `installed` / `skipped(reason)` / `failed(errorCode)`，一个失败不影响其余；
+  - 拿 `migrate` 维护租约。
+  - `VpmRuntime.migrate`。
+- **已验证**：typecheck exit 0；`tests/vpm/backup/migrate.spec.ts` 5 条（备份调用、
+  只装受信候选、低置信度/未识别/已装/仓库缺失跳过、逐条失败、运行中拒绝、跳过备份）。
+- **UI（2026-10-22 补齐）**：工程详情新增"备份与维护"面板 —— 立即备份 + 最近 5 条记录
+  （状态/时间/大小/打开位置）、复制工程（父目录 + 名称）、更换 Unity 版本（选编辑器 +
+  自动备份 + 降级提示）、旧式迁移（勾选候选 → 迁移所选）。
+  IPC：`backup-create/list/reveal`、`project-copy`、`project-version-change`、`project-migrate`。
+- **未做/未验证**：**真 Unity 迁移验证没做**；Unity 2022 特例检测只靠现有 legacy 报告，
+  没有单独的"未验证"标注；没有目视（不开窗口）。
+
+### P7-A（2026-10-22，review：服务层 + IPC 完成，UI 未做）
+
+- **公开 API/契约变化**：
+  - `ReposService.updateRepo(id, {name?, url?, enabled?})`：URL 变更清抓取状态并重抓，
+    **旧包行保留到抓取成功**；URL 冲突报 `vpmRepoConflict`。
+  - `ReposService.reorderRepos(ids)`：按给定顺序重写 `sort_order`，未列出的追加在后面。
+  - `ReposService.importRepos(text)` / `exportRepos()` / `parseRepoImport(text)`：
+    支持纯 URL（一行一个、`#` 注释）与我们自己的 JSON（`atrium.repos` v1）；
+    重复跳过、坏 URL 单独返回，一条坏的不影响整批。
+  - `RepoStore.setSortOrders()`；IPC 新增 `repo-update` / `repo-reorder` /
+    `repo-import` / `repo-export`；preload 与渲染层 API 同步。
+- **已验证**：typecheck exit 0；`tests/vpm/repos/governance.spec.ts` **7 条**
+  （改名/启停、URL 变更清状态但保留旧包、URL 冲突、排序落库、导出再导入去重、
+  纯文本导入跳过坏行与重复、两种格式解析）。
+- **UI（2026-10-22 补齐）**：仓库卡片上有启用开关、↑/↓ 排序、编辑（名称/URL）、请求头、
+  测试连接、刷新；工具条上有导入/导出对话框。全部是次要按钮，没有新增实心主按钮。
+- **目视（2026-10-22）**：已用离屏预览截图检查（`docs/verify/vpm-ui-2026-10-22.png`），
+  修掉 3 个问题：失败行显示成半句话、↑/↓ 太细看不清、同屏两个实心主按钮。
+- **未验证**：排序对"同版本多源优先级"只依赖既有 `queryCatalog` 排序，没有专门断言；
+  URL 变更后的真实重抓（联网）没跑（本工作环境拦截了 `packages.vrchat.com`）。
+
+### P7-B（2026-10-22，review：SecretStore + HTTP 接线完成，IPC/UI/测试连接未做）
+
+- **新增** `src/main/vpm/secrets/index.ts`：
+  - `SecretStore` 接口 + `MemorySecretStore`（测试用）+ `createSafeStorageSecretStore`（Electron
+    safeStorage 加密后落盘，文件里只有密文）；
+  - `validateSecretHeaders`（头名白名单：拒绝 cookie/host/content-length 等、长度/控制字符）；
+  - `redactHeaders`（日志只留头名）；`repoScope` / `packageScope`。
+  - 不可用时 `available()=false`、`set()` 抛 `vpmSecretUnavailable`，**不写明文**；
+    解密失败当"没设"，不打断刷新。
+- **接线**：`ReposServiceOptions.secrets`；`refreshRepo` 只在这里取仓库级头并传给
+  `http.getJson({ headers })`——头不进 DTO、不进日志、不回渲染层。
+  HTTP 层原有的"自定义头跨源重定向停止"保持不变。
+- **已验证**：typecheck exit 0；`tests/vpm/secrets/store.spec.ts` **8 条**
+  （头校验/脱敏、内存存储、密文落盘不含明文、不可用拒绝存储、坏密文当缺失、列表只给头名、
+  package scope 归一）。
+- **IPC/UI（2026-10-22 补齐）**：`repo-headers` / `repo-headers-set` / `repo-headers-clear` /
+  `repo-test`；仓库卡片上的"请求头"对话框（只回显头名、值必须重填）与"测试连接"按钮。
+  `initVpm` 新增 `secretStorage`，gate 注入 Electron `safeStorage`。
+- **真机抽查（2026-10-22）**：真实 Electron `safeStorage` 通过（`available:true`、
+  落盘无明文、读回一致、清除生效）；真实 HTTP 客户端经代理跑到 `200` + 自定义头 + 404 映射；
+  `packages.vrchat.com` 被本工作环境网络策略拦截（curl 同样握手失败），需用户本机验证。
+  详见 `docs/VERIFY-2026-10-22-VPM-UI.md`。
+
+### P7-C（2026-10-23，done）
+
+- **公开 API/契约变化**：
+  - `catalog/local.ts`：`readLocalPackage` / `scanLocalPackages` / `diffLocalPackages` /
+    `LocalPackageStore`（`list/get/add/remove/scanAll`）。
+  - `catalog/localInstall.ts`：`LocalInstallService.install/plan`。
+  - **vpm.db v6**：`vpm_local_root(id, path UNIQUE, label, created_at, last_scan_at, package_count)`。
+  - IPC：`local-roots / local-add / local-remove / local-scan / local-install`。
+  - 新错误码 `vpmLocalRootInvalid`（三语）。
+- **扫描规则**：目录本身有 `package.json` 当单包，否则扫**下一层**（不递归）；
+  校验包名（`com.foo.bar`）与版本；`unity` 写错只丢字段不拒包；变化按 `package.json` 的 sha256。
+- **信任**：只有用户显式添加的目录才扫；拒绝不存在/符号链接/无包/重复路径；
+  移除只取消信任、**不动文件**。
+- **安装**：独立于 zip 事务（事务假设"下载 zip + sha256"，本地包两者都没有）——
+  校验 → 取最高版本 → 目标不能存在 → 维护租约 → 拷到 `.atrium-local-<id>` → rename
+  → 最后写 `vpm-manifest.json`（提交点），写失败撤销拷贝。Unity 运行中拒绝。
+- **UI**：设置页「本地包目录」面板（添加/移除/包数/包列表）；包面板「从本地装包」弹窗。
+- **刻意没做**：**不把本地包注入远程目录/解析器**。那会让它们进入 zip 下载管线
+  （`url`/`sha256` 为 null），把两条失败路径搅在一起；本地包的安装入口就是
+  「从本地装包」。包浏览里看不到本地包，这是已知取舍。
+- **已验证**：typecheck 0；build 过；`local.spec` 7 条 + `local-store.spec` 4 条 +
+  `local-install.spec` 5 条；通道清单 18 条。
+- **未验证**：真机装一个本地包进真实工程（需要 Unity 关闭 + 真实包目录）。
+
+### P7-D（2026-10-23，done）
+
+- **公开 API/契约变化**：
+  - `interop/vcc.ts`：`readVccSettings/parseVccSettings`（只读；HTTPS 校验；按值去重；
+    坏条目进 `skipped`；坏 JSON 只标 `parseError`；文件不存在 `exists:false`）。
+  - `interop/templateIO.ts`：`parseTemplateFile/exportTemplate`
+    （认 Atrium 格式与外部形状；缺 name 用文件名兜底；非对象 `vpmTemplateInvalid`）。
+  - IPC：`interop-vcc-peek / interop-vcc-apply / template-import / template-export`。
+  - 新错误码 `vpmInteropNotFound`（三语）。
+- **UI**：设置 → 项目与包 新增「互操作」区：从 VCC/ALCOM 导入（先列仓库数/目录数/跳过数，
+  勾选后才写）、导入模板文件、导出模板（每个用户模板一行「导出」）。
+- **安全边界**：**只读**对方设置、绝不写回；VCC 里的路径只是"读出来"，
+  加进本地信任表要用户勾；模板导出不注册全局文件关联、不复制附件。
+- **刻意没做**：VCC 的 LiteDB 模板只读适配（卡片标"可选"）。读它要额外依赖，
+  而我们自己的模板导入已覆盖需求。
+- **已验证**：typecheck 0；build 过；`interop/vcc.spec.ts` 7 条 + 通道清单 22 条 +
+  renderer 29 files / 202 tests 全绿。
+- **未验证**：真机有 VCC/ALCOM 安装时的导入（这台机器的设置路径可能不同）。
+
+### P7-E（2026-10-23，done）
+
+- **公开 API/契约变化**：
+  - `interop/deeplink.ts`：`parseDeepLink` / `deepLinksInArgv`；
+    意图只有 `open-project` 与 `add-repo`，其余返回 `unknown`。
+  - `main/index.ts`：注册 `atrium://`（开发态带 execPath）；第二实例的 argv 里的深链
+    转发给第一实例；冷启动的深链先攒着，窗口建好 1.5s 后补发（走 `broadcast`）。
+  - 新事件 `vpm:deeplink`。
+  - 渲染层 `DeepLinkHost`（挂在 App）：`open-project` 直接切项目页并加入列表；
+    `add-repo` **必须确认**才写入。
+- **安全边界**：任何带 `headers/token/authorization/password/secret/cookie` 的链接
+  **整条拒绝**（不是忽略参数）；非 https 的仓库 URL 拒绝；`vcc://` 只解析、不落库。
+- **单实例**：第二实例只做"唤醒窗口 + 转发路径/深链"，不重复初始化。
+- **已验证**：typecheck 0；build 过；`deeplink.spec.ts` 7 条 + ipc 通道 22 条 +
+  renderer 33 files / 253 tests 全绿。
+- **未验证**：真机点一个 `atrium://` 链接（需要装包后由系统唤起；开发态注册的是 electron.exe）。
+
+### P8-A（2026-10-23，done）
+
+- **逐屏检查表**：`docs/VPM-P8A-UI-AUDIT.md`（9 屏：入口/主按钮/批量/危险操作/空错状态）。
+- **改了 2 处**：
+  - 项目页空状态的「添加项目」从实心降为文字（和头部「新建项目」同屏会双主按钮）；
+  - `DeepLinkHost` / `VpmMaintenancePanel` 不再直接 `window.a.on(...)`，
+    改走 `vpmApi.onDeepLink()` / `vpmApi.onBackupProgress()`。
+- **新增边界测试** `tests/renderer/vpm-ui.spec.ts`（4 条）：
+  组件不许出现 `window.a`、渲染层不许 import electron、
+  项目页主屏（第一个 `<Modal` 之前）只能有一个 `variant="accent"`、危险操作必须有 Modal。
+- **按钮纪律结论**：一屏一个实心；模态是独立一屏；行内最多三个按钮；危险操作 Modal + 一句后果，不弹两层。
+- **证据**：typecheck 0；build 过；renderer 30 files / 225 tests 全绿；
+  截图 `docs/screenshots/vpm-p8-projects.png`、`vpm-p8-delete-confirm.png`。
+- **已知限制**：包图标只有首字母回退（不新增图标管线）；模板编辑 UI 仍缺（属新功能）；
+  深链未真机点过。
+
+### P8-B（2026-10-23，done；交接段由 P8-D 补记）
+
+- **公开 API/契约**：`src/main/vpm/log/` 导出 `OperationLogService`、`toLogEntry`、
+  `usageOf`、`clearUsage`、`buildDiagnostics`、`exportDiagnostics`；IPC 新增
+  `LogRecent` / `UsageSnapshot` / `CacheClear` / `DiagnosticsExport`；
+  UI 是工程详情里的 `MaintenanceLogPanel`（最近操作、三块用量、清缓存、导出诊断）。
+- **脱敏**：操作记录只留工程名/类型/状态/步骤/错误码/时间，不带绝对路径、计划 JSON、
+  hash、文件清单；诊断包是一个只含 `diagnostics.json` 的 zip，不含路径/密钥/请求头/文件内容。
+- **清理边界**：`clearUsage` 只接受 `cache`；`vault`/`backups` 即使传进来也拒绝，
+  必须走各自界面的用户确认（回滚仓走回收站，备份不自动删）。
+- **已验证**：`tests/vpm/log/diagnostics.spec.ts`（6 条：脱敏/跨工程排序/用量/只清缓存/
+  诊断不含路径/可读 zip）；全量测试当时 221 files / 2748 passed / 19 skipped；typecheck 0。
+- **未验证**：没有 UI 截图；诊断包没有在真实故障现场跑过；缓存清理没有在下载/事务进行中
+  做并发演练（P9-B）。
+- **给 P8-C**：设置/更新页不要复用 `clearUsage` 去清 vault/backups；诊断导出只传
+  `buildDiagnostics` 的白名单字段。
+
+### P8-C（2026-10-23，done）
+
+- **公开 API/契约**：新增 5 条 IPC（`vpm:settings-get` / `vpm:settings-patch` /
+  `vpm:update-check` / `vpm:update-download` / `vpm:update-install`）与
+  `VpmPreferencesDto` / `VpmUpdateCheckDto` / `VpmUpdateDownloadDto`；
+  新增错误码 `vpmUpdateCheckFailed` / `vpmUpdateHashMismatch` / `vpmUpdateInstallFailed`（三语齐全）。
+  `VpmRuntime` 新增 `updater: UpdaterService`。
+- **新模块**：`src/main/vpm/updater.ts`（手动更新）、`src/main/vpm/ipc/settings.ts`、
+  `src/shared/vpm/dto/settings.ts`、`src/renderer/vpm/components/settings/`。
+- **设置语义（对账时容易判错的地方）**：`allowPrerelease=false` **只过滤浏览列表**
+  （`CatalogService.query`）；包详情与 `resolverCatalog()` 不过滤，否则已装预发布包会变成
+  “查无此包”、依赖也解析不出来。预发布偏好经 `PlanService.deps.defaultAllowPrerelease()`
+  作为解析默认值。`hiddenPackageIds` 同理：列表/详情隐藏，解析照旧。
+  `defaultUnityArgs` 在 `ipc/unity.ts` 的 `effectiveArgs()` 生效（工程显式参数优先）。
+- **顺手修掉 3 个既有 bug**：`VPM_REQUIRED_TABLES` 漏 `6:`（v6 表被塞进 5 的数组，
+  缺表库也能打开）；`VPM_SCHEMA_VERSION` 硬编码 3（改成从 `VPM_MIGRATIONS` 推导 +
+  漂移守卫测试）；`main/index.ts` 静态引 `vpm/interop/deeplink`、`App.tsx` 静态引
+  `DeepLinkHost` 违反架构闸门（分别改走 gate 再导出 / `lazy()`，新增 `vpm/interop/index.ts`）。
+- **文档**：`README.md` 与 `docs/DEVELOPMENT.md` 各加一段已知限制；
+  `src/main/vpm/ipc/README.md` 补 P8-C 段。
+- **已验证**：`npm run typecheck` 0；`npx vitest run` **219 files / 2688 passed /
+  19 skipped / 0 failed**；`npx electron-vite build` 过（`DeepLinkHost` 单独成 chunk）。
+  新增定向测试 `tests/vpm/settings.spec.ts`(17)、`tests/vpm/updater.spec.ts`(19)。
+- **未验证**：GitHub 联网更新检查（本机代理不通，只有假 http 测试）；
+  安装包 `.exe` 未真跑（`runInstaller` 只做了路径白名单）；
+  真 Unity 启动/导入仍归 P5-D / P5-E / P6-D；本轮没出新 UI 截图。
+- **给 P8-D**：对账时注意"预发布/隐藏包只影响浏览"这条，别判成"解析也过滤"；
+  `docs/VPM-P8C-HANDOVER.md` 是换工作站用的完整交接档案（含环境踩坑与新机起步命令）。
+
+### P8-D（2026-10-23，done；P8 门禁未签）
+
+- **交付**：`docs/VPM-PARITY.md` 124 行全部填实际状态/证据/差异/去向；
+  新增 `docs/VPM-GAPS.md`（GAP-01…GAP-11 + P9 只修清单 + 产品裁定）；
+  新增 `tests/vpm/parity-evidence.spec.ts`（5 条：行数/四字段/不做行/部分行去向/
+  目标完整但实际部分的行必须在 GAP 文档里）。
+- **统计**：61 实际完整 / 56 实际部分 / 7 不做。**35 行目标=完整但实际=部分**，
+  所以 P8 不能签字；这不是“全部做完”，P9 只修这些缺口。GAP-02/A18 已由用户改判为
+  接受差异，GAP-03 已由 P8-F 关闭，不再计入 35 行。
+- **最大缺口**：GAP-01 真 Unity 2022.3.22f1 端到端（装/升/降/重装/卸/撤销、启动、
+  双击导入、多实例、创建、附件、备份恢复、迁移、换版本），覆盖 P4-E/P5-D/P5-E/P6-D
+  的 review 卡；P4-VERIFICATION 的无头证据不能替代。
+- **产品裁定（2026-10-23 用户）**：**全部接受**——GAP-02 保持 R19
+  （数据根/cache/vault/backups 在 `%APPDATA%\Atrium`，C 盘）；A18 保持 R17
+  （删除项目 = 整个文件夹进回收站，不做“只移除台账”）。这两条已改为接受差异，
+  **后续 P8-E/P9 不允许再改**。
+- **顺手修复**：`tools/check-worker-deps.cjs` 原来扫 `out/main` 所有 chunk，
+  把主进程专用的 VPM 动态 chunk 误报成 worker 依赖；改成从 `worker.js` 出发只检查
+  可达图后，`yazl`/`electron-log` 误报消失，`node tools/check-worker-deps.cjs` 通过。
+- **已验证**：`npm run typecheck` 0；全量测试 **222 files / 2752 passed / 20 skipped**
+  （P8-D 前 221/2748/19；新增 parity 1 file/5 tests，另有 1 条环境性 skip）；
+  `npx electron-vite build` 0；worker 依赖图 2 个文件自包含。
+- **未验证**：真 Unity、真实 VCC、GitHub 更新/安装器、Windows 10/其他 Unity 版本、
+  100%/125% 真窗口键盘/ARIA；均已在 VPM-GAPS 里分派。
+- **流程缺口**：当前分支 `codex/vpm-p4d-failure-recovery` 无 upstream；`origin/main`
+  仍在 P4-A `e8c3dcb`，P4-B…P8-C 尚未推送/PR。P9-E 发布前必须处理。
+- **给 P8-E/P8-F/P9**：P8-E 做键盘/可访问性/性能/真机截图；P8-F 补模板编辑 UI；
+  P9-D 做真 Unity/回退演练；P9-E 做更新/安装器/发布。GAP-02/A18 已由用户接受，
+  不允许改数据根或删除入口。
+
+### P8-E（2026-10-23，done；I2/I10/A13 仍按部分记录）
+
+- **交付**：新增 `tests/perf/vpm-perf.spec.ts`（隔离 3 条基准）、
+  `tests/renderer/vpm-a11y.spec.ts`(5)、`tests/renderer/vpm-contrast.spec.ts`(2)、
+  `tools/preview/a11y.cjs`（14 项离屏键盘/焦点/缩放探针）、`docs/VPM-PERF.md`、
+  截图 `docs/screenshots/vpm-p8e-100.png` / `vpm-p8e-125.png`。
+- **性能**：5k 包版本目录 p95 **145ms**（预算 200）；单包精确 14ms；200 根解析 p95
+  **25ms**；计划 31ms；200 changes 预检 0.5ms；10k 文件收集 **597ms** / heap +2.4MB。
+  严格计时组默认 skip（全量并行会漂到 ~300ms），用
+  `VPM_PERF_ISOLATED=1 NODE_OPTIONS=--expose-gc npx vitest run tests/perf/vpm-perf.spec.ts`
+  显式跑；阈值未放宽。
+- **可访问性修复**：`MenuButton` 的 menu/menuitem/aria-haspopup/aria-expanded、
+  打开焦点第一项、方向键/Home/End/Esc 回锚点；`Switch` 可传 aria-label；
+  模板卡去掉 button 内嵌 role=button；错误 role=alert、进度 role=status/aria-live；
+  深/浅主题的 faint/ok/warn 对比度与 `--accent-strong` 主按钮修正。
+- **已验证**：14 项离屏检查全过（菜单焦点/方向键/End/Esc、弹窗焦点陷阱 Tab/Shift+Tab/Esc、
+  100%/125% 横向溢出 0）；两套主题 text/muted/faint/bad/warn/ok/accent 与主按钮白字
+  全部 ≥4.5:1；全量 **224 files / 2760 passed / 22 skipped**；typecheck 0；
+  `electron-vite build` 0；`check-worker-deps` 0；`check-vpm-taskpack` 0。
+  本机安装 P8-E 0.9.0 启动正常（VPM enabled，dataRoot `%APPDATA%\Atrium`）。
+- **未验证**：真实屏幕阅读器、真实物理 100%/125% DPI、离屏合成 Enter（原生 button
+  语义由静态测试守住）、10k 包目录/长稳、A13 置顶（可选，未做）、E5/H4 真机点击、
+  真 Unity/VCC/更新器/安装器。
+- **给 P8-F**：模板编辑 UI 的按键/焦点沿用 `MenuButton`/`Modal`/`Switch` 的现有语义；
+  新按钮要给原生 button 或 aria-label；错误用 role=alert。
+- **给 P9-C/P9-D**：目录 5k 余量 ~55ms，10k 行要加分页/预聚合；真机补屏幕阅读器、
+  物理 DPI、深链/备份位置点击；A13 若要做，按 PID/窗口查找，失败不影响启动。
+
+### P8-F（2026-10-23，done）
+
+- **公开 API/契约**：`IpcInvoke.Vpm` 新增 `TemplateCreate` / `TemplateUpdate` /
+  `TemplateDuplicate` / `TemplateRemoveReference` / `TemplateRestore`；
+  `TemplateList` 接受 `{includeHidden?}`。`shared/vpm/dto/unity.ts` 新增
+  `VpmTemplatePatch/CreateInput/UpdateInput/ListInput/DuplicateInput/IdInput`；
+  `TemplateService.update` 新增“base 指向自己/后代”拒绝（`vpmTemplateInvalid`）。
+- **UI**：设置 → 项目与包新增模板面板：内置/用户列表、收藏/已移除/文件损坏标记、
+  新建/编辑表单（名称、描述、base、Unity min/max/recommended、依赖文本）、复制、
+  移除引用（只隐藏不删文件）、显示已移除后恢复。附件只显示引用，不在本页上传。
+  DTO 不含 settings/磁盘路径；base 下拉排除自己和后代。
+- **文件**：新增 `src/renderer/vpm/components/settings/TemplateEditorPanel.tsx`、
+  `tests/vpm/ipc/templates.spec.ts`、`tests/renderer/vpm-templates.spec.ts`；
+  `VpmWorkspace` 挂载面板；三语文案 `vpm.templates.*`。
+- **已验证**：typecheck 0；全量 **226 files / 2770 passed / 22 skipped**；
+  `electron-vite build` 0；`check-worker-deps` 0；`check-vpm-taskpack` 0；
+  `tests/vpm/templates/service.spec.ts` 17、`tests/vpm/ipc/templates.spec.ts` 5、
+  `tests/renderer/vpm-templates.spec.ts` 3 全绿；三语/i18n、通道清单/API 转发全绿。
+  截图 `docs/screenshots/vpm-p8f-templates.png`、`vpm-p8f-editor.png`（离屏）；
+  本机安装 P8-F 0.9.0 启动正常（VPM enabled）。
+- **未验证**：没有在真实窗口里点完整新建/编辑/复制/恢复流程（截图来自离屏预览）；
+  不做附件上传/编辑；不做永久删除。
+- **给 P9-A**：模板面板只走 IPC；新按钮保持原生 button/aria-label；错误用 role=alert。
+  A8 已关闭，P9 只剩真 Unity/VCC/更新器/回退/性能等缺口。
+
+### P9-A（2026-10-23，done；I6 接受例外）
+
+- **安全报告**：`docs/VPM-SECURITY.md`（攻击面矩阵、静态闸门、接受例外、未验证）。
+- **修复的唯一真实问题**：陈旧 `Temp/UnityLockfile` 原来 `rmSync` 永久删工程文件；
+  改为同目录改名 `UnityLockfile.atrium-stale-<timestamp>`，改名失败才按 alreadyRunning。
+  `tests/vpm/unity/launch.spec.ts` 新增用例断言旧文件仍在、内容不变。
+- **新增安全用例**：`tests/vpm/security/archive-attacks.spec.ts`（5）、
+  `static.spec.ts`（6）、`deeplink.spec.ts`（4）、`protected-and-templates.spec.ts`（4），
+  覆盖 zip-slip/UNC/ADS/保留名/长路径/symlink/encrypted/未知压缩/bomb、网络唯一出口、
+  TLS 绕过、删除白名单、`.meta`、深链全部凭据键、受保护包、模板路径/循环/只删引用。
+- **静态闸门**：除 `http/` 外无 fetch/net.request/node:http(s)/http://；无 TLS 绕过；
+  删除只允许白名单文件；无生成/改写 `.meta`；陈旧锁只 rename。
+- **已验证**：typecheck 0；`npm run build` 0（含全量 **230 files / 2790 passed /
+  22 skipped**、worker 检查、安装包）；定向安全 4 files/19 条 + launch 16 条全绿。
+- **接受例外**：I6/R19 数据根/cache/vault/backups 在 `%APPDATA%\Atrium`（用户已接受）；
+  回收站不可用时 copy→delete 回退、legacy/unitypackage 原样搬 `.meta` 不算永久删/生成。
+- **未验证**：真实 Unity/VCC/更新器/安装器、OS 级 ACL/UNC/只读盘/杀毒占用、
+  极端 zip bomb/TOCTOU；归 P9-D/P9-E。
+- **给 P9-B**：保留 `tests/vpm/security/static.spec.ts` 的删除/网络/.meta 白名单；
+  新增删除点先过它；不要为了通过率降低校验，也不要“修”回非 C 数据根。
+
+### P9-B（2026-10-23，done）
+
+- **可靠性报告**：`docs/VPM-RELIABILITY.md`（失败矩阵、崩溃点、锁审计、长稳、未验证）。
+- **恢复路径**：`RecoveryService.inspect()/recover()`；IPC `vpm:operation-recover`；
+  DTO `VpmOperationDto.recovery` + `VpmOperationSummaryDto.recovery`；
+  结果对话框/历史行提供“恢复/重新检查”，三语覆盖 10 种 reason。
+  渲染层只传 `operationId`，回滚/补完由主进程按 journal+磁盘重新判定。
+- **修复**：提交后的 vault 归档补完原来可能从 `scanAndApply()` 抛错并卡住 VPM 启动；
+  现在任何意外只保留 `vault_pending`。恢复增加同操作互斥，避免两路 rename。
+- **新增用例（6 个 reliability 文件）**：
+  - `manual-recovery.spec.ts`（8）：外部修复 manifest/journal 后重试；点击时重新判定；
+    Unity/备份/导入占用等待；占用检查抛错 fail closed；终态/未知 id；
+  - `locks.spec.ts`（7）：租约在成功/失败/模拟崩溃/12 连败后全释放；真实运行中的事务挡住恢复；
+    6 轮崩溃恢复后仍可提交；
+  - `long-run.spec.ts`（1）：40 次连续事务后 active=0、running 步骤=0、journal 全提交、
+    SQLite `integrity_check=ok`（本机约 10s）；
+  - `archive-hardening.spec.ts`（1）：归档阶段 `EACCES` 只留 `vault_pending`，不卡启动；
+  - `restart.spec.ts`（1）：真实子进程 `exit(37)` → 新连接手动恢复 → 另一子进程重新拿锁；
+  - `failure-matrix.spec.ts`（2）：24 个注入点唯一且都真的从事务里触发。
+  - 另加 `tests/renderer/vpm-recovery.spec.ts`（5）、IPC 恢复 4 条、
+    `legacy:after` 回归 1 条。
+- **已验证**：失败注入 24 点、崩溃窗口、真实 EPERM/EBUSY、进程死亡、并发/租约/外改；
+  `npm run typecheck` 0；`npm run build` 0（全量 **237 files / 2820 passed / 22 skipped
+  （2842 tests）**、worker 依赖图自包含、安装包 0.9.0）。安装版已重装并启动
+  （15:44，VPM 运行时加载、degraded=false、窗口 visible=true）。
+- **未验证**：真实窗口点恢复按钮、真 Unity 占用下的生产工程恢复、小时级长稳/
+  断电/杀毒占用/UNC；journal 永久丢失仍只能人工修复，不提供强制解锁（有意）。
+- **给 P9-C**：恢复路径的测试入口在 `tests/vpm/reliability/`；不要改事务语义来“优化”
+  可靠性数字。性能/长路径/版本矩阵从 `docs/VPM-RELIABILITY.md` §7/§8 接。
+
+### P9-C（2026-10-23，done）
+
+- **性能报告**：`docs/VPM-PERF.md` §6（改造前后对照 + 分段根因 + 兼容记录）。
+- **修掉的真实性能问题**：10,000 行目录查询 p95 **548.65ms**（预算 200ms）。
+  根因不是聚合，是"为了分页把整个目录读进内存"：20 次分页 SQL（338ms，其中每页重算
+  `COUNT(*)` 50ms）+ 全量分组。界面一屏只要 100 张卡片。
+  - 新增 `RepoStore.queryCatalogNames()`：SQL 里按包名分页
+    （`SELECT DISTINCT p.name ... LIMIT/OFFSET` + `COUNT(DISTINCT p.name)`）；
+  - `CatalogService.query()` 拿一页名字后 `queryCatalog({ names })` 只取这些包的行；
+  - 用户偏好下沉成 SQL 条件（`excludeNames` / `excludePrerelease`）——
+    留在 JS 里会让隐藏项占掉页内名额、第二页少行；名字列表用 `json_each(@names)` 传。
+  - 结果：**16.03ms**（34×），`resolverCatalog` 10k 行 317ms（预算 500，解析必须全量，不动）。
+- **顺手修掉一个静默丢数据的坑**：`fetchRows` 原来 `offset += PAGE_SIZE`，
+  而 `queryCatalog` 把 limit 夹到 500 —— `PAGE_SIZE` 一旦写得比 500 大就会跳过中间页
+  （10k 行只读到 2.5k，且 `total` 仍正确）。现在按**实际返回行数**推进。
+- **兼容**：新增 `tests/vpm/compat/paths-and-versions.spec.ts`（11 条）——
+  中文/空格/`#&` 路径、260 策略线报警、解压路径策略、Unity 2019.4/2021.3/2022.3/6000.0
+  精确匹配、中国版 `cN` 归一、不凑合别的补丁版、显式编辑器优先。
+- **分页语义**：新增 `tests/vpm/catalog/paging.spec.ts`（7 条）——
+  total 是包数量、翻页不重不漏、隐藏/预发布在分页前生效、offset 越界、详情不受影响。
+- **文档更正**：`docs/VPM-P5D-HANDOVER.md` 写"按 base 版本 2022.3 匹配"是错的，
+  `unityVersionBase()` 只去中国版后缀，匹配是**精确版本**；已在原文加注，
+  `docs/DEVELOPMENT.md` 与 `README.md` 同步写清 260 路径线与 Win10 未验。
+- **已验证**：`npm run typecheck` 0；全量 **250 files / 2864 tests（2838 passed /
+  26 skipped）、0 failed**；隔离基准 `vpm-perf.spec.ts` 3 条 + `vpm-scale-p9c.spec.ts` 4 条全绿。
+- **未验证**：Windows 10 无实机；真 Unity 打开工程（P9-D）；真机 UI 帧率/低配机；
+  UNC/可移动盘/非 NTFS 上的事务（只做了路径字符串层面的兼容）。
+- **给 P9-D**：性能余量已经很大（10k 行 16ms），别再为"更快"改分页语义；
+  真机回归时重点看备份的 `longPath` 警告是否真的显示给用户。
+
+### P9-D（2026-10-24，review：无界面四层 + 安装版启动/安全模式已验）
+
+- **回退证据**：`docs/VPM-ROLLBACK-EVIDENCE.md`（演练表 + 代码回退面 + 未验证 + 给用户的操作单）。
+- **演练用例**：`tests/rollback/drill.spec.ts`（9 条，全绿）。
+- **最重要的发现**：**L1「设置里停用」已经不存在了**。R20 删了按钮，
+  而且 `ensureAutoEnabled()` 会在下次启动把任何停用改回启用（用例直接钉住这个行为）。
+  回退的第一道门现在是 **L2 安全模式**，硬出口是 **L4 装回 0.8.0**。
+  同时 L3「移走 `%APPDATA%\A\vpm\`」也不再一次性生效：下次正常启动会重建空库。
+- **手册已就地改正**：位置清单（数据根 = `vpm\settings.json` 里的 `dataRoot`，
+  不是"启用时选的目录"）、§3 L1 整节重写、§5 L3 加"会被自动重建"。
+- **核心无损的根证据**：`git diff pre-vpm HEAD -- src/main/db/schema.ts` **零行**；
+  `library.db` 里 `vpm_*` 表数量 0；移走 VPM 目录前后 `user_version=11`/表清单/行数/样例行完全一致。
+- **已验证（2026-10-24 补）**：L1 现状、L2 安全模式（安装版启动日志 `safeMode=true`，
+  VPM 运行时未加载）、L3（移走目录核心无损）、L4 前提与 L5 静态面；安装版正常启动
+  （`visible=true`、VPM 运行时加载、`degraded=false`）。
+- **未验证（需要人工，操作单见证据文档 §5）**：L4 真装回 0.8.0 再装回、真 Unity 回归
+  （K1/K2/K4/K5）、真机撤销一次装包、Windows 10。
+- **给 P9-E**：发布前先跑证据文档 §5.3/§5.5；`dist/Atrium-Setup-0.8.0.exe` 不进仓库，
+  换机器要重新构建或从备份取。
+
+### P9-E（review：本地发布准备完成，待推送/PR/Release）
+
+> 起因：用户看到"请你自己去装 0.9.0"之后说了一句 ——
+> **"你就不能自己帮我把这里的更新好吗……我要做什么为什么不在这里就告诉我，还得我去开文档"**。
+> 这条反馈本身就是需求：更新这件事不该要求用户读文档、开资源管理器、双击安装包。
+
+- **新增**：`UpdaterService.localBuilds()` + `updatesDir`；IPC `vpm:update-local` /
+  `vpm:update-open-folder`；更新面板里加"本地安装包"区块。
+- **行为**：把 `Atrium-Setup-*.exe` 放进 `<数据根>/updates/`（面板上有"打开文件夹"），
+  列表按版本从新到旧显示（版本/时间/大小），点"安装"过一次确认框就调用现有
+  `runInstaller`（路径白名单没放宽：仍然只认这个目录里的 `Atrium-Setup-*.exe`）。
+- **不做**：仍然不静默安装、不在启动时自动装；GitHub 那条路不变（有发布才走）。
+- **已验证**：`tests/vpm/updater.spec.ts` +4 条（排序/空目录/无法解析版本/updatesDir）；
+  通道白名单 +2；三语文案齐全；typecheck 0。
+- **发布说明**：`docs/release-body-0.9.0.md`（大白话、无内部术语、含已知限制/数据位置）。
+- **干净构建（2026-10-24）**：`npm run build` 0；全量 **240 files / 2851 passed /
+  26 skipped（2877 tests）**；`tools/pkg-version.cjs` 通过（0.9.0、MIT、asar 不比源码旧）。
+  - 第一次全量在并行负载下 `tests/bridge/lockfile.spec.ts` 的 WMI 兜底命令失败一次；
+    单跑 17/17 通过，第二次全量全绿；这是已知的环境型 flake，发布记录保留两次结果。
+- **产物**：
+  - `Atrium-Setup-0.9.0.exe` 83.3 MB
+    `3af6e55e9caacae0562d186d1b36e1499ea81657de4b95c85db87cd3ed13ed69`
+  - `Atrium-portable-0.9.0.exe` 83.1 MB
+    `217d5b3ef6385d2489176282de594bcd8d8bd172ef4d90758ff0c059c2b9667e`
+- **本机安装版**：用 `Atrium-Setup-0.9.0.exe /S /currentuser` 正式覆盖安装
+  （时间 10:32:34，安装后的 `app.asar` 与 `dist/win-unpacked` 的 SHA-256 完全一致）；
+  `tools/installed-version.cjs --expect=0.9.0` 返回注册表 `DisplayVersion=0.9.0`。
+  正常启动与 `--safe-mode` 启动都已验证（安全模式日志 `safeMode=true`，无 VPM 运行时加载）。
+  > ⚠ 辅助安装器只带 `/S` 会停在安装模式页；**必须带 `/currentuser`**（2026-10-24 实测）。
+- **未验证/待办**：`v0.9.0` tag/Release 尚未创建（`gh-release.cjs --check` 已确认）；当前分支
+  92 个提交仍未推送，发布前必须走 PR/合并；Release 正文/资产的远端核对与“更新器真网下载”未做；
+  真 Unity 装包/启动/双击导入仍归 P9-D。
+- **给发布的人**：先补齐/确认 P9-D 的 §5.3–5.5，再推送并合并，然后
+  `node tools/gh-release.cjs --check` → 用户确认 → `--create` → `verify-release-page.cjs`。
+  不要用 `dist-rel/`、`dist-new/` 的旧产物；以本次 `dist/` 的哈希为准。
 
 ---
 
