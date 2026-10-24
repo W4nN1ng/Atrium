@@ -99,6 +99,17 @@ export function setProjectRunning(db: Db, id: string, running: boolean): void {
 }
 
 /**
+ * 进程重启时把上一会话的运行状态清掉。
+ *
+ * `is_running` 是“上一轮探测”的缓存，不是可信的跨进程状态；旧值会让首屏
+ * 把早已关闭的工程显示成绿灯，等异步探测完成后再自己变灰。启动时统一清零，
+ * 首屏宁可显示“未运行”，也不要先撒谎。
+ */
+export function clearProjectRunningFlags(db: Db): void {
+  db.prepare(`UPDATE project SET is_running = 0`).run()
+}
+
+/**
  * M6 ③ · 自动切换冷却的两个读写口。
  *
  * ⚠ `markAutoSwitched` **只在真的切换了之后**调用。skip（没匹配上 / 平手 / 行为开关关掉）

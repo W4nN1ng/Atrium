@@ -9,7 +9,7 @@ import { getDb, isDbOpen } from '../db'
 import { listCollections, parseRule } from '../db/repos/meta'
 import { getBridgeAsk } from '../db/repos/bridgeAsk'
 import { bridgeAskDecision } from '../../shared/bridgeAsk'
-import { listProjects, autoSwitchAtOf, getProjectByPath, markAutoSwitched, toProjectInfo, upsertProject } from '../db/repos/unity'
+import { listProjects, autoSwitchAtOf, clearProjectRunningFlags, getProjectByPath, markAutoSwitched, toProjectInfo, upsertProject } from '../db/repos/unity'
 import { isBridgeInstalled } from '../bridge/mailbox'
 import { pushBridgeAsk } from '../bridge/askQueue'
 import { getSettings } from '../services/settings'
@@ -181,6 +181,15 @@ export function startProjectWatcher(
   let disposed = false
   let detectionGeneration = 0
   let detectionInFlight: Promise<ProjectInfo[]> | null = null
+  /**
+   * 上一会话留在 `project.is_running` 的绿灯不是运行证据。
+   * 先清零，首屏宁可显示“未运行”，等下面 refresh() 的三路探测给出真实状态。
+   */
+  try {
+    clearProjectRunningFlags(db)
+  } catch (e) {
+    log.warn('清理上一轮工程运行状态失败：' + (e instanceof Error ? e.message : String(e)))
+  }
   let latestList = listProjects(db).filter((p) => !isInternalPreviewProject(p.path)).map(toProjectInfo)
 
   /**
