@@ -17,15 +17,18 @@
  */
 import { nativeImage } from 'electron'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
-import { P } from '../services/paths'
+import { P, bundledBinDir } from '../services/paths'
 import { extractPackagePreview } from '../unpack/unitypackage'
+import { extractMembers, listMembers } from '../unpack/members'
 import type { Db } from '../db'
 import { getCover, referencedCoverKeys } from '../db/repos/covers'
 import {
   COVER_NONE,
   THUMB_MAX_SOURCE_BYTES,
   listImageFiles,
+  pickArchiveCoverEntry,
   pickCoverCandidate,
   thumbKeyFromUrl,
   thumbKeyOf,
@@ -100,6 +103,113 @@ export function writeThumb(srcAbs: string, key: string): ThumbResult {
   return encodeThumb(nativeImage.createFromPath(srcAbs), key)
 }
 
+/** 能"从里面抠封面"的容器：VRChat 素材基本就这四种 */
+export const CONTAINER_EXT = /\.(unitypackage|zip|rar|7z)$/i
+
+/** 嵌套包上限：Booth 里"zip 只装一个 unitypackage"通常几 MB，超过这个就不值得为封面去解压 */
+const NESTED_MAX_BYTES = 64 * 1024 * 1024
+
+/** 解出来的成员落在临时目录里（保留包内相对路径），扫一遍找出来，别猜 */
+function findLandedFile(dir: string, re: RegExp, depth = 4): string | null {
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return null
+  }
+  for (const e of entries) {
+    const abs = path.join(dir, e.name)
+    if (e.isDirectory()) {
+      const hit = depth > 0 ? findLandedFile(abs, re, depth - 1) : null
+      if (hit) return hit
+      continue
+    }
+    if (re.test(e.name)) return abs
+  }
+  return null
+}
+
+/**
+ * 源本身就是压缩包时，封面只能从**包里**取。
+ *
+ * 现场（2026-10-24 16:49，拖入「插件17件」27 件）：16 件是目录、14 件是
+ * zip / rar / unitypackage。旧路径把压缩包本体丢给 `nativeImage.createFromPath`，
+ * 必然解不出一张图 → 一路走到"没图"，于是这些卡片永远是首字母方块。
+ *
+ * 三种容器分开处理不是重复代码：
+ * - `.unitypackage` 是 tar.gz，卖家自己塞的 `preview.png` 就是他们选的封面，
+ *   走流式解析、拿到第一张就掐断，不解压整个包；
+ * - zip / rar / 7z 先列清单挑一张图，再只抽那一张（`extractMembers` 支持点名抽取），
+ *   绝不能为了封面把几百 MB 的包解到磁盘上；
+ * - **包中包**：`liltoon_unebeta.zip` 里只有一个 `liltoon_unebeta.unitypackage`，
+ *   没有散图。不下这一层，Booth 上最常见的那种"zip 套 unitypackage"永远没封面。
+ *   只下一层、只看最小的两个，防止为了封面去解一整套合集。
+ */
+async function coverFromArchive(file: string, key: string, depth = 1): Promise<ThumbResult | null> {
+  if (/\.unitypackage$/i.test(file)) {
+    const pv = await extractPackagePreview(file)
+    return pv ? writeThumbFromBuffer(pv.bytes, key) : null
+  }
+  let entries: Array<{ path: string; size: number; isDir: boolean }>
+  try {
+    /**
+     * ⚠ **必须带 `extraBackendDirs`**。
+     * 不带的话 `resolveBackend` 会退回系统里装的 WinRAR / 7-Zip；这台机器上退回的是
+     * `UnRAR.exe`，它不认我们用的那套参数，抛 `后端版本过旧` —— 于是所有 rar 素材
+     * 都被判成"没图"（2026-10-24 实测：`原版VRCFury.rar` 里明明有 7 KB 的 preview.png）。
+     * 打包后 7z.exe 就在 `resources/bin`，传进去就能正常列清单和解包。
+     */
+    entries = (await listMembers(file, { extraBackendDirs: [bundledBinDir()] })).entries
+  } catch {
+    return null
+  }
+
+  const best = pickArchiveCoverEntry(entries)
+  if (best) {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'atrium-cover-'))
+    try {
+      await extractMembers(file, tmp, [best.path], { extraBackendDirs: [bundledBinDir()] })
+      const landed = listImageFiles(tmp, 5, 4)[0]
+      if (!landed || landed.size > THUMB_MAX_SOURCE_BYTES) return null
+      return writeThumbFromBuffer(fs.readFileSync(landed.absPath), key)
+    } catch {
+      /* 加密包、坏包、后端缺 7z —— 都当"这张拿不到"，不往上抛 */
+      return null
+    } finally {
+      try {
+        fs.rmSync(tmp, { recursive: true, force: true })
+      } catch {
+        /* 临时目录删不掉不影响结果，系统会回收 */
+      }
+    }
+  }
+
+  if (depth <= 0) return null
+  const nested = entries
+    .filter((e) => !e.isDir && CONTAINER_EXT.test(e.path) && e.size > 0 && e.size <= NESTED_MAX_BYTES)
+    .sort((a, b) => a.size - b.size)
+    .slice(0, 2)
+  for (const n of nested) {
+    const inner = fs.mkdtempSync(path.join(os.tmpdir(), 'atrium-cover-in-'))
+    try {
+      await extractMembers(file, inner, [n.path], { extraBackendDirs: [bundledBinDir()] })
+      const innerFile = findLandedFile(inner, CONTAINER_EXT)
+      if (!innerFile) continue
+      const r = await coverFromArchive(innerFile, key, depth - 1)
+      if (r?.ok && r.url) return r
+    } catch {
+      /* 这个嵌套包读不动，换下一个 */
+    } finally {
+      try {
+        fs.rmSync(inner, { recursive: true, force: true })
+      } catch {
+        /* 同上 */
+      }
+    }
+  }
+  return null
+}
+
 interface ThumbRow {
   id: string
   hash_xxh64: string | null
@@ -109,7 +219,7 @@ interface ThumbRow {
   cover_image: string | null
 }
 
-/** 素材目录里找 .unitypackage（最多两层、前 6 个，够挑封面了） */
+/** 素材目录里找可以"从里面抠封面"的容器（最多两层、前 6 个，够挑封面了） */
 function findPackageFiles(dir: string, limit = 6): string[] {
   const out: string[] = []
   const walk = (d: string, level: number): void => {
@@ -126,7 +236,7 @@ function findPackageFiles(dir: string, limit = 6): string[] {
       if (e.isDirectory()) {
         if (e.name.startsWith('.')) continue
         walk(abs, level + 1)
-      } else if (/\.unitypackage$/i.test(e.name)) {
+      } else if (/\.(unitypackage|zip|rar|7z)$/i.test(e.name)) {
         try {
           if (fs.statSync(abs).isFile()) out.push(abs)
         } catch {
@@ -192,6 +302,8 @@ export async function ensureThumb(db: Db, assetId: string, opts: ThumbOptions = 
    * 2026-10-24 那次 22 件只出 1 张封面，就是这条路径的两种表现。
    */
   let listedOk = false
+  /** 找到了容器但这一趟没被允许拆 → 不许把"没看"写成"没图"（见下面 lookedEverywhere） */
+  let skippedContainer = false
   const dirs: string[] = []
   for (const d of [row.library_path, row.source_path].filter((x): x is string => !!x)) {
     let abs: string | null = null
@@ -204,6 +316,24 @@ export async function ensureThumb(db: Db, assetId: string, opts: ThumbOptions = 
     }
     if (st.isFile()) {
       listedOk = true
+      /**
+       * 源文件是压缩包：解码器读不懂它，封面要从包里取。
+       * 也不能把它塞进 `dirs` 再走 `findPackageFiles` —— 那里 `readdirSync` 一个文件必然失败，
+       * 等于白跑一趟。
+       */
+      if (CONTAINER_EXT.test(d)) {
+        /**
+         * 没被允许拆包的那一趟（启动时"便宜"的那趟）**既不试、也不许记 none**：
+         * 拆包要 CPU 和磁盘，但这不代表"这素材没图"，只代表"这一趟没看"。
+         */
+        if (!opts.packages) {
+          skippedContainer = true
+          continue
+        }
+        const r = await coverFromArchive(d, key)
+        if (r?.ok && r.url) return save(r.url) ? r : current()
+        continue
+      }
       abs = d
     } else {
       try {
@@ -221,27 +351,30 @@ export async function ensureThumb(db: Db, assetId: string, opts: ThumbOptions = 
       return save(r.url) ? r : current()
     }
   }
-  // 散图没有 → 伸进 unitypackage 拿卖家自己放的 preview.png（要解压，看 opts.packages 脸色）
-  if (opts.packages) {
-    for (const d of dirs) {
-      for (const pkg of findPackageFiles(d)) {
-        try {
-          const pv = await extractPackagePreview(pkg)
-          if (!pv) continue
-          const r = writeThumbFromBuffer(pv.bytes, key)
-          if (r.ok && r.url) {
-            return save(r.url) ? r : current()
-          }
-        } catch {
-          /* 一个包读不动就试下一个 */
+  // 散图没有 → 伸进目录里的容器抠图（unitypackage 的 preview.png、zip/rar 里的商品图）
+  for (const d of dirs) {
+    const containers = findPackageFiles(d)
+    if (!containers.length) continue
+    if (!opts.packages) {
+      // 这一趟不拆包，但也不能因此判"没图"
+      skippedContainer = true
+      continue
+    }
+    for (const pkg of containers) {
+      try {
+        const r = await coverFromArchive(pkg, key)
+        if (r?.ok && r.url) {
+          return save(r.url) ? r : current()
         }
+      } catch {
+        /* 一个包读不动就试下一个 */
       }
     }
   }
-  // 只有"里外都找过"才配写没图记号：没开 packages 的批次只是没往包里看，
-  // 现在就标 'none' 的话，以后维护页再也不会去补这些素材的封面。
-  const searchedEverything = opts.packages !== false
-  if (searchedEverything && listedOk && row.cover_image !== COVER_NONE) {
+  // 只有"里外都找过"才配写没图记号：没拆包的那趟只是没往里看，
+  // 现在就标 'none' 的话，这一行就**永远不会**再被补（backfill 只捞 NULL）。
+  const lookedEverywhere = !!opts.packages || !skippedContainer
+  if (lookedEverywhere && listedOk && row.cover_image !== COVER_NONE) {
     if (!save(COVER_NONE)) return current()
   }
   return { ok: false, url: null, why: '没有可用的图片' }
@@ -284,6 +417,77 @@ export async function backfillThumbs(
     if ((await ensureThumb(db, r.id, opts)).ok) made++
   }
   return { checked, made, hitDeadline }
+}
+
+/**
+ * 给**指定这批**素材补封面（入库收尾用）。
+ *
+ * 为什么不复用 `backfillThumbs`：那个是"全库捞 cover_image IS NULL，按 updated_at 取前 N 条"。
+ * 一次整筐入库 27 件时，它的预算里混着一堆旧素材，而真正该补的就是这 27 条 ——
+ * 而且它没法回答"这批到底补全了没有"。
+ *
+ * 返回 `missed`：这次没出图、**且仍然是 NULL** 的那些（= 源还没落稳，值得补拍）。
+ * 已经确认没图的（`none`）不算 missed —— 给它们排补拍只是白发两次解码。
+ */
+export async function backfillThumbsFor(
+  db: Db,
+  ids: string[],
+  opts: ThumbOptions = {}
+): Promise<{ checked: number; made: number; missed: string[] }> {
+  let made = 0
+  const missed: string[] = []
+  for (const id of ids) {
+    let ok = false
+    try {
+      ok = (await ensureThumb(db, id, opts)).ok
+    } catch {
+      ok = false
+    }
+    if (ok) {
+      made++
+      continue
+    }
+    const row = db.prepare('SELECT cover_image FROM asset WHERE id = ?').get(id) as
+      | { cover_image: string | null }
+      | undefined
+    if (row && row.cover_image === null) missed.push(id)
+  }
+  return { checked: ids.length, made, missed }
+}
+
+/**
+ * 一次性修复：把旧流程**判错**的 `cover_image='none'` 清回 NULL。
+ *
+ * 为什么不走迁移：核心库 schema 版本是"旧版能直接打开新库"的前提
+ * （`tests/rollback/drill.spec.ts` 咬死 11 不放），封面缓存的口径不该去动它。
+ * 所以改用 `setting` 里的一枚标记，跑一次就记下。
+ *
+ * 为什么必须修：`'none'` 的语义是"确认过，这包里没图"，而 `backfillThumbs`
+ * 只捞 `IS NULL` —— 记错一次就是**永远**没有封面。0.9.2 之前"源是压缩包"的素材
+ * 从来没往包里看过（还把系统 UnRAR 的参数错误当成"没图"），那批 `none` 是错的。
+ *
+ * 清回 NULL 代价有限：重看一遍，真没图的会再被记回 `none`，不会来回抖。
+ */
+const COVER_PIPELINE_KEY = 'cover.pipeline'
+const COVER_PIPELINE_VERSION = 2
+
+export function repairUntrustedNoneCovers(db: Db): number {
+  const row = db.prepare('SELECT value_json FROM setting WHERE key = ?').get(COVER_PIPELINE_KEY) as
+    | { value_json: string | null }
+    | undefined
+  let seen = 0
+  try {
+    seen = row?.value_json ? Number(JSON.parse(row.value_json)) || 0 : 0
+  } catch {
+    seen = 0
+  }
+  if (seen >= COVER_PIPELINE_VERSION) return 0
+  const cleared = db.prepare(`UPDATE asset SET cover_image = NULL WHERE cover_image = 'none'`).run().changes
+  db.prepare('INSERT OR REPLACE INTO setting (key, value_json) VALUES (?, ?)').run(
+    COVER_PIPELINE_KEY,
+    JSON.stringify(COVER_PIPELINE_VERSION)
+  )
+  return cleared
 }
 
 /** 删素材时顺手清缓存（回收站里的东西不该继续在缩略图目录留影子） */
