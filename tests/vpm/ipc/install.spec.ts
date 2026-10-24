@@ -24,6 +24,7 @@ let commitPoints: Map<string, 'before' | 'manifest_written'>
 let applyImpl: (input: ApplyPlanInput) => Promise<ApplyPlanResult>
 let inspectDecision: RecoveryDecision | null
 let recoverOutcome: RecoveryOutcome | null
+let allowPrerelease = false
 let runtime: VpmRuntime
 
 function operation(overrides: Partial<OperationRecord> = {}): OperationRecord {
@@ -107,6 +108,7 @@ beforeEach(() => {
   }
   inspectDecision = null
   recoverOutcome = null
+  allowPrerelease = false
 
   runtime = {
     operations: {
@@ -151,12 +153,16 @@ beforeEach(() => {
       })
     },
     catalog: {
+      defaultAllowPrerelease: () => allowPrerelease,
       getPackage: (name: string) =>
         name === 'com.example.a'
           ? {
-              latestVersion: '2.0.0',
+              displayName: 'Example A',
+              sources: [{ repoName: 'Official' }],
+              latestVersion: '3.0.0-beta.1',
               hasConflict: false,
               versions: [
+                { version: '3.0.0-beta.1', yanked: false, deprecated: false, unityMin: '2022.3', sources: [{ repoName: 'Official' }] },
                 { version: '2.0.0', yanked: false, deprecated: false, unityMin: '2022.3', sources: [{ repoName: 'Official' }] },
                 { version: '1.0.0', yanked: false, deprecated: false, unityMin: null, sources: [] }
               ]
@@ -398,14 +404,29 @@ describe('install IPC: status and history', () => {
 })
 
 describe('install IPC: project catalog', () => {
-  it('returns versions for installed packages and skips protected ones', () => {
-    const dto = call<{ packages: Array<{ name: string; latestVersion: string | null; versions: unknown[] }>; truncated: boolean }>(
+  it('uses display names, repository source and stable latest by default', () => {
+    const dto = call<{ packages: Array<{ name: string; displayName: string | null; sourceName: string | null; latestVersion: string | null; versions: unknown[] }>; truncated: boolean }>(
       IpcInvoke.Vpm.ProjectCatalog,
       PROJECT
     )
     expect(dto.truncated).toBe(false)
     expect(dto.packages).toHaveLength(1)
-    expect(dto.packages[0]).toMatchObject({ name: 'com.example.a', latestVersion: '2.0.0' })
+    expect(dto.packages[0]).toMatchObject({
+      name: 'com.example.a',
+      displayName: 'Example A',
+      sourceName: 'Official',
+      latestVersion: '2.0.0'
+    })
     expect(dto.packages[0].versions).toHaveLength(2)
+  })
+
+  it('shows prereleases only when the preference allows them', () => {
+    allowPrerelease = true
+    const dto = call<{ packages: Array<{ latestVersion: string | null; versions: unknown[] }> }>(
+      IpcInvoke.Vpm.ProjectCatalog,
+      PROJECT
+    )
+    expect(dto.packages[0].latestVersion).toBe('3.0.0-beta.1')
+    expect(dto.packages[0].versions).toHaveLength(3)
   })
 })

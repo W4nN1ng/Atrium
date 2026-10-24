@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { ChangePlanRequest } from '../../../../shared/vpm/domain/plan'
 import type {
   VpmPackageCatalogInfoDto,
   VpmProjectCatalogDto,
@@ -10,6 +11,7 @@ import { Badge, Button, Modal } from '../../../components/ui'
 import { errorText } from '../../../lib/msg'
 import { cleanText, formatTimestamp, vpmCodeLabel } from '../../lib/view'
 import {
+  actionFor,
   countUpdates,
   filterRows,
   removeEntry,
@@ -24,6 +26,7 @@ import {
 } from '../../lib/cart'
 import { useVpmOperations } from '../../hooks/useVpmOperations'
 import { vpmApi } from '../../api'
+import { VpmAddPackageDialog, type AddPackagePick } from './VpmAddPackageDialog'
 import { VpmApplyPlanSheet } from './VpmApplyPlanSheet'
 import { VpmOperationDialog } from './VpmOperationDialog'
 
@@ -79,13 +82,27 @@ function Row({
       )}
       <div className="min-w-[180px] flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="break-all font-mono text-[11px]">{cleanText(row.name, 214)}</span>
+          <span className="break-words text-[12px]" title={row.name}>
+            {cleanText(row.displayName ?? row.name, 200)}
+          </span>
           {row.protected ? <Badge tone="accent">{t('vpm.packages.system')}</Badge> : null}
           {row.updateAvailable ? <Badge tone="ok">{t('vpm.packages.updateAvailable')}</Badge> : null}
           {row.hasConflict ? <Badge tone="warn">{t('vpm.packages.conflict')}</Badge> : null}
         </div>
         <div className="faint mt-0.5 text-[10px]">
-          {row.protected ? t('vpm.packages.systemHint') : cleanText(row.source, 40)}
+          {row.protected ? (
+            t('vpm.packages.systemHint')
+          ) : (
+            <>
+              {row.displayName ? (
+                <>
+                  <span className="font-mono">{cleanText(row.name, 214)}</span>
+                  {' · '}
+                </>
+              ) : null}
+              {cleanText(row.repoName ?? t('vpm.packages.embeddedSource'), 60)}
+            </>
+          )}
         </div>
       </div>
 
@@ -157,7 +174,10 @@ export function VpmPackagesPanel({
   const [text, setText] = useState('')
   const [only, setOnly] = useState<PackageFilter['only']>('all')
   const [cart, setCart] = useState<Map<string, CartEntry>>(new Map())
-  const [sheet, setSheet] = useState<'cart' | 'all' | null>(null)
+  const [sheet, setSheet] = useState<'cart' | 'all' | 'add' | null>(null)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addRequests, setAddRequests] = useState<ChangePlanRequest[]>([])
+  const [networkAllowed, setNetworkAllowed] = useState(true)
   const [acknowledged, setAcknowledged] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<PackageRowModel | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -187,6 +207,10 @@ export function VpmPackagesPanel({
   const rows = useMemo(
     () => detail.packages.map((pkg: VpmProjectPackageDto) => rowModel(pkg, catalogByName.get(pkg.name))),
     [detail.packages, catalogByName]
+  )
+  const installedByName = useMemo(
+    () => new Map(detail.packages.map((pkg) => [pkg.name, pkg.version] as const)),
+    [detail.packages]
   )
   const visible = useMemo(() => filterRows(rows, { text, only }), [rows, text, only])
   const updates = countUpdates(rows)
@@ -236,7 +260,10 @@ export function VpmPackagesPanel({
   // 操作结束后刷新工程快照，并清掉已提交的变更单。
   useEffect(() => {
     if (!ops.run?.result) return
-    if (ops.run.result.status === 'committed') setCart(new Map())
+    if (ops.run.result.status === 'committed') {
+      setCart(new Map())
+      setAddRequests([])
+    }
     onChanged()
     // 只在结果对象变化时触发
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -273,6 +300,41 @@ export function VpmPackagesPanel({
     setSheet('cart')
   }, [cartSize])
 
+  const openAdd = useCallback(() => {
+    setActionError(null)
+    setAddOpen(true)
+    void vpmApi
+      .networkStatus()
+      .then((status) => setNetworkAllowed(status.allowed))
+      .catch(() => {
+        /* 读取失败时仍允许浏览缓存，联网按钮会再提示 */
+      })
+  }, [])
+
+  const enableNetwork = useCallback(async (): Promise<void> => {
+    try {
+      const status = await vpmApi.networkConsent(true)
+      setNetworkAllowed(status.allowed)
+    } catch (cause) {
+      setActionError(errorText(cause))
+    }
+  }, [])
+
+  const pickAdd = useCallback(
+    (pick: AddPackagePick) => {
+      const current = installedByName.get(pick.name) ?? null
+      setAddRequests([
+        {
+          kind: actionFor(current, pick.version),
+          name: pick.name,
+          version: pick.version
+        }
+      ])
+      setSheet('add')
+    },
+    [installedByName]
+  )
+
   const applyPlan = useCallback(
     (planId: string) => {
       void ops.apply(planId)
@@ -294,6 +356,9 @@ export function VpmPackagesPanel({
           {t('vpm.packages.updatesCount', { count: updates })}
         </Badge>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button variant="ghost" disabled={locked} onClick={openAdd}>
+            {t('vpm.packages.add')}
+          </Button>
           <Button variant="ghost" disabled={locked} onClick={() => void openLocal()}>
             {t('vpm.local.install')}
           </Button>
@@ -494,11 +559,26 @@ export function VpmPackagesPanel({
           if (!open) setSheet(null)
         }}
         projectKey={projectKey}
-        requests={sheet === 'cart' ? toRequests(safeCart) : []}
+        requests={
+          sheet === 'cart'
+            ? toRequests(safeCart)
+            : sheet === 'add'
+              ? addRequests
+              : []
+        }
         preset={sheet === 'all' ? 'upgradeAll' : undefined}
         acknowledged={acknowledged}
         onAcknowledge={setAcknowledged}
         onApply={applyPlan}
+      />
+
+      <VpmAddPackageDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        installed={installedByName}
+        networkAllowed={networkAllowed}
+        onEnableNetwork={() => void enableNetwork()}
+        onPick={pickAdd}
       />
 
       <VpmOperationDialog

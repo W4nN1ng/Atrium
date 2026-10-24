@@ -35,6 +35,7 @@ function snapshot(overrides: Partial<ProjectSnapshot> = {}): ProjectSnapshot {
     packages: [
       {
         name: 'com.example.a',
+        displayName: 'Example A',
         version: '1.0.0',
         manifestVersion: '^1.0.0',
         source: 'embedded',

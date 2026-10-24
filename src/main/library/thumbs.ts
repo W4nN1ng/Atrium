@@ -182,18 +182,39 @@ export async function ensureThumb(db: Db, assetId: string, opts: ThumbOptions = 
     const url = thumbUrlFor(key)
     return save(url) ? { ok: true, url } : current()
   }
-  let sawSomething = false
+  /**
+   * `listedOk` 和旧的 `sawSomething` 差一个字，差的是"到底看没看过"：
+   * 只有**真的把目录读出来了**（或源就是一个文件）才算看过。
+   *
+   * 旧口径只要 `statSync` 成功就算"看过"，于是刚拖进来、目录还没落稳时，
+   * 会走到最后一句把 `cover_image` 写成 `'none'` —— 而 `backfillThumbs` 只捞
+   * `cover_image IS NULL`，一旦标成 'none' 就**永远不会再补**。
+   * 2026-10-24 那次 22 件只出 1 张封面，就是这条路径的两种表现。
+   */
+  let listedOk = false
   const dirs: string[] = []
   for (const d of [row.library_path, row.source_path].filter((x): x is string => !!x)) {
     let abs: string | null = null
+    let st: fs.Stats
     try {
-      const st = fs.statSync(d)
-      abs = st.isFile() ? d : pickCoverCandidate(listImageFiles(d))
-      sawSomething = true
-      dirs.push(d)
+      st = fs.statSync(d)
     } catch {
+      // 路径还没落稳：既不算看过，也别记 'none'，留给补拍
       continue
     }
+    if (st.isFile()) {
+      listedOk = true
+      abs = d
+    } else {
+      try {
+        fs.readdirSync(d)
+        listedOk = true
+      } catch {
+        continue
+      }
+      abs = pickCoverCandidate(listImageFiles(d))
+    }
+    dirs.push(d)
     if (!abs) continue
     const r = writeThumb(abs, key)
     if (r.ok && r.url) {
@@ -220,7 +241,7 @@ export async function ensureThumb(db: Db, assetId: string, opts: ThumbOptions = 
   // 只有"里外都找过"才配写没图记号：没开 packages 的批次只是没往包里看，
   // 现在就标 'none' 的话，以后维护页再也不会去补这些素材的封面。
   const searchedEverything = opts.packages !== false
-  if (searchedEverything && sawSomething && row.cover_image !== COVER_NONE) {
+  if (searchedEverything && listedOk && row.cover_image !== COVER_NONE) {
     if (!save(COVER_NONE)) return current()
   }
   return { ok: false, url: null, why: '没有可用的图片' }
@@ -332,4 +353,65 @@ export function pruneThumbCache(db: Db): { removed: number; kept: number } {
     }
   }
   return { removed, kept }
+}
+
+/**
+ * 刚导入时封面常常"生不出来"，而且**不报错**。
+ *
+ * 现场（2026-10-24，22 件一次性拖入）：只有 1 张封面在入库那一刻写出来，
+ * 另外 19 张要等下次启动的 `backfillThumbs` 才补上；日志里一条错误都没有。
+ * 原因是入库瞬间源目录往往还没落稳 —— 用户刚解压完就拖进来，文件还在被写、
+ * 被占用，`readdir`/解码拿不到图，`ensureThumb` 只能返回 `ok:false`（这是"没图"的正常语义，
+ * 不能当异常抛）。等两秒再看就什么都有了。
+ *
+ * 所以给刚入库的素材留两次补拍机会，而不是让它一直空到下次启动。
+ * 有上限、可取消、不阻塞退出（timer 都 unref）。
+ */
+const thumbRetryTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const THUMB_RETRY_DELAYS = [1500, 5000]
+
+export interface ThumbRetryOptions {
+  /** 补拍成功时回调（调用方用它广播 data:changed）。 */
+  onMade?: (assetId: string) => void
+  /** 测试用：覆盖重试间隔。 */
+  delays?: readonly number[]
+  /** 补拍时允不允许伸进 .unitypackage（默认允许，和入库时一致）。 */
+  packages?: boolean
+}
+
+/** 已经排着的重试不叠加，避免同一个素材堆一串 timer。 */
+export function scheduleThumbRetry(db: Db, assetId: string, opts: ThumbRetryOptions = {}): void {
+  if (thumbRetryTimers.has(assetId)) return
+  const delays = opts.delays ?? THUMB_RETRY_DELAYS
+  const step = (index: number): void => {
+    if (index >= delays.length) {
+      thumbRetryTimers.delete(assetId)
+      return
+    }
+    const timer = setTimeout(() => {
+      thumbRetryTimers.delete(assetId)
+      void ensureThumb(db, assetId, { packages: opts.packages ?? true })
+        .then((result) => {
+          if (result.ok) opts.onMade?.(assetId)
+          else step(index + 1)
+        })
+        .catch(() => step(index + 1))
+    }, delays[index])
+    // 别让补拍把进程吊着不退出
+    ;(timer as { unref?: () => void }).unref?.()
+    thumbRetryTimers.set(assetId, timer)
+  }
+  step(0)
+}
+
+/** 测试/删除素材时取消待补拍。 */
+export function cancelThumbRetry(assetId: string): void {
+  const timer = thumbRetryTimers.get(assetId)
+  if (timer) clearTimeout(timer)
+  thumbRetryTimers.delete(assetId)
+}
+
+export function clearThumbRetriesForTest(): void {
+  for (const timer of thumbRetryTimers.values()) clearTimeout(timer)
+  thumbRetryTimers.clear()
 }

@@ -26,6 +26,11 @@
 > 分支 `codex/vpm-p4d-failure-recovery` 仍**只在本地**，`origin/main` 停在 P4-A。
 > 下面“当前版本 / 主线 HEAD”那段是 2026-10-17 的旧账，以 `package.json` 和 `git log` 为准。
 >
+> **2026-10-24 最新交接（0.9.1 热修复未发布）：** 先读
+> [HANDOVER-2026-10-24.md](HANDOVER-2026-10-24.md)。当前分支 `codex/vpm-package-display-names`
+> 领先 `origin/main` 4 个修复提交（另有交接文档提交），版本 0.9.1；v0.9.1 tag/Release 尚未创建。
+> 本文档下面关于 0.9.0 的段落保留作历史账，别把“已发布 0.9.0”误读成“0.9.1 已发布”。
+>
 > **2026-10-24：P9-C 完成、P9-D 无界面四层已验、P9-E 发布完成。** 当前版本 **0.9.0**；
 > 已合并到 `main`（PR #39，合并提交 `b433240`），tag `v0.9.0` 与
 > [GitHub Release](https://github.com/W4nN1ng/Atrium/releases/tag/v0.9.0) 已创建并核对

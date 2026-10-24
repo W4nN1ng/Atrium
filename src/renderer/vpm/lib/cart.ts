@@ -21,6 +21,9 @@ export interface CartEntry {
 
 export interface PackageRowModel {
   name: string
+  displayName: string | null
+  /** 仓库里的来源名（Official / Curated / 自定义仓库）；工程内包没有仓库来源时为 null。 */
+  repoName: string | null
   source: string
   installedVersion: string | null
   manifestVersion: string | null
@@ -57,6 +60,8 @@ export function rowModel(
   const installedVersion = pkg.version
   return {
     name: pkg.name,
+    displayName: pkg.displayName ?? catalog?.displayName ?? null,
+    repoName: catalog?.sourceName ?? null,
     source: pkg.source,
     installedVersion,
     manifestVersion: null,
@@ -143,7 +148,13 @@ export interface PackageFilter {
 export function filterRows(rows: readonly PackageRowModel[], filter: PackageFilter): PackageRowModel[] {
   const text = filter.text.trim().toLowerCase()
   return rows.filter((row) => {
-    if (text && !row.name.toLowerCase().includes(text)) return false
+    if (
+      text &&
+      !row.name.toLowerCase().includes(text) &&
+      !(row.displayName ?? '').toLowerCase().includes(text)
+    ) {
+      return false
+    }
     if (filter.only === 'installed') return !!row.installedVersion
     if (filter.only === 'updates') return row.updateAvailable
     if (filter.only === 'conflicts') return row.hasConflict

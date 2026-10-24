@@ -4,8 +4,8 @@ import { sha256Hex } from './hash'
 export const PROTECTED_PROJECT_PACKAGE = 'com.avca.bridge'
 const MAX_PACKAGE_JSON_BYTES = 256 * 1024
 const DEFAULT_MAX_PACKAGES = 500
-const DEFAULT_MAX_LEGACY_ENTRIES = 2000
-const DEFAULT_MAX_LEGACY_DEPTH = 4
+const DEFAULT_MAX_LEGACY_ENTRIES = 10000
+const DEFAULT_MAX_LEGACY_DEPTH = 12
 const IGNORED_LEGACY_DIRS = new Set(['library', 'temp', 'logs', 'obj', '.git', 'node_modules'])
 
 export type ProjectWarningCode = VpmErrorCode | VpmWarningCode
@@ -57,6 +57,7 @@ export type ProjectPackageState = 'installed' | 'missing' | 'unlisted' | 'mismat
 
 export interface ProjectPackageSnapshot {
   name: string
+  displayName: string | null
   version: string | null
   manifestVersion: string | null
   source: 'embedded' | 'legacy'
@@ -109,6 +110,7 @@ export interface ProjectReadOptions {
 
 export interface ProjectPackageJson {
   name: string
+  displayName: string | null
   version: string | null
   unity: string | null
   vpmDependencies: Record<string, string>
@@ -169,6 +171,36 @@ function stringMap(value: unknown): Record<string, string> {
     if (text && text.length <= 200) out[key] = text
   }
   return out
+}
+
+/**
+ * VPM manifest 的 dependencies 有两种写法：
+ * - 旧版：`"com.vrchat.avatars": "3.10.5"`
+ * - VCC/ALCOM 新版：`"com.vrchat.avatars": { "version": "3.10.5" }`
+ *
+ * 只读取版本范围；对象里的其它字段留在 `manifest.data` 里，构建时原样保留。
+ */
+function dependencyRange(value: unknown): string | null {
+  const raw = typeof value === 'string' ? value : isRecord(value) ? value.version : null
+  if (typeof raw !== 'string') return null
+  const text = raw.trim()
+  return text && text.length <= 200 && !/[\u0000-\u001f]/.test(text) ? text : null
+}
+
+function manifestDependencyMap(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {}
+  const out: Record<string, string> = {}
+  for (const [key, item] of Object.entries(value)) {
+    if (!key) continue
+    const range = dependencyRange(item)
+    if (range) out[key] = range
+  }
+  return out
+}
+
+function lockedVersionOf(value: unknown): string | null {
+  if (!isRecord(value)) return null
+  return dependencyRange(value)
 }
 
 function safeLegacyPath(value: string): string | null {
@@ -272,7 +304,7 @@ export function parseVpmManifest(text: string | null): VpmManifestSnapshot {
       raw,
       valid: true,
       data: parsed,
-      dependencies: stringMap(parsed.dependencies),
+      dependencies: manifestDependencyMap(parsed.dependencies),
       locked: isRecord(parsed.locked) ? parsed.locked : {},
       legacyFolders: legacyPaths(parsed.legacyFolders),
       legacyFiles: legacyPaths(parsed.legacyFiles),
@@ -305,10 +337,12 @@ export function parseProjectPackageJson(text: string): ProjectPackageJson {
   if (!isRecord(parsed)) throw new VpmError('vpmProjectInvalid', { field: 'package.json' })
   const name = textOrNull(parsed.name, 214)
   if (!name || /[\\/]/.test(name)) throw new VpmError('vpmProjectInvalid', { field: 'package.name' })
+  const displayName = textOrNull(parsed.displayName, 500)
   const version = textOrNull(parsed.version, 100)
   const unity = textOrNull(parsed.unity, 100)
   return {
     name,
+    displayName,
     version,
     unity,
     vpmDependencies: stringMap(parsed.vpmDependencies),
@@ -405,9 +439,10 @@ function readPackages(
       addWarning(warnings, 'vpmProjectDuplicatePackage', relativePath, pkg.name)
       continue
     }
-    const manifestVersion = manifest.dependencies[pkg.name] ?? null
+    const manifestVersion = manifest.dependencies[pkg.name] ?? lockedVersionOf(manifest.locked[pkg.name])
     rows.set(pkg.name, {
       name: pkg.name,
+      displayName: pkg.displayName,
       version: pkg.version,
       manifestVersion,
       source: 'embedded',
@@ -424,6 +459,7 @@ function readPackages(
     if (rows.has(name)) continue
     rows.set(name, {
       name,
+      displayName: null,
       version: null,
       manifestVersion: version,
       source: 'embedded',
@@ -469,8 +505,9 @@ function readLegacy(
     for (const entry of entries) {
       if (truncated) return
       if (scanned >= maxEntries) {
+        // 旧资源扫描只用于迁移建议；不要在工程页报“结果不完整”。
+        // 真实截断仍记在 legacy.truncated，迁移逻辑可以自行判断。
         truncated = true
-        addWarning(warnings, 'vpmProjectScanTruncated', relativePath)
         return
       }
       scanned++
@@ -482,7 +519,6 @@ function readLegacy(
       if (entry.kind === 'dir') {
         if (depth >= maxDepth) {
           truncated = true
-          addWarning(warnings, 'vpmProjectScanTruncated', child)
           continue
         }
         if (IGNORED_LEGACY_DIRS.has(entry.name.toLowerCase()) || entry.name.startsWith('.')) continue

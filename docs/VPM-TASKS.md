@@ -1550,6 +1550,22 @@ Task: P?-?
 - **仍归 P9-D 的未验证项**：L4 真装回 0.8.0、真 Unity 装包/启动/双击导入/旧式迁移、
   真机撤销一次装包。发布说明已把这些写成已知限制，不冒充已验证。
 
+### 0.9.1 热修复（2026-10-24，未发布）
+
+> 0.9.0 发布后的用户可见修复，不是新的 P9 任务卡。新工作站先读
+> `docs/HANDOVER-2026-10-24.md`。
+
+- 分支 `codex/vpm-package-display-names`，代码 HEAD `b00b6f5`，相对 `origin/main`
+  领先“4 个修复 + 交接文档”；**分支已推送**，upstream 已设置，但尚未合并到 main。
+  新机器可直接 fetch 这个分支。
+- 4 个提交：包列表显示名/来源/稳定版/对象式 manifest/添加软件包（6cdd9a9）；
+  启动清假绿灯（7d97f97）；旧资源扫描不误报（163994b）；封面补拍（b00b6f5）。
+- 本机已安装 0.9.1；`dist-fix/` 是 14:09 的最新构建，`dist/` 的 Setup/Portable 与它同哈希；
+  `dist/win-unpacked` 是 13:02 旧版，不能拿去打包/安装。
+- `docs/release-body-0.9.1.md` 已写好并含最终 SHA-256；`v0.9.1` tag/Release 尚未创建。
+- 收尾顺序：推分支 → PR → 合并 main → 干净构建 → tag/Release → 页面核对 →
+  本机安装 → README/HANDOVER/TASKS 更新。P9-D 仍 review，不能拿 0.9.1 发布来关闭它。
+
 ---
 
 ## 13. 一句话

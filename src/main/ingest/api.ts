@@ -27,7 +27,7 @@ import { reindexAsset } from '../search'
 import { dirNames, loadCategories } from '../services/categories'
 import { resolveDirNames } from '../library/dirAliases'
 import { commitAsset, commitBundleAsset, type CommitDeps, type CommitUnit } from '../library/commit'
-import { backfillThumbs, ensureThumb } from '../library/thumbs'
+import { backfillThumbs, ensureThumb, scheduleThumbRetry } from '../library/thumbs'
 import { checkIngestPath, type RejectedPath } from '../security/paths'
 import { ensureDir } from '../library/fsx'
 import { on, EV_UNDONE } from '../lib/events'
@@ -591,7 +591,20 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     if (skipThumb) return
     void ensureThumb(getDb(), primaryId, { packages: true })
       .then((t) => {
-        if (t.ok) registrar.broadcast('data:changed', { reason: 'thumb', id: primaryId })
+        if (t.ok) {
+          registrar.broadcast('data:changed', { reason: 'thumb', id: primaryId })
+          return
+        }
+        /**
+         * 入库那一刻源目录常常还没落稳（用户刚解压完就拖进来），
+         * 解码/readdir 拿不到图，`ensureThumb` 只能返回"没图"。
+         * 以前这里就算了 —— 于是卡片一直空着，直到下次启动的补齐才出图。
+         * 现在给它两次补拍机会（1.5s / 5s），成了就广播刷新。
+         */
+        log.info(`封面暂缺，稍后补拍：${primaryId}（${t.why ?? '未知'}）`)
+        scheduleThumbRetry(getDb(), primaryId, {
+          onMade: (id) => registrar.broadcast('data:changed', { reason: 'thumb', id })
+        })
       })
       .catch((e: unknown) => log.warn('封面生成失败：' + (e instanceof Error ? e.message : String(e))))
   }
@@ -991,7 +1004,27 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       // 批量补封面：一次扫，比 228 次各开一次解码便宜得多
       void backfillThumbs(getDb(), 400, { packages: false })
         .then((r) => {
-          if (r.made) registrar.broadcast('data:changed', { reason: 'thumb-backfill', made: r.made })
+          if (r.made) {
+            registrar.broadcast('data:changed', { reason: 'thumb-backfill', made: r.made })
+            return
+          }
+          /**
+           * 一条都没出图 = 多半是文件还没落稳（刚解压完就拖进来）。
+           * 3 秒后再来一轮，这次允许伸进 .unitypackage 抠 preview.png；
+           * 以前这种情况要等用户下次启动，卡片会一直空着。
+           */
+          if (r.checked === 0) return
+          log.info(`批量补封面 0/${r.checked}，3 秒后重试一次`)
+          const timer = setTimeout(() => {
+            void backfillThumbs(getDb(), 400, { packages: true })
+              .then((again) => {
+                if (again.made) {
+                  registrar.broadcast('data:changed', { reason: 'thumb-backfill', made: again.made })
+                }
+              })
+              .catch((e: unknown) => log.warn('批量补封面重试失败：' + (e instanceof Error ? e.message : String(e))))
+          }, 3000)
+          ;(timer as { unref?: () => void }).unref?.()
         })
         .catch((e: unknown) => log.warn('批量补封面失败：' + (e instanceof Error ? e.message : String(e))))
       registrar.broadcast('data:changed', { reason: 'ingest-commit-all' })

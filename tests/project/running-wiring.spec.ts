@@ -100,6 +100,12 @@ beforeEach(() => {
   upsertProject(db, { path: project, name: 'shinano-Main2', unityVersion: '2022.3.22f1' })
 
   /**
+   * 模拟上一会话留下的“运行中”缓存：重启首屏不能直接信它。
+   * 真实问题：Lime / shinano-Main2 会先亮绿灯，探测完成后不到一秒又变灰。
+   */
+  db.prepare(`UPDATE project SET is_running = 1 WHERE path = ?`).run(project)
+
+  /**
    * 把 ALCOM 清单指到一个不存在的文件，让 `refresh()` 只认库里的工程 ——
    * 否则它会去读用户真实的 `%APPDATA%\...\settings.json`，把用户的工程也登记进来。
    */
@@ -180,6 +186,13 @@ async function waitUntilRunning(timeoutMs = 8000): Promise<ProjectInfo | null> {
 }
 
 describe('三路探测的**接线**（曾经是死代码）', () => {
+  it('启动时先清掉上一会话的运行状态，首屏不显示假绿灯', () => {
+    const row = db.prepare(`SELECT is_running FROM project WHERE path = ?`).get(project) as {
+      is_running: number
+    }
+    expect(row.is_running, 'startProjectWatcher 没有清理上一轮的 is_running').toBe(0)
+  })
+
   it('⭐ 锁文件被独占时，从 IPC 拉列表就能看到"运行中"（这条曾经会红）', async (ctx) => {
     const lock = makeLockfile()
     const child = await startExclusiveHolder(lock)

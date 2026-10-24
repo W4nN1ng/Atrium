@@ -99,6 +99,7 @@ function normalFiles(): Record<string, string> {
     'Packages/vpm-manifest.json': `\uFEFF${manifest}`,
     'Packages/com.vrchat.avatars/package.json': JSON.stringify({
       name: 'com.vrchat.avatars',
+      displayName: 'VRChat SDK - Avatars',
       version: '3.7.0',
       unity: '2022.3',
       vpmDependencies: { 'com.vrchat.base': '3.7.0' }
@@ -166,10 +167,16 @@ describe('manifest and package parsing', () => {
   })
 
   it('parses package.json and rejects path-like names', () => {
-    expect(parseProjectPackageJson('{"name":"com.example.pkg","version":"1.2.3"}')).toMatchObject({
+    expect(
+      parseProjectPackageJson(
+        '{"name":"com.example.pkg","displayName":"Example Package","version":"1.2.3"}'
+      )
+    ).toMatchObject({
       name: 'com.example.pkg',
+      displayName: 'Example Package',
       version: '1.2.3'
     })
+    expect(parseProjectPackageJson('{"name":"com.example.pkg"}').displayName).toBeNull()
     expect(() => parseProjectPackageJson('{"name":"../evil","version":"1.0.0"}')).toThrowError(/vpmProjectInvalid/)
   })
 })
@@ -189,7 +196,11 @@ describe('project snapshot', () => {
     expect(result.manifestHash).toMatch(/^[0-9a-f]{64}$/)
     expect(result.manifestMtime).toBe(100)
     const states = Object.fromEntries(result.packages.map((pkg) => [pkg.name, pkg]))
-    expect(states['com.vrchat.avatars']).toMatchObject({ version: '3.7.0', state: 'installed' })
+    expect(states['com.vrchat.avatars']).toMatchObject({
+      displayName: 'VRChat SDK - Avatars',
+      version: '3.7.0',
+      state: 'installed'
+    })
     expect(states['com.old.pkg']).toMatchObject({ version: '0.9.0', manifestVersion: '1.0.0', state: 'mismatch' })
     expect(states['com.local.pkg']).toMatchObject({ state: 'unlisted' })
     expect(states['com.missing.pkg']).toMatchObject({ state: 'missing', missing: true })
@@ -202,6 +213,31 @@ describe('project snapshot', () => {
     const result = snapshot(normalFiles(), { throwOn: ['Packages'] })
     expect(result.packages.map((pkg) => pkg.name)).toEqual(expect.arrayContaining(['com.missing.pkg']))
     expect(result.warnings.map((item) => item.code)).toContain('vpmProjectPackagesUnreadable')
+  })
+
+  it('reads VCC/ALCOM object dependencies and treats locked-only packages as installed', () => {
+    const objectManifest = JSON.stringify({
+      dependencies: { 'com.vrchat.avatars': { version: '3.7.0' } },
+      locked: {
+        'com.vrchat.avatars': { version: '3.7.0', dependencies: { 'com.vrchat.base': '3.7.0' } },
+        'com.local.pkg': { version: '0.1.0', dependencies: {} }
+      }
+    })
+    const result = snapshot({
+      ...normalFiles(),
+      'Packages/vpm-manifest.json': objectManifest
+    })
+    expect(result.manifest.valid).toBe(true)
+    expect(result.manifest.dependencies).toEqual({ 'com.vrchat.avatars': '3.7.0' })
+    const states = Object.fromEntries(result.packages.map((pkg) => [pkg.name, pkg]))
+    expect(states['com.vrchat.avatars']).toMatchObject({
+      manifestVersion: '3.7.0',
+      state: 'installed'
+    })
+    expect(states['com.local.pkg']).toMatchObject({
+      manifestVersion: '0.1.0',
+      state: 'installed'
+    })
   })
 
   it('reports legacy package.json/folder/file/package candidates and ignores Library', () => {
@@ -219,10 +255,25 @@ describe('project snapshot', () => {
     expect(result.legacy.candidates.every((item) => item.risk === 'backupRequired')).toBe(true)
   })
 
-  it('truncates legacy scans at the configured limit', () => {
+  it('truncates legacy scans at the configured limit without a project warning', () => {
     const result = snapshot(normalFiles(), {}, { maxLegacyEntries: 1 })
     expect(result.legacy.truncated).toBe(true)
-    expect(result.warnings.map((item) => item.code)).toContain('vpmProjectScanTruncated')
+    // 旧资源扫描只影响迁移建议；工程页不应显示“结果不完整”的警告。
+    expect(result.warnings.map((item) => item.code)).not.toContain('vpmProjectScanTruncated')
+  })
+
+  it('scans deep asset folders without a project warning', () => {
+    const deep = {
+      ...normalFiles(),
+      'Assets/Amatousagi/Lime/Animation/Controller/FX_LipSync_Ctrl/package.json': JSON.stringify({
+        name: 'com.deep.legacy',
+        version: '1.0.0'
+      })
+    }
+    const result = snapshot(deep)
+    expect(result.legacy.truncated).toBe(false)
+    expect(result.legacy.candidates.some((item) => item.name === 'com.deep.legacy')).toBe(true)
+    expect(result.warnings.map((item) => item.code)).not.toContain('vpmProjectScanTruncated')
   })
 
   it('changes the fingerprint when manifest or package.json changes', () => {
