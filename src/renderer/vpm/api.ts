@@ -60,6 +60,9 @@ export const vpmApi = {
   status(): Promise<VpmStatus> {
     return window.a.vpm.status()
   },
+  onStatusChanged(callback: () => void): () => void {
+    return window.a.on('vpm:status-changed', callback)
+  },
   enable(dataRoot: string): Promise<VpmStatus> {
     return window.a.vpm.enable(dataRoot)
   },

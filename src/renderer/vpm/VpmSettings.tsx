@@ -38,7 +38,9 @@ export function VpmSettings(): JSX.Element {
   }
 
   useEffect(() => {
+    const unsubscribe = vpmApi.onStatusChanged(() => void refresh())
     void refresh()
+    return unsubscribe
   }, [])
 
   const badgeTone = status?.safeMode ? 'warn' : status?.enabled ? 'ok' : 'default'

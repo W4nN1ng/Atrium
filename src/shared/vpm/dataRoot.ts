@@ -98,7 +98,9 @@ export function validateVpmDataRoot(
 
     const systemDrive = (context.systemDrive ?? 'C:').replace(/[\\/]+$/, '')
     const drive = driveOf(normalized)
-    if (drive && systemDrive && drive.toLowerCase() === systemDrive.toLowerCase()) {
+    const isSystemDefault = context.systemDefaultRoot != null &&
+      normalized.toLowerCase() === normalizeVpmDataRoot(context.systemDefaultRoot, platform).toLowerCase()
+    if (drive && systemDrive && drive.toLowerCase() === systemDrive.toLowerCase() && !isSystemDefault) {
       return fail('vpmDataRootOnSystemDrive', { drive: systemDrive.toUpperCase() })
     }
   }

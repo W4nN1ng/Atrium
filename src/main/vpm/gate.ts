@@ -8,9 +8,9 @@ import type { Db } from '../db'
 import { createDatabaseBackup } from '../db/backup'
 import type { IpcApi } from '../ipc/types'
 import { P } from '../services/paths'
-import { normalizeVpmDataRoot, validateVpmDataRoot } from '../../shared/vpm/dataRoot'
+import { validateVpmDataRoot } from '../../shared/vpm/dataRoot'
 import { VpmError, type VpmErrorCode } from '../../shared/vpm/errors'
-import { IpcInvoke } from '../../shared/ipc'
+import { IpcEvent, IpcInvoke } from '../../shared/ipc'
 import { registerVpmIpc } from './ipc'
 import type { VpmRuntime } from './index'
 import type {
@@ -140,12 +140,33 @@ function context(): VpmDataRootContext {
   }
 }
 
-function dataRootLooksValid(dataRoot: string | null, ctx: VpmDataRootContext): boolean {
+/** 初次校验、真实路径校验和状态读取使用同一条默认目录策略。 */
+function dataRootContext(realPaths = false): VpmDataRootContext {
+  const ctx = context()
+  try {
+    const target = defaultVpmDataRoot()
+    ctx.systemDefaultRoot = realPaths ? resolveRealTarget(target) : target
+  } catch {
+    // 无法确认默认目录时不放行系统盘。
+  }
+  if (realPaths) {
+    const realOrOriginal = (value: string): string => {
+      try { return resolveRealTarget(value) } catch { return value }
+    }
+    if (ctx.libraryRoot) ctx.libraryRoot = realOrOriginal(ctx.libraryRoot)
+    ctx.knownProjectPaths = ctx.knownProjectPaths?.map(realOrOriginal)
+    ctx.appInstallDirs = ctx.appInstallDirs?.map(realOrOriginal)
+  }
+  return ctx
+}
+
+function dataRootLooksValid(dataRoot: string | null): boolean {
   if (!dataRoot) return false
-  const result = validateVpmDataRoot(dataRoot, ctx)
+  const result = validateVpmDataRoot(dataRoot, dataRootContext())
   if (!result.ok) return false
   try {
-    return fs.statSync(result.normalized).isDirectory()
+    const real = fs.realpathSync(result.normalized)
+    return validateVpmDataRoot(real, dataRootContext(true)).ok && fs.statSync(real).isDirectory()
   } catch {
     return false
   }
@@ -158,7 +179,7 @@ function baseStatus(settings = defaultVpmSettings()): VpmStatus {
     degraded: runtimeCode !== null,
     degradedCode: runtimeCode,
     dataRoot: settings.dataRoot,
-    dataRootValid: dataRootLooksValid(settings.dataRoot, context()),
+    dataRootValid: dataRootLooksValid(settings.dataRoot),
     networkConsentAt: settings.networkConsentAt,
     configRecovered,
     appVersion: deps?.appVersion?.() ?? safeAppVersion(),
@@ -280,11 +301,12 @@ async function ensureRuntime(): Promise<void> {
   await runtimePromise
 }
 
-/** 应用启动/启用后调用；disabled/safe mode 不加载重模块。 */
+/** 普通启动按 R20 自动启用；安全模式不初始化项目管理。 */
 export async function startVpmRuntime(): Promise<void> {
   if (!deps || deps.enableRuntime === false) return
   await ensureAutoEnabled()
   await ensureRuntime()
+  deps.broadcast?.(IpcEvent.VpmStatusChanged, getVpmStatus())
 }
 
 /** R19：默认数据根——`%APPDATA%\Atrium`（不再问用户，也不允许改）。 */
@@ -358,10 +380,8 @@ function ensureWritableDataRoot(normalized: string): void {
     throw new VpmError('vpmDataRootNotWritable', undefined, error)
   }
 
-  if (real !== normalized) {
-    const again = validateVpmDataRoot(real, context())
-    if (!again.ok) throw new VpmError(again.code, again.params)
-  }
+  const again = validateVpmDataRoot(real, dataRootContext(true))
+  if (!again.ok) throw new VpmError(again.code, again.params)
 
   try {
     fs.mkdirSync(real, { recursive: true })
@@ -460,11 +480,8 @@ export async function enableVpm(input: VpmEnableInput): Promise<VpmStatus> {
     throw new VpmError('vpmDataRootRequired')
   }
 
-  // R19：系统默认根（%APPDATA%\Atrium）只放索引/密钥，体积很小，
-  // 所以跳过"必须非系统盘"那条规则；用户自己选的目录仍然按原规则校验。
-  const evaluated = input.systemDefault
-    ? { ok: true as const, normalized: normalizeVpmDataRoot(input.dataRoot, process.platform) }
-    : validateVpmDataRoot(input.dataRoot, context())
+  // IPC 的 systemDefault 标志不能绕过校验；只放行主进程确定的默认目录。
+  const evaluated = validateVpmDataRoot(input.dataRoot, dataRootContext())
   if (!evaluated.ok) throw new VpmError(evaluated.code, evaluated.params)
 
   ensureWritableDataRoot(evaluated.normalized)
@@ -552,7 +569,7 @@ export async function pickDataRoot(): Promise<VpmDataRootPick> {
     return { path: null, validation: null }
   }
   const selected = picked.filePaths[0]
-  const validation: VpmDataRootValidation = validateVpmDataRoot(selected, context())
+  const validation: VpmDataRootValidation = validateVpmDataRoot(selected, dataRootContext())
   return { path: selected, validation }
 }
 

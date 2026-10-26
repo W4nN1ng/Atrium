@@ -49,6 +49,8 @@ export interface VpmDataRootContext {
   platform: string
   /** 例如 `C:`；从 `process.env.SystemDrive` 来，不写死盘符。 */
   systemDrive?: string | null
+  /** 主进程提供的固定默认目录；只对此精确目录放行系统盘，不能来自 IPC 输入。 */
+  systemDefaultRoot?: string | null
   libraryRoot?: string | null
   knownProjectPaths?: string[]
   appInstallDirs?: string[]
@@ -69,7 +71,7 @@ export interface VpmDataRootPick {
 
 export interface VpmEnableInput {
   dataRoot: string
-  /** R19：用系统默认数据根（`%APPDATA%\Atrium`）自动启用，跳过"必须非系统盘"那条规则。 */
+  /** 兼容旧调用方；系统盘例外只由主进程验证的固定默认路径决定。 */
   systemDefault?: boolean
 }
 
