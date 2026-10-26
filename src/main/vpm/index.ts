@@ -113,6 +113,7 @@ export interface VpmRuntime {
   revealPath?: (target: string) => void
   trashPath?: (target: string) => Promise<void>
   forgetCoreProject?: (path: string) => void
+  activity?: ProjectActivityPort
   backup: ProjectBackupService
   secrets: SecretStore
   copy: ProjectCopyService
@@ -388,6 +389,7 @@ export async function initVpm(options: InitVpmOptions): Promise<VpmRuntime> {
       launch,
       ...(options.trashPath ? { trashPath: options.trashPath } : {}),
       ...(options.forgetCoreProject ? { forgetCoreProject: options.forgetCoreProject } : {}),
+      activity: options.projectActivity,
       backup,
       secrets,
       copy,

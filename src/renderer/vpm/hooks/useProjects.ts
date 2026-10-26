@@ -42,6 +42,7 @@ export function useVpmProjects(): VpmProjectsState {
   const [detail, setDetail] = useState<VpmProjectDetailDto | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const listSeq = useRef(0)
+  const statusSeq = useRef(0)
   const detailSeq = useRef(0)
 
   const loadItems = useCallback(async (): Promise<void> => {
@@ -60,10 +61,12 @@ export function useVpmProjects(): VpmProjectsState {
   }, [])
 
   const refresh = useCallback(async (): Promise<void> => {
+    const id = ++statusSeq.current
     setStatusLoading(true)
     setError(null)
     try {
       const next = await vpmApi.status()
+      if (id !== statusSeq.current) return
       setStatus(next)
       if (next.enabled && !next.safeMode && !next.degraded) {
         await loadItems()
@@ -73,14 +76,16 @@ export function useVpmProjects(): VpmProjectsState {
         setDetail(null)
       }
     } catch (cause) {
-      setError(errorText(cause))
+      if (id === statusSeq.current) setError(errorText(cause))
     } finally {
-      setStatusLoading(false)
+      if (id === statusSeq.current) setStatusLoading(false)
     }
   }, [loadItems])
 
   useEffect(() => {
+    const unsubscribe = vpmApi.onStatusChanged(() => void refresh())
     void refresh()
+    return unsubscribe
   }, [refresh])
 
   /**

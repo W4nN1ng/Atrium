@@ -267,6 +267,7 @@ export function VpmProjectsSection({
   const [scanning, setScanning] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<VpmProjectSummaryDto | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
+  const [removing, setRemoving] = useState(false)
   const [trashNote, setTrashNote] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [planProjectKey, setPlanProjectKey] = useState<string | null>(null)
@@ -435,8 +436,9 @@ export function VpmProjectsSection({
   }
 
   const confirmRemove = async (): Promise<void> => {
-    if (!removeTarget) return
+    if (!removeTarget || removing) return
     setRemoveError(null)
+    setRemoving(true)
     try {
       // R17：删除就是删除——整个工程文件夹进回收站（可还原），没有"只移除台账"。
       const result = await vpmApi.projectTrash(removeTarget.projectKey)
@@ -453,6 +455,8 @@ export function VpmProjectsSection({
       }
     } catch (cause) {
       setRemoveError(errorText(cause))
+    } finally {
+      setRemoving(false)
     }
   }
 
@@ -811,15 +815,15 @@ export function VpmProjectsSection({
       <Modal
         open={removeTarget !== null}
         onOpenChange={(open) => {
-          if (!open && !projects.busy) setRemoveTarget(null)
+          if (!open && !projects.busy && !removing) setRemoveTarget(null)
         }}
         title={t('vpm.projects.removeTitle')}
         footer={
           <>
-            <Button onClick={() => setRemoveTarget(null)} disabled={projects.busy}>
+            <Button onClick={() => setRemoveTarget(null)} disabled={projects.busy || removing}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={() => void confirmRemove()} disabled={projects.busy}>
+            <Button onClick={() => void confirmRemove()} disabled={projects.busy || removing || removeTarget?.running}>
               {t('vpm.projects.remove')}
             </Button>
           </>
@@ -834,6 +838,7 @@ export function VpmProjectsSection({
               </span>
             ) : null}
           </div>
+          {removeTarget?.running ? <div role="status">{t('vpm.errors.vpmUnityRunning')}</div> : null}
           {removeError ? (
             <div
               className="mt-2 rounded border px-2 py-1.5 text-[11px]"

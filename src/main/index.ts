@@ -284,8 +284,8 @@ function bootstrap(): void {
         ` degraded=${vpmStatus.degraded} dataRootValid=${vpmStatus.dataRootValid}` +
         (vpmStatus.configRecovered ? ' configRecovered=true' : '')
     )
-    if (vpmStatus.enabled && !vpmStatus.safeMode) {
-      log.info('VPM 已启用，运行时初始化中（不阻塞主窗口）')
+    if (!vpmStatus.safeMode) {
+      log.info('VPM 初始化中（首次启动自动启用，不阻塞主窗口）')
       void startVpmRuntime()
     }
 

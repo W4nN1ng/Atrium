@@ -54,6 +54,16 @@ describe('VPM data root validation', () => {
     expect(codeOf('E:\\Apps\\Atrium\\VPM')).toBe('vpmDataRootInsideApp')
   })
 
+  it('allows only the exact trusted default on the system drive, retaining overlap checks', () => {
+    const trusted = { ...base, systemDefaultRoot: 'C:\\Users\\Tester\\AppData\\Roaming\\Atrium' }
+    expect(codeOf('c:/Users/Tester/AppData/Roaming/Atrium/', trusted)).toBe('ok')
+    expect(codeOf('C:\\Other', trusted)).toBe('vpmDataRootOnSystemDrive')
+    expect(codeOf(trusted.systemDefaultRoot + '\\child', trusted)).toBe('vpmDataRootOnSystemDrive')
+    expect(codeOf(trusted.systemDefaultRoot, { ...trusted, libraryRoot: trusted.systemDefaultRoot })).toBe('vpmDataRootInsideLibrary')
+    expect(codeOf(trusted.systemDefaultRoot, { ...trusted, knownProjectPaths: [trusted.systemDefaultRoot] })).toBe('vpmDataRootInsideProject')
+    expect(codeOf(trusted.systemDefaultRoot, { ...trusted, appInstallDirs: [trusted.systemDefaultRoot] })).toBe('vpmDataRootInsideApp')
+  })
+
   it('does not mistake a sibling with the same prefix for an inside path', () => {
     expect(isSameOrInside('E:\\Library', 'E:\\Library2\\VPM', 'win32')).toBe(false)
     expect(codeOf('E:\\Library2\\VPM')).toBe('ok')

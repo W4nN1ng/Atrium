@@ -257,48 +257,55 @@ export function registerProjectIpc(options: ProjectIpcOptions): void {
     const item = runtime.projects.get(projectKey)
     if (!item) throw new VpmError('vpmProjectInvalid', { field: 'projectKey' })
     if (!runtime.trashPath) throw new VpmError('vpmInternal')
-    // 文件夹已经不在了（被手动删/挪走）：没什么可回收的，直接清台账。
-    if (!fs.existsSync(item.path)) {
-      runtime.projects.remove(projectKey)
-      runtime.forgetCoreProject?.(item.path)
-      return { ok: true, mode: 'missing' as const }
-    }
-    let mode: 'recycle' | 'atrium' | 'missing' = 'recycle'
+    if (item.running) throw new VpmError('vpmUnityRunning', { kind: 'trash-project' })
+    if (!runtime.activity) throw new VpmError('vpmInternal')
+    const lease = runtime.activity.acquireMaintenance(item.path, 'trash-project')
     try {
-      await runtime.trashPath(item.path)
-    } catch {
-      /**
-       * 有些盘（移动盘/网络盘/没有 $Recycle.Bin 的分区）上 `shell.trashItem` 会直接失败
-       * （实测 E: 盘报 "Failed to parse path"）。这时退到 **Atrium 自己的回收站**：
-       * 把整个文件夹挪到 `<数据根>/trash/<时间>-<名字>`，同样可恢复、不永久删。
-       */
-      // 放到 C 盘的 Atrium 目录（系统回收站不可用的盘上，这里是唯一能"可恢复删除"的地方）。
-      const dest = path.join(
-        app.getPath('appData'),
-        'Atrium',
-        'trash',
-        `${Date.now()}-${path.basename(item.path)}`
-      )
-      fs.mkdirSync(path.dirname(dest), { recursive: true })
-      try {
-        fs.renameSync(item.path, dest)
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-          // 挪的过程中发现已经不在了：同样只清台账。
-          runtime.projects.remove(projectKey)
-          runtime.forgetCoreProject?.(item.path)
-          return { ok: true, mode: 'missing' as const }
-        }
-        fs.cpSync(item.path, dest, { recursive: true })
-        fs.rmSync(item.path, { recursive: true, force: true })
+      // 文件夹已经不在了（被手动删/挪走）：没什么可回收的，直接清台账。
+      if (!fs.existsSync(item.path)) {
+        runtime.projects.remove(projectKey)
+        runtime.forgetCoreProject?.(item.path)
+        return { ok: true, mode: 'missing' as const }
       }
-      mode = 'atrium'
+      let mode: 'recycle' | 'atrium' | 'missing' = 'recycle'
+      try {
+        await runtime.trashPath(item.path)
+      } catch {
+        /**
+         * 有些盘（移动盘/网络盘/没有 $Recycle.Bin 的分区）上 `shell.trashItem` 会直接失败
+         * （实测 E: 盘报 "Failed to parse path"）。这时退到 **Atrium 自己的回收站**：
+         * 把整个文件夹挪到 `<数据根>/trash/<时间>-<名字>`，同样可恢复、不永久删。
+         */
+        // 放到 C 盘的 Atrium 目录（系统回收站不可用的盘上，这里是唯一能"可恢复删除"的地方）。
+        const dest = path.join(
+          app.getPath('appData'),
+          'Atrium',
+          'trash',
+          `${Date.now()}-${path.basename(item.path)}`
+        )
+        fs.mkdirSync(path.dirname(dest), { recursive: true })
+        try {
+          fs.renameSync(item.path, dest)
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            // 挪的过程中发现已经不在了：同样只清台账。
+            runtime.projects.remove(projectKey)
+            runtime.forgetCoreProject?.(item.path)
+            return { ok: true, mode: 'missing' as const }
+          }
+          fs.cpSync(item.path, dest, { recursive: true })
+          fs.rmSync(item.path, { recursive: true, force: true })
+        }
+        mode = 'atrium'
+      }
+      runtime.projects.remove(projectKey)
+      // 关键：台账里可能本来就没有这一行（早先接桥进的是核心表），
+      // 所以必须同时把核心工程表里的那一行也删掉，列表才会真的消失。
+      runtime.forgetCoreProject?.(item.path)
+      return { ok: true, mode }
+    } finally {
+      lease.release()
     }
-    runtime.projects.remove(projectKey)
-    // 关键：台账里可能本来就没有这一行（早先接桥进的是核心表），
-    // 所以必须同时把核心工程表里的那一行也删掉，列表才会真的消失。
-    runtime.forgetCoreProject?.(item.path)
-    return { ok: true, mode }
   })
 
   ipc.handle(IpcInvoke.Vpm.ProjectRescan, (key: unknown) => {

@@ -325,6 +325,8 @@ export const IpcEvent = {
   UnityImportProgress: 'unity:import-progress',
   /** 深链（P7-E）：`atrium://` / `vcc://` 解析后的意图，交给界面确认。 */
   VpmDeepLink: 'vpm:deeplink',
+  /** 首次启用/运行时初始化结束，通知已打开的项目页重新读取状态。 */
+  VpmStatusChanged: 'vpm:status-changed',
   /** 备份进度（R2）：收集与压缩两个阶段，压缩阶段带 0-100。 */
   VpmBackupProgress: 'vpm:backup-progress',
   /**

@@ -28,6 +28,7 @@ export type MaintenanceKind =
   | 'migrate'
   | 'unity-version'
   | 'create-project'
+  | 'trash-project'
 
 /** 一个工程当前的活动快照。`maintenance` 为 null 表示没有维护写。 */
 export interface ProjectActivitySnapshot {

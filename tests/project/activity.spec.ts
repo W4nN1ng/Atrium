@@ -100,6 +100,17 @@ describe('ProjectActivityRegistry', () => {
     lease.release()
   })
 
+  it('refuses a new import while project deletion holds the lease, then allows it after release', () => {
+    const registry = new ProjectActivityRegistry()
+    const lease = registry.acquireMaintenance('C:\\Demo', 'trash-project')
+    expect(codeOf(() => registry.beginImport('C:\\Demo'))).toBe('vpmProjectBusy')
+    expect(registry.state('C:\\Demo').importing).toBe(false)
+    lease.release()
+    const release = registry.beginImport('C:\\Demo')
+    expect(registry.state('C:\\Demo').importing).toBe(true)
+    release()
+  })
+
   it('refuses maintenance while Unity runs, and fails closed if the probe throws', () => {
     let running = true
     const registry = new ProjectActivityRegistry({ isUnityRunning: () => running })

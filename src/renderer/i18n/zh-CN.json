@@ -1562,7 +1562,7 @@
       "vpmRuntimeNotReady": "项目与包管理的运行时还没有就绪；请稍后重试，或重新启用。",
       "vpmPlanBlocked": "这个计划还有冲突或缺失依赖，先解决它们再应用。",
       "vpmProjectChanged": "工程在预览之后被改过（manifest 或包目录），请重新预览。",
-      "vpmUnityRunning": "Unity 正在运行这个工程。请先关闭 Unity，再安装或卸载包。",
+      "vpmUnityRunning": "Unity 正在使用这个工程。请先关闭 Unity，再重试此操作。",
       "vpmProjectImporting": "素材正在导入这个工程。请等导入结束，再安装或卸载包。",
       "vpmProtectedPackage": "受保护的包不能升级、降级或卸载：{{name}}。",
       "vpmProjectNoSpace": "工程所在磁盘空间不足，至少还需要 {{required}} 字节。",

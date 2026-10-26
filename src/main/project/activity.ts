@@ -75,6 +75,8 @@ export class ProjectActivityRegistry {
    */
   beginImport(projectPath: string): () => void {
     const key = normalizeProjectPath(projectPath)
+    const held = this.leases.get(key)
+    if (held) throw new VpmError('vpmProjectBusy', { kind: 'import', heldBy: held.kind })
     const current = this.imports.get(key)
     if (current) {
       current.count++
