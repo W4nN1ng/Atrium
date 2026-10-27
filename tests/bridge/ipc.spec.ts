@@ -438,6 +438,9 @@ describe('成员导入：IPC 一路跑到文件信箱（真 BridgeManager + Fake
     const done = await R.call<BatchOutcome>('unity:import-commit', { batchId: plan.batchId, choice: 'continue' })
     expect(done.imported).toBe(1)
     expect(done.results[0].importId).toBeTruthy()
+    expect(R.broadcasts).toContainEqual({ event: 'data:changed', payload: { reason: 'unity-import', projectId } })
+    const names = db.prepare(`SELECT value_json FROM setting WHERE key='ui.importNames'`).get() as { value_json: string }
+    expect(JSON.parse(names.value_json)).toHaveLength(1)
 
     const rows = db
       .prepare(`SELECT * FROM import_log WHERE batch_id = ?`)
@@ -526,6 +529,7 @@ describe('成员导入：IPC 一路跑到文件信箱（真 BridgeManager + Fake
     const done = await R.call<BatchOutcome>('unity:import-commit', { batchId: plan.batchId })
     expect(done.imported).toBe(0)
     expect(done.notRun).toBe(1)
+    expect(R.broadcasts.filter((b) => b.event === 'data:changed')).toEqual([])
     expect(done.stoppedReasonKey).toBe('err.importCancelled')
     /** 没导就不该有台账 */
     expect(db.prepare(`SELECT COUNT(*) AS n FROM import_log`).get()).toEqual({ n: 0 })

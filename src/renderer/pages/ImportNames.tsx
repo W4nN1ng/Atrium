@@ -18,35 +18,61 @@ export function ImportNames(): JSX.Element {
   const [rows, setRows] = useState<ImportNameEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [clearing, setClearing] = useState(false)
+  const mounted = useRef(false)
+  const request = useRef(0)
   /** 「清空」点第一下变成「确认清空？」，3 秒不点就自己变回去 —— 比弹窗轻，又不至于误点 */
   const [confirming, setConfirming] = useState(false)
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(async (): Promise<void> => {
+    const seq = ++request.current
     try {
-      setRows(await window.a.uiPrefs.importNames())
+      const next = await window.a.uiPrefs.importNames()
+      if (mounted.current && seq === request.current) {
+        setRows(next)
+        setError('')
+      }
     } catch (cause) {
-      setError(errorText(cause))
+      if (mounted.current && seq === request.current) setError(errorText(cause))
     } finally {
-      setLoading(false)
+      if (mounted.current && seq === request.current) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
+    mounted.current = true
+    const off = window.a.on('data:changed', () => void load())
     void load()
     return () => {
+      mounted.current = false
+      request.current++
+      off()
       if (confirmTimer.current) clearTimeout(confirmTimer.current)
     }
   }, [load])
+
+  const clear = async (): Promise<void> => {
+    setClearing(true)
+    request.current++ // 清空前发出的读取不能把旧列表写回来。
+    try {
+      await window.a.uiPrefs.importNamesClear()
+      await load() // 重新读最新状态，同时兼容清空期间另一笔导入完成。
+    } catch (cause) {
+      if (mounted.current) setError(errorText(cause))
+    } finally {
+      if (mounted.current) {
+        setClearing(false)
+        setLoading(false)
+      }
+    }
+  }
 
   const armClear = (): void => {
     if (confirming) {
       if (confirmTimer.current) clearTimeout(confirmTimer.current)
       setConfirming(false)
-      void window.a.uiPrefs
-        .importNamesClear()
-        .then(setRows)
-        .catch((cause: unknown) => setError(errorText(cause)))
+      void clear()
       return
     }
     setConfirming(true)
@@ -62,7 +88,7 @@ export function ImportNames(): JSX.Element {
           {t('importNames.count', { count: rows.length })}
         </span>
         <div className="ml-auto">
-          <Button variant="ghost" onClick={armClear} disabled={!rows.length} title={t('importNames.clearHint')}>
+          <Button variant="ghost" onClick={armClear} disabled={clearing || !rows.length} title={t('importNames.clearHint')}>
             {confirming ? t('importNames.clearConfirm') : t('importNames.clear')}
           </Button>
         </div>

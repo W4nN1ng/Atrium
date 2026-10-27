@@ -6,6 +6,7 @@ import * as tar from 'tar'
 import { openDatabase, closeDatabase, type Db } from '../../src/main/db'
 import { upsertProject } from '../../src/main/db/repos/unity'
 import { insertImportLog } from '../../src/main/db/repos/journal'
+import { listImportNames } from '../../src/main/db/repos/uiPrefs'
 import {
   backupOverwritten,
   chunk,
@@ -66,14 +67,14 @@ function installBridge(): void {
 }
 
 /** 现场造一个最小 .unitypackage（规格 §8.4 的做法） */
-async function buildPackage(file: string, entries: Array<{ guid: string; unityPath: string }>): Promise<void> {
+async function buildPackage(file: string, entries: Array<{ guid: string; unityPath: string; folder?: boolean }>): Promise<void> {
   const src = fs.mkdtempSync(path.join(root, 'pkg-'))
   for (const e of entries) {
     const d = path.join(src, e.guid)
     fs.mkdirSync(d, { recursive: true })
     fs.writeFileSync(path.join(d, 'pathname'), e.unityPath, 'utf8')
-    fs.writeFileSync(path.join(d, 'asset'), 'asset-body-of-' + e.guid, 'utf8')
-    fs.writeFileSync(path.join(d, 'asset.meta'), 'fileFormatVersion: 2', 'utf8')
+    if (!e.folder) fs.writeFileSync(path.join(d, 'asset'), 'asset-body-of-' + e.guid, 'utf8')
+    fs.writeFileSync(path.join(d, 'asset.meta'), 'fileFormatVersion: 2' + (e.folder ? '\nfolderAsset: yes\n' : ''), 'utf8')
   }
   fs.mkdirSync(path.dirname(file), { recursive: true })
   await tar.create({ gzip: true, cwd: src, file }, fs.readdirSync(src))
@@ -289,6 +290,22 @@ describe('冲突预扫描（§5.1④：要列出**具体文件路径**）', () =
 })
 
 describe('执行导入（§5.1⑤ 串行 / R-58 先落库）', () => {
+  it('真实包的带点目录（含空目录）在成功导入后保留原名，不截扩展名', async () => {
+    const pkg = path.join(root, 'folders.unitypackage')
+    await buildPackage(pkg, [
+      { guid: GUID_A, unityPath: 'Assets/com.example', folder: true },
+      { guid: GUID_B, unityPath: 'Assets/empty.folder', folder: true },
+      { guid: 'cccccccccccccccccccccccccccccccc', unityPath: 'Assets/com.example/marker.txt' },
+      { guid: 'dddddddddddddddddddddddddddddddd', unityPath: 'Assets/Candy.mat' }
+    ])
+    const { bridge } = fakeBridge()
+    const pre = await preflight(db, bridge, project, pkg, projectId)
+    expect(pre.ok).toBe(true)
+    const result = await importUnitypackage(db, bridge, project, pkg, projectId, pre)
+    expect(result.ok).toBe(true)
+    expect(listImportNames(db)[0].names).toEqual(['com.example', 'empty.folder', 'Candy'])
+  })
+
   async function prepackage(): Promise<PreflightResult> {
     const pkg = path.join(root, 'x.unitypackage')
     await buildPackage(pkg, [{ guid: GUID_A, unityPath: 'Assets/Demo/A.prefab' }])

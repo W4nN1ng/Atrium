@@ -637,6 +637,8 @@ export interface PackageEntry {
   entryKind: EntryKind
   size: number
   hasPreview: boolean
+  /** Unity 的 asset.meta 标记；用于区分带点的文件夹与根目录文件。 */
+  isFolder?: boolean
 }
 
 export interface PackageParseResult {

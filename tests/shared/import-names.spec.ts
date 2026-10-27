@@ -28,6 +28,22 @@ describe('导入历史：素材导进 Unity 以后叫什么', () => {
     expect(topLevelNames(['Assets/Candy.mat'])).toEqual(['Candy'])
   })
 
+  it('文件夹自身条目带点时不产生截短的重复名字，与条目顺序无关', () => {
+    const paths = ['Assets/com.example', 'Assets/com.example/marker.txt', 'Assets/Candy.mat']
+    expect(topLevelNames(paths)).toEqual(['com.example', 'Candy'])
+    expect(topLevelNames(paths.slice().reverse())).toEqual(['Candy', 'com.example'])
+  })
+
+  it('一次性迭代器也能先辨认目录，再生成名字', () => {
+    expect(topLevelNames(new Map([['folder', './Assets\\com.example'], ['child', 'Assets/com.example/a.mat']]).values()))
+      .toEqual(['com.example'])
+  })
+
+  it('元数据标明的空文件夹保留点，根目录文件仍去掉扩展名', () => {
+    expect(topLevelNames(['Assets/empty.folder', 'Assets/Candy.mat'], ['Assets/empty.folder']))
+      .toEqual(['empty.folder', 'Candy'])
+  })
+
   it('反斜杠、前导 ./ 一起兼容（老包会这么写）', () => {
     expect(topLevelNames(['./Assets\\糖果\\a.prefab'])).toEqual(['糖果'])
   })

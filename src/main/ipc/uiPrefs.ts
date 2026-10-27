@@ -13,7 +13,7 @@ import { getDb } from '../db'
  * 单独一个文件而不是塞进 `bridge/ipc.ts`：那边已经 400+ 行、全部围着桥接转，
  * 这两样和 Unity 连接一点关系没有。
  */
-export function registerUiPrefs({ ipc }: IpcRegistrar): void {
+export function registerUiPrefs({ ipc, broadcast }: IpcRegistrar): void {
   ipc.handle('ui:project-layout-get', () => getProjectLayout(getDb()))
 
   ipc.handle('ui:project-layout-set', (layout: unknown) => {
@@ -25,6 +25,7 @@ export function registerUiPrefs({ ipc }: IpcRegistrar): void {
 
   ipc.handle('ui:import-names-clear', () => {
     clearImportNames(getDb())
+    broadcast('data:changed', { reason: 'import-names-clear' })
     return listImportNames(getDb())
   })
 }

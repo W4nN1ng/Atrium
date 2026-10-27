@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { VpmProjectDetailDto, VpmProjectSummaryDto } from '../../../../shared/vpm/dto'
 import {
@@ -279,23 +279,61 @@ export function VpmProjectsSection({
    * 这里只负责“点/拖 → 存”。
    */
   const [layout, setLayout] = useState<ProjectLayout>(EMPTY_PROJECT_LAYOUT)
+  const [layoutReady, setLayoutReady] = useState(false)
+  const [layoutBusy, setLayoutBusy] = useState(true)
+  const [layoutError, setLayoutError] = useState<string | null>(null)
+  const layoutPending = useRef(true)
+  const layoutRequest = useRef(0)
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [dropHint, setDropHint] = useState<{ key: string; position: 'before' | 'after' } | null>(null)
-  useEffect(() => {
-    let cancelled = false
-    void vpmApi
-      .projectLayoutGet()
-      .then((next) => {
-        if (!cancelled) setLayout(next)
-      })
-      .catch(() => undefined)
-    return () => {
-      cancelled = true
+  const loadLayout = useCallback(async (): Promise<void> => {
+    const seq = ++layoutRequest.current
+    layoutPending.current = true
+    setLayoutBusy(true)
+    setLayoutError(null)
+    try {
+      const next = await vpmApi.projectLayoutGet()
+      if (seq !== layoutRequest.current) return
+      setLayout(next)
+      setLayoutReady(true)
+    } catch (cause) {
+      if (seq === layoutRequest.current) setLayoutError(t('vpm.projects.layoutLoadFailed', { detail: errorText(cause) }))
+    } finally {
+      if (seq === layoutRequest.current) {
+        layoutPending.current = false
+        setLayoutBusy(false)
+      }
     }
-  }, [])
-  const saveLayout = (next: ProjectLayout): void => {
+  }, [t])
+  useEffect(() => {
+    void loadLayout()
+    return () => {
+      layoutRequest.current++
+    }
+  }, [loadLayout])
+  const saveLayout = async (next: ProjectLayout): Promise<void> => {
+    // 同一次渲染里的连续点击也不能发出并行写入；初次读取失败时先重试，避免覆盖旧偏好。
+    if (layoutPending.current || !layoutReady) return
+    layoutPending.current = true
+    const seq = ++layoutRequest.current
+    const previous = layout
+    setLayoutBusy(true)
+    setLayoutError(null)
     setLayout(next)
-    void vpmApi.projectLayoutSet(next).catch(() => undefined)
+    try {
+      const saved = await vpmApi.projectLayoutSet(next)
+      if (seq === layoutRequest.current) setLayout(saved)
+    } catch (cause) {
+      if (seq === layoutRequest.current) {
+        setLayout(previous)
+        setLayoutError(t('vpm.projects.layoutSaveFailed', { detail: errorText(cause) }))
+      }
+    } finally {
+      if (seq === layoutRequest.current) {
+        layoutPending.current = false
+        setLayoutBusy(false)
+      }
+    }
   }
 
   // R18：进页面时给"核心表里有、VPM 台账没有"的老工程补建台账，然后刷新列表。
@@ -503,6 +541,15 @@ export function VpmProjectsSection({
         </div>
       ) : null}
 
+      {layoutError ? (
+        <div role="alert" data-layout-error className="mt-2 flex items-center gap-2 rounded border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+          <span>{layoutError}</span>
+          {!layoutReady ? (
+            <Button variant="ghost" disabled={layoutBusy} onClick={() => void loadLayout()}>{t('vpm.projects.refresh')}</Button>
+          ) : null}
+        </div>
+      ) : null}
+
       {filtered.length ? (
         <div className="mt-2 rounded border" style={{ borderColor: 'var(--line)' }}>
           {filtered.map((item) => {
@@ -531,8 +578,12 @@ export function VpmProjectsSection({
                * 浏览器起的是一次文本拖动 —— 会点亮「松手即自动分类」遮罩，顺序却纹丝不动。
                * 搜索时关掉：`filtered` 只是子集，落点算在全表上，边搜边拖会对不上。
                */
-              draggable={!query.trim()}
+              draggable={!query.trim() && layoutReady && !layoutBusy}
               onDragStart={(event) => {
+                if (layoutPending.current || !layoutReady || query.trim()) {
+                  event.preventDefault()
+                  return
+                }
                 const origin = event.target as HTMLElement | null
                 /** 按在按钮/输入框上时不抢拖拽，否则"点打开"会变成"拖这一行" */
                 if (origin?.closest('button, input, textarea, select, a')) {
@@ -573,7 +624,7 @@ export function VpmProjectsSection({
                 event.stopPropagation()
                 const position = dropHint?.key === item.projectKey ? dropHint.position : 'before'
                 if (dragKey && dragKey !== item.projectKey) {
-                  saveLayout(dropKey(allKeys, layout, dragKey, item.projectKey, position))
+                  void saveLayout(dropKey(allKeys, layout, dragKey, item.projectKey, position))
                 }
                 setDragKey(null)
                 setDropHint(null)
@@ -659,7 +710,8 @@ export function VpmProjectsSection({
                   className={pinned ? 'vpm-pin-on' : 'vpm-pin-off'}
                   title={pinned ? t('vpm.projects.unpin') : t('vpm.projects.pin')}
                   ariaLabel={pinned ? t('vpm.projects.unpin') : t('vpm.projects.pin')}
-                  onClick={() => saveLayout(togglePinned(allKeys, layout, item.projectKey))}
+                  disabled={!layoutReady || layoutBusy}
+                  onClick={() => void saveLayout(togglePinned(allKeys, layout, item.projectKey))}
                 >
                   📌
                 </Button>

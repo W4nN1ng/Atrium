@@ -26,17 +26,22 @@ export interface ImportNameEntry {
 }
 
 /** `Assets/shinano Candy/Prefab/x.prefab` → `shinano Candy`；`Assets/foo.mat` → `foo` */
-export function topLevelNames(paths: Iterable<string>): string[] {
+export function topLevelNames(paths: Iterable<string>, folderPaths: Iterable<string> = []): string[] {
+  const normalize = (raw: string): string => raw.trim().replace(/\\/g, '/').replace(/^\.\//, '')
+  // 先收齐：folder 条目可能比它的子项先出现，Map.values() 也只能消费一次。
+  const normalized = Array.from(paths).filter((raw) => typeof raw === 'string').map(normalize)
+  const folders = new Set(Array.from(folderPaths, (raw) => normalize(raw).replace(/\/+$/, '').toLowerCase()))
+  for (const path of normalized) {
+    const match = /^(assets\/[^/]+)\//i.exec(path)
+    if (match) folders.add(match[1].toLowerCase())
+  }
   const out: string[] = []
   const seen = new Set<string>()
-  for (const raw of paths) {
-    if (typeof raw !== 'string') continue
-    // Unity 包里的 pathname 用 `/` 分隔；个别老包会带反斜杠或前导 `./`
-    const path = raw.replace(/\\/g, '/').replace(/^\.\//, '').trim()
+  for (const path of normalized) {
     const m = /^assets\/([^/]+)(\/|$)/i.exec(path)
     if (!m) continue
     let name = m[1].trim()
-    if (m[2] === '') name = name.replace(/\.[^.]+$/, '') // 直接落在 Assets 根下的文件
+    if (m[2] === '' && !folders.has(path.toLowerCase())) name = name.replace(/\.[^.]+$/, '')
     if (!name || seen.has(name)) continue
     seen.add(name)
     out.push(name)

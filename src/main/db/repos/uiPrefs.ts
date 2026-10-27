@@ -87,11 +87,12 @@ export function recordImportName(
     assetId: string | null
     projectId: string
     unityPaths: Iterable<string>
+    folderPaths?: Iterable<string>
     packagePath: string
     at?: number
   }
 ): void {
-  const names = topLevelNames(input.unityPaths)
+  const names = topLevelNames(input.unityPaths, input.folderPaths)
   if (!names.length) return
   const asset = input.assetId ? getAsset(db, input.assetId) : null
   const project = getProject(db, input.projectId)
