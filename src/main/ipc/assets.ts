@@ -165,8 +165,16 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
     const clean = name.trim()
     if (!clean) throw new Error('名字不能为空')
     const db = getDb()
-    const row = patchAsset(db, id, { name: clean })
-    if (row?.group_id) renameGroup(db, row.group_id, clean)
+    const row = db.transaction(() => {
+      const next = patchAsset(db, id, { name: clean })
+      if (next?.group_id) renameGroup(db, next.group_id, clean)
+      return next
+    })()
+    // 组名也是所有变体的搜索别名；只刷新被点中的那张卡会漏掉其余变体。
+    const affected = row?.group_id
+      ? db.prepare('SELECT id FROM asset WHERE group_id = ?').all(row.group_id) as Array<{ id: string }>
+      : [{ id }]
+    for (const asset of affected) reindexAsset(db, asset.id)
     broadcast('data:changed', { reason: 'rename', id })
     return row
   })

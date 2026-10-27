@@ -331,6 +331,8 @@ interface UiState {
   collections: CollectionRow[]
   cards: AssetCard[]
   total: number
+  listLoading: boolean
+  loadingMore: boolean
   detail: DetailInfo | null
   detailId: string | null
   selection: string[]
@@ -395,6 +397,7 @@ interface UiState {
   /** 告知条上的「撤销」：只撤 `remergeNotice.batchId` 那一批，不是"最新那一步" */
   undoRemerge(): Promise<void>
   refreshList(): Promise<void>
+  loadMore(): Promise<void>
   refreshMeta(): Promise<void>
   openDetail(id: string | null): Promise<void>
   setNav(nav: NavKey): void
@@ -574,6 +577,9 @@ export const useUi = create<UiState>((set, get) => {
   let connectionRevision = 0
   let memberRevision = 0
   let batchRevision = 0
+  let detailRevision = 0
+  let listRevision = 0
+  let listFilterKey = ''
 
   async function ensureImportTarget(): Promise<{ id: string; name: string } | null> {
     if (preparation || get().importFlow.busy || get().importFlow.pending ||
@@ -615,22 +621,52 @@ export const useUi = create<UiState>((set, get) => {
     }
   }
 
-  async function refreshList(): Promise<void> {
+  function listFilter(): AssetFilter {
     const s = get()
-    const filter: AssetFilter = {
+    return {
       search: s.search || undefined,
       collectionId: s.nav.startsWith('col:') ? s.nav.slice(4) : undefined,
       category: s.nav.startsWith('cat:') ? s.nav.slice(4) : undefined,
       status: s.nav === 'inbox' ? 'inbox' : undefined,
       bundlesOnly: s.nav === 'bundles' || undefined,
-      view: s.view,
-      limit: 400
+      view: s.view
     }
+  }
+
+  async function refreshList(): Promise<void> {
+    const filter = listFilter()
+    const key = JSON.stringify(filter)
+    const sameFilter = key === listFilterKey
+    const limit = sameFilter ? Math.max(400, get().cards.length) : 400
+    const revision = ++listRevision
+    listFilterKey = key
+    set({ listLoading: true, loadingMore: false, ...(!sameFilter ? { cards: [], total: 0 } : {}) })
     try {
-      const r = await window.a.assets.list(filter)
-      set({ cards: r.cards, total: r.total })
+      const r = await window.a.assets.list({ ...filter, limit })
+      if (revision === listRevision) set({ cards: r.cards, total: r.total })
     } catch (e) {
-      get().toast('bad', e instanceof Error ? e.message : String(e))
+      if (revision === listRevision) get().toast('bad', errorText(e))
+    } finally {
+      if (revision === listRevision) set({ listLoading: false })
+    }
+  }
+
+  async function loadMore(): Promise<void> {
+    const s = get()
+    if (s.listLoading || s.loadingMore || s.cards.length >= s.total) return
+    const revision = listRevision
+    const filter = listFilter()
+    if (JSON.stringify(filter) !== listFilterKey) return
+    set({ loadingMore: true })
+    try {
+      const r = await window.a.assets.list({ ...filter, offset: s.cards.length, limit: 400 })
+      if (revision !== listRevision) return
+      const existing = new Set(get().cards.map(card => card.id))
+      set({ cards: [...get().cards, ...r.cards.filter(card => !existing.has(card.id))], total: r.total })
+    } catch (e) {
+      if (revision === listRevision) get().toast('bad', errorText(e))
+    } finally {
+      if (revision === listRevision) set({ loadingMore: false })
     }
   }
 
@@ -737,8 +773,9 @@ export const useUi = create<UiState>((set, get) => {
       const change = payload as { reason?: string; assetId?: string } | null
       const id = get().detailId
       if (change?.reason === 'cover' && id && change.assetId === id) {
+        const revision = ++detailRevision
         void window.a.assets.detail(id).then(detail => {
-          if (get().detailId === id) set({ detail })
+          if (get().detailId === id && revision === detailRevision) set({ detail })
         }).catch(() => undefined)
       }
     })
@@ -845,6 +882,8 @@ export const useUi = create<UiState>((set, get) => {
     collections: [],
     cards: [],
     total: 0,
+    listLoading: false,
+    loadingMore: false,
     detail: null,
     detailId: null,
     selection: [],
@@ -1034,23 +1073,25 @@ export const useUi = create<UiState>((set, get) => {
     },
 
     refreshList,
+    loadMore,
     refreshMeta,
 
     async openDetail(id) {
+      const revision = ++detailRevision
+      set({ detailId: id, detail: null })
       if (!id) {
-        set({ detail: null, detailId: null })
         return
       }
-      set({ detailId: id })
       try {
         const d = await window.a.assets.detail(id)
-        set({ detail: d })
+        if (revision === detailRevision && get().detailId === id) set({ detail: d })
       } catch (e) {
-        get().toast('bad', e instanceof Error ? e.message : String(e))
+        if (revision === detailRevision && get().detailId === id) get().toast('bad', errorText(e))
       }
     },
 
     setNav(nav) {
+      detailRevision++
       set({ nav, selection: [], detail: null, detailId: null })
       void refreshList()
     },

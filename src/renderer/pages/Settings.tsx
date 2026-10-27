@@ -24,6 +24,22 @@ const TABS: TabKey[] = ['general', 'library', 'classify', 'unity', 'vpm', 'integ
  */
 const VpmSettings = lazy(() => import('../vpm/VpmSettings').then((m) => ({ default: m.VpmSettings })))
 
+function PathEntry({ value, onCommit, onRemove }: {
+  value: string; onCommit: (value: string) => void; onRemove: () => void
+}): JSX.Element {
+  const { t } = useTranslation()
+  const [draft, setDraft] = useState(value)
+  useEffect(() => setDraft(value), [value])
+  return (
+    <div className="flex items-center gap-2">
+      <input className="input" value={draft} onChange={event => setDraft(event.target.value)}
+        onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}
+        onBlur={() => { if (draft !== value) onCommit(draft) }} />
+      <Button onClick={onRemove}>{t('common.remove')}</Button>
+    </div>
+  )
+}
+
 function ListEditor({
   items,
   onChange,
@@ -38,18 +54,11 @@ function ListEditor({
     <div className="flex flex-col gap-1.5">
       {items.length === 0 ? <div className="faint text-[11px]">{t('common.empty')}</div> : null}
       {items.map((v, i) => (
-        <div key={`${v}-${i}`} className="flex items-center gap-2">
-          <input
-            className="input"
-            value={v}
-            onChange={(e) => {
-              const next = [...items]
-              next[i] = e.target.value
-              onChange(next)
-            }}
-          />
-          <Button onClick={() => onChange(items.filter((_, j) => j !== i))}>{t('common.remove')}</Button>
-        </div>
+        <PathEntry key={i} value={v} onCommit={value => {
+          const next = [...items]
+          next[i] = value
+          onChange(next)
+        }} onRemove={() => onChange(items.filter((_, j) => j !== i))} />
       ))}
       <div>
         <Button

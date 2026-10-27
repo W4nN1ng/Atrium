@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type UIEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AssetCard, CategoryConfig } from '../../shared/types'
 import { LONG_PRESS_MS } from '../../shared/cardGesture'
@@ -308,6 +308,10 @@ function AssetRowView({ card }: { card: AssetCard }): JSX.Element {
 export function AssetGrid(): JSX.Element {
   const { t, i18n } = useTranslation()
   const cards = useUi((s) => s.cards)
+  const total = useUi((s) => s.total)
+  const listLoading = useUi((s) => s.listLoading)
+  const loadingMore = useUi((s) => s.loadingMore)
+  const loadMore = useUi((s) => s.loadMore)
   const layout = useUi((s) => s.layout)
   const setLayout = useUi((s) => s.setLayout)
   const view = useUi((s) => s.view)
@@ -322,6 +326,18 @@ export function AssetGrid(): JSX.Element {
   const search = useUi((s) => s.search)
   const categories = useUi((s) => s.categories)
   const locale = i18n.language as 'zh-CN' | 'en' | 'ja'
+
+  const onScroll = (event: UIEvent<HTMLDivElement>): void => {
+    const node = event.currentTarget
+    if (node.scrollHeight - node.scrollTop - node.clientHeight < 320) void loadMore()
+  }
+  const more = cards.length < total ? (
+    <div className="flex justify-center p-3">
+      <button type="button" data-load-more className="btn" disabled={listLoading || loadingMore} onClick={() => void loadMore()}>
+        {loadingMore ? t('common.loading') : t('library.loadMore')}
+      </button>
+    </div>
+  ) : null
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -388,24 +404,26 @@ export function AssetGrid(): JSX.Element {
 
       {cards.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
-          <div className="text-[15px]">{t('library.emptyTitle')}</div>
+          <div className="text-[15px]">{t(listLoading ? 'common.loading' : 'library.emptyTitle')}</div>
           <div className="max-w-md text-[12px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-            {t('library.emptyHint')}
+            {listLoading ? null : t('library.emptyHint')}
           </div>
         </div>
       ) : layout === 'grid' ? (
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3" onScroll={onScroll}>
           <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))' }}>
             {cards.map((c) => (
               <AssetCardView key={c.id} card={c} />
             ))}
           </div>
+          {more}
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto" onScroll={onScroll}>
           {cards.map((c) => (
             <AssetRowView key={c.id} card={c} />
           ))}
+          {more}
         </div>
       )}
     </div>
