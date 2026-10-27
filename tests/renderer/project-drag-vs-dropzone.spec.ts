@@ -23,7 +23,7 @@ describe('项目列表拖拽不与全局拖放遮罩冲突', () => {
   const overlay = read('src/renderer/components/DropOverlay.tsx')
 
   it('整行都是拖拽源（不再只靠 ⠿ 手柄）', () => {
-    expect(section).toMatch(/draggable=\{!query\.trim\(\)\}/)
+    expect(section).toMatch(/draggable=\{!query\.trim\(\) && layoutReady && !layoutBusy\}/)
     expect(section).toContain('onDragStart={')
     expect(section).toContain('onDrop={')
   })

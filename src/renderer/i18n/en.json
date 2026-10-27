@@ -1405,7 +1405,9 @@
       "setTarget": "Set as import target",
       "dragHint": "Drag to reorder",
       "pin": "Pin to top",
-      "unpin": "Unpin"
+      "unpin": "Unpin",
+      "layoutLoadFailed": "Could not load project order and pins. Please retry. {{detail}}",
+      "layoutSaveFailed": "Project order or pins could not be saved. The previous layout was restored. Please retry. {{detail}}"
     },
     "plan": {
       "title": "Change plan (read-only)",

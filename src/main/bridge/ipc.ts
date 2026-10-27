@@ -640,6 +640,8 @@ export function registerBridgeIpc(deps: BridgeIpcDeps): BridgeIpcApi {
               overwritten: r.overwrittenGuids.length
             }
             registrar.broadcast('unity:import-item', ev)
+            // onItem 在成功记录名字后触发；批量导入也要逐项刷新历史页。
+            if (r.ok) registrar.broadcast('data:changed', { reason: 'unity-import', projectId: stagedPlan.plan.projectId })
           }
         })
       } finally {

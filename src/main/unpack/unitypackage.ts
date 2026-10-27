@@ -170,7 +170,8 @@ export async function parseUnitypackage(
           unityPath: pathnames.get(guid) as string,
           entryKind: kindOf(pathnames.get(guid) as string, metaHeads.get(guid) ?? ''),
           size: assetSizes.get(guid) ?? 0,
-          hasPreview: previews.has(guid)
+          hasPreview: previews.has(guid),
+          ...(/^folderAsset:\s*yes\s*$/m.test(metaHeads.get(guid) ?? '') ? { isFolder: true } : {})
         }))
       for (const e of list) {
         guidSet.add(e.guid)

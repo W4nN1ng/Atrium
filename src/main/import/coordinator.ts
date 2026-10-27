@@ -86,6 +86,8 @@ export interface PreflightResult {
   guids: string[]
   /** guid → 包内路径 */
   paths: Map<string, string>
+  /** 元数据确认的目录，包括没有子项的空目录。 */
+  folderPaths?: string[]
   conflicts: ImportConflict[]
   /** 包内新建的（工程里还没有） */
   fresh: number
@@ -226,6 +228,7 @@ export async function preflight(
   }
   const paths = new Map<string, string>()
   for (const e of parsed.entries) paths.set(e.guid, e.unityPath)
+  const folderPaths = parsed.entries.filter((e) => e.isFolder).map((e) => e.unityPath)
   const guids = [...paths.keys()]
 
   /** 分批问工程里这些 GUID 已经存在不存在 */
@@ -264,6 +267,7 @@ export async function preflight(
     entryCount: parsed.entries.length,
     guids,
     paths,
+    folderPaths,
     conflicts,
     fresh: guids.length - conflicts.length,
     parseError: null
@@ -517,6 +521,7 @@ async function importUnitypackageInner(
           assetId,
           projectId,
           unityPaths: pre.paths.values(),
+          folderPaths: pre.folderPaths,
           packagePath
         })
       } catch (e) {

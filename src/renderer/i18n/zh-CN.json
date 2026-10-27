@@ -1405,7 +1405,9 @@
       "setTarget": "设为导入目标",
       "dragHint": "按住拖动排序",
       "pin": "固定到最上面",
-      "unpin": "取消固定"
+      "unpin": "取消固定",
+      "layoutLoadFailed": "无法读取项目排序和固定设置，请重试。{{detail}}",
+      "layoutSaveFailed": "项目排序或固定设置未保存，已恢复原状。请重试。{{detail}}"
     },
     "plan": {
       "title": "变更计划（只读）",

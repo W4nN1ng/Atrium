@@ -13,6 +13,7 @@ import {
   setProjectLayout
 } from '../../src/main/db/repos/uiPrefs'
 import { MAX_IMPORT_NAME_HISTORY } from '../../src/shared/importNames'
+import { registerUiPrefs } from '../../src/main/ipc/uiPrefs'
 
 vi.mock('electron', () => ({
   app: { commandLine: { hasSwitch: () => false }, getPath: () => process.env.TEMP },
@@ -57,6 +58,23 @@ describe('项目顺序存 setting，不动 schema', () => {
 })
 
 describe('导入名字历史', () => {
+  it('清空 IPC 在写入完成后通知其他窗口；不改撤销台账', () => {
+    appendImportName(getDb(), { at: 1, assetName: '糖果', projectName: 'p', names: ['Candy'] })
+    const handlers = new Map<string, (...args: unknown[]) => unknown>()
+    const events: string[] = []
+    registerUiPrefs({
+      ipc: { handle: (channel, fn) => { handlers.set(channel, fn as (...args: unknown[]) => unknown) } },
+      broadcast: (event) => {
+        expect(listImportNames(getDb())).toEqual([])
+        events.push(event)
+      }
+    })
+    const undoBefore = getDb().prepare('SELECT * FROM import_log').all()
+    expect(handlers.get('ui:import-names-clear')?.()).toEqual([])
+    expect(events).toEqual(['data:changed'])
+    expect(getDb().prepare('SELECT * FROM import_log').all()).toEqual(undoBefore)
+  })
+
   it('追加后按新→旧排列', () => {
     appendImportName(getDb(), { at: 1, assetName: '糖果', projectName: 'shinano-Main4', names: ['shinano Candy'] })
     appendImportName(getDb(), { at: 2, assetName: '史莱姆', projectName: 'shinano-Main4', names: ['Slime'] })
