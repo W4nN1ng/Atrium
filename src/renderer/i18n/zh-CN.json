@@ -78,6 +78,7 @@
     "depends": "依赖",
     "lastImport": "上次导入",
     "never": "从未导入",
+    "loadMore": "加载更多素材",
     "emptyTitle": "把素材拖到窗口任意位置",
     "emptyHint": "松手即读内容并分类",
     "dropHint": "松手即自动分类",

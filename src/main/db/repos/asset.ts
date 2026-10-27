@@ -364,11 +364,11 @@ export function queryCards(
       ? db
           .prepare(
             `SELECT * FROM (${CARD_SELECT} ${whereSql}) WHERE rn = 1
-             ORDER BY updated_at DESC LIMIT ? OFFSET ?`
+             ORDER BY updated_at DESC, id LIMIT ? OFFSET ?`
           )
           .all(...params, limit, offset)
       : db
-          .prepare(`${CARD_SELECT} ${whereSql} ORDER BY a.updated_at DESC LIMIT ? OFFSET ?`)
+          .prepare(`${CARD_SELECT} ${whereSql} ORDER BY a.updated_at DESC, a.id LIMIT ? OFFSET ?`)
           .all(...params, limit, offset)
   ) as CardQueryRow[]
 

@@ -78,6 +78,7 @@
     "depends": "Dependencies",
     "lastImport": "Last import",
     "never": "Never imported",
+    "loadMore": "Load more assets",
     "emptyTitle": "Drop files anywhere in this window",
     "emptyHint": "Release to read and classify",
     "dropHint": "Release to classify automatically",

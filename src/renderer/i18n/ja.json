@@ -78,6 +78,7 @@
     "depends": "依存",
     "lastImport": "最終読み込み",
     "never": "読み込み履歴なし",
+    "loadMore": "素材をさらに読み込む",
     "emptyTitle": "ファイルをこのウィンドウのどこかにドロップ",
     "emptyHint": "離すと内容を読んで分類",
     "dropHint": "離すと自動分類",
