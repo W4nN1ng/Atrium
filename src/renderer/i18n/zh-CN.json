@@ -676,6 +676,9 @@
     "unsupported": "这类操作不支持撤销"
   },
   "err": {
+    "trashMissing": "素材记录已不存在，请刷新列表。",
+    "trashSharedFile": "这个文件还被「{{name}}」等素材使用，无法单独移入回收站。请确认并选择对应的完整合集。",
+    "trashReferencedDirectory": "这个目录里还有「{{name}}」等独立登记的素材，已停止回收。请先将需要保留的素材文件移到独立位置。",
     "emptyPath": "空路径",
     "notAbsolute": "不是绝对路径：{{path}}",
     "forbiddenTarget": "系统目录不允许摄取：{{path}}",

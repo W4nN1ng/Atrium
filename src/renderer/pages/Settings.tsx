@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AppSettings, LocaleKey } from '../../shared/types'
 import { LOCALES, LOCALE_LABELS } from '../i18n'
@@ -13,6 +13,7 @@ import { TaxonomyPanel } from '../components/TaxonomyPanel'
 import { LearnModelsPanel } from '../components/LearnModelsPanel'
 import { PasswordVaultPanel } from '../components/PasswordVaultPanel'
 import { DatabaseBackupPanel } from '../components/DatabaseBackupPanel'
+import { shouldCommitPath } from '../../shared/pathInput'
 
 type TabKey = 'general' | 'library' | 'classify' | 'unity' | 'vpm' | 'integration' | 'maintenance' | 'about'
 
@@ -29,11 +30,13 @@ function PathEntry({ value, onCommit, onRemove }: {
 }): JSX.Element {
   const { t } = useTranslation()
   const [draft, setDraft] = useState(value)
+  const composing = useRef(false)
   useEffect(() => setDraft(value), [value])
   return (
     <div className="flex items-center gap-2">
       <input className="input" value={draft} onChange={event => setDraft(event.target.value)}
-        onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}
+        onCompositionStart={() => { composing.current = true }} onCompositionEnd={() => { composing.current = false }}
+        onKeyDown={event => { if (shouldCommitPath(event.nativeEvent, composing.current)) { event.preventDefault(); event.currentTarget.blur() } }}
         onBlur={() => { if (draft !== value) onCommit(draft) }} />
       <Button onClick={onRemove}>{t('common.remove')}</Button>
     </div>

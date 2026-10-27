@@ -676,6 +676,9 @@
     "unsupported": "This operation cannot be undone"
   },
   "err": {
+    "trashMissing": "This asset record no longer exists. Refresh the list.",
+    "trashSharedFile": "This file is also used by {{name}} and cannot be recycled on its own. Check the references and select the complete collection instead.",
+    "trashReferencedDirectory": "This folder contains independently registered assets such as {{name}}, so recycling was stopped. Move any files you want to keep to a separate location first.",
     "emptyPath": "Empty path",
     "notAbsolute": "Not an absolute path: {{path}}",
     "forbiddenTarget": "System directories cannot be ingested: {{path}}",

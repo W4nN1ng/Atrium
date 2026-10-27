@@ -294,10 +294,9 @@ function buildWhere(filter: AssetFilter): { sql: string; params: Array<string | 
     params.push(filter.collectionId)
   }
   if (filter.ids?.length) {
-    // 检索索引给的候选集。占位符按数量生成，绝不拼字符串进 SQL
-    const marks = filter.ids.map(() => '?').join(',')
-    where.push(`a.id IN (${marks})`)
-    params.push(...filter.ids)
+    // 单个 JSON 参数保留完整候选集，也不会撞上 SQLite 的绑定参数数量上限。
+    where.push('a.id IN (SELECT value FROM json_each(?))')
+    params.push(JSON.stringify(filter.ids))
   }
   const q = (filter.search ?? '').trim()
   // 索引已经按归一化写法匹配过了，别再叠一层 LIKE 把 shinano→しなの 这种命中滤掉

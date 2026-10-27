@@ -187,6 +187,9 @@ export class AssetSearchIndex {
     }
   }
 
+  /** SQL filtering and pagination need every match; UI suggestion callers may keep using a bounded search. */
+  searchAll(query: string): SearchHit[] { return this.search(query, Infinity) }
+
   search(query: string, limit = 500): SearchHit[] {
     if (!this._ready) return []
     const q = query.trim()
