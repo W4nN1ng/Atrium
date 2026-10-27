@@ -1362,7 +1362,10 @@ export const useUi = create<UiState>((set, get) => {
       try {
         const r = await window.a.assets.trash(ids)
         if (r.trashed.length) get().toast('ok', i18next.t('toast.trashCount', { count: r.trashed.length }))
-        for (const f of r.failed) get().toast('bad', `${f.id}：${f.error}`)
+        for (const f of r.failed) {
+          const name = get().cards.find(card => card.id === f.id)?.name ?? f.id
+          get().toast('bad', `${name}：${errorText(f.error)}`)
+        }
         set({ selection: [], detail: null, detailId: null })
         await Promise.all([refreshList(), refreshMeta()])
       } catch (e) {

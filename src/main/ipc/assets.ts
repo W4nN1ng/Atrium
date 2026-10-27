@@ -7,7 +7,7 @@ import type { AssetFilter, AssetRow, DetailInfo } from '../../shared/types'
 import type { Stats } from '../../shared/api'
 import { getDb } from '../db'
 import { collectStats } from '../db'
-import { deleteAssetRow, getAsset, isBundleRow, listAttachments, listChildItems, listChildren, listVersions, patchAsset, queryCards } from '../db/repos/asset'
+import { getAsset, isBundleRow, listAttachments, listChildItems, listChildren, listVersions, patchAsset, queryCards } from '../db/repos/asset'
 import { summarizeGroups, listVariants, getBundle, getGroup, renameGroup } from '../db/repos/product'
 import { tagsOf, listCollections, createCollection, updateCollection, removeCollection, addAssetsToCollection, removeAssetFromCollection } from '../db/repos/meta'
 import { entryKindHistogram, packageEntriesOf, dependencySummary, installedProjects } from '../db/repos/unity'
@@ -25,6 +25,7 @@ import { scanLearnCandidates } from '../services/learnModels'
 import { addUserAvatarTerms } from '../services/userLexicon'
 import { mainLexicon, invalidateLexicon } from '../services/lexicon'
 import { undoLast } from '../library/undo'
+import { trashAssets } from '../library/trash'
 import { emit, EV_UNDONE } from '../lib/events'
 import { loadCategories } from '../services/categories'
 import { assetIndex, reindexAsset, rebuildIndex, setCategoryConfig } from '../search'
@@ -183,33 +184,11 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
   ipc.handle('assets:trash', async (ids: unknown) => {
     if (!Array.isArray(ids)) throw new Error('参数无效')
     const db = getDb()
-    const trashed: string[] = []
-    const failed: Array<{ id: string; error: string }> = []
-    for (const id of ids) {
-      if (typeof id !== 'string') continue
-      const row = getAsset(db, id)
-      if (!row) {
-        failed.push({ id: String(id), error: '库里没有这条' })
-        continue
-      }
-      const target = row.library_path ?? row.source_path
-      if (target && fs.existsSync(target)) {
-        try {
-          await shell.trashItem(target)
-        } catch (e) {
-          failed.push({ id, error: '移入回收站失败：' + (e instanceof Error ? e.message : String(e)) })
-          continue
-        }
-      }
-      forgetThumb(db, id)
-      deleteAssetRow(db, id)
-      // 行没了还要留着的只有回收站里的文件；索引和缩略图缓存都得跟着走，
-      // 否则搜一个已删素材还能搜到（点进去就是空白），缓存也会一直涨
-      assetIndex.remove(id)
-      trashed.push(id)
-    }
-    broadcast('data:changed', { reason: 'trash', ids: trashed })
-    return { trashed, failed }
+    const result = await trashAssets({ db, recycle: file => shell.trashItem(file),
+      forget: id => forgetThumb(db, id), removed: id => assetIndex.remove(id) },
+      ids.filter((id): id is string => typeof id === 'string'))
+    broadcast('data:changed', { reason: 'trash', ids: result.trashed })
+    return result
   })
 
   ipc.handle('assets:stats', (): Stats => {

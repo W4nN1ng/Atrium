@@ -52,3 +52,34 @@ it('uses the same search scope before the memory index is ready and respects a p
   expect(handlers.get('assets:list')!({ search: 'HiddenSaffron' }).total).toBe(1)
   expect(resolveIndexedAssetFilter({ search: 'HiddenSaffron', parentId: 'container' })?.parentId).toBe('container')
 })
+
+it('keeps more than 2,000 matches through paging, category and collection filters', () => {
+  db.transaction(() => {
+    for (let i = 0; i < 2105; i++) seed('match-' + i, 'SaffronCommonItem', { category: i === 2104 ? 'texture' : 'plugin' })
+  })()
+  index()
+  const all = handlers.get('assets:list')!({ search: 'SaffronCommonItem', view: 'flat', limit: 400 })
+  expect(all.total).toBe(2105)
+  expect(handlers.get('assets:list')!({ search: 'SaffronCommonItem', view: 'flat', limit: 400, offset: 2000 }).cards).toHaveLength(105)
+  expect(handlers.get('assets:list')!({ search: 'SaffronCommonItem', category: 'texture' }).cards.map((c: any) => c.id)).toEqual(['match-2104'])
+  const collection = handlers.get('collections:create')!({ name: 'Rare match' })
+  handlers.get('collections:add-assets')!(collection.id, ['match-2104'])
+  expect(handlers.get('assets:list')!({ search: 'SaffronCommonItem', collectionId: collection.id }).total).toBe(1)
+})
+
+it('binds a complete candidate set larger than SQLite allows as individual parameters', () => {
+  seed('A', 'ActualAsset'); index()
+  const ids = ['A', ...Array.from({ length: 35000 }, (_, i) => 'not-present-' + i)]
+  expect(handlers.get('assets:list')!({ ids }).cards.map((c: any) => c.id)).toEqual(['A'])
+})
+
+it('the real trash IPC blocks shared file deletion before touching metadata', async () => {
+  const archive = path.join(root, 'bundle.zip'); fs.writeFileSync(archive, 'owned fixture')
+  seed('parent', 'Parent', { library_path: archive, is_bundle: 1 })
+  seed('A', 'First', { library_path: archive, parent_asset_id: 'parent' })
+  seed('B', 'Second', { library_path: archive, parent_asset_id: 'parent' })
+  const result = await handlers.get('assets:trash')!(['A'])
+  expect(result.trashed).toEqual([]); expect(result.failed[0].error).toContain('trashSharedFile')
+  expect(db.prepare('SELECT COUNT(*) AS n FROM asset').get()).toEqual({ n: 3 })
+  expect(fs.existsSync(archive)).toBe(true)
+})

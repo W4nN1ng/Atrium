@@ -7,6 +7,6 @@ export function resolveIndexedAssetFilter(filter: AssetFilter): AssetFilter | nu
   // 普通浏览保留顶层结构；搜索默认覆盖子素材，明确的 top / parent 限定仍然有效。
   const scoped: AssetFilter = query && filter.scope === undefined && !filter.parentId ? { ...filter, scope: 'all' } : filter
   if (!query || !assetIndex.ready) return scoped
-  const hits = assetIndex.search(query, 2000)
+  const hits = assetIndex.searchAll(query)
   return hits.length ? { ...scoped, ids: hits.map(hit => hit.id) } : null
 }
