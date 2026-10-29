@@ -5,6 +5,7 @@ import { decodeText, decodeZipName, normalizeEntryPath } from './encoding'
 import { safeJoin } from '../security/paths'
 import { PasswordNeededError, CorruptArchiveError, extractArchive, type ArchiveEntry, type ListResult } from './sevenZip'
 import { memberMatches } from './entryMatch'
+import { assertTrustworthyListing, UntrustworthyListingError } from './trust'
 
 /**
  * ZIP 专用：必须自己拿到**原始文件名字节**才能做 cp932/GBK 回退，
@@ -30,7 +31,7 @@ function open(file: string): Promise<yauzl.ZipFile> {
       { lazyEntries: true, decodeStrings: false, autoClose: false, validateEntrySizes: false },
       (err, zf) => {
         if (err || !zf) {
-          reject(new CorruptArchiveError(file, err?.message ?? '打不开'))
+          reject(new UntrustworthyListingError(file, ['zip-open-failed']))
           return
         }
         resolve(zf)
@@ -46,7 +47,7 @@ export async function listZip(file: string): Promise<ZipListResult> {
   let fallbackDecoded = 0
   try {
     await new Promise<void>((resolve, reject) => {
-      zf.on('error', (e: Error) => reject(new CorruptArchiveError(file, e.message)))
+      zf.on('error', () => reject(new UntrustworthyListingError(file, ['zip-listing-failed'])))
       zf.on('end', () => resolve())
       zf.on('entry', (entry: yauzl.Entry) => {
         const raw = entry.fileName as unknown as Buffer
@@ -58,7 +59,8 @@ export async function listZip(file: string): Promise<ZipListResult> {
           path: normalizeEntryPath(decodeZipName(raw, declaredUtf8).name),
           size: entry.uncompressedSize,
           isDir: /\/$/.test(decodeZipName(raw, declaredUtf8).name),
-          encrypted: entry.isEncrypted()
+          encrypted: entry.isEncrypted(),
+          crc32: entry.crc32
         })
         zf.readEntry()
       })
@@ -67,12 +69,14 @@ export async function listZip(file: string): Promise<ZipListResult> {
   } finally {
     zf.close()
   }
+  assertTrustworthyListing({ file, format: 'zip', backendFormat: 'zip', entries, expectedEntries: zf.entryCount, complete: true })
   return {
     entries,
     totalBytes: entries.reduce((a, e) => a + (e.isDir ? 0 : e.size), 0),
     encrypted,
     backend: 'yauzl',
-    fallbackDecoded
+    fallbackDecoded,
+    warnings: []
   }
 }
 

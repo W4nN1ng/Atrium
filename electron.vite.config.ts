@@ -13,7 +13,9 @@ export default defineConfig({
           'hash-wasm', 'yauzl', 'pend', 'iconv-lite', 'safer-buffer',
           'tar', 'chownr', 'fs-minipass', 'minipass', 'minizlib', 'mkdirp', 'yallist',
           // 分类链路的词典/解析也是 worker 在用
-          'pinyin-pro', 'wanakana'] })],
+          'pinyin-pro', 'wanakana',
+          // RAR 解码器必须进入 worker 图；WASM 通过 extraResources 离线提供。
+          'node-unrar-js'] })],
     build: {
       outDir: 'out/main',
       lib: {

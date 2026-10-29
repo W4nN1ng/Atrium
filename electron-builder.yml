@@ -34,6 +34,11 @@ npmRebuild: false
 nodeGypRebuild: false
 
 extraResources:
+  - from: 'node_modules/node-unrar-js/dist/js/unrar.wasm'
+    to: 'bin/unrar.wasm'
+  - from: 'resources/licenses'
+    to: 'licenses'
+    filter: ['**/*']
   - from: 'build/icon.png'
     to: 'icon.png'
   - from: 'build/icon.ico'

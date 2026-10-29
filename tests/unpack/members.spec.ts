@@ -15,7 +15,7 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import * as tar from 'tar'
 import { extractMembers, listMembers, NotAnArchiveError } from '../../src/main/unpack/members'
-import { resolveBackend, extractArchive, BackendUnsupportedError } from '../../src/main/unpack/sevenZip'
+import { resolveBackend, extractArchive } from '../../src/main/unpack/sevenZip'
 import { memberMatches } from '../../src/main/unpack/entryMatch'
 import { extractZip } from '../../src/main/unpack/unzip'
 import { parseUnitypackage } from '../../src/main/unpack/unitypackage'
@@ -336,17 +336,19 @@ describe('加密：清单和抽取的密码口径要分清', () => {
     await expect(extractMembers(encZip, path.join(tmp, 'out-enc2'), ['f03.txt'])).rejects.toThrow(/密码|password/i)
   })
 
-  it('后端太旧（只剩 7za）时报"解压组件不支持"，不许谎报成"压缩包损坏"', async () => {
+  it('7z 不再误用已安装的 UnRAR，能力足够的 7za 可以正常读取', async () => {
     /**
-     * 本机实测：这台机器没装 7-Zip，`resolveBackend([])` 会退到
-     * `node_modules/7zip-bin/.../7za.exe`，而它回「未知选项: sccUTF-8」。
+     * M2 核实：旧的「未知选项」来自把已装 UnRAR 误当成 7z CLI。
+     * 7za 本身可以处理 7z；RAR 现在走独立的 WASM 解码器。
      * 以前的表现是 CorruptArchiveError「压缩包损坏或格式不支持」—— 假话。
      * ⚠ resolveBackend 有模块级缓存，这里换了必须在 finally 里换回来，
      *    否则同一文件里后面的用例会全部走错后端（我先踩过一次，红得莫名其妙）。
      */
     try {
-      resolveBackend([], true)
-      await expect(listMembers(nest7z)).rejects.toThrow(BackendUnsupportedError)
+      const backend = resolveBackend([], true)
+      expect(backend?.kind).not.toBe('rar')
+      const listed = await listMembers(nest7z)
+      expect(listed.entries.some((entry) => /\.unitypackage$/i.test(entry.path))).toBe(true)
     } finally {
       resolveBackend([BIN], true)
     }

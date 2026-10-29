@@ -2,13 +2,18 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execFile, spawn } from 'node:child_process'
 import { decodeText } from './encoding'
+import { probeFile } from './magic'
+import { listRar, extractRar } from './unrar'
+import { PasswordNeededError, CorruptArchiveError } from './errors'
+import { assertTrustworthyListing, UntrustworthyListingError } from './trust'
+export { PasswordNeededError, CorruptArchiveError } from './errors'
 
 /**
  * 7z / RAR 后端。
  *
  * 为什么不用 7zip-bin 完事：它只给 7za.exe，而 **7za 不含 RAR 解码器**；
- * 用户库里有 23 个 rar，其中 `6117553 Shinano_FaceAnimation.rar.rar` 还是验收件。
- * 解析顺序：自带 7z.exe → 已装 7-Zip → 已装 WinRAR → 7za 兜底（只能 zip/7z）。
+ * 用户库里含真实 RAR，不能让只支持 ZIP/7z 的工具尝试自动识别它。
+ * RAR 按 magic 交给随包 UnRAR WASM；其余格式选择自带/已装完整 7z，最后 7za。
  *
  * 所有列表输出都带 `-sccUTF-8`：实测不加时 7z 会把包内文件名按系统 ANSI 码页（这台机器是 936/GBK）
  * 吐出来，日文包名会变成一堆假象字节，"哪个编码不报错"根本判不出来。
@@ -20,6 +25,7 @@ export interface ArchiveEntry {
   size: number
   isDir: boolean
   encrypted: boolean
+  crc32?: number
 }
 
 export interface ListResult {
@@ -27,22 +33,7 @@ export interface ListResult {
   totalBytes: number
   encrypted: boolean
   backend: string
-}
-
-export class PasswordNeededError extends Error {
-  readonly code = 'ingest.passwordNeeded'
-  constructor(public archivePath: string) {
-    super(`压缩包需要密码：${archivePath}`)
-    this.name = 'PasswordNeededError'
-  }
-}
-
-export class CorruptArchiveError extends Error {
-  readonly code = 'ingest.corruptArchive'
-  constructor(public archivePath: string, detail: string) {
-    super(`压缩包损坏或格式不支持：${archivePath} —— ${detail}`)
-    this.name = 'CorruptArchiveError'
-  }
+  warnings: string[]
 }
 
 export interface SevenZipBackend {
@@ -51,7 +42,6 @@ export interface SevenZipBackend {
   canHandleRar: boolean
 }
 
-const WINRAR_DIRS = ['C:\\Program Files\\WinRAR', 'C:\\Program Files (x86)\\WinRAR']
 const SEVENZIP_DIRS = ['C:\\Program Files\\7-Zip', 'C:\\Program Files (x86)\\7-Zip']
 
 function firstExisting(cands: string[]): string | null {
@@ -77,11 +67,6 @@ export function resolveBackend(extraDirs: string[] = [], refresh = false): Seven
     cached = { exe: b7, kind: '7z', canHandleRar: true }
     return cached
   }
-  const wr = firstExisting(WINRAR_DIRS.flatMap((d) => [path.join(d, 'UnRAR.exe'), path.join(d, 'Rar.exe')]))
-  if (wr) {
-    cached = { exe: wr, kind: 'rar', canHandleRar: true }
-    return cached
-  }
   const za = firstExisting([
     path.join(process.cwd(), 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe'),
     path.join(path.dirname(process.execPath), 'resources', 'app.asar.unpacked', 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe')
@@ -99,22 +84,26 @@ const LIST_TIMEOUT_MS = 120_000
 /**
  * 跑外部后端。
  *
- * stdin 必须是"立刻 EOF"的：遇到头部加密的 7z，后端会打印
+ * 没有密码时 stdin 必须立即 EOF；有密码时只写一行再关闭。头部加密的 7z 会打印
  * `Enter password (will not be echoed):` 然后从 stdin 读密码。
  * execFile 默认给的是常开管道，于是进程永远挂着 —— 实测摄取会卡在
  * "正在读取包内清单"不动，7z.exe 变成孤儿进程（2026-10-04）。
- * 关掉 stdin 后 7z 立刻退出（code 255 + 那句提示），上层就能按"要密码"处理。
+ * 不使用空的 -p 开关（会被当成空密码），让后端从 stdin 读取真实密码。
  */
 function runBinary(
   exe: string,
   args: string[],
-  opts: { timeoutMs?: number } = {}
-): Promise<{ code: number; out: Buffer; err: Buffer }> {
+  opts: { timeoutMs?: number; password?: string } = {}
+): Promise<{ code: number; out: Buffer; err: Buffer; truncated: boolean }> {
   return new Promise((resolve, reject) => {
-    const child = spawn(exe, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
+    if (opts.password && /[\r\n\0]/.test(opts.password)) { reject(new Error('Password cannot be represented by the console protocol')); return }
+    const child = spawn(exe, args, { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
+    child.stdin.on('error', () => {})
+    child.stdin.end(opts.password ? opts.password + '\n' : undefined)
     const out: Buffer[] = []
     const err: Buffer[] = []
     let outLen = 0
+    let truncated = false
     const MAX = 64 * 1024 * 1024
     let timer: NodeJS.Timeout | undefined
     let timedOut = false
@@ -133,9 +122,12 @@ function runBinary(
     child.stdout.on('data', (b: Buffer) => {
       outLen += b.length
       if (outLen <= MAX) out.push(b)
+      else truncated = true
     })
     child.stderr.on('data', (b: Buffer) => {
-      err.push(b)
+      outLen += b.length
+      if (outLen <= MAX) err.push(b)
+      else truncated = true
     })
     child.on('error', (e) => {
       if (timer) clearTimeout(timer)
@@ -148,20 +140,17 @@ function runBinary(
         reject(new Error(`解压后端超时未响应：${path.basename(exe)} ${args[0] ?? ''}`))
         return
       }
-      resolve({ code: code ?? 1, out: Buffer.concat(out), err: Buffer.concat(err) })
+      resolve({ code: code ?? 1, out: Buffer.concat(out), err: Buffer.concat(err), truncated })
     })
   })
 }
 
-const PASSWORD_HINT = /wrong password|password|encrypted|数据错误|密码/i
-const CORRUPT_HINT = /data error|corrupt|broken|unexpected end|cannot open|unsupported method|headers error|不是压缩包/i
+const PASSWORD_HINT = /wrong password|enter password|password (?:is |for |required)|密码/i
 
 /**
  * 后端版本太旧、连我们传的参数都不认。
  *
- * 实测：`resolveBackend` 在"既没有自带 `resources/bin/7z.exe`、也没装 7-Zip"的机器上
- * 会退到 `7zip-bin` 的 `7za.exe`，而它不认 `-sccUTF-8` 与 `-bso1`，
- * 于是 7z 只回一句「未知选项」，退出码非 0。上层按退出码判就会报成
+ * 不支持参数的组件会返回「未知选项」和非零退出码。上层只按退出码判会报成
  * **"压缩包损坏或格式不支持"** —— 那是一句假话：包是好的，坏的是解压组件。
  * 用户照着"包坏了"去折腾，永远折腾不出来。
  *
@@ -187,9 +176,10 @@ export function parseSltListing(text: string): ArchiveEntry[] {
     if (cur.path) {
       entries.push({
         path: cur.path.replace(/\\/g, '/'),
-        size: Number(cur.size ?? 0),
+        size: Number(cur.size ?? NaN),
         isDir: !!cur.isDir,
-        encrypted: !!cur.encrypted
+        encrypted: !!cur.encrypted,
+        crc32: cur.crc32
       })
     }
     cur = {}
@@ -210,13 +200,19 @@ export function parseSltListing(text: string): ArchiveEntry[] {
         cur.path = val
         break
       case 'Size':
-        cur.size = Number(val.replace(/[^\d-]/g, '')) || 0
+        cur.size = Number(val)
         break
       case 'Folder':
         cur.isDir = val === '+'
         break
       case 'Encrypted':
         cur.encrypted = val === '+'
+        break
+      case 'CRC':
+        cur.crc32 = /^[0-9a-f]{8}$/i.test(val) ? Number.parseInt(val, 16) : NaN
+        break
+      case 'Attributes':
+        if (cur.isDir === undefined && /^D/.test(val)) cur.isDir = true
         break
       default:
         break
@@ -231,7 +227,7 @@ export interface BackendOptions {
   /**
    * 头部加密（-mhe）的 7z/rar 连"包里有几个文件"都要密码才读得出来，
    * 所以列清单这一步也得拿到密码，否则用户输对了也永远停在"需要密码"。
-   * 注意 7z 只支持命令行传密码，同机其他用户能在工作进程列表里看到它。
+   * 通过标准输入传给交互密码提示，不把密码放进操作系统命令行。
    */
   password?: string
 }
@@ -244,32 +240,36 @@ function requireBackend(opts: BackendOptions): SevenZipBackend {
 
 /** 只列目录不解压 —— 默认路径（省空间）下的指纹分析就靠它 */
 export async function listArchive(file: string, opts: BackendOptions = {}): Promise<ListResult> {
-  const backend = requireBackend(opts)
-  if (!backend.canHandleRar && /\.rar$/i.test(file)) {
-    throw new Error('当前解压后端（7za）不含 RAR 解码器，请安装 7-Zip 或 WinRAR')
+  const probe = await probeFile(file)
+  if (probe.format === 'rar') {
+    const result = await listRar(file, opts)
+    return { entries: result.members, totalBytes: result.members.reduce((sum, entry) => sum + (entry.isDir ? 0 : entry.size), 0), encrypted: result.encrypted, backend: result.backend, warnings: result.warnings }
   }
-  const pw = opts.password ? [`-p${opts.password}`] : []
-  const r = await runBinary(backend.exe, ['l', '-slt', '-ba', '-y', '-sccUTF-8', ...pw, file], { timeoutMs: LIST_TIMEOUT_MS })
+  if (probe.format === 'zip') return (await import('./unzip')).listZip(file)
+  if (!probe.isArchive) throw new UntrustworthyListingError(file, ['not-an-archive'])
+  const backend = requireBackend(opts)
+  const format = probe.format === 'sevenz' ? '7z' : probe.format
+  let r: Awaited<ReturnType<typeof runBinary>>
+  try {
+    r = await runBinary(backend.exe, ['l', '-slt', '-ba', '-y', '-sccUTF-8', `-t${format}`, file], { timeoutMs: LIST_TIMEOUT_MS, password: opts.password })
+  } catch { throw new UntrustworthyListingError(file, ['backend-transport-failed']) }
   const text = decodeText(r.out).text
   const blob = text + decodeText(r.err).text
+  if (r.truncated) throw new UntrustworthyListingError(file, ['backend-output-limit'])
   if (r.code !== 0) {
     if (PASSWORD_HINT.test(blob)) throw new PasswordNeededError(file)
     /** 「未知选项」必须在"包坏了"之前判，否则一句假话把用户支到别处去 */
     if (UNSUPPORTED_OPT_RE.test(blob)) throw new BackendUnsupportedError(backend.exe, blob.slice(0, 200))
-    throw new CorruptArchiveError(file, blob.slice(0, 240) || `exit ${r.code}`)
+    throw new UntrustworthyListingError(file, ['backend-exit-' + r.code])
   }
   const entries = parseSltListing(text)
-  if (!entries.length) {
-    // 有些版本 -slt 失败但普通 l 能出东西；至少别让调用方以为"空包"
-    const plain = await runBinary(backend.exe, ['l', '-ba', '-y', '-sccUTF-8', ...pw, file], { timeoutMs: LIST_TIMEOUT_MS })
-    const pt = decodeText(plain.out).text
-    if (PASSWORD_HINT.test(pt)) throw new PasswordNeededError(file)
-  }
+  assertTrustworthyListing({ file, format, backendFormat: format, entries, complete: true, exitCode: r.code, stdout: text, stderr: decodeText(r.err).text, truncated: r.truncated })
   return {
     entries,
     totalBytes: entries.reduce((a, e) => a + (e.isDir ? 0 : e.size), 0),
     encrypted: entries.some((e) => e.encrypted),
-    backend: backend.exe
+    backend: backend.exe,
+    warnings: []
   }
 }
 
@@ -282,7 +282,7 @@ export interface ExtractOptions extends BackendOptions {
 }
 
 /** 解压到 destDir —— 调用方保证 destDir 在 staging 内，绝不直接解到库目录（第 1 份 §12 坑 4） */
-export function extractArchive(file: string, destDir: string, opts: ExtractOptions = {}): Promise<{ files: number; bytes: number }> {
+export async function extractArchive(file: string, destDir: string, opts: ExtractOptions = {}): Promise<{ files: number; bytes: number }> {
   if (opts.only && opts.only.length === 0) {
     /**
      * 和 `extractZip` 同一条闸门：`only: []` 是"调用方漏传"，不是"解全部"。
@@ -290,14 +290,16 @@ export function extractArchive(file: string, destDir: string, opts: ExtractOptio
      */
     return Promise.resolve({ files: 0, bytes: 0 })
   }
+  opts.signal?.throwIfAborted()
+  const probe = await probeFile(file)
+  if (probe.format === 'rar') return extractRar(file, opts.only, destDir, opts)
+  if (opts.password && /[\r\n\0]/.test(opts.password)) throw new Error('Password cannot be represented by the console protocol')
+  const listing = await listArchive(file, opts)
   const backend = requireBackend(opts)
-  if (!backend.canHandleRar && /\.rar$/i.test(file)) {
-    return Promise.reject(new Error('当前解压后端（7za）不含 RAR 解码器'))
-  }
   fs.mkdirSync(destDir, { recursive: true })
 
-  const args: string[] = ['x', '-y', '-bso1', '-bsp1', `-o${destDir}`]
-  if (opts.password) args.push(`-p${opts.password}`)
+  const format = probe.format === 'sevenz' ? '7z' : probe.format
+  const args: string[] = ['x', '-y', '-bso1', '-bsp1', '-sccUTF-8', `-t${format}`, `-o${destDir}`]
   args.push(file)
   if (opts.only?.length) args.push(...opts.only)
 
@@ -313,13 +315,16 @@ export function extractArchive(file: string, destDir: string, opts: ExtractOptio
         else reject(new CorruptArchiveError(file, blob.slice(-300) || String(e?.message ?? '')))
         return
       }
-      const counted = countTree(destDir)
-      resolve(counted)
+      try {
+        assertTrustworthyListing({ file, format, backendFormat: format, entries: listing.entries, expectedEntries: listing.entries.length, complete: true, stdout: out, stderr: errText })
+        resolve(countTree(destDir))
+      } catch (error) { reject(error) }
     })
 
-    // 同上：不喂 stdin 就立刻关掉，否则没给密码的加密包会让 7z 卡在交互提示上
+    // 有密码时走交互标准输入，无密码时 EOF；两者都不把密码放进 args。
     try {
-      child.stdin?.end()
+      child.stdin?.on('error', () => {})
+      child.stdin?.end(opts.password ? opts.password + '\n' : undefined)
     } catch {
       /* 已经关了 */
     }
