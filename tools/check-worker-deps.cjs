@@ -55,13 +55,13 @@ if (!fs.existsSync(OUT)) {
   process.exit(1)
 }
 
-const entry = path.join(OUT, 'worker.js')
-if (!fs.existsSync(entry)) {
-  console.error('没有 out/main/worker.js，先跑 electron-vite build')
+const entries = ['worker.js', 'intake.js'].map((name) => path.join(OUT, name))
+if (entries.some((entry) => !fs.existsSync(entry))) {
+  console.error('缺少 out/main/worker.js 或 intake.js，先跑 electron-vite build')
   process.exit(1)
 }
 
-const files = workerGraph(entry)
+const files = [...new Set(entries.flatMap(workerGraph))].sort()
 let bad = 0
 for (const file of files) {
   const name = path.relative(OUT, file)
@@ -79,6 +79,6 @@ for (const file of files) {
   }
 }
 if (!bad) {
-  console.log(`✓ worker 依赖图共 ${files.length} 个文件，全部自包含`)
+  console.log(`✓ worker/intake 依赖图共 ${files.length} 个文件，全部自包含`)
 }
 process.exit(bad ? 1 : 0)

@@ -24,6 +24,8 @@ interface RarOptions {
   extraBackendDirs?: string[]
   signal?: AbortSignal
   onProgress?: (percent: number, current: string) => void
+  /** Trusted caller-supplied flat placement map; archive names remain provenance. */
+  targetNames?: ReadonlyMap<string, string>
 }
 export interface RarListResult { members: ListedEntry[]; warnings: string[]; encrypted: boolean; backend: string }
 
@@ -86,26 +88,42 @@ export function extractRar(file: string, wanted: string[] | undefined, dest: str
     const listing = await scan(file, opts)
     const selected = listing.members.filter((entry) => !entry.isDir && (!wanted || wanted.some((name) => memberMatches(entry.path, name))))
     const names = new Set(selected.map((entry) => entry.path))
+    if (names.size !== selected.length) throw new UntrustworthyListingError(file, ['duplicate-rar-member-path'])
+    const targetName = (name: string): string => {
+      const normalized = name.replace(/\\/g, '/')
+      if (!opts.targetNames) return normalized
+      const mapped = opts.targetNames.get(normalized)
+      if (!mapped) throw new UntrustworthyListingError(file, ['missing-target-mapping'])
+      return mapped
+    }
     const targets = new Set<string>()
     for (const entry of selected) {
-      const target = safeJoin(dest, entry.path)
+      const target = safeJoin(dest, targetName(entry.path))
       if (!target || fs.existsSync(target) || targets.has(target.toLowerCase())) throw new UntrustworthyListingError(file, ['unsafe-or-conflicting-target'])
       targets.add(target.toLowerCase())
     }
     if (!selected.length) return { files: 0, bytes: 0 }
     try {
       fs.mkdirSync(dest, { recursive: true })
-      const extractor = await createExtractorFromFile({ filepath: file, targetPath: dest, password: opts.password, wasmBinary: wasmBinary(opts.extraBackendDirs) })
+      const extractor = await createExtractorFromFile({ filepath: file, targetPath: dest, password: opts.password, wasmBinary: wasmBinary(opts.extraBackendDirs), filenameTransform: targetName })
       let files = 0, bytes = 0
-      for (const item of extractor.extract({ files: (header) => names.has(header.name.replace(/\\/g, '/')) }).files) {
-        const member = item.fileHeader
-        const target = safeJoin(dest, member.name)!
-        if (fs.statSync(target).size !== member.unpSize) throw new UntrustworthyListingError(file, ['rar-extraction-size'])
-        files++; bytes += member.unpSize
-        opts.onProgress?.(files / selected.length, member.name)
+      let deferred: unknown
+      let validationFailed = false
+      // SDK generators have no finally: drain to EOF even on cancellation/callback errors,
+      // skipping remaining payloads so closeArc always runs before releasing the decoder.
+      for (const item of extractor.extract({ files: (header) => !validationFailed && !opts.signal?.aborted && names.has(header.name.replace(/\\/g, '/')) }).files) {
+        try {
+          const member = item.fileHeader
+          const target = safeJoin(dest, targetName(member.name))!
+          if (fs.statSync(target).size !== member.unpSize) throw new UntrustworthyListingError(file, ['rar-extraction-size'])
+          files++; bytes += member.unpSize
+          opts.onProgress?.(files / selected.length, member.name)
+        } catch (error) { deferred = error; validationFailed = true }
       }
+      opts.signal?.throwIfAborted()
+      if (validationFailed) throw deferred
       if (files !== selected.length) throw new UntrustworthyListingError(file, ['rar-extraction-missing'])
       return { files, bytes }
-    } catch (error) { return failed(file, error, !!opts.password && listing.encrypted) }
+    } catch (error) { opts.signal?.throwIfAborted(); return failed(file, error, !!opts.password && listing.encrypted) }
   })
 }

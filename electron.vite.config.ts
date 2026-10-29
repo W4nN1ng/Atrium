@@ -19,10 +19,11 @@ export default defineConfig({
     build: {
       outDir: 'out/main',
       lib: {
-        // 两个入口：主进程本体 + 摄取 worker（worker_threads 要一个独立文件）
+        // Intake core is independently loadable by workers; UI routing is added in M7.
         entry: {
           index: resolve(__dirname, 'src/main/index.ts'),
-          worker: resolve(__dirname, 'src/main/ingest/worker.ts')
+          worker: resolve(__dirname, 'src/main/ingest/worker.ts'),
+          intake: resolve(__dirname, 'src/main/intake/runtime.ts')
         },
         formats: ['cjs'],
         fileName: (_format: string, entryName: string) => `${entryName}.js`

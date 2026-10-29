@@ -36,6 +36,7 @@ import type { WorkerMessage, WorkerResult } from './worker'
 import { containerInfoOf, type ContainerInfo } from './container'
 import { queueActionFor, STAGE_TERMINAL } from './queuePolicy'
 import { pruneExtractRoot, resolveExtractRoot } from '../import/extractRoot'
+import { pruneIntakeCache } from '../intake/lifecycle'
 
 export interface IngestApi {
   enqueue(paths: string[]): Promise<{ accepted: string[]; rejected: RejectedPath[] }>
@@ -181,6 +182,8 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
   const queue = new TaskQueue({ concurrency: CONCURRENCY })
   let disposed = false
   void pruneStaging()
+  // Persistent expansion cache is independent of staging; resumable plans and live leases protect it.
+  void Promise.resolve().then(() => pruneIntakeCache(getDb())).catch((error: unknown) => log.warn('intake cache cleanup deferred', error))
   /**
    * 抽取根目录同理（M5-B）：任务表不跨重启，开机时那里剩下来的必是上次没清干净的
    * 临时副本。它默认在**素材所在那个盘**（不是 C），所以就算漏清也不会写爆系统盘，

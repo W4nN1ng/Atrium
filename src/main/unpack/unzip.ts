@@ -57,6 +57,7 @@ export async function listZip(file: string): Promise<ZipListResult> {
         if (entry.isEncrypted()) encrypted = true
         entries.push({
           path: normalizeEntryPath(decodeZipName(raw, declaredUtf8).name),
+          originalPath: decodeZipName(raw, declaredUtf8).name,
           size: entry.uncompressedSize,
           isDir: /\/$/.test(decodeZipName(raw, declaredUtf8).name),
           encrypted: entry.isEncrypted(),

@@ -22,6 +22,8 @@ export { PasswordNeededError, CorruptArchiveError } from './errors'
 export interface ArchiveEntry {
   /** 用 / 分隔的包内路径 */
   path: string
+  /** Decoded original spelling before placement normalization (ZIP may contain trailing spaces). */
+  originalPath?: string
   size: number
   isDir: boolean
   encrypted: boolean

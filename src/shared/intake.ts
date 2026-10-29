@@ -31,9 +31,18 @@ export interface LeafRef {
   relPath: string
   chain: ContainerRef[] // Innermost container first; empty for loose files.
   localPath: string | null // Null while the member exists only in a trusted listing.
+  kind?: 'file' | 'unitypackage' | 'opaque'
+  cacheKey?: string // Container cache holding localPath; never a source filename.
 }
 
-export interface ClosurePayload { leaves: LeafRef[]; opaque: boolean; warnings: string[] }
+export interface ClosurePayload {
+  leaves: LeafRef[]
+  opaque: boolean // At least one unresolved container/path; never use as complete coverage evidence.
+  warnings: string[]
+  cacheKeys?: string[]
+  cacheOwnerId?: string
+  unreadable?: { path: string; reason: string }[] // No fabricated content key for unreadable bytes.
+}
 export interface LeafMatch { key: ContentKey; coveringPath: string; assetId: string | null }
 export interface MatchEvidence {
   coveredCount: number

@@ -69,6 +69,14 @@ describe('bundled UnRAR library', () => {
       await expect(listRar(file)).rejects.toThrow(UntrustworthyListingError)
     }
   })
+  it('drains native handles on cancellation and skips remaining selected payloads', async () => {
+    const file = path.join(fixtures, 'WithComment.rar'), controller = new AbortController()
+    const dest = path.join(tmp, 'cancelled')
+    await expect(extractRar(file, undefined, dest, { signal: controller.signal, onProgress: () => controller.abort() })).rejects.toThrow()
+    expect(fs.readdirSync(dest)).toHaveLength(1)
+    expect((await listRar(file)).members).toHaveLength(2)
+    expect((await extractRar(file, undefined, path.join(tmp, 'after-cancel'))).files).toBe(2)
+  })
 })
 
 describe.skipIf(!hasSample)('M0 private fixture copy (explicit opt-in)', () => {

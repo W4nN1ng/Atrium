@@ -97,6 +97,17 @@ export const WAKE_TOPMOST_MS = 1200
 
 export const DEFAULT_HOTKEY = 'CommandOrControl+Alt+A'
 export const MAX_EXTRACT_DEPTH = 3
+
+/** Normalized intake budgets; the legacy extractor keeps its own depth above. */
+export const INTAKE_MAX_DEPTH = 8
+export const INTAKE_MAX_ENTRIES = 20_000
+export const INTAKE_MIN_TOTAL_BYTES = 256 * 1024 ** 3
+export const INTAKE_MAX_FILE_BYTES = 64 * 1024 ** 3
+export function intakeBudget(sourceBytes: number): import('./intake').Budget {
+  if (!Number.isSafeInteger(sourceBytes) || sourceBytes < 0 || sourceBytes > Number.MAX_SAFE_INTEGER / 3) throw new RangeError('Invalid source size')
+  return { maxDepth: INTAKE_MAX_DEPTH, maxEntriesPerContainer: INTAKE_MAX_ENTRIES,
+    maxTotalBytes: Math.max(sourceBytes * 3, INTAKE_MIN_TOTAL_BYTES), maxFileBytes: INTAKE_MAX_FILE_BYTES }
+}
 /** Windows 路径长度预算（第 1 份 F4 模板长度限制） */
 export const MAX_TEMPLATE_LENGTH = 240
 /** readme 语料截断 */
