@@ -3,8 +3,9 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import Database from 'better-sqlite3'
-import { closeDatabase, openDatabase } from '../../src/main/db'
+import { closeDatabase, migrate, openDatabase } from '../../src/main/db'
 import { SCHEMA_VERSION } from '../../src/main/db/schema'
+import { seedIntakeV11, snapshotIntakeLegacy } from '../helpers/intakeV11'
 import { P, setAppPathsForTest } from '../../src/main/services/paths'
 import { defaultVpmSettings, readVpmSettings, writeVpmSettings } from '../../src/main/vpm/config'
 import {
@@ -27,7 +28,7 @@ import {
  * - L1「设置里停用」在 R20 之后没有界面入口，而且 `ensureAutoEnabled()` 会在下次启动
  *   把它改回来 —— 这条必须被记录成事实，不能写成"可以停用"；
  * - L2 安全模式是真的出口（`--safe-mode` / `ATRIUM_SAFE_MODE=1`）；
- * - L3 移走 VPM 状态目录后，核心库一个字节都不该变（schema 仍是 11、表还是那些表）；
+ * - L3 移走 VPM 状态目录后，核心库一个字节都不该变（schema 仍是 12、表还是那些表）；
  * - L4 旧版忽略 VPM 目录的前提是：**VPM 的表从来不在 library.db 里**。
  */
 
@@ -204,11 +205,43 @@ describe('L3：移走 VPM 状态目录，核心库无损', () => {
   })
 })
 
+describe('L3：V11 副本升级 V12 的数据保护', () => {
+  it('所有旧行、共享哈希和人工封面保留，迁移幂等且完整性正常', () => {
+    const original = path.join(root, 'intake-v11.db')
+    const legacy = new Database(original)
+    legacy.pragma('foreign_keys = ON')
+    seedIntakeV11(legacy)
+    const before = snapshotIntakeLegacy(legacy)
+    legacy.close()
+    const originalBytes = fs.readFileSync(original)
+    const copy = path.join(root, 'intake-v12-copy.db')
+    fs.copyFileSync(original, copy)
+    const upgraded = new Database(copy)
+    upgraded.pragma('foreign_keys = ON')
+    try {
+      expect(migrate(upgraded)).toBe(1)
+      expect(upgraded.pragma('user_version', { simple: true })).toBe(12)
+      const after = snapshotIntakeLegacy(upgraded)
+      for (const table of Object.keys(before)) expect(after[table], table).toEqual(before[table])
+      expect(upgraded.prepare('SELECT hash_xxh64 FROM asset').all()).toEqual([
+        { hash_xxh64: 'shared-v11-hash' }, { hash_xxh64: 'shared-v11-hash' }
+      ])
+      expect(upgraded.prepare('SELECT cover_image FROM asset_cover').get()).toEqual({ cover_image: 'athumb://cover-manual.jpg' })
+      expect(upgraded.pragma('integrity_check', { simple: true })).toBe('ok')
+      expect(upgraded.pragma('foreign_key_check')).toEqual([])
+      expect(migrate(upgraded)).toBe(0)
+      expect(fs.readFileSync(original)).toEqual(originalBytes)
+    } finally {
+      upgraded.close()
+    }
+  })
+})
+
 describe('L4：旧版忽略 VPM 的前提', () => {
   it('library.db 里没有任何 vpm 表；VPM 自己的库在数据根里', () => {
     const core = snapshotCore()
     expect(core.tables.filter((name) => name.startsWith('vpm_'))).toEqual([])
-    expect(core.userVersion).toBe(11)
+    expect(core.userVersion).toBe(12)
     // VPM 的库是另一个文件
     expect(P.vpmDb()).not.toBe(P.db())
     expect(P.vpmDb().toLowerCase()).toContain('vpm')
@@ -217,7 +250,7 @@ describe('L4：旧版忽略 VPM 的前提', () => {
   it('核心库 schema 文件里没有 VPM 的痕迹（回退代码不会动核心 schema）', () => {
     const schema = fs.readFileSync(path.join(__dirname, '../../src/main/db/schema.ts'), 'utf8')
     expect(/vpm/i.test(schema), '核心 schema 里出现了 vpm —— 回退会变复杂').toBe(false)
-    expect(SCHEMA_VERSION).toBe(11)
+    expect(SCHEMA_VERSION).toBe(12)
   })
 
   it('VPM 设置文件坏掉时，核心仍然能开（回退不依赖 VPM 状态）', () => {

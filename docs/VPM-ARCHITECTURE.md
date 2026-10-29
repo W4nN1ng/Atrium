@@ -204,7 +204,7 @@ P1-A 先建空骨架和模板；后续任务在自己模块落地时补全。
 
 | 数据/路径 | 唯一写入者 | 允许的读取者 | 规则 |
 |---|---|---|---|
-| 核心 `library.db` | 核心代码 | VPM 只读（如需要工程列表） | VPM **不得**迁移/改 schema/写表；`SCHEMA_VERSION=11` |
+| 核心 `library.db` | 核心代码 | VPM 只读（如需要工程列表） | VPM **不得**迁移/改 schema/写表；核心摄取 M1 追加至 `SCHEMA_VERSION=12`，详见 `INTAKE-ARCHITECTURE.md` |
 | `vpm.db` | `main/vpm/db` 仓储 | 应用服务（通过仓储） | 迁移只在启用时；迁移前备份；版本更高则拒绝 |
 | `%APPDATA%\A\vpm\settings.json` | `config.ts` | gate/设置服务 | 原子写；坏文件改名保留；不塞核心设置 |
 | `%APPDATA%\A\vpm\backups\` | `db`/`config` 的备份逻辑 | 诊断 | 不自动清理；不永久删 |

@@ -32,7 +32,7 @@ import { dirKeyOf } from '../../shared/pathkey'
  *   意思是"历史遗留的跨目录归并"，新条目不会再吸附进去（要拆交给健康检查）。
  */
 
-export const SCHEMA_VERSION = 11
+export const SCHEMA_VERSION = 12
 
 const V1 = `
 CREATE TABLE IF NOT EXISTS asset (
@@ -486,6 +486,69 @@ DROP INDEX IF EXISTS idx_asset_review;
     version: 11,
     sql: '',
     post: repairInheritedHashes
+  },
+  {
+    version: 12,
+    sql: `
+-- Normalized intake: additive bookkeeping only; existing assets/covers are untouched.
+CREATE TABLE IF NOT EXISTS content_blob (
+  blob_id TEXT PRIMARY KEY NOT NULL CHECK(length(blob_id) = 64 AND blob_id NOT GLOB '*[^0-9a-f]*'),
+  size INTEGER NOT NULL CHECK(typeof(size) = 'integer' AND size >= 0),
+  crc32 INTEGER NOT NULL CHECK(typeof(crc32) = 'integer' AND crc32 BETWEEN 0 AND 4294967295),
+  storage_path TEXT NOT NULL UNIQUE,
+  ref_count INTEGER NOT NULL DEFAULT 0 CHECK(typeof(ref_count) = 'integer' AND ref_count >= 0)
+);
+-- CRC32+size narrows candidates; distinct SHA-256 identities must remain representable.
+CREATE INDEX IF NOT EXISTS idx_content_blob_key ON content_blob(size, crc32);
+
+CREATE TABLE IF NOT EXISTS intake_plan (
+  id TEXT PRIMARY KEY NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('planned', 'awaiting_confirm', 'running', 'cancelled', 'failed', 'completed', 'duplicate')),
+  plan_json TEXT NOT NULL CHECK(json_valid(plan_json)),
+  progress_json TEXT CHECK(progress_json IS NULL OR json_valid(progress_json)),
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_intake_plan_status ON intake_plan(status, updated_at);
+
+-- Each row is a logical file, not a source appearance. Equal content may appear twice.
+CREATE TABLE IF NOT EXISTS asset_blob_ref (
+  id TEXT PRIMARY KEY NOT NULL,
+  asset_id TEXT NOT NULL REFERENCES asset(id) ON DELETE CASCADE,
+  blob_id TEXT NOT NULL REFERENCES content_blob(blob_id) ON DELETE RESTRICT,
+  rel_path TEXT NOT NULL CHECK(length(rel_path) > 0),
+  path_key TEXT NOT NULL CHECK(length(path_key) > 0),
+  UNIQUE(asset_id, path_key)
+);
+CREATE INDEX IF NOT EXISTS idx_asset_blob_ref_blob ON asset_blob_ref(blob_id);
+
+CREATE TRIGGER IF NOT EXISTS intake_ref_insert AFTER INSERT ON asset_blob_ref BEGIN
+  UPDATE content_blob SET ref_count = ref_count + 1 WHERE blob_id = NEW.blob_id;
+END;
+CREATE TRIGGER IF NOT EXISTS intake_ref_delete AFTER DELETE ON asset_blob_ref BEGIN
+  UPDATE content_blob SET ref_count = ref_count - 1 WHERE blob_id = OLD.blob_id;
+END;
+CREATE TRIGGER IF NOT EXISTS intake_ref_update AFTER UPDATE OF blob_id ON asset_blob_ref
+WHEN OLD.blob_id <> NEW.blob_id BEGIN
+  UPDATE content_blob SET ref_count = ref_count - 1 WHERE blob_id = OLD.blob_id;
+  UPDATE content_blob SET ref_count = ref_count + 1 WHERE blob_id = NEW.blob_id;
+END;
+
+CREATE TABLE IF NOT EXISTS source_occurrence (
+  id TEXT PRIMARY KEY NOT NULL,
+  asset_id TEXT NOT NULL REFERENCES asset(id) ON DELETE CASCADE,
+  blob_id TEXT REFERENCES content_blob(blob_id) ON DELETE SET NULL,
+  asset_file_id TEXT REFERENCES asset_blob_ref(id) ON DELETE SET NULL,
+  plan_id TEXT REFERENCES intake_plan(id) ON DELETE SET NULL,
+  source_path TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK(kind IN ('loose', 'archived-copy', 'skipped-archive', 'extracted')),
+  detail TEXT CHECK(detail IS NULL OR json_valid(detail))
+);
+CREATE INDEX IF NOT EXISTS idx_source_occurrence_asset ON source_occurrence(asset_id);
+CREATE INDEX IF NOT EXISTS idx_source_occurrence_blob ON source_occurrence(blob_id);
+CREATE INDEX IF NOT EXISTS idx_source_occurrence_file ON source_occurrence(asset_file_id);
+CREATE INDEX IF NOT EXISTS idx_source_occurrence_plan ON source_occurrence(plan_id);
+`
   }
 ]
 
