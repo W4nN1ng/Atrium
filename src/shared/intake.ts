@@ -43,7 +43,13 @@ export interface ClosurePayload {
   cacheOwnerId?: string
   unreadable?: { path: string; reason: string }[] // No fabricated content key for unreadable bytes.
 }
-export interface LeafMatch { key: ContentKey; coveringPath: string; assetId: string | null }
+export interface LeafMatch {
+  key: ContentKey
+  coveringPath: string
+  assetId: string | null
+  coveringRelPath?: string
+  leafRelPath?: string
+}
 export interface MatchEvidence {
   coveredCount: number
   totalCount: number

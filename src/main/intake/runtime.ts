@@ -2,3 +2,4 @@
 export { buildClosure, type ClosureOptions } from './closure'
 export { ExpandCache } from './expandCache'
 export { intakeBudget } from '../../shared/constants'
+export { computeCoverage, planSelection, type ClosureSource, type SelectionResult } from './match'
