@@ -49,7 +49,7 @@ function copyLeaf(leaf: LeafRef): LeafRef {
   serializeContentKey(leaf.key)
   return { key: { size: leaf.key.size, crc32: leaf.key.crc32 }, relPath: leaf.relPath,
     chain: leaf.chain.map(c => ({ sourcePath: c.sourcePath, memberPath: c.memberPath, format: c.format, key: { size: c.key.size, crc32: c.key.crc32 } })),
-    localPath: leaf.localPath, ...(leaf.kind ? { kind: leaf.kind } : {}), ...(leaf.cacheKey ? { cacheKey: leaf.cacheKey } : {}) }
+    localPath: leaf.localPath, ...(leaf.kind ? { kind: leaf.kind } : {}), ...(leaf.cacheKey ? { cacheKey: leaf.cacheKey } : {}), ...(leaf.blobId ? { blobId: leaf.blobId } : {}) }
 }
 const leafCmp = (a: LeafRef, b: LeafRef): number => cmp(a.relPath, b.relPath) || cmp(serializeContentKey(a.key), serializeContentKey(b.key)) || cmp(JSON.stringify(a), JSON.stringify(b))
 function copySource(source: ClosureSource): ClosureSource {

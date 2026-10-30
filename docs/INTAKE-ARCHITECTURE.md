@@ -1,6 +1,22 @@
 # 规范化素材摄取：数据契约与所有权
 
-2026-10-30，M1—M4。已落共享契约、核心数据库 V12、RAR 后端、可信清单、递归闭包、持久展开缓存和全局多重集匹配；计划、入库执行及新入口接线由后续 M5—M7 完成。
+2026-10-30，M1—M5。已落共享契约、核心数据库 V12、RAR 后端、可信清单、递归闭包、持久展开缓存、全局多重集匹配和持久入库计划；物理执行与新入口接线留在 M6—M7。
+
+## M5：规范化入库计划与持久化
+
+`intake/planner.ts` 提供 `buildIntakePlan(scanRoot, {libraryRoot, sources, classifyDeps, existingTargetPaths?, sourceFileCount?}, libraryBlobIndex)`。构建只使用内存数据与路径/哈希计算，不读取文件、创建目录或写数据库；`db/repos/intakePlan.ts` 的 `persistIntakePlan` 是单独的短事务入口，只写 `intake_plan`。新增 prepared 结构仍使用计划版本 1、核心 schema 12；旧草案或未知版本在读取时明确拒绝，不自动改写。
+
+计划把 M4 选择转为规范化逻辑树，普通容器边界改成目录、unitypackage 保持整包叶，不透明根容器原样保留为文件且没有“解压自身成员”的错误摘要。部分覆盖容器在其逻辑单元内保持完整：已位于同词干散目录的叶原地复用；覆盖来源在别处时，用引用补齐逻辑树。物理复制代表继续按 M4 散优先选择，另一个逻辑路径使用 `reuseFromOpId` 指向同计划复制操作。`extracts` 只列真正需要取得物理内容的成员，复用和不透明原件不列入解压任务。
+
+单元划分调用现有 `classify`/`bundle`，主体与附属调用 `splitContainer`，没有新增分类分组算法。classifier 的噪声过滤仅影响分类，绝不决定 CopyOp 是否保留。普通目录/合集保留一棵完整树，既有筐摊平结果逐单元编制。单元名称使用源逻辑目录名，分类输入使用库内规范化路径和原目录语料。父级图片有名称亲和时给对应单元，无明确归属时给每个派生单元；内部图片自然保留。旁图操作单列 sidecars，全部合法图片目标进入 coverCandidates，未改既有人工封面。
+
+目标目录与成员按 Windows 规则净化，保留原相对路径映射；目录和文件统一处理大小写及净化后撞名，确定性添加 `(2)`。过长名称加短哈希缩短，长路径先缩短单元名；仍无法容纳时保留 blocked 和来源，不能声称已复制。只有无旁文件的同名单层包装才折叠。源/库根重叠、危险库根和越界散来源明确拒绝。M5 不检查目标盘实时存在性；`existingTargetPaths` 是调用方盘点快照，M6 发布前仍需检查竞态、空间与实际文件。
+
+M3 原本已计算的完整 SHA-256 现在随 `LeafRef.blobId` 传入计划，M4 保留它。库内索引按 size/CRC 找候选，再用完整 SHA 判定是否复用；同键不同 SHA 不会误用。未知 SHA 有库内候选时留下 library-identity 复核请求，不能标 duplicate。全部叶由带 asset 引用的库内 blob 覆盖时，单元 disposition=duplicate、assetId=null，只保存现有 asset 证据；部分复用为 merge，未匹配为 new。孤立 blob 可作为物理复用来源，但不伪造一个现有 asset。CopyOp 的 action 区分 copy/reuse，libraryBlobPath 或 reuseFromOpId 说明引用来源。blobId 已知时预计算目标+SHA 的 idempotencyKey，M6 必须重新校验实际字节后发布。
+
+每个来源出现均记录到计划 occurrences，包括散副本、被覆盖压缩包成员、补齐成员与旁图归属。计划和操作 ID 为确定性摘要，输入枚举顺序不改变 JSON。已知 SHA 证明源 ContentKey 碰撞时，撤回相关 CRC-only skip、双保留载荷并要求复核。M4 的大决定 reviewMatches、原始证据和全部缓存键持久保存；reviews 是待执行的复核要求，不能直接当作已通过。实际字节复核、结果进度及缓存引用释放协议由 M6/M7 接续实现，M5 不擅自回收仍被计划引用的缓存。
+
+仓储校验版本、计划摘要、目标边界、操作唯一性和复用依赖无环。重复保存同 ID 的相同计划不重置 status、completedOps、failedOps、cacheKeys 或时间；不同内容不覆盖原行。读取拒绝损坏/未知操作的完成进度。初态为 planned，有复核或 blocked 为 awaiting_confirm，全库覆盖为 duplicate。测试仅对隔离库保存计划，未建立新素材、blob、逻辑文件引用或实际 source_occurrence 行；这些提交属于 M6。
 
 ## M4：纯函数覆盖与全局选择
 

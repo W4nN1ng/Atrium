@@ -33,6 +33,7 @@ export interface LeafRef {
   localPath: string | null // Null while the member exists only in a trusted listing.
   kind?: 'file' | 'unitypackage' | 'opaque'
   cacheKey?: string // Container cache holding localPath; never a source filename.
+  blobId?: BlobId // Present only after full streaming SHA-256; absent for listing-only leaves.
 }
 
 export interface ClosurePayload {
@@ -68,6 +69,10 @@ export interface CopyOp {
   blobId: BlobId | null
   idempotencyKey: string | null // Finalized after SHA-256, before publication.
   cacheKey: string | null
+  action?: 'copy' | 'reuse'
+  libraryBlobPath?: string | null
+  reuseFromOpId?: string // Same-plan physical blob dependency; never means a second byte copy.
+  chain?: ContainerRef[]
 }
 
 export interface PlannedUnit {
@@ -88,11 +93,47 @@ export interface IntakePlan {
   scanRoot: string
   libraryRoot: string
   units: PlannedUnit[]
-  skips: { entry: string; reason: SkipReason; evidence: MatchEvidence; coveredBy: string[] }[]
+  skips: { entry: string; reason: SkipReason; evidence: MatchEvidence; coveredBy: string[]; scope?: 'archive' | 'leaf'; requiresByteReview?: boolean; reviewMatches?: LeafMatch[] }[]
   extracts: { source: string; members: string[] }[]
   cacheKeys: string[]
   warnings: string[]
   stats: { sourceFiles: number; archives: number; leafCount: number; dedupSavedBytes: number }
+}
+
+export interface PlanReview {
+  id: string
+  kind: 'coverage' | 'library-identity' | 'content-collision'
+  sourcePath: string
+  state: 'pending'
+  matches: LeafMatch[]
+  candidateBlobIds: string[]
+}
+export interface PlannedOccurrence {
+  id: string
+  unitId: string | null
+  copyOpId: string | null
+  sourcePath: string
+  relPath: string
+  localPath: string | null
+  key: ContentKey
+  blobId: BlobId | null
+  chain: ContainerRef[]
+  kind: SourceOccurrenceKind
+  existingAssetIds: string[]
+}
+export interface PreparedUnit extends PlannedUnit {
+  disposition: 'new' | 'merge' | 'duplicate' | 'blocked'
+  libraryPath: string
+  relativeRoot: string
+  normalizedEntries: import('./types').FileEntry[]
+  classification: import('./types').ClassificationResult
+  primaryKind: string | null
+}
+export interface PreparedIntakePlan extends IntakePlan {
+  units: PreparedUnit[]
+  occurrences: PlannedOccurrence[]
+  reviews: PlanReview[]
+  blocked: { sourcePath: string; path: string; reason: string }[]
 }
 
 export type IntakePlanStatus = 'planned' | 'awaiting_confirm' | 'running' | 'cancelled' | 'failed' | 'completed' | 'duplicate'

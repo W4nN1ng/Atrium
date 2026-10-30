@@ -55,7 +55,7 @@ export async function buildClosure(root: string, opts: ClosureOptions): Promise<
       identity = await fileIdentity(file, opts.signal); kind = await probe(file, rel)
       if (knownKey && (knownKey.size !== identity.key.size || knownKey.crc32 !== identity.key.crc32)) throw new Error('cached-member-changed')
     } catch (error) { return failPath(rel, error) }
-    const leaf: LeafRef = { key: identity.key, relPath: rel, chain, localPath: file, kind: 'file', ...(cacheKey ? { cacheKey } : {}) }
+    const leaf: LeafRef = { key: identity.key, blobId: identity.sha256, relPath: rel, chain, localPath: file, kind: 'file', ...(cacheKey ? { cacheKey } : {}) }
     if (kind.extMismatch) warnings.push(`${rel}: extension-mismatch (${kind.format})`)
     // The original member name is used for this decision, never the flat cache filename.
     if (path.extname(rel).toLowerCase() === '.unitypackage') return [{ ...leaf, kind: 'unitypackage' }]
