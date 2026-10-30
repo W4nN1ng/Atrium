@@ -1,6 +1,18 @@
 # 规范化素材摄取：数据契约与所有权
 
-2026-10-30，M1—M5。已落共享契约、核心数据库 V12、RAR 后端、可信清单、递归闭包、持久展开缓存、全局多重集匹配和持久入库计划；物理执行与新入口接线留在 M6—M7。
+2026-10-30，M1—M6。已落共享契约、核心数据库 V12、RAR 后端、可信清单、递归闭包、持久展开缓存、全局多重集匹配、持久入库计划和物理执行器；新入口接线留在 M7。
+
+## M6：物理复制执行与撤销
+
+`intake/executor.ts` 的 `executePlan(db, planId, opts)` 消费 M5 的 `PreparedIntakePlan`。它先检查 blocked、执行所有 pending review 回调、按唯一 copy blob 字节数做目标盘预检，再逐操作读取并完整校验源文件的 size+CRC32+SHA-256。文件写入目标目录临时位置，内容验证后才原子发布到 `.atrium/blobs/<sha前缀>/<sha>`；逻辑目标使用同卷 hardlink，不能 hardlink 时退回复制并再次完整校验。源目录只读，任何源变化、目标竞态、空间不足或校验失败都留下明确失败状态，不发布半成品。
+
+`reuseFromOpId` 只能在父 copy 操作完成后解析；库内 `libraryBlobPath` 复用同样先验证内容。目标已存在且内容相同视为幂等命中，内容不同报 target-conflict，不覆盖用户文件。每次完成操作立即保存 progress，支持已完成操作跳过和重启续跑。取消会清理本次临时目标、未提交新 blob 和新建空目录，保留 completedOps/failedOps 供重试；AbortError 统一转换为 cancelled，不伪装成失败或成功。
+
+所有长 IO 在数据库事务外。全部物理目标准备好后，单个短事务插入/校验 `content_blob`、写 `asset`、`asset_blob_ref` 和 `source_occurrence`；引用计数由 V12 触发器维护。duplicate 单元不新建 asset 或物理文件，但仍可写现有 asset 的 occurrence；merge 保留新逻辑 asset 和复用引用。计划 journal 记录本批执行；`undoPlan` 只删除本计划新建 asset/ref/occurrence 及没有其它引用的 blob，其他 asset 仍持有的共享 blob 和文件保持完整。
+
+`db/repos/intakePlan.ts` 新增进度更新函数，验证 cacheKeys、完成操作必须属于当前计划且 target/idempotency/blob 对得上。dry-run 只做计划/预算读取，不创建 `.atrium`、数据库行或目标文件。M6 不接 UI/IPC，M7 再把确认、进度和取消接到现有摄取任务。
+
+M6 新增 10 条执行器沙盒测试，最终全量 **3155 passed / 27 skipped / 0 failed**。安装包和已安装程序各用 Electron 33.4.11 的 packaged `intake.js` 执行一次真实临时文件复制与撤销：copy/ref/blob 清理和 integrity_check 均通过。安装版 asar SHA-256 为 `6ecb60499b132e23ad55a5ccaa91dedd9ad5740c2f4266db6cb885a99bfb5c9a`；55 个解包文件和 RAR 资源与构建一致。原源 5208 条目、63 副本和发布资产均未变。
 
 ## M5：规范化入库计划与持久化
 

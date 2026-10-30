@@ -6,3 +6,5 @@ export { computeCoverage, planSelection, type ClosureSource, type SelectionResul
 export { buildIntakePlan, type PlannerIndex, type LibraryBlob } from './planner'
 export { loadLexicon } from '../classify/lexicon'
 export { persistIntakePlan, readIntakePlan, readLibraryBlobIndex } from '../db/repos/intakePlan'
+export { executePlan, undoPlan, IntakeExecutionError, type ExecuteOptions, type ExecutionResult } from './executor'
+export { openDatabase, closeDatabase } from '../db'

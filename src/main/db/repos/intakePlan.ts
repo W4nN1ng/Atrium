@@ -57,6 +57,11 @@ export function persistIntakePlan(db: Db, plan: PreparedIntakePlan, now = Date.n
     return { id: plan.id, status, inserted: true }
   })()
 }
+export function updateIntakeProgress(db: Db, id: string, status: IntakePlanStatus, progress: IntakeProgress, now = Date.now()): void {
+  if (!progress || typeof progress !== 'object' || !progress.completedOps || !progress.failedOps || !Array.isArray(progress.cacheKeys) || progress.cacheKeys.some(k => !sha.test(k))) throw new Error('Invalid intake progress')
+  const changed = db.prepare('UPDATE intake_plan SET status=?,progress_json=?,updated_at=? WHERE id=?').run(status, JSON.stringify(progress), now, id).changes
+  if (changed !== 1) throw new Error('Intake plan not found: ' + id)
+}
 export function readIntakePlan(db: Db, id: string): { plan: PreparedIntakePlan; progress: IntakeProgress; status: IntakePlanStatus } | null {
   const row = db.prepare('SELECT plan_json,progress_json,status FROM intake_plan WHERE id=?').get(id) as { plan_json: string; progress_json: string | null; status: IntakePlanStatus } | undefined
   if (!row) return null
