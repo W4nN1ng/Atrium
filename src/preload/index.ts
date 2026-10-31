@@ -230,6 +230,9 @@ const api: AApi = {
     queue: () => invoke('ingest:queue'),
     restoreQueue: () => invoke('ingest:restore-queue'),
     queueFile: () => invoke('ingest:queue-file'),
+    planStatus: (jobId) => invoke('ingest:plan-status', jobId),
+    confirmPlan: (jobId) => invoke('ingest:plan-confirm', jobId),
+    resumePlan: (jobId) => invoke('ingest:plan-resume', jobId),
     commitManual: (input) => invoke('ingest:commit-manual', input),
     commitAll: (input) => invoke('ingest:commit-all', input)
   },

@@ -138,7 +138,8 @@ export interface PreparedIntakePlan extends IntakePlan {
 
 export type IntakePlanStatus = 'planned' | 'awaiting_confirm' | 'running' | 'cancelled' | 'failed' | 'completed' | 'duplicate'
 export interface IntakeProgress {
-  completedOps: Record<string, { blobId: BlobId; targetPath: string; idempotencyKey: string }>
+  committed?: boolean // Distinguishes a duplicate suggestion from its committed provenance.
+  completedOps: Record<string, { blobId: BlobId; targetPath: string; idempotencyKey: string; created?: boolean }>
   failedOps: Record<string, string>
   cacheKeys: string[] // Persist references before allowing cache cleanup.
 }

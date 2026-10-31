@@ -24,6 +24,11 @@ import { readZipEntryText } from '../unpack/unzip'
 import { parseUnitypackage } from '../unpack/unitypackage'
 import type { PackageParseResult } from '../../shared/types'
 import fsMod from 'node:fs'
+import { buildClosure } from '../intake/closure'
+import { ExpandCache } from '../intake/expandCache'
+import { buildIntakePlan, type LibraryBlob } from '../intake/planner'
+import type { PreparedIntakePlan } from '../../shared/intake'
+import { intakeBudget } from '../../shared/constants'
 
 /** worker 里缓存一份词典 + 分类表：每个任务都读一遍磁盘就白干了（§9 性能） */
 let lexCache: { root: string; user: string; lex: Lexicon } | null = null
@@ -259,6 +264,7 @@ export interface WorkerJob {
   classify?: boolean
   confidenceConfirm?: number
   confidenceAuto?: number
+  normalized?: { libraryRoot: string | null; namespace: string; blobs: LibraryBlob[]; existingTargetPaths: string[]; categories: CategoryConfig }
 }
 
 export type WorkerMessage =
@@ -272,7 +278,8 @@ export type WorkerMessage =
       messageParams?: Record<string, string | number>
       message?: string
     }
-  | { type: 'need-password'; jobId: string; sourcePath: string }
+  | { type: 'need-password'; jobId: string; sourcePath: string; requestId?: number }
+  | { type: 'plan'; jobId: string; plan: PreparedIntakePlan }
   | { type: 'done'; jobId: string; result: WorkerResult }
   | { type: 'error'; jobId: string; code: string; message: string }
 
@@ -326,6 +333,25 @@ async function handle(job: WorkerJob): Promise<void> {
   } catch (e) {
     post({ type: 'error', jobId: job.jobId, code: 'err.statFailed', message: e instanceof Error ? e.message : String(e) })
     return
+  }
+
+  if (job.normalized && (stat.isDirectory() || (path.extname(job.sourcePath).toLowerCase() !== '.unitypackage' && (await probeFile(job.sourcePath)).isArchive))) {
+    if (!job.normalized.libraryRoot) throw new Error('尚未设置素材库目录')
+    progress(job.jobId, 'extracting', 0.1, 'ingest.msg.listingEntries', '构建内容闭包')
+    const cache = new ExpandCache({ namespace: job.normalized.namespace })
+    const closure = await buildClosure(job.sourcePath, { ...intakeBudget(stat.isDirectory() ? 0 : stat.size), cache, ownerId: `pending:${job.jobId}`,
+      signal: normalizedController.signal, extraBackendDirs: job.backendDirs,
+      requestPassword: sourcePath => new Promise(resolve => {
+        const requestId = ++passwordRequestId; passwordWaiters.set(requestId, resolve)
+        post({ type: 'need-password', jobId: job.jobId, sourcePath, requestId })
+      }) })
+    progress(job.jobId, 'classifying', 0.9, 'ingest.msg.listingEntries', '生成整理计划')
+    const plan = buildIntakePlan(job.sourcePath, { libraryRoot: job.normalized.libraryRoot,
+      sources: [{ sourcePath: job.sourcePath, kind: stat.isDirectory() ? 'directory' : 'archive', closure }],
+      existingTargetPaths: job.normalized.existingTargetPaths,
+      classifyDeps: { lex: lexiconFor(job.resourceRoot, job.userLexicon), categories: job.normalized.categories, learning: new Map(job.learning ?? []),
+        confidenceConfirm: job.confidenceConfirm, confidenceAuto: job.confidenceAuto } }, job.normalized.blobs)
+    post({ type: 'plan', jobId: job.jobId, plan }); return
   }
 
   // ---------------------------------------------------------------- 文件夹
@@ -502,7 +528,12 @@ async function handle(job: WorkerJob): Promise<void> {
   })
 }
 
-parentPort?.on('message', (msg: WorkerJob) => {
+const normalizedController = new AbortController()
+let passwordRequestId = 0
+const passwordWaiters = new Map<number, (value: string | null) => void>()
+parentPort?.on('message', (msg: WorkerJob | { type: 'password'; requestId: number; password: string | null } | { type: 'cancel' }) => {
+  if (msg.type === 'cancel') { normalizedController.abort(); for (const resolve of passwordWaiters.values()) resolve(null); passwordWaiters.clear(); return }
+  if (msg.type === 'password') { passwordWaiters.get(msg.requestId)?.(msg.password); passwordWaiters.delete(msg.requestId); return }
   if (msg && msg.type === 'job') {
     void handle(msg).catch((e) => {
       post({ type: 'error', jobId: msg.jobId, code: 'ingest.workerCrash', message: e instanceof Error ? e.stack ?? e.message : String(e) })

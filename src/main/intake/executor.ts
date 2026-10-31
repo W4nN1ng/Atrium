@@ -8,7 +8,7 @@ import { makeAssetRow, upsertAsset } from '../db/repos/asset'
 import type { CopyOp, IntakeProgress, PlanReview, PreparedIntakePlan, PreparedUnit, PlannedOccurrence } from '../../shared/intake'
 import { isInside, safeJoin } from '../security/paths'
 import { appendJournal } from '../db/repos/journal'
-import type { AssetUnit } from '../../shared/types'
+import type { AssetUnit, ClassificationResult } from '../../shared/types'
 
 export class IntakeExecutionError extends Error {
   constructor(message: string, readonly code: 'space' | 'review-required' | 'source-changed' | 'target-conflict' | 'blocked' | 'cancelled' | 'database' = 'database') {
@@ -21,6 +21,9 @@ export interface ExecuteOptions {
   freeBytes?: () => number
   now?: () => number
   review?: (review: PlanReview) => Promise<boolean> | boolean
+  finalizeUnit?: (plan: PreparedIntakePlan, unit: PreparedUnit) => Promise<ClassificationResult>
+  onProgress?: (completed: number, total: number) => void
+  batchId?: string
   /** Testing/maintenance hook; the default uses hard links for same-volume blob references. */
   link?: (from: string, to: string) => Promise<void>
 }
@@ -66,10 +69,11 @@ async function publishBlob(source: string, blobPath: string, expectedSha: string
     abort(opts.signal)
     const actual = await fileIdentity(temp, opts.signal)
     if (actual.sha256 !== expectedSha || actual.key.size !== expectedSize || actual.key.crc32 !== expectedCrc) throw new IntakeExecutionError('复制后内容校验失败', 'source-changed')
-    try { await fs.promises.rename(temp, blobPath) } catch (error) {
+    try { await fs.promises.link(temp, blobPath) } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
         const existing = await fileIdentity(blobPath, opts.signal)
         if (existing.sha256 !== expectedSha) throw new IntakeExecutionError('并发 blob 内容冲突', 'target-conflict')
+        return 'existing'
       } else throw error
     }
     return 'new'
@@ -89,10 +93,10 @@ function sourceFor(op: CopyOp, ops: Map<string, CopyOp>, completed: Record<strin
   return op.sourcePath
 }
 function unitName(unit: PreparedUnit): string { return unit.displayName || unit.relativeRoot }
-function assetFromUnit(unit: PreparedUnit, assetId: string, now: number): ReturnType<typeof makeAssetRow> {
-  const classified = unit.classification.units[0] as AssetUnit | undefined
+function assetFromUnit(unit: PreparedUnit, assetId: string, now: number, final?: ClassificationResult): ReturnType<typeof makeAssetRow> {
+  const classified = (final ?? unit.classification).units[0] as AssetUnit | undefined
   const size = unit.normalizedEntries.reduce((sum, entry) => sum + entry.size, 0)
-  return makeAssetRow({ id: assetId, name: classified?.name ?? unitName(unit), raw_name: classified?.name ?? unitName(unit), category: classified?.category ?? 'other',
+  return makeAssetRow({ id: assetId, name: classified?.name ?? unitName(unit), raw_name: unitName(unit), category: classified?.category ?? 'other',
     subcategory: classified?.subcategory ?? null, confidence: classified?.confidence ?? 0, status: classified?.status ?? 'pending_confirm',
     kind: unit.primaryKind === 'unitypackage' ? 'unitypackage' : unit.primaryKind === 'archive' ? 'archive' : 'folder', content_type: classified?.contentType ?? 'unknown', size_bytes: size,
     library_path: unit.libraryPath, source_path: unit.sources[0] ?? null, storage_mode: 'indexed', hash_xxh64: null,
@@ -112,6 +116,11 @@ export async function executePlan(db: Db, planId: string, opts: ExecuteOptions =
   const saved = readIntakePlan(db, planId)
   if (!saved) throw new IntakeExecutionError(`找不到计划：${planId}`, 'database')
   const { plan } = saved
+  if (!opts.dryRun && (saved.status === 'completed' || saved.status === 'duplicate' && saved.progress.committed)) {
+    return { planId, status: saved.status, dryRun: false, copiedBytes: 0, reusedBytes: 0,
+      copiedOps: allOps(plan).filter(o => o.action === 'copy').map(o => o.id), reusedOps: allOps(plan).filter(o => o.action === 'reuse').map(o => o.id),
+      assetIds: plan.units.flatMap(u => u.assetId ? [u.assetId] : []), journalId: null }
+  }
   const progress: IntakeProgress = { completedOps: { ...saved.progress.completedOps }, failedOps: { ...saved.progress.failedOps }, cacheKeys: [...saved.progress.cacheKeys] }
   const now = opts.now ?? Date.now
   if (plan.blocked.length) throw new IntakeExecutionError('计划包含 blocked 条目', 'blocked')
@@ -128,9 +137,10 @@ export async function executePlan(db: Db, planId: string, opts: ExecuteOptions =
   if (opts.dryRun) return { planId, status: saved.status === 'running' ? 'planned' : saved.status, dryRun: true, copiedBytes: 0, reusedBytes: 0, copiedOps: [], reusedOps: [], assetIds: plan.units.flatMap(u => u.assetId ? [u.assetId] : []), journalId: null }
   updateProgress(db, plan, progress, 'running', now())
   try {
-    for (const unit of plan.units) {
-      if (unit.disposition === 'duplicate') continue
-      for (const op of [...unit.copyOps, ...unit.sidecars]) {
+    const ordered: CopyOp[] = [], visited = new Set<string>()
+    const visit = (op: CopyOp): void => { if (visited.has(op.id)) return; if (op.reuseFromOpId) visit(ops.get(op.reuseFromOpId)!); visited.add(op.id); ordered.push(op) }
+    for (const unit of plan.units.filter(u => u.disposition !== 'duplicate')) for (const op of [...unit.copyOps, ...unit.sidecars]) visit(op)
+    for (const op of ordered) {
       abort(opts.signal)
       if (progress.completedOps[op.id]) {
         const done = progress.completedOps[op.id]
@@ -153,6 +163,10 @@ export async function executePlan(db: Db, planId: string, opts: ExecuteOptions =
         copiedBytes.value += op.key.size; copiedOps.push(op.id)
       } else { reusedBytes.value += op.key.size; reusedOps.push(op.id) }
       let parent = path.dirname(target), parents: string[] = []
+      // A junction in a library must never redirect writes outside its root.
+      for (let cursor = path.dirname(target); isInside(plan.libraryRoot, cursor); cursor = path.dirname(cursor)) {
+        if (fs.existsSync(cursor) && (await fs.promises.lstat(cursor)).isSymbolicLink()) throw new IntakeExecutionError('目标包含链接目录', 'target-conflict')
+      }
       while (isInside(plan.libraryRoot, parent) && !fs.existsSync(parent)) { parents.push(parent); parent = path.dirname(parent) }
       await ensureDir(path.dirname(target)); for (const dir of parents) createdDirs.add(dir)
       if (fs.existsSync(target)) {
@@ -160,25 +174,35 @@ export async function executePlan(db: Db, planId: string, opts: ExecuteOptions =
         if (existing.sha256 !== blob) throw new IntakeExecutionError(`目标已存在且内容不同：${target}`, 'target-conflict')
       } else {
         await (opts.link ?? targetLink)(source, target)
+        staged.add(target)
         const written = await fileIdentity(target, opts.signal)
         if (written.sha256 !== blob || written.key.size !== op.key.size || written.key.crc32 !== op.key.crc32) throw new IntakeExecutionError(`目标校验失败：${target}`, 'target-conflict')
         staged.add(target)
       }
-      progress.completedOps[op.id] = { blobId: blob, targetPath: target, idempotencyKey: op.idempotencyKey ?? digest([target, blob]) }
+      progress.completedOps[op.id] = { blobId: blob, targetPath: target, idempotencyKey: op.idempotencyKey ?? digest([target, blob]), created: staged.has(target) }
       delete progress.failedOps[op.id]
       updateProgress(db, plan, progress, 'running', now())
-      }
+      opts.onProgress?.(Object.keys(progress.completedOps).length, ordered.length)
     }
+    abort(opts.signal)
+    const finals = new Map<string, ClassificationResult>()
+    if (opts.finalizeUnit) for (const unit of plan.units.filter(u => u.disposition !== 'duplicate')) {
+      abort(opts.signal); finals.set(unit.id, await opts.finalizeUnit(plan, unit))
+    }
+    abort(opts.signal)
     const result = db.transaction(() => {
       const assetIds: string[] = []
       const blobSeen = new Set<string>(), blobStorage = new Map(allOps(plan).filter(op => op.blobId).map(op => [op.blobId!, op.libraryBlobPath ?? blobPath(plan.libraryRoot, op.blobId!)]))
       for (const op of allOps(plan)) if (op.blobId && !blobSeen.has(op.blobId)) {
-        db.prepare('INSERT INTO content_blob(blob_id,size,crc32,storage_path,ref_count) VALUES(?,?,?,?,0) ON CONFLICT(blob_id) DO UPDATE SET size=excluded.size,crc32=excluded.crc32,storage_path=excluded.storage_path').run(op.blobId, op.key.size, op.key.crc32, blobStorage.get(op.blobId)); blobSeen.add(op.blobId)
+        db.prepare('INSERT INTO content_blob(blob_id,size,crc32,storage_path,ref_count) VALUES(?,?,?,?,0) ON CONFLICT(blob_id) DO NOTHING').run(op.blobId, op.key.size, op.key.crc32, blobStorage.get(op.blobId)); blobSeen.add(op.blobId)
       }
       for (const unit of plan.units) {
         const assetId = unitAssetId(unit)
-        if (assetId) { upsertAsset(db, assetFromUnit(unit, assetId, now())); assetIds.push(assetId) }
-        const targetAssetIds = assetId ? [assetId] : unit.existingAssetIds
+        if (assetId) {
+          if (!db.prepare('SELECT id FROM asset WHERE id=?').get(assetId)) upsertAsset(db, assetFromUnit(unit, assetId, now(), finals.get(unit.id)))
+          assetIds.push(assetId)
+        }
+        const targetAssetIds = assetId ? [assetId] : []
         for (const op of [...unit.copyOps, ...unit.sidecars]) if (op.blobId) for (const targetId of targetAssetIds.slice(0, 1)) {
           const refId = `ref-${digest([targetId, op.targetRelPath, op.blobId])}`
           db.prepare('INSERT OR IGNORE INTO asset_blob_ref(id,asset_id,blob_id,rel_path,path_key) VALUES(?,?,?,?,?)').run(refId, targetId, op.blobId, op.targetRelPath, op.targetRelPath.toLowerCase())
@@ -186,21 +210,23 @@ export async function executePlan(db: Db, planId: string, opts: ExecuteOptions =
       }
       for (const occurrence of plan.occurrences) {
         const unit = occurrence.unitId ? plan.units.find(u => u.id === occurrence.unitId) : undefined
-        const assetId = unitAssetId(unit as PreparedUnit) ?? unit?.existingAssetIds[0]
+        const existingRef = !unitAssetId(unit) && occurrence.blobId ? db.prepare('SELECT id,asset_id FROM asset_blob_ref WHERE blob_id=? ORDER BY id LIMIT 1').get(occurrence.blobId) as { id: string; asset_id: string } | undefined : undefined
+        const assetId = unitAssetId(unit) ?? existingRef?.asset_id
         if (!assetId) continue
         db.prepare('INSERT OR REPLACE INTO source_occurrence(id,asset_id,blob_id,asset_file_id,plan_id,source_path,kind,detail) VALUES(?,?,?,?,?,?,?,?)').run(
-          occurrence.id, assetId, occurrence.blobId, occurrence.copyOpId ? `ref-${digest([assetId, (ops.get(occurrence.copyOpId) as CopyOp).targetRelPath, occurrence.blobId])}` : null, plan.id, occurrence.sourcePath, occurrence.kind,
+          `occ-${digest([plan.id, occurrence.id])}`, assetId, occurrence.blobId, existingRef?.id ?? (occurrence.copyOpId ? `ref-${digest([assetId, (ops.get(occurrence.copyOpId) as CopyOp).targetRelPath, occurrence.blobId])}` : null), plan.id, occurrence.sourcePath, occurrence.kind,
           JSON.stringify({ relPath: occurrence.relPath, key: occurrence.key, chain: occurrence.chain }))
       }
-      appendJournal(db, { op: 'register', assetIds, libraryRoot: plan.libraryRoot, label: `执行摄取计划 ${plan.id}`, extra: { planId: plan.id, targetFiles: [...staged] } }, { batchId: plan.id })
+      if (assetIds.length) appendJournal(db, { op: 'register', assetIds, libraryRoot: plan.libraryRoot, label: `执行摄取计划 ${plan.id}`, extra: { planId: plan.id, targetFiles: [...staged] } }, { batchId: opts.batchId ?? plan.id })
+      updateProgress(db, plan, { ...progress, committed: true }, assetIds.length ? 'completed' : 'duplicate', now())
       return assetIds
     })()
-    updateProgress(db, plan, progress, result.length && result.every(id => plan.units.find(u => u.assetId === id)?.disposition === 'duplicate') ? 'duplicate' : 'completed', now())
     return { planId, status: result.length ? 'completed' : 'duplicate', dryRun: false, copiedBytes: copiedBytes.value, reusedBytes: reusedBytes.value, copiedOps, reusedOps, assetIds: result, journalId: null }
   } catch (error) {
     for (const target of staged) await removeQuietly(target)
-    for (const blob of published) await removeQuietly(blob)
-    for (const dir of [...createdDirs].sort((a, b) => b.length - a.length)) await removeQuietly(dir)
+    // Blobs may already be used by another running plan. Keep unreferenced blobs for maintenance.
+    for (const dir of [...createdDirs].sort((a, b) => b.length - a.length)) { try { await fs.promises.rmdir(dir) } catch { /* only empty owned directories */ } }
+    for (const [id, done] of Object.entries(progress.completedOps)) if (staged.has(done.targetPath)) delete progress.completedOps[id]
     const cancelled = opts.signal?.aborted || (error instanceof IntakeExecutionError && error.code === 'cancelled')
     const normalized = cancelled && !(error instanceof IntakeExecutionError) ? new IntakeExecutionError('摄取已取消', 'cancelled') : error
     const failure = normalized instanceof Error ? normalized.message : String(normalized)
@@ -218,13 +244,10 @@ export function undoPlan(db: Db, planId: string): { removedAssetIds: string[]; r
     const occurrences = db.prepare('DELETE FROM source_occurrence WHERE plan_id=?').run(planId).changes
     if (ids.length) db.prepare('DELETE FROM asset_blob_ref WHERE asset_id IN (' + ids.map(() => '?').join(',') + ')').run(...ids)
     if (ids.length) db.prepare('DELETE FROM asset WHERE id IN (' + ids.map(() => '?').join(',') + ')').run(...ids)
-    updateIntakeProgress(db, planId, 'cancelled', { ...saved.progress, completedOps: {}, failedOps: { ...saved.progress.failedOps, undone: 'plan undone' } }, Date.now())
-    return { removedAssetIds: ids, removedRefs: refRows.length, removedOccurrences: occurrences, targetPaths: allOps(plan).map(op => safeJoin(plan.libraryRoot, op.targetRelPath)).filter((p): p is string => !!p), blobIds: [...new Set(refRows.map(r => r.blob_id))] }
+    updateIntakeProgress(db, planId, 'cancelled', { ...saved.progress, committed: false, completedOps: {}, failedOps: {} }, Date.now())
+    return { removedAssetIds: ids, removedRefs: refRows.length, removedOccurrences: occurrences, targetPaths: plan.units.filter(u => u.disposition !== 'duplicate').flatMap(u => [...u.copyOps, ...u.sidecars]).filter(op => saved.progress.completedOps[op.id]?.created === true).map(op => safeJoin(plan.libraryRoot, op.targetRelPath)).filter((p): p is string => !!p), blobIds: [...new Set(refRows.map(r => r.blob_id))] }
   })()
   for (const target of result.targetPaths) { try { fs.rmSync(target, { force: true }) } catch { /* report leaves the row if a user has it open */ } }
-  for (const blobId of result.blobIds) {
-    const row = db.prepare('SELECT ref_count,storage_path FROM content_blob WHERE blob_id=?').get(blobId) as { ref_count: number; storage_path: string } | undefined
-    if (row && row.ref_count === 0) { try { fs.rmSync(row.storage_path, { force: true }) } catch { /* keep orphan for later cache cleanup */ } db.prepare('DELETE FROM content_blob WHERE blob_id=? AND ref_count=0').run(blobId) }
-  }
+  // Physical blob GC is separate: unfinished plans can hold references outside asset_blob_ref.
   return { removedAssetIds: result.removedAssetIds, removedRefs: result.removedRefs, removedOccurrences: result.removedOccurrences }
 }

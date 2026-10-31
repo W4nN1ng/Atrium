@@ -121,7 +121,10 @@ export const IpcInvoke = {
     /** 启动恢复：把上次没确认完的卡片重新入队（收件箱持久化） */
     RestoreQueue: 'ingest:restore-queue',
     /** 只读体检：持久化队列里还剩多少项、多少项文件已不存在 */
-    QueueFile: 'ingest:queue-file'
+    QueueFile: 'ingest:queue-file',
+    PlanStatus: 'ingest:plan-status',
+    PlanConfirm: 'ingest:plan-confirm',
+    PlanResume: 'ingest:plan-resume'
   },
   Unity: {
     Instances: 'unity:instances',

@@ -1,6 +1,6 @@
 # 规范化素材摄取：数据契约与所有权
 
-2026-10-30，M1—M6。已落共享契约、核心数据库 V12、RAR 后端、可信清单、递归闭包、持久展开缓存、全局多重集匹配、持久入库计划和物理执行器；新入口接线留在 M7。
+2026-10-31，M1—M7。目录和普通容器摄取现经递归闭包、匹配、持久计划、确认和执行 worker；单个非容器文件继续旧流程。
 
 ## M6：物理复制执行与撤销
 
@@ -13,6 +13,20 @@
 `db/repos/intakePlan.ts` 新增进度更新函数，验证 cacheKeys、完成操作必须属于当前计划且 target/idempotency/blob 对得上。dry-run 只做计划/预算读取，不创建 `.atrium`、数据库行或目标文件。M6 不接 UI/IPC，M7 再把确认、进度和取消接到现有摄取任务。
 
 M6 新增 10 条执行器沙盒测试，最终全量 **3155 passed / 27 skipped / 0 failed**。安装包和已安装程序各用 Electron 33.4.11 的 packaged `intake.js` 执行一次真实临时文件复制与撤销：copy/ref/blob 清理和 integrity_check 均通过。安装版 asar SHA-256 为 `6ecb60499b132e23ad55a5ccaa91dedd9ad5740c2f4266db6cb885a99bfb5c9a`；55 个解包文件和 RAR 资源与构建一致。原源 5208 条目、63 副本和发布资产均未变。
+
+## M7：摄取接线与确认计划 UI
+
+目录和普通容器在旧哈希、解压前路由到 worker 中的 closure → matcher → planner，主进程先写入 `intake_plan` 和缓存引用，再把 `planId`、单元/叶/skip/extract/review 摘要及逐叶证据放入收件箱状态。单个 unitypackage 和非容器散文件仍沿用旧路径。`autoExtract` 不改变新流水线内部闭包，执行恒复制到库内，storage mode 恒 indexed，源文件保留。
+
+新增 `ingest:plan-status` / `plan-confirm` / `plan-resume` IPC，现有 commit-manual/commit-all 也使用同一个计划执行分支。`intakeWorker.js` 独立打开 WAL 数据库执行复制，主进程转发进度与 AbortSignal 取消；失败/取消保存 plan id，可恢复并重新确认，重启从持久计划恢复。内层密码请求带实际容器路径及 requestId，主进程查询密码库或由界面输入，再回复原 worker；拒绝密码保留原包。Inbox 三语摘要可展开目标文件、全部 skip 逐叶 size/CRC 证据、覆盖来源、警告与 blocked；不会把计划分类当作可编辑的最终分类。
+
+R21：物理文件发布完成后、最终短事务前，用真实库内单元目录、源扫描根的父链末四层、原逻辑单元名、规范化文件清单和实际 readme/preview 重建 `IngestResult`，并读取 unitypackage 工程路径语料重新 classify。最终 asset 的 category/sub 等来自这次结果。分类器、词典、权重、bundle 硬规则均未修改。
+
+执行入口不再无条件放行 review；coverage review 按持久证据找到实际叶并逐字节比较，不能解析或不一致就阻断。身份/碰撞复核仍保持阻断。复用依赖按 DAG 顺序执行；duplicate 来源引用既有真实 ref；完成状态与 asset/ref/occurrence/journal 同事务，重复执行不覆盖人工字段或重复记 journal。失败仅移除本次创建的目标和空目录，共享 blob 留给独立维护回收；撤销仅移除记录为本计划创建的目标，不回收仍可能被未完成计划引用的 blob。
+
+执行 worker 使用的 `better-sqlite3` 连同 `bindings`、`file-uri-to-path` 一起解包到 asar.unpacked，使原生加载器能从 worker 找到完整依赖。安装版验收实际点击确认并打开 worker 数据库，覆盖开发环境无法暴露的依赖解析问题。
+
+M7 最终全量 **3161 passed / 28 skipped / 0 failed**，类型检查、最终定向与三语文案检查通过。安装版四组实际确认产出 12/3/31/13 个文件、22/6/39/18 次来源；库内可导包分别 1/3/22/13 个，首包 preflight 均通过，同计划取消恢复及一次模拟桥接导入/历史通过。四组大类与旧路径一致；黑曜石与西装通过真实包内 Jacket/Coat 路径补全 coat 子类，对照证据逐项保存。未启动真实 Unity 编辑器。安装版 asar SHA-256：`bd6923c878cac148fc180714dc311b37a740ee54839643c17a27613c11898605`，67 个解包文件与构建一致；原源 5208 条目、63 副本 SHA-256 和旧发布资产未变。交付报告：`C:\程序\Atrium-intake-M7-2026-10-31\M7-交付报告.md`。
 
 ## M5：规范化入库计划与持久化
 

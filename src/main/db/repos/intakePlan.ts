@@ -71,7 +71,7 @@ export function readIntakePlan(db: Db, id: string): { plan: PreparedIntakePlan; 
   const ops = new Map(plan.units.flatMap(u => [...u.copyOps, ...u.sidecars]).map(op => [op.id, op]))
   for (const [opId, completed] of Object.entries(progress.completedOps)) {
     const op = ops.get(opId), target = op ? safeJoin(plan.libraryRoot, op.targetRelPath) : null
-    if (!op || !completed || !sha.test(completed.blobId) || !sha.test(completed.idempotencyKey) || !target || normalizeForCompare(target) !== normalizeForCompare(completed.targetPath) ||
+    if (!op || !completed || (completed.created !== undefined && typeof completed.created !== 'boolean') || !sha.test(completed.blobId) || !sha.test(completed.idempotencyKey) || !target || normalizeForCompare(target) !== normalizeForCompare(completed.targetPath) ||
       (op.blobId && completed.blobId !== op.blobId) || (op.idempotencyKey && completed.idempotencyKey !== op.idempotencyKey)) throw new Error('Invalid completed intake operation')
   }
   for (const [opId, failure] of Object.entries(progress.failedOps)) if (!ops.has(opId) || typeof failure !== 'string') throw new Error('Invalid failed intake operation')

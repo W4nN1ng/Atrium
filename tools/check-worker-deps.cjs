@@ -55,7 +55,7 @@ if (!fs.existsSync(OUT)) {
   process.exit(1)
 }
 
-const entries = ['worker.js', 'intake.js'].map((name) => path.join(OUT, name))
+const entries = ['worker.js', 'intake.js', 'intakeWorker.js'].map((name) => path.join(OUT, name))
 if (entries.some((entry) => !fs.existsSync(entry))) {
   console.error('缺少 out/main/worker.js 或 intake.js，先跑 electron-vite build')
   process.exit(1)

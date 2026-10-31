@@ -39,7 +39,8 @@ function ConfirmRow({ item, config }: { item: IngestItemState; config: CategoryC
   async function commit(): Promise<void> {
     setBusy(true)
     try {
-      await window.a.ingest.commitManual({ jobId: item.jobId, name, category: cat, subcategory: sub || null, password: pw || undefined })
+      if (item.planId) await window.a.ingest.confirmPlan(item.jobId)
+      else await window.a.ingest.commitManual({ jobId: item.jobId, name, category: cat, subcategory: sub || null, password: pw || undefined })
       await refresh()
     } catch (e) {
       toast('bad', e instanceof Error ? e.message : String(e))
@@ -50,6 +51,26 @@ function ConfirmRow({ item, config }: { item: IngestItemState; config: CategoryC
 
   return (
     <div className="mt-2 flex flex-col gap-2 rounded-md border p-2" style={{ borderColor: 'var(--line-2)', background: 'var(--panel-2)' }}>
+      {item.planSummary ? (
+        <div className="flex flex-col gap-1 rounded border p-2 text-[11px]" style={{ borderColor: 'var(--line-2)', color: 'var(--muted)' }} data-intake-plan-summary>
+          <div className="font-medium" style={{ color: 'var(--text)' }}>{t('ingest.planSummary', item.planSummary)}</div>
+          <div>{t('ingest.planCounts', item.planSummary)}</div>
+          <div>{t(item.planSummary.duplicate ? 'ingest.planDuplicateHint' : 'ingest.planCopyHint')}</div>
+          {item.planTargets?.map(target => <details key={target.path} className="break-all"><summary>{target.name} ({target.files.length}) · {target.path}</summary>{target.files.map(file => <div key={file}>{file}</div>)}</details>)}
+          {item.planSummary.reviews > 0 ? <div>{t('ingest.planReviewHint')}</div> : null}
+          <details><summary>{t('ingest.planEvidence')}</summary>
+            {item.planSkips?.map((skip) => (
+              <div key={`${skip.entry}:${skip.reason}`} className="my-2 break-all">
+                <div>{t('ingest.planSkip', { ...skip, reason: t(`ingest.skipReason.${skip.reason}`) })}</div>
+                {skip.coveredBy.map(p => <div key={p}>← {p}</div>)}
+                {skip.matches?.map((m, index) => <div key={index}>{m.leafRelPath} → {m.coveringRelPath ?? m.coveringPath} ({m.key.size} B / CRC32 {m.key.crc32.toString(16).padStart(8, '0')})</div>)}
+              </div>
+            ))}
+            {item.planBlocked?.map((b, index) => <div key={index}>{b.sourcePath}/{b.path}: {b.reason}</div>)}
+            {item.planWarnings?.map((w, index) => <div key={index}>{w}</div>)}
+          </details>
+        </div>
+      ) : null}
       {item.needsPassword ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -85,6 +106,7 @@ function ConfirmRow({ item, config }: { item: IngestItemState; config: CategoryC
             {t('ingest.rememberPassword')}
             <span style={{ color: 'var(--faint)' }}>{t('ingest.rememberPasswordHint')}</span>
           </label>
+          {item.passwordContainer ? <><div className="break-all text-[11px]">{item.passwordContainer}</div><Button onClick={() => void window.a.ingest.submitPassword(item.jobId, '', false)}>{t('ingest.keepEncrypted')}</Button></> : null}
         </div>
       ) : null}
 
@@ -119,7 +141,13 @@ function ConfirmRow({ item, config }: { item: IngestItemState; config: CategoryC
         </div>
       ) : null}
 
-      {item.stage === 'awaiting_confirm' && !item.needsPassword ? (
+      {item.stage === 'awaiting_confirm' && !item.needsPassword && item.planId ? (
+        <div className="flex gap-2">
+          <Button variant="accent" disabled={busy || !!item.planSummary?.blocked} onClick={() => void commit()}>{t('ingest.commit')}</Button>
+          <Button disabled={busy} onClick={() => void window.a.ingest.cancel(item.jobId)}>{t('common.cancel')}</Button>
+        </div>
+      ) : null}
+      {item.stage === 'awaiting_confirm' && !item.needsPassword && !item.planId ? (
         <>
           <div className="flex flex-wrap items-center gap-2">
             <input className="input" style={{ width: 260 }} value={name} onChange={(e) => setName(e.target.value)} title={t('library.rename')} />
@@ -296,7 +324,7 @@ export function Inbox(): JSX.Element {
       >
         {t('inbox.m2Note')}
         {!settings.libraryRoot ? <span style={{ color: 'var(--warn)' }}> · {t('settings.libraryRootMissing')}</span> : null}
-        {!settings.autoExtract ? <span className="faint"> · {t('inbox.autoExtractOff')}</span> : null}
+        {!settings.autoExtract && !items.some(item => item.planId) ? <span className="faint"> · {t('inbox.autoExtractOff')}</span> : null}
       </div>
 
       {items.length === 0 ? (
@@ -349,11 +377,12 @@ export function Inbox(): JSX.Element {
                     <button
                       type="button"
                       className="btn btn-ghost px-1.5 py-0.5 text-[11px]"
-                      onClick={() => void ingestPaths([it.sourcePath])}
+                      onClick={() => void (it.planId ? window.a.ingest.resumePlan(it.jobId) : ingestPaths([it.sourcePath]))}
                     >
                       {t('ingest.retry')}
                     </button>
                   ) : null}
+                  {RUNNING.includes(it.stage) ? <button type="button" className="btn btn-ghost text-[11px]" onClick={() => void window.a.ingest.cancel(it.jobId)}>{t('common.cancel')}</button> : null}
                 </div>
               </div>
               {it.stage === 'awaiting_confirm' || it.stage === 'duplicate' ? (

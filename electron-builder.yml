@@ -21,6 +21,9 @@ files:
 asar: true
 asarUnpack:
   - 'node_modules/better-sqlite3/**'
+  # SQLite is opened inside a worker too; its JS loader dependencies must be beside the unpacked package.
+  - 'node_modules/bindings/**'
+  - 'node_modules/file-uri-to-path/**'
   - 'node_modules/@img/**'
   - '**/*.node'
   # worker_threads 读不了 asar 里的脚本；worker.js 还依赖同目录的共享 chunk，

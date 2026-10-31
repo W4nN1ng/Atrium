@@ -3,7 +3,7 @@ import { ExpandCache } from './expandCache'
 
 /** Fail closed on malformed resumable plans: their cache cannot safely be collected. */
 export async function pruneIntakeCache(db: Pick<Database.Database, 'prepare' | 'name'>, cache = new ExpandCache({ namespace: db.name })): Promise<void> {
-  const rows = db.prepare("SELECT plan_json, progress_json FROM intake_plan WHERE status NOT IN ('completed', 'duplicate')").all() as { plan_json: string; progress_json: string | null }[]
+  const rows = db.prepare("SELECT plan_json, progress_json FROM intake_plan WHERE status <> 'completed' AND (status <> 'duplicate' OR json_extract(progress_json,'$.committed') IS NOT 1)").all() as { plan_json: string; progress_json: string | null }[]
   const keys = new Set<string>()
   for (const row of rows) for (const json of [row.plan_json, row.progress_json]) {
     if (json === null) continue

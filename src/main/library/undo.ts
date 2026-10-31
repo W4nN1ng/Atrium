@@ -7,6 +7,7 @@ import type { AssetGroupRow, AssetRow, JournalRow } from '../../shared/types'
 import { SIDECAR_FILENAME } from '../../shared/constants'
 import { ensureDir, moveToHold, moveTree, moveFile, pathExists } from './fsx'
 import { undoRearchive } from './rearchive'
+import { undoPlan } from '../intake/executor'
 
 /** Restoring a held archive must also work when the hold folder is on another volume. */
 async function restorePath(source: string, destination: string): Promise<void> {
@@ -298,6 +299,8 @@ async function undoOne(deps: UndoDeps, row: JournalRow): Promise<UndoStep> {
        * 文件本来就不该被碰，所以这里什么都不做 —— 库记录由 undoLast 末尾按
        * payload.assetIds 统一删掉，撤销后收件箱那头的卡片由 ingest 层重新打开。
        */
+      const planId = journalPayload(row).extra?.planId
+      if (typeof planId === 'string') undoPlan(db, planId)
       const ids = journalPayload(row).assetIds ?? []
       /**
        * `extra.groupIds` = 这次登记**新建的组**（#40 拆分归并组会建）。
