@@ -193,9 +193,9 @@ describe('§7 5 万素材规模', { timeout: 180000 }, () => {
     expect(best, `三次里最快的一次也有 ${best.toFixed(3)}ms/条，太慢`).toBeLessThan(0.6)
   }, 300000)
 
-  it('健康检查在 5 万条上也能跑完（扫描是只读的，慢也得有上限）', () => {
+  it('健康检查在 5 万条上也能跑完（扫描是只读的，慢也得有上限）', async () => {
     const t0 = Date.now()
-    const rep = scanLibrary(db, null)
+    const rep = (await scanLibrary(db, null))
     const ms = Date.now() - t0
     console.log(`健康检查：${rep.totals.assets} 条、重复组 ${rep.duplicates.length}、${ms}ms`)
     expect(rep.totals.assets).toBeGreaterThanOrEqual(N)

@@ -21,6 +21,7 @@ import { deriveGroupKey } from '../classify/groupKey'
 import type { Lexicon } from '../classify/lexicon'
 import { splitContainer } from '../fingerprint/primary'
 import { attachmentKindOf, isArchiveFileName, isCodeFileName, isCompanionFileName, isJunkSegment, isPrimaryFileName } from '../../shared/junk'
+import { matchStrayContents, type StrayCoverageResult } from './strayCoverage'
 
 /** 目录遍历的硬上限：25GB 的库扫穿了也不卡 */
 const WALK_LIMIT = 20000
@@ -167,8 +168,7 @@ function isDirPath(p: string): boolean {
 
 /**
  * 递归列出文件（同步版，`/` 分隔），垃圾整枝掐掉。
- * `listTree` 是异步的，而 `findStrays` 整条链是同步的（同步扫才不用把 UI 挂起来等），
- * 所以这里要自己走一遍 —— 只多这一个用途，别再想着合并成一份。
+ * 候选单元枚举沿用有上限的目录清单；内容校验由异步匹配阶段完成。
  */
 function collectFileEntries(dir: string, limit = 3000): FileEntry[] {
   const out: FileEntry[] = []
@@ -281,40 +281,6 @@ function inside(a: string, b: string): boolean {
   return ra === rb || ra.startsWith(rb + path.sep)
 }
 
-/**
- * 把"包 + 同名已解压目录"并排的情况合成一条。
- *
- * 真库里这形态占大头（实测 72 对，光 贴图 就 7 对）：用户自己解压过又留着原件。
- * 不合并的话一次收编就凭空多出一堆重复资产 —— 而且哈希查重救不了，
- * 因为"一个 zip"和"一堆散文件"算出来的指纹根本不是一回事。
- * 合成一条时以**包**为代表（它才是紧凑原件），旁边那个目录记在 alsoDirs 里给界面说明。
- */
-function mergePairs(items: HealthReport['strays']): HealthReport['strays'] {
-  const byParent = new Map<string, HealthReport['strays']>()
-  for (const it of items) {
-    const key = path.dirname(it.path)
-    const list = byParent.get(key)
-    if (list) list.push(it)
-    else byParent.set(key, [it])
-  }
-  const out: HealthReport['strays'] = []
-  for (const list of byParent.values()) {
-    const dirs = new Map(list.filter((i) => i.isDir).map((i) => [path.basename(i.path).toLowerCase(), i]))
-    const eaten = new Set<HealthReport['strays'][number]>()
-    for (const file of list.filter((i) => !i.isDir)) {
-      const base = path.basename(file.path).replace(/\.(zip|rar|7z|unitypackage|tar|gz)$/i, '')
-      if (base === path.basename(file.path)) continue
-      const dir = dirs.get(base.toLowerCase())
-      if (!dir || eaten.has(dir)) continue
-      file.alsoDirs = [...(file.alsoDirs ?? []), dir.path]
-      eaten.add(dir)
-    }
-    for (const it of list) if (!eaten.has(it)) out.push(it)
-  }
-  out.sort((a, b) => b.sizeBytes - a.sizeBytes)
-  return out
-}
-
 export interface StrayOptions {
   /** 只收这一棵子树（分批收编用：一次只动 贴图，不把整库端上来） */
   under?: string | null
@@ -326,6 +292,8 @@ export interface StrayOptions {
    * `process.resourcesPath` / `app.getAppPath()` —— 硬依赖进去测试就跑不起来了。
    */
   lex?: Lexicon | null
+  /** The application injects a worker; standalone verification can run the same matcher directly. */
+  matchContents?: (items: HealthReport['strays']) => Promise<StrayCoverageResult>
 }
 
 /**
@@ -338,11 +306,11 @@ export interface StrayOptions {
  * 深度是**相对库根**算的，所以 `under` 只是剪枝（别的分支不走），
  * 不改变"第几层才算素材"的判断 —— 不然从 贴图/ 起走会把 贴图/lime/Custom skin 误当成结构层跳过。
  */
-export function findStrays(
+export async function findStrays(
   libraryRoot: string,
   knownPaths: string[],
   opts: StrayOptions | number = {}
-): { items: HealthReport['strays']; truncated: boolean } {
+): Promise<{ items: HealthReport['strays']; truncated: boolean; warnings: string[] }> {
   // 老调用方还按位置传 maxDepth，接住
   const o: StrayOptions = typeof opts === 'number' ? { maxDepth: opts } : opts
   const maxDepth = o.maxDepth ?? STRAY_MAX_DEPTH
@@ -351,8 +319,12 @@ export function findStrays(
   const known = knownPaths.filter(Boolean).map((p) => path.resolve(p))
   const under = o.under ? path.resolve(o.under) : null
   // inside(a, b) 读作"a 在 b 里面"：目标子树必须落在库根之内，否则一律不扫（防越界）
-  if (under && !inside(under, libraryRoot)) return { items: [], truncated: false }
+  if (under && !inside(under, libraryRoot)) return { items: [], truncated: false, warnings: [] }
+  try {
+    if (fs.lstatSync(libraryRoot).isSymbolicLink()) return { items: [], truncated: false, warnings: [`${libraryRoot}: reparse-point-not-followed`] }
+  } catch (error) { return { items: [], truncated: false, warnings: [`${libraryRoot}: ${String(error)}`] } }
   const items: HealthReport['strays'] = []
+  const warnings: string[] = []
   let visited = 0
   let truncated = false
 
@@ -371,6 +343,9 @@ export function findStrays(
         return
       }
       const abs = path.join(dir, e.name)
+      if (e.isSymbolicLink()) { warnings.push(`${abs}: reparse-point-not-followed`); continue }
+      // The normalized intake blob store is managed data, never a stray material.
+      if (depth === 1 && e.name.toLowerCase() === '.atrium') continue
       if (isSidecarFile(e.name)) continue
       /** §A1 垃圾过滤（三处之一）：`.DS_Store` / `__MACOSX` / `Thumbs.db` 不报、不计入统计 */
       if (isJunkSegment(e.name)) continue
@@ -440,7 +415,9 @@ export function findStrays(
   }
   walk(libraryRoot, 1)
   items.sort((a, b) => b.sizeBytes - a.sizeBytes)
-  return { items: mergePairs(items).slice(0, limit), truncated }
+  const candidates = items.slice(0, limit)
+  const matched = await (o.matchContents ?? matchStrayContents)(candidates)
+  return { items: matched.items, truncated: truncated || items.length > limit, warnings: [...new Set([...warnings, ...matched.warnings])] }
 }
 
 /**
@@ -487,15 +464,16 @@ export function dHashOf(key: string, digest: ThumbDigest): string | null {
  * @param thumbDigest 把一张缓存图缩到 9x8 取灰度 —— 由主进程注入（要用 Electron 的 nativeImage），
  *                    这样这份文件在单测里也能跑。
  */
-export function scanLibrary(
+export async function scanLibrary(
   db: Db,
   libraryRoot: string | null,
   thumbDigest?: (key: string) => { bitmap: Buffer; width: number; height: number } | null,
   /** 分批收编：只扫这一棵子树（界面上选"这批只动 贴图"） */
   under?: string | null,
   /** 词典：给了才会做结构层的两条新收口（见 StrayOptions.lex） */
-  lex?: Lexicon | null
-): HealthReport {
+  lex?: Lexicon | null,
+  matchContents?: StrayOptions['matchContents']
+): Promise<HealthReport> {
   const rows = db
     .prepare(
       `SELECT id, name, category, subcategory, status, kind, size_bytes, hash_xxh64, library_path, source_path, cover_image, group_id FROM asset ORDER BY updated_at DESC`
@@ -570,11 +548,13 @@ export function scanLibrary(
 
   let strays: HealthReport['strays'] = []
   let truncated = false
+  let strayWarnings: string[] = []
   if (libraryRoot && fs.existsSync(libraryRoot)) {
     const known = rows.flatMap((r) => [r.library_path, r.source_path].filter((x): x is string => !!x))
-    const s = findStrays(libraryRoot, known, { under, lex })
+    const s = await findStrays(libraryRoot, known, { under, lex, matchContents })
     strays = s.items
     truncated = s.truncated
+    strayWarnings = s.warnings
   }
 
   return {
@@ -584,6 +564,7 @@ export function scanLibrary(
     duplicates,
     similar,
     strays,
+    strayWarnings,
     largest,
     orphanGroups,
     totals: {

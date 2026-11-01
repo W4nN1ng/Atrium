@@ -24,7 +24,8 @@ export default defineConfig({
           index: resolve(__dirname, 'src/main/index.ts'),
           worker: resolve(__dirname, 'src/main/ingest/worker.ts'),
           intake: resolve(__dirname, 'src/main/intake/runtime.ts'),
-          intakeWorker: resolve(__dirname, 'src/main/intake/worker.ts')
+          intakeWorker: resolve(__dirname, 'src/main/intake/worker.ts'),
+          healthWorker: resolve(__dirname, 'src/main/library/healthWorker.ts')
         },
         formats: ['cjs'],
         fileName: (_format: string, entryName: string) => `${entryName}.js`

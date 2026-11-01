@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { backfillThumbs, forgetThumb, pruneThumbCache, thumbPathFor } from '../library/thumbs'
 import { dissolveOrphanGroups, markMissing, rebuildFromSidecars, scanLibrary, unmarkMissing, type HealthReport } from '../library/health'
+import { matchStraysInWorker } from '../library/healthWorkerClient'
 import { nativeImage, shell } from 'electron'
 import log from 'electron-log'
 import type { AssetFilter, AssetRow, DetailInfo } from '../../shared/types'
@@ -31,7 +32,7 @@ import { loadCategories } from '../services/categories'
 import { assetIndex, reindexAsset, rebuildIndex, setCategoryConfig } from '../search'
 import { resolveIndexedAssetFilter } from '../search/filter'
 import { getSettings, libraryRootOrThrow } from '../services/settings'
-import { P } from '../services/paths'
+import { P, bundledBinDir } from '../services/paths'
 import type { IpcRegistrar } from './types'
 
 /**
@@ -810,8 +811,8 @@ export function registerAssets({ ipc, broadcast }: IpcRegistrar): void {
   })
 
   ipc.handle('health:prune-thumbs', () => pruneThumbCache(getDb()))
-  ipc.handle('health:duplicates', () => {
-    const r = scanHealth()
+  ipc.handle('health:duplicates', async () => {
+    const r = await scanHealth()
     return { implemented: true, duplicates: r.duplicates, similar: r.similar }
   })
 }
@@ -831,9 +832,10 @@ function thumbDigest(key: string): { bitmap: Buffer; width: number; height: numb
   }
 }
 
-function scanHealth(under?: string | null): HealthReport {
+function scanHealth(under?: string | null): Promise<HealthReport> {
   /** 词典带上：结构层的两条收口（同 groupKey 的散包 / 主体在子目录）要靠它才判得出 */
-  return scanLibrary(getDb(), getSettings().libraryRoot ?? null, thumbDigest, under ?? null, mainLexicon())
+  return scanLibrary(getDb(), getSettings().libraryRoot ?? null, thumbDigest, under ?? null, mainLexicon(),
+    items => matchStraysInWorker(items, { cacheNamespace: getDb().name, extraBackendDirs: [bundledBinDir()] }))
 }
 
 function sizeOfDb(): number {

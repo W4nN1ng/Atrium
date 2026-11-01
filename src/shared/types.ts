@@ -1121,8 +1121,8 @@ export interface HealthReport {
     sizeBytes: number
     entries: number
     isDir: boolean
-    /** 旁边那个同名已解压目录 —— 登记只进包，这个留在原地由你处置 */
-    alsoDirs?: string[]
+    /** Full CRC/size and SHA-256 evidence. The loose item represents these retained archives. */
+    coveredArchives?: Array<{ path: string; sizeBytes: number; evidence: import('./intake').MatchEvidence }>
     /**
      * 结构层目录整棵收口时标的类型（增量改动单 2 §A5）：
      * `code` = 全是脚本（一个「编辑器脚本」单元，不是 N 张卡）；
@@ -1131,6 +1131,8 @@ export interface HealthReport {
      */
     contentKind?: 'code' | 'attachments' | 'group' | 'primary'
   }>
+  /** Unreadable/opaque sources remain visible; diagnostics do not authorize file operations. */
+  strayWarnings?: string[]
   /** 占空间最多的素材 */
   largest: HealthAssetRef[]
   /** 组里只剩一个成员（归并过细，解散掉才算干净） */
