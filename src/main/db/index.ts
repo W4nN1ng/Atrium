@@ -19,6 +19,14 @@ export function migrate(db: Db): number {
     })()
     applied++
   }
+  // Pre-release libraries can already report V12 without the intake tables.
+  // V12 contains only additive IF NOT EXISTS bookkeeping; replay it atomically
+  // for those libraries without replaying historical data migrations.
+  if (before === 12) {
+    const intake = MIGRATIONS.find((migration) => migration.version === 12)
+    if (!intake) throw new Error('Missing V12 intake migration')
+    db.transaction(() => db.exec(intake.sql))()
+  }
   if (before === 0 && applied === 0) {
     // 空库首次建表也要落 user_version
     db.pragma(`user_version = ${SCHEMA_VERSION}`)

@@ -73,6 +73,44 @@ describe('V11 → V12 intake migration', () => {
     expect(migrate(db)).toBe(0)
     expect(count()).toBe(1)
   })
+
+  it('repairs a pre-existing V12 marker without intake tables and preserves every legacy row', () => {
+    db.pragma('user_version = 12')
+    const before = snapshotIntakeLegacy(db)
+    expect(migrate(db)).toBe(0)
+    const after = snapshotIntakeLegacy(db)
+    for (const table of Object.keys(before)) expect(after[table], table).toEqual(before[table])
+    for (const table of ['content_blob', 'asset_blob_ref', 'source_occurrence', 'intake_plan']) expect(after[table]).toEqual([])
+    expect(db.pragma('user_version', { simple: true })).toBe(12)
+    expect(migrate(db)).toBe(0)
+    expect(db.pragma('integrity_check', { simple: true })).toBe('ok')
+    expect(db.pragma('foreign_key_check')).toEqual([])
+  })
+
+  it('restores missing V12 bookkeeping objects without changing existing references', () => {
+    migrate(db)
+    blob()
+    reference('one')
+    db.exec('DROP TABLE intake_plan; DROP INDEX idx_content_blob_key; DROP TRIGGER intake_ref_insert;')
+    expect(migrate(db)).toBe(0)
+    expect(count()).toBe(1)
+    expect(db.prepare('SELECT COUNT(*) AS n FROM intake_plan').get()).toEqual({ n: 0 })
+    expect(db.prepare("SELECT name FROM sqlite_master WHERE name = 'idx_content_blob_key'").get()).toBeTruthy()
+    reference('two')
+    expect(count()).toBe(2)
+    expect(migrate(db)).toBe(0)
+    expect(count()).toBe(2)
+  })
+
+  it('rolls back the whole repair when an incompatible existing V12 table rejects its indexes', () => {
+    db.pragma('user_version = 12')
+    db.exec('CREATE TABLE source_occurrence (id TEXT PRIMARY KEY)')
+    const before = snapshotIntakeLegacy(db)
+    expect(() => migrate(db)).toThrow(/asset_id/)
+    expect(snapshotIntakeLegacy(db)).toEqual(before)
+    expect(db.prepare("SELECT name FROM sqlite_master WHERE name IN ('content_blob', 'intake_plan', 'asset_blob_ref')").all()).toEqual([])
+    expect(db.pragma('user_version', { simple: true })).toBe(12)
+  })
 })
 
 describe('V12 shared content ownership', () => {
