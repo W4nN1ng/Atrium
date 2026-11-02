@@ -51,6 +51,9 @@ describe.skipIf(!GO)('真库副本 · schema 迁移 + 重新分析预览', () =>
     try {
       const ver = db.prepare(`PRAGMA user_version`).get() as { user_version: number }
       expect(ver.user_version, '迁移没跑到最新版').toBe(SCHEMA_VERSION)
+      for (const table of ['content_blob', 'asset_blob_ref', 'source_occurrence', 'intake_plan']) {
+        expect(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(table), `缺少摄取表 ${table}`).toBeTruthy()
+      }
 
       const cols = new Set((db.prepare(`PRAGMA table_info(asset)`).all() as Array<{ name: string }>).map((c) => c.name))
       for (const c of ['parent_asset_id', 'is_bundle', 'attachment_kind', 'container_kind', 'variant_raw']) {
