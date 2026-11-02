@@ -41,7 +41,7 @@ beforeEach(() => {
     settings: { getAll: async () => ({ ...DEFAULTS, onboardingDone: true, libraryRoot: null }) },
     assets: { list: async () => ({ cards: [], total: 0 }), stats: async () => ({}) },
     collections: { list: async () => [] }, categories: { list: async () => null },
-    ingest: { queue: async () => [] },
+    ingest: { queueSnapshot: async () => ({ revision: 0, items: [] }), queue: async () => [] },
     on: (name: string, listener: (payload: unknown) => void) => { events.set(name, listener) }
   } })
   vi.stubGlobal('document', { documentElement: { classList: { toggle: () => undefined }, lang: '' } })

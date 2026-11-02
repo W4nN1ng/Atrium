@@ -107,7 +107,7 @@ describe.skipIf(!GO)('真库副本 · schema 迁移 + 重新分析预览', () =>
     }
   })
 
-  it('V4（#40）：dir_key 回填结果要和 tools/probe-groups.cjs 量到的一致，历史误并组不再吃新成员', () => {
+  it('保留已有分组与导入历史，首次 V4 升级才核验 dir_key 回填', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'avca-v4-'))
     const copy = path.join(tmp, 'library.db')
     fs.copyFileSync(REAL_DB, copy)
@@ -115,6 +115,8 @@ describe.skipIf(!GO)('真库副本 · schema 迁移 + 重新分析预览', () =>
     const rowsBefore = (raw.prepare(`SELECT COUNT(*) n FROM asset`).get() as { n: number }).n
     const groupsBefore = (raw.prepare(`SELECT COUNT(*) n FROM asset_group`).get() as { n: number }).n
     const versionBefore = (raw.prepare(`PRAGMA user_version`).get() as { user_version: number }).user_version
+    const originalGroups = versionBefore >= 4 ? raw.prepare(`SELECT * FROM asset_group ORDER BY rowid`).all() : null
+    const originalImports = versionBefore >= 5 ? raw.prepare(`SELECT * FROM import_log ORDER BY rowid`).all() : null
     raw.close()
 
     const db = openDatabase(copy)
@@ -132,7 +134,8 @@ describe.skipIf(!GO)('真库副本 · schema 迁移 + 重新分析预览', () =>
       ).n
       const ilTotal = (db.prepare(`select count(*) n from import_log`).get() as { n: number }).n
       console.log(`  V5：import_log ${ilTotal} 行里 ${notNull} 行带容器信息（老行应为 0 —— V5 明确不回填）`)
-      expect(notNull, 'V5 不许回填老记录').toBe(0)
+      if (versionBefore < 5) expect(notNull, 'V5 不许回填老记录').toBe(0)
+      else expect(db.prepare(`SELECT * FROM import_log ORDER BY rowid`).all(), '已有导入历史必须原样保留').toEqual(originalImports)
       /** V1 那条 UNIQUE(group_key, category) 必须让位，否则第二个"同 key 不同目录"的组根本插不进去 */
       const uniq = (db.prepare(`PRAGMA index_list(asset_group)`).all() as Array<{ name: string; unique: number }>).filter((i) => i.unique)
       expect(uniq.some((i) => i.name === 'idx_group_key_cat'), '老的单目录唯一索引还在').toBe(false)
@@ -167,16 +170,19 @@ describe.skipIf(!GO)('真库副本 · schema 迁移 + 重新分析预览', () =>
         db
           .prepare(
             `select count(*) n from asset_group g
-              where g.id not in (select group_id from asset where group_id is not null and coalesce(library_path, source_path) is not null)`
+              where g.dir_key is null and g.id not in (select group_id from asset where group_id is not null and coalesce(library_path, source_path) is not null)`
           )
           .get() as { n: number }
       ).n
       console.log(`  留 NULL 的 ${nullDir} 个拆开看：跨目录误并 ${cross.length} 个、成员无可判路径（含空组）${noPath} 个`)
-      expect(nullDir, 'NULL = 跨目录 + 无可判路径，不许有第三种来源').toBe(cross.length + noPath)
+      // A later database may retain empty groups with a valid dir_key after assets were deleted.
+      // Only an actual first V4 upgrade computes keys from the current members.
+      if (versionBefore < 4) expect(nullDir, '首次 V4 回填的 NULL = 跨目录 + 无可判路径').toBe(cross.length + noPath)
+      else expect(db.prepare(`SELECT * FROM asset_group ORDER BY rowid`).all(), '已有分组与目录键必须原样保留').toEqual(originalGroups)
 
       expect(withDir + nullDir, '组数一条不许变').toBe(groupsBefore)
       expect((db.prepare(`SELECT COUNT(*) n FROM asset`).get() as { n: number }).n, '迁移不许动 asset 行').toBe(rowsBefore)
-      for (const g of cross) {
+      for (const g of versionBefore < 4 ? cross : []) {
         const row = db.prepare(`select dir_key from asset_group where id = ?`).get(g) as { dir_key: string | null }
         expect(row.dir_key, `跨目录组 ${g} 被猜了一个 dir_key`).toBe(null)
       }

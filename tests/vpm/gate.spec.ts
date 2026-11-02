@@ -107,12 +107,13 @@ describe('VPM gate (P0)', () => {
     expect(typeof handlers.get(IpcInvoke.Vpm.Status)).toBe('function')
   })
 
-  it('requires a data root and rejects C:/drive-root/relative paths', async () => {
+  it('requires a data root and rejects system-drive/drive-root/relative paths', async () => {
     await expect(enableVpm({ dataRoot: '' })).rejects.toMatchObject({ code: 'vpmDataRootRequired' })
     await expect(enableVpm({ dataRoot: 'relative\\vpm' })).rejects.toMatchObject({ code: 'vpmDataRootInvalid' })
     await expect(enableVpm({ dataRoot: 'E:\\' })).rejects.toMatchObject({ code: 'vpmDataRootInvalid' })
 
-    process.env.SystemDrive = 'C:'
+    // TEMP may be on another drive; explicitly make this sandbox's drive the mocked system drive.
+    process.env.SystemDrive = path.parse(root).root.slice(0, 2)
     await expect(enableVpm({ dataRoot: path.join(root, 'vpm-data') })).rejects.toMatchObject({
       code: 'vpmDataRootOnSystemDrive'
     })

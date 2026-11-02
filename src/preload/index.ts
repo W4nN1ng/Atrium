@@ -228,8 +228,12 @@ const api: AApi = {
     dismiss: (jobId) => invoke('ingest:dismiss', jobId),
     submitPassword: (jobId, password, remember) => invoke('ingest:submit-password', jobId, password, remember === true),
     queue: () => invoke('ingest:queue'),
+    queueSnapshot: () => invoke('ingest:queue-snapshot'),
     restoreQueue: () => invoke('ingest:restore-queue'),
     queueFile: () => invoke('ingest:queue-file'),
+    planStatus: (jobId) => invoke('ingest:plan-status', jobId),
+    confirmPlan: (jobId) => invoke('ingest:plan-confirm', jobId),
+    resumePlan: (jobId) => invoke('ingest:plan-resume', jobId),
     commitManual: (input) => invoke('ingest:commit-manual', input),
     commitAll: (input) => invoke('ingest:commit-all', input)
   },

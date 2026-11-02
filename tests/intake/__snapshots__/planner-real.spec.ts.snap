@@ -1,0 +1,172 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`M0 approved copies: normalized durable plans > 'motchiri' preserves the complete normalized tree and provenance 1`] = `
+{
+  "archiveSkips": [
+    {
+      "matched": 10,
+      "reason": "fully-covered",
+      "total": 10,
+    },
+  ],
+  "occurrenceCount": 22,
+  "units": [
+    {
+      "covers": [
+        "4108136可触碰皮肤/0498f8b907db8d02dff949baed4e16aa.png",
+        "4108136可触碰皮肤/闲鱼-初音的VRC小店.png",
+      ],
+      "name": "4108136可触碰皮肤",
+      "targets": [
+        "4108136可触碰皮肤/0498f8b907db8d02dff949baed4e16aa.png",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/_Instructions.url",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/_愢柧彂.url",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/_说明.url",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/_설명서.url",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/lilToon.url",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/motchiri_shader_license/20220922042302vn3license_en.pdf",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/motchiri_shader_license/20220922042302vn3license_ja.pdf",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/motchiri_shader_license/20220922042302vn3license_ko.pdf",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/motchiri_shader_license/20220922042302vn3license_zh.pdf",
+        "4108136可触碰皮肤/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0/motchiri_shader_ver2.3.0.unitypackage",
+        "4108136可触碰皮肤/闲鱼-初音的VRC小店.png",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`M0 approved copies: normalized durable plans > '名流' preserves the complete normalized tree and provenance 1`] = `
+{
+  "archiveSkips": [
+    {
+      "matched": 5,
+      "reason": "fully-covered",
+      "total": 5,
+    },
+    {
+      "matched": 3,
+      "reason": "fully-covered",
+      "total": 3,
+    },
+  ],
+  "occurrenceCount": 39,
+  "units": [
+    {
+      "covers": [
+        "名流/ATTITUDE The Royal Bunny.jpg",
+        "名流/材质包 PSD/UV/UV3_Normal 1.png",
+        "名流/材质包 PSD/UV/UV3_Normal 2.png",
+        "名流/材质包 PSD/UV/UV3_Normal.png",
+      ],
+      "name": "名流",
+      "targets": [
+        "名流/ATTITUDE The Royal Bunny.jpg",
+        "名流/Libero[Airi_ATTITUDE The Royal Bunny]_1.03.unitypackage",
+        "名流/Libero[Chiffon&Chocolat_ATTITUDE The Royal Bunny]_1.02.unitypackage",
+        "名流/Libero[Ichigo_ATTITUDE The Royal Bunny]_1.01.unitypackage",
+        "名流/Libero[KipfelMame_ATTITUDE]_1.00.unitypackage",
+        "名流/Libero[Kumaly_ATTITUDE The Royal Bunny]_1.00.unitypackage",
+        "名流/Libero[Lasyusha_ATTITUDE The Royal Bunny]_1.01.unitypackage",
+        "名流/Libero[Lumina_ATTITUDE The Royal Bunny]_1.00.unitypackage",
+        "名流/Libero[Manuka_ATTITUDE The Royal Bunny]_1.03.unitypackage",
+        "名流/Libero[Milfy&Eku_ATTITUDE The Royal Bunny]_1.01.unitypackage",
+        "名流/Libero[Milltina_ATTITUDE The Royal Bunny]_1.02.unitypackage",
+        "名流/Libero[Misaki_ATTITUDE The Royal Bunny]_1.00.unitypackage",
+        "名流/Libero[Moe_ATTITUDE The Royal Bunny]_1.04.unitypackage",
+        "名流/Libero[Nemesis&Elusion_ATTITUDE The Royal Bunny]_1.00.unitypackage",
+        "名流/Libero[Ramune_ATTITUDE The Royal Bunny]_1.00.unitypackage",
+        "名流/Libero[Rurune&Mizuki_ATTITUDE The Royal Bunny]_1.00.unitypackage",
+        "名流/Libero[Selestia_ATTITUDE The Royal Bunny]_1.01.unitypackage",
+        "名流/Libero[Shinano_ATTITUDE The Royal Bunny]_1.00.unitypackage",
+        "名流/Libero[Shinra_ATTITUDE The Royal Bunny]_1.01.unitypackage",
+        "名流/Libero[Sio_ATTITUDE The Royal Bunny]_1.02.unitypackage",
+        "名流/Libero[Sion_ATTITUDE The Royal Bunny]_1.01.unitypackage",
+        "名流/材质包 PSD/ATTITUDE_Stocking no Lace.unitypackage",
+        "名流/材质包 PSD/Libero[Material_ATTITUDE The Royal Bunny]_1.00.unitypackage",
+        "名流/材质包 PSD/PSD/UV1.psd",
+        "名流/材质包 PSD/PSD/UV2.psd",
+        "名流/材质包 PSD/PSD/UV3.psd",
+        "名流/材质包 PSD/PSD/UV4.psd",
+        "名流/材质包 PSD/PSD/UV5.psd",
+        "名流/材质包 PSD/UV/UV3_Normal 1.png",
+        "名流/材质包 PSD/UV/UV3_Normal 2.png",
+        "名流/材质包 PSD/UV/UV3_Normal.png",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`M0 approved copies: normalized durable plans > '西装' preserves the complete normalized tree and provenance 1`] = `
+{
+  "archiveSkips": [
+    {
+      "matched": 1,
+      "reason": "fully-covered",
+      "total": 1,
+    },
+    {
+      "matched": 1,
+      "reason": "fully-covered",
+      "total": 1,
+    },
+  ],
+  "occurrenceCount": 18,
+  "units": [
+    {
+      "covers": [],
+      "name": "西装",
+      "targets": [
+        "西装/6447797/Noir_Luxe_Airi/Noir_Luxe_Airi.unitypackage",
+        "西装/6447797/Noir_Luxe_Chiffon_Lime/Noir_Luxe_Chiffon&Lime.unitypackage",
+        "西装/6447797/Noir_Luxe_Kikyo/Noir_Luxe_Kikyo.unitypackage",
+        "西装/6447797/Noir_Luxe_Komano/Noir_Luxe_Komano.unitypackage",
+        "西装/6447797/Noir_Luxe_Manuka/Noir_Luxe_Manuka.unitypackage",
+        "西装/6447797/Noir_Luxe_Material.unitypackage",
+        "西装/6447797/Noir_Luxe_Minase/Noir_Luxe_Minase.unitypackage",
+        "西装/6447797/Noir_Luxe_Moe/Noir_Luxe_Moe.unitypackage",
+        "西装/6447797/Noir_Luxe_Rurune_Mizuki/Noir_Luxe_Rurune&Mizuki.unitypackage",
+        "西装/6447797/Noir_Luxe_Selestia/Noir_Luxe_Selestia.unitypackage",
+        "西装/6447797/Noir_Luxe_Shinano/Noir_Luxe_Shinano.unitypackage",
+        "西装/6447797/Noir_Luxe_Shinra/Noir_Luxe_Shinra.unitypackage",
+        "西装/6447797/Noir_Luxe_Sio/Noir_Luxe_Sio.unitypackage",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`M0 approved copies: normalized durable plans > '黑曜石' preserves the complete normalized tree and provenance 1`] = `
+{
+  "archiveSkips": [
+    {
+      "matched": 1,
+      "reason": "fully-covered",
+      "total": 1,
+    },
+    {
+      "matched": 1,
+      "reason": "fully-covered",
+      "total": 1,
+    },
+    {
+      "matched": 1,
+      "reason": "fully-covered",
+      "total": 1,
+    },
+  ],
+  "occurrenceCount": 6,
+  "units": [
+    {
+      "covers": [],
+      "name": "黑曜石",
+      "targets": [
+        "黑曜石/Obsidian_Lime_1.00/Obsidian_Lime_1.00.unitypackage",
+        "黑曜石/Obsidian_Shinano_1.00/Obsidian_Shinano_1.00.unitypackage",
+        "黑曜石/Obsidian_Textures_1.00/Obsidian_Textures_1.00.unitypackage",
+      ],
+    },
+  ],
+}
+`;

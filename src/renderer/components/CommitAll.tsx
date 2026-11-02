@@ -44,7 +44,7 @@ export function CommitAllButton({
   const [ask, setAsk] = useState(false)
   const [result, setResult] = useState<CommitAllSummary | null>(null)
 
-  const waiting = useMemo(() => items.filter((i) => i.stage === 'awaiting_confirm'), [items])
+  const waiting = useMemo(() => items.filter((i) => i.stage === 'awaiting_confirm' && !i.needsPassword && !i.planSummary?.blocked), [items])
   /**
    * "当前筛选结果"在收件箱这一页就是搜索框那条：搜 'Grimoir' 再一键入库，
    * 只放得进这十几件，其余留在原地。没有这条，搜索就只是高亮，改不了动作范围。
@@ -99,12 +99,13 @@ export function CommitAllButton({
       return
     }
     // 会动磁盘就先问一句，默认停在"只登记"（改动单 §1.5）
-    if (wouldMove) setAsk(true)
+    if (wouldMove && targets.some(i => !i.planId)) setAsk(true)
     else void run(false)
   }
 
   return (
     <div className="flex flex-col items-end gap-1">
+      {targets.some(i => i.planId) ? <div className="text-[11px] muted">{t('ingest.planCopyHint')}</div> : null}
       <div className="flex items-center gap-2">
         {prog ? (
           <span className="text-[11px] tabular-nums" style={{ color: 'var(--muted)' }}>

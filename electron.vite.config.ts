@@ -13,14 +13,19 @@ export default defineConfig({
           'hash-wasm', 'yauzl', 'pend', 'iconv-lite', 'safer-buffer',
           'tar', 'chownr', 'fs-minipass', 'minipass', 'minizlib', 'mkdirp', 'yallist',
           // 分类链路的词典/解析也是 worker 在用
-          'pinyin-pro', 'wanakana'] })],
+          'pinyin-pro', 'wanakana',
+          // RAR 解码器必须进入 worker 图；WASM 通过 extraResources 离线提供。
+          'node-unrar-js'] })],
     build: {
       outDir: 'out/main',
       lib: {
-        // 两个入口：主进程本体 + 摄取 worker（worker_threads 要一个独立文件）
+        // Intake core is independently loadable by workers; UI routing is added in M7.
         entry: {
           index: resolve(__dirname, 'src/main/index.ts'),
-          worker: resolve(__dirname, 'src/main/ingest/worker.ts')
+          worker: resolve(__dirname, 'src/main/ingest/worker.ts'),
+          intake: resolve(__dirname, 'src/main/intake/runtime.ts'),
+          intakeWorker: resolve(__dirname, 'src/main/intake/worker.ts'),
+          healthWorker: resolve(__dirname, 'src/main/library/healthWorker.ts')
         },
         formats: ['cjs'],
         fileName: (_format: string, entryName: string) => `${entryName}.js`

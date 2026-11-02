@@ -130,6 +130,7 @@ describe('i18n 三语一致', () => {
           'status.',
           'settings.tabs.',
           'inbox.stage.',
+          'ingest.skipReason.',
           'vpm.errors.',
           'vpm.warnings.',
           'vpm.projects.state.',
@@ -153,6 +154,7 @@ describe('i18n 三语一致', () => {
       expect(base.has(p.slice(0, -1)) || [...base].some((k) => k.startsWith(p)), `前缀 ${p} 下没有任何 key`).toBe(true)
     }
     // 动态拼接的那几组，逐个枚举值确认
+    for (const reason of ['fully-covered', 'duplicate-of-kept-archive', 'identical-loose-copy']) expect(base.has(`ingest.skipReason.${reason}`)).toBe(true)
     for (const s of ['archived', 'classified', 'pending_confirm', 'inbox']) {
       expect(base.has(`status.${s}`), `缺 status.${s}`).toBe(true)
     }

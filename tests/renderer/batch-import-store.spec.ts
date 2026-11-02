@@ -128,7 +128,7 @@ beforeEach(async () => {
     categories: { list: async () => null },
     settings: { get: async () => ({}), patch: async () => ({}), all: async () => ({}) },
     system: { info: async () => ({}), paths: async () => ({}) },
-    ingest: { queue: async () => [], restoreQueue: async () => [] },
+    ingest: { queueSnapshot: async () => ({ revision: 0, items: [] }), queue: async () => [], restoreQueue: async () => [] },
     unity: {
       ...api,
       resolveTarget: vi.fn(async () => ({ kind: 'selected', projectId: 'P1', projectName: 'Fixture Project' })),

@@ -87,7 +87,11 @@ describe('schema', () => {
       'learning',
       'password_vault',
       'setting',
-      'search_alias'
+      'search_alias',
+      'content_blob',
+      'asset_blob_ref',
+      'source_occurrence',
+      'intake_plan'
     ]) {
       expect(names, `缺表 ${t}`).toContain(t)
     }

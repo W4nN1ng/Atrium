@@ -350,14 +350,20 @@ export function HealthPanel(): JSX.Element {
                 {bytes(s.sizeBytes)}
               </span>
             </div>
-            {s.alsoDirs?.length ? (
-              <div className="ml-6 text-[10px]" style={{ color: 'var(--faint)' }}>
-                {t('health.hasExtracted', { n: s.alsoDirs.length })}
-              </div>
+            {s.coveredArchives?.length ? (
+              <details className="ml-6 text-[10px] break-all" style={{ color: 'var(--faint)' }}>
+                <summary>{t('health.coveredArchives', { n: s.coveredArchives.length })}</summary>
+                {s.coveredArchives.map(archive => <div key={archive.path} className="py-1">
+                  <button type="button" className="text-left" onClick={() => reveal(archive.path)}>{archive.path} · {bytes(archive.sizeBytes)}</button>
+                  <div>{t('health.coverageEvidence', { covered: archive.evidence.coveredCount, total: archive.evidence.totalCount })}</div>
+                  {archive.evidence.matches.map((match, index) => <div key={index}>{match.leafRelPath} → {match.coveringPath}/{match.coveringRelPath} ({match.key.size} B / CRC32 {match.key.crc32.toString(16).padStart(8, '0')})</div>)}
+                </div>)}
+              </details>
             ) : null}
           </div>
         ))}
       </Section>
+      {report.strayWarnings?.length ? <details className="text-[11px] break-all"><summary>{t('health.scanWarnings', { count: report.strayWarnings.length })}</summary>{report.strayWarnings.map((warning, index) => <div key={index}>{warning}</div>)}</details> : null}
 
       <Section title={t('health.largest')} hint={t('health.largestHint')} count={report.largest.length} tone="ok">
         {report.largest.map((l) => (

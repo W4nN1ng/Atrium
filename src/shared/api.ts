@@ -113,6 +113,11 @@ export interface PathInfo {
   libraryProblem: string | null
 }
 
+export interface IngestQueueSnapshot {
+  revision: number
+  items: IngestItemState[]
+}
+
 export interface IngestItemState {
   jobId: string
   sourcePath: string
@@ -145,6 +150,14 @@ export interface IngestItemState {
   units?: ClassifiedUnitView[]
   /** 合集名（拆包时父级合集） */
   bundleName?: string | null
+  /** M7 normalized intake plan; the plan remains immutable until execution. */
+  planId?: string
+  planSummary?: { units: number; leaves: number; skips: number; extracts: number; warnings: number; blocked: number; reviews: number; duplicate: boolean }
+  planSkips?: Array<{ entry: string; reason: string; coveredBy: string[]; coveredCount: number; totalCount: number; matches?: import('./intake').LeafMatch[] }>
+  planBlocked?: { sourcePath: string; path: string; reason: string }[]
+  planWarnings?: string[]
+  planTargets?: { name: string; path: string; files: string[] }[]
+  passwordContainer?: string
 }
 
 /**
@@ -578,6 +591,7 @@ export interface AApi {
     cancel(jobId?: string): Promise<void>
     dismiss(jobId?: string): Promise<void>
     queue(): Promise<IngestItemState[]>
+    queueSnapshot(): Promise<IngestQueueSnapshot>
     /**
      * 收件箱持久化：把上次没确认完的卡片重新入队。
      * 启动时主进程会自动调一次；这里也给界面一个手动入口（设置 → 维护）。
@@ -585,6 +599,9 @@ export interface AApi {
     restoreQueue(): Promise<{ recovered: number; missing: string[]; skipped: number }>
     /** 只读体检：持久化队列里有几项、其中几项文件已经不存在 */
     queueFile(): Promise<{ total: number; missing: number; paths: string[] }>
+    planStatus(jobId: string): Promise<IngestItemState | null>
+    confirmPlan(jobId: string): Promise<{ assetId: string }>
+    resumePlan(jobId: string): Promise<void>
     /**
      * M7 ⑥ · 给一个要密码的包提交密码。
      * `remember` 为真时顺手存进密码库；返回的 `vault` 是三态出口，

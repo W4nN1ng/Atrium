@@ -1,0 +1,12 @@
+/** Standalone packaged entry for worker use and verification; UI wiring follows in M7. */
+export { buildClosure, type ClosureOptions } from './closure'
+export { ExpandCache } from './expandCache'
+export { intakeBudget } from '../../shared/constants'
+export { computeCoverage, planSelection, type ClosureSource, type SelectionResult } from './match'
+export { buildIntakePlan, type PlannerIndex, type LibraryBlob } from './planner'
+export { loadLexicon } from '../classify/lexicon'
+export { persistIntakePlan, readIntakePlan, readLibraryBlobIndex } from '../db/repos/intakePlan'
+export { executePlan, undoPlan, IntakeExecutionError, type ExecuteOptions, type ExecutionResult } from './executor'
+export { openDatabase, closeDatabase } from '../db'
+export { classifyPublishedUnit } from './classification'
+export { verifyCoverageReview } from './review'

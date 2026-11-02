@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Worker } from 'node:worker_threads'
 import log from 'electron-log'
-import type { BundlePreview, ClassifiedUnitView, IngestItemState } from '../../shared/api'
+import type { BundlePreview, ClassifiedUnitView, IngestItemState, IngestQueueSnapshot } from '../../shared/api'
 import type { AssetUnit, ClassificationResult, ContentType, SourcePlatform } from '../../shared/types'
 import { ulid } from '../../shared/ulid'
 import { cleanDisplayName, tagsWithAltName } from '../../shared/naming'
@@ -36,6 +36,12 @@ import type { WorkerMessage, WorkerResult } from './worker'
 import { containerInfoOf, type ContainerInfo } from './container'
 import { queueActionFor, STAGE_TERMINAL } from './queuePolicy'
 import { pruneExtractRoot, resolveExtractRoot } from '../import/extractRoot'
+import { pruneIntakeCache, releaseCompletedIntakeCache, releasePendingIntakeCache } from '../intake/lifecycle'
+import { ExpandCache } from '../intake/expandCache'
+import type { PreparedIntakePlan } from '../../shared/intake'
+import type { ExecutionResult } from '../intake/executor'
+import type { ExecuteJob } from '../intake/worker'
+import { persistIntakePlan, readIntakePlan, readLibraryBlobIndex, updateIntakeProgress } from '../db/repos/intakePlan'
 
 export interface IngestApi {
   enqueue(paths: string[]): Promise<{ accepted: string[]; rejected: RejectedPath[] }>
@@ -66,6 +72,11 @@ interface Job {
   commitBatch?: string
   /** 上一次已写进收件箱清单的阶段：只在阶段变化时落盘，避免指纹进度把磁盘刷满 */
   persistedStage?: IngestItemState['stage']
+  intakePlanId?: string
+  normalizedIntake?: boolean
+  passwordRequest?: { requestId: number; sourcePath: string }
+  passwordAttempts?: Set<string>
+  execution?: Promise<string>
 }
 
 const CONCURRENCY = 2
@@ -181,6 +192,8 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
   const queue = new TaskQueue({ concurrency: CONCURRENCY })
   let disposed = false
   void pruneStaging()
+  // Persistent expansion cache is independent of staging; resumable plans and live leases protect it.
+  void Promise.resolve().then(() => pruneIntakeCache(getDb())).catch((error: unknown) => log.warn('intake cache cleanup deferred', error))
   /**
    * 抽取根目录同理（M5-B）：任务表不跨重启，开机时那里剩下来的必是上次没清干净的
    * 临时副本。它默认在**素材所在那个盘**（不是 C），所以就算漏清也不会写爆系统盘，
@@ -202,6 +215,8 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
   }
 
   const snapshot = (): IngestItemState[] => Array.from(jobs.values()).map((j) => ({ ...j.item }))
+  let snapshotRevision = 0
+  const versionedSnapshot = (): IngestQueueSnapshot => ({ revision: ++snapshotRevision, items: snapshot() })
 
   /** 批量入库时置为 true：只发进度事件，不逐条重发整份队列快照 */
   let quiet = false
@@ -222,12 +237,12 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       if (!flushTimer) {
         flushTimer = setTimeout(() => {
           flushTimer = null
-          if (!disposed) registrar.broadcast('ingest:progress', snapshot())
+          if (!disposed) registrar.broadcast('ingest:progress', versionedSnapshot())
         }, 400)
       }
       return
     }
-    registrar.broadcast('ingest:progress', snapshot())
+    registrar.broadcast('ingest:progress', versionedSnapshot())
   }
 
   function update(id: string, patch: Partial<IngestItemState>): void {
@@ -323,9 +338,32 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     }
   }
 
+  /** Persist immutable plan/cache references before exposing confirmation or executing any copy. */
+  async function acceptNormalizedPlan(job: Job, plan: PreparedIntakePlan): Promise<void> {
+    if (job.cancelled) return
+    persistIntakePlan(getDb(), plan)
+    job.intakePlanId = plan.id
+    job.normalizedIntake = true
+    const cache = new ExpandCache({ namespace: getDb().name })
+    await cache.retain(plan.id, plan.cacheKeys, true)
+    await cache.release(`pending:${job.item.jobId}`).catch(() => undefined)
+    if (job.cancelled) return
+    update(job.item.jobId, {
+      planId: plan.id,
+      planSummary: { units: plan.units.length, leaves: plan.stats.leafCount, skips: plan.skips.length, extracts: plan.extracts.reduce((n, e) => n + e.members.length, 0), warnings: plan.warnings.length, blocked: plan.blocked.length, reviews: plan.reviews.length, duplicate: plan.units.length > 0 && plan.units.every(u => u.disposition === 'duplicate') },
+      planSkips: plan.skips.map(skip => ({ entry: skip.entry, reason: skip.reason, coveredBy: skip.coveredBy, coveredCount: skip.evidence.coveredCount, totalCount: skip.evidence.totalCount, matches: skip.evidence.matches })),
+      planBlocked: plan.blocked, planWarnings: plan.warnings,
+      planTargets: plan.units.filter(u => u.disposition !== 'duplicate').map(u => ({ name: u.displayName, path: u.libraryPath, files: u.normalizedEntries.map(e => e.relPath) })),
+      stage: 'awaiting_confirm', progress: 1, needsPassword: false,
+      entriesPreview: plan.units.flatMap(u => u.normalizedEntries.map(e => `${u.displayName}/${e.relPath}`)).slice(0, 12), entryCount: plan.stats.leafCount,
+      messageKey: plan.reviews.length || plan.blocked.length ? 'ingest.readyWithWarning' : 'ingest.ready', message: '整理计划已生成，等待确认'
+    })
+  }
+
   async function runJob(job: Job): Promise<void> {
     const { item } = job
     if (job.cancelled) return
+    if (job.intakePlanId) { const saved = readIntakePlan(getDb(), job.intakePlanId); if (saved) { await acceptNormalizedPlan(job, saved.plan); return } }
     const s = getSettings()
     const assetId = ulid()
     const stagingPath = stageDirFor(assetId)
@@ -335,7 +373,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     let worker: Worker
     try {
       await ensureDir(P.staging())
-      worker = new Worker(workerEntry())
+      worker = new Worker(workerEntry(), { env: { ...process.env, NODE_PATH: path.join(app.getAppPath(), 'node_modules') } })
     } catch (e) {
       update(item.jobId, { stage: 'failed', error: e instanceof Error ? e.message : String(e), message: '起不动 worker' })
       return
@@ -343,6 +381,13 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     job.worker = worker
 
     worker.on('message', async (msg: WorkerMessage) => {
+      if (job.cancelled) return
+      if (msg.type === 'plan') {
+        try { await acceptNormalizedPlan(job, msg.plan) }
+        catch (e) { update(item.jobId, { stage: 'failed', error: String(e), messageKey: 'ingest.planFailed' }) }
+        finally { await worker.terminate().catch(() => undefined); job.worker = null; if (!job.intakePlanId) await releasePendingIntakeCache(getDb(), item.jobId).catch(error => log.warn('Pending intake cache cleanup deferred', error)) }
+        return
+      }
       if (msg.type === 'progress') {
         update(item.jobId, {
           stage: msg.stage as IngestItemState['stage'],
@@ -354,6 +399,17 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
         return
       }
       if (msg.type === 'need-password') {
+        if (msg.requestId !== undefined) {
+          job.passwordAttempts ??= new Set()
+          if (!job.passwordAttempts.has(msg.sourcePath)) {
+            job.passwordAttempts.add(msg.sourcePath)
+            const saved = recallArchivePassword(getDb(), msg.sourcePath)
+            if (saved) { worker.postMessage({ type: 'password', requestId: msg.requestId, password: saved }); return }
+          }
+          job.passwordRequest = { requestId: msg.requestId, sourcePath: msg.sourcePath }
+          update(item.jobId, { stage: 'awaiting_confirm', needsPassword: true, passwordContainer: msg.sourcePath, messageKey: 'ingest.needPassword', progress: 0.4 })
+          return
+        }
         /**
          * M7 ⑥ · 先看看这台机器是不是**已经记住过**这个包的密码。
          *
@@ -395,6 +451,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
         })
         await worker.terminate().catch(() => undefined)
         job.worker = null
+        if (!job.intakePlanId) await releasePendingIntakeCache(getDb(), item.jobId).catch(error => log.warn('Pending intake cache cleanup deferred', error))
         await dropStaging(job)
         return
       }
@@ -459,6 +516,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     })
 
     worker.on('error', (e) => {
+      if (job.cancelled) return
       log.error('[ingest] worker 崩了：' + e.message)
       update(item.jobId, { stage: 'failed', error: e.message, message: e.message })
     })
@@ -478,8 +536,29 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       userLexicon: P.userLexicon(),
       classify: true,
       dirChain: dirChainOf(item.sourcePath, s.libraryRoot),
-      learning: Array.from(learningMap(getDb()).entries())
+      learning: Array.from(learningMap(getDb()).entries()),
+      normalized: { libraryRoot: s.libraryRoot, namespace: getDb().name, categories: loadCategories(),
+        blobs: s.libraryRoot ? readLibraryBlobIndex(getDb(), s.libraryRoot) : [],
+        existingTargetPaths: s.libraryRoot && fs.existsSync(s.libraryRoot) ? fs.readdirSync(s.libraryRoot) : [] }
     })
+    await new Promise<void>(resolve => worker.once('exit', () => resolve()))
+  }
+
+  async function stopPlanningWorker(job: Job): Promise<void> {
+    const worker = job.worker
+    if (worker) {
+      // Let cancellable IO release its cache lock before a bounded fallback termination.
+      await new Promise<void>(resolve => {
+        const done = (): void => { clearTimeout(timer); worker.off('message', message); worker.off('exit', done); worker.off('error', done); resolve() }
+        const message = (msg: WorkerMessage): void => { if (['plan', 'done', 'error'].includes(msg.type)) done() }
+        const timer = setTimeout(done, 1200)
+        worker.on('message', message); worker.once('exit', done); worker.once('error', done)
+        worker.postMessage({ type: 'cancel' })
+      })
+      await worker.terminate().catch(() => undefined)
+      if (job.worker === worker) job.worker = null
+    }
+    if (!job.intakePlanId) await releasePendingIntakeCache(getDb(), job.item.jobId).catch(error => log.warn('Pending intake cache cleanup deferred', error))
   }
 
   /**
@@ -646,6 +725,52 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
   ): Promise<string> {
     const s = getSettings()
     const res = job.result
+    if (job.normalizedIntake && job.intakePlanId) {
+      if (job.execution) return job.execution
+      if (job.item.stage !== 'awaiting_confirm') throw new Error('计划尚未等待确认')
+      const currentRoot = libraryRootOrThrow()
+      const savedRoot = readIntakePlan(getDb(), job.intakePlanId)?.plan.libraryRoot
+      if (!savedRoot || path.resolve(savedRoot).toLowerCase() !== path.resolve(currentRoot).toLowerCase()) throw new Error('素材库目录已改变，请恢复原库目录后再执行此计划')
+      const planId = job.intakePlanId
+      const entry = path.join(path.dirname(workerEntry()), 'intakeWorker.js')
+      const execution = new Worker(entry, { env: { ...process.env, NODE_PATH: path.join(app.getAppPath(), 'node_modules') } })
+      job.worker = execution
+      update(job.item.jobId, { stage: 'committing', progress: 0, error: undefined, messageKey: 'ingest.committing' })
+      job.execution = new Promise<ExecutionResult>((resolve, reject) => {
+        execution.on('message', msg => {
+          if (msg.type === 'progress') update(job.item.jobId, { progress: msg.total ? msg.completed / msg.total : 0, messageKey: 'ingest.committing' })
+          if (msg.type === 'waiting-space') update(job.item.jobId, { messageKey: 'ingest.waitingForSpace' })
+          if (msg.type === 'need-password') {
+            job.passwordAttempts ??= new Set()
+            if (!job.passwordAttempts.has(msg.sourcePath)) {
+              job.passwordAttempts.add(msg.sourcePath)
+              const saved = recallArchivePassword(getDb(), msg.sourcePath)
+              if (saved) { execution.postMessage({ type: 'password', requestId: msg.requestId, password: saved }); return }
+            }
+            job.passwordRequest = { requestId: msg.requestId, sourcePath: msg.sourcePath }
+            update(job.item.jobId, { stage: 'awaiting_confirm', needsPassword: true, passwordContainer: msg.sourcePath, messageKey: 'ingest.needPassword' })
+          }
+          if (msg.type === 'completed') resolve(msg.result)
+          if (msg.type === 'failed') reject(new Error(msg.message))
+        })
+        execution.on('error', reject)
+        execution.on('exit', code => reject(new Error(`执行 worker 退出：${code}`)))
+        execution.postMessage({ type: 'execute', planId, dbFile: getDb().name, resourceRoot: resourceRoot(), userLexicon: P.userLexicon(),
+          categories: loadCategories(), learning: Array.from(learningMap(getDb()).entries()), confidenceConfirm: s.confidenceConfirm, confidenceAuto: s.confidenceAuto,
+          batchId: opts.batchId, backendDirs: [bundledBinDir()] } satisfies ExecuteJob)
+      }).then(async executed => {
+        await releaseCompletedIntakeCache(getDb(), planId).catch(error => log.warn('Completed intake cache cleanup deferred', error))
+        const ids = executed.assetIds.length ? executed.assetIds : (readIntakePlan(getDb(), planId)?.plan.units.flatMap(u => u.existingAssetIds) ?? [])
+        const primary = ids[0] ?? job.item.assetId ?? ulid()
+        finishCommit(job, primary, ids, opts.batchId ?? planId, !!opts.batch)
+        await dropStaging(job)
+        return primary
+      }).catch(error => {
+        update(job.item.jobId, { stage: job.cancelled ? 'cancelled' : 'failed', error: error instanceof Error ? error.message : String(error), messageKey: job.cancelled ? 'inbox.stage.cancelled' : 'ingest.planFailed' })
+        throw error
+      }).finally(async () => { await execution.terminate().catch(() => undefined); job.worker = null; job.execution = undefined })
+      return job.execution
+    }
     if (!res) throw new Error('这个任务还没有指纹结果')
     /**
      * "没库根不许往库里写"这句口径**只在 `libraryRootOrThrow()` 那一处**（M7 ②）。
@@ -853,6 +978,8 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       persistedStage: 'queued'
     }
     jobs.set(jobId, job)
+    const saved = getDb().prepare("SELECT id FROM intake_plan WHERE json_extract(plan_json,'$.scanRoot')=? AND (status IN ('planned','awaiting_confirm','running','cancelled','failed') OR (status='duplicate' AND json_extract(progress_json,'$.committed') IS NOT 1)) ORDER BY updated_at DESC LIMIT 1").get(sourcePath.replace(/\\/g, '/')) as { id: string } | undefined
+    if (saved) { job.intakePlanId = saved.id; job.normalizedIntake = true }
     return job
   }
 
@@ -924,6 +1051,24 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
   }
 
   registrar.ipc.handle('ingest:queue', (): IngestItemState[] => snapshot())
+  registrar.ipc.handle('ingest:queue-snapshot', versionedSnapshot)
+  registrar.ipc.handle('ingest:plan-status', (jobId: unknown) => typeof jobId === 'string' ? jobs.get(jobId)?.item ?? null : null)
+  registrar.ipc.handle('ingest:plan-confirm', async (jobId: unknown) => {
+    if (typeof jobId !== 'string') throw new Error('任务参数无效')
+    const job = jobs.get(jobId)
+    if (!job || job.item.stage !== 'awaiting_confirm') throw new Error('整理计划不存在或不在确认状态')
+    return { assetId: await commit(job, { category: '', subcategory: null }) }
+  })
+  registrar.ipc.handle('ingest:plan-resume', async (jobId: unknown) => {
+    const job = typeof jobId === 'string' ? jobs.get(jobId) : undefined
+    if (!job?.intakePlanId || !['failed', 'cancelled'].includes(job.item.stage)) throw new Error('计划无法恢复')
+    // A large async copy may still be acknowledging cancellation. Resume only after its cleanup finishes.
+    if (job.execution) await job.execution.catch(() => undefined)
+    if (!['failed', 'cancelled'].includes(job.item.stage)) throw new Error('计划已经完成，无需恢复')
+    job.cancelled = false
+    update(job.item.jobId, { stage: 'queued', error: undefined, messageKey: 'ingest.requeued' })
+    schedule(job)
+  })
 
   registrar.ipc.handle('ingest:from-paths', (paths: unknown) => {
     if (!Array.isArray(paths)) throw new Error('路径列表无效')
@@ -962,7 +1107,13 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     /** 用户重新给了密码 → 允许再试一次记住的那条（不然第一次撞错就再也不用了） */
     job.vaultTried = false
     let vault: 'stored' | 'unavailable' | 'failed' | 'skipped' = 'skipped'
-    if (remember === true) vault = rememberArchivePassword(getDb(), job.item.sourcePath, password)
+    if (remember === true) vault = rememberArchivePassword(getDb(), job.passwordRequest?.sourcePath ?? job.item.sourcePath, password)
+    if (job.passwordRequest && job.worker) {
+      job.worker.postMessage({ type: 'password', requestId: job.passwordRequest.requestId, password: password || null })
+      job.passwordRequest = undefined
+      update(jobId, { needsPassword: false, passwordContainer: undefined, stage: job.execution ? 'committing' : 'extracting', messageKey: 'ingest.requeued' })
+      return { ok: true, vault }
+    }
     update(jobId, { needsPassword: false, stage: 'queued', messageKey: 'ingest.requeued', message: '带密码重新处理' })
     schedule(job)
     return { ok: true, vault }
@@ -985,7 +1136,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       libraryRootOrThrow()
       const want = Array.isArray(i.jobIds) && i.jobIds.length ? new Set(i.jobIds) : null
       const targets = Array.from(jobs.values()).filter(
-        (j) => j.item.stage === 'awaiting_confirm' && j.result && (!want || want.has(j.item.jobId))
+        (j) => j.item.stage === 'awaiting_confirm' && (j.result || j.intakePlanId) && !j.item.needsPassword && (!want || want.has(j.item.jobId))
       )
       const total = targets.length
       const batchId = ulid()
@@ -1025,7 +1176,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
           flushTimer = null
         }
         registrar.broadcast('ingest:commit-progress', { done: summary.committed + summary.failed.length, total })
-        registrar.broadcast('ingest:progress', snapshot())
+        registrar.broadcast('ingest:progress', versionedSnapshot())
       }
       batchIds.add(batchId)
       log.info(
@@ -1090,11 +1241,13 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     for (const id of ids) {
       const j = jobs.get(id)
       if (!j) continue
+      if (j.item.stage === 'done') continue
       j.cancelled = true
-      void j.worker?.terminate().catch(() => undefined)
-      j.worker = null
+      if (j.execution) j.worker?.postMessage({ type: 'cancel' })
+      else void stopPlanningWorker(j).finally(() => dropStaging(j)).catch(error => log.warn('Cancelled intake cleanup deferred', error))
+      if (j.intakePlanId && !j.execution) { const saved = readIntakePlan(getDb(), j.intakePlanId); if (saved) updateIntakeProgress(getDb(), j.intakePlanId, 'cancelled', saved.progress) }
       update(id, { stage: 'cancelled', messageKey: 'inbox.stage.cancelled', message: '已取消' })
-      void dropStaging(j)
+      if (j.execution) void dropStaging(j)
     }
   })
 
@@ -1106,9 +1259,10 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     else jobs.clear()
     for (const j of gone) {
       j.cancelled = true
-      void j.worker?.terminate().catch(() => undefined)
-      j.worker = null
-      void dropStaging(j)
+      if (j.execution) j.worker?.postMessage({ type: 'cancel' })
+      else void stopPlanningWorker(j).finally(() => dropStaging(j)).catch(error => log.warn('Dismissed intake cleanup deferred', error))
+      if (j.intakePlanId && !j.execution && j.item.stage !== 'done') { const saved = readIntakePlan(getDb(), j.intakePlanId); if (saved) updateIntakeProgress(getDb(), j.intakePlanId, 'cancelled', saved.progress) }
+      if (j.execution) void dropStaging(j)
       /**
        * 丢弃 = 用户明确说"这活儿不要了"，**必须**从持久化队列里划掉。
        * 否则下次启动 `restoreQueue()` 会把它原样捞回来 —— 用户丢掉的东西自己爬回队列，
@@ -1140,6 +1294,8 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     const delayMs = opts.delayMs ?? 300
     const file = P.inboxQueue()
     const items = readInboxQueue(file)
+    const resumable = getDb().prepare("SELECT json_extract(plan_json,'$.scanRoot') AS path FROM intake_plan WHERE status IN ('planned','awaiting_confirm','running','failed')").all() as { path: string }[]
+    for (const it of resumable) if (!items.some(i => path.resolve(i.path).toLowerCase() === path.resolve(it.path).toLowerCase())) items.push({ path: it.path } as (typeof items)[number])
     const missing: string[] = []
     let skipped = 0
     const todo: string[] = []

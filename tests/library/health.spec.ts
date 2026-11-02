@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import yazl from 'yazl'
 import { openDatabase, closeDatabase, type Db } from '../../src/main/db'
 import { makeAssetRow, upsertAsset, getAsset } from '../../src/main/db/repos/asset'
 import { ensureGroup, addVariant } from '../../src/main/db/repos/product'
@@ -62,10 +63,10 @@ afterAll(() => {
 })
 
 describe('僵尸条目（DB 有、盘上没有）', () => {
-  it('只报不改，标缺失要另外调，且永不删行', () => {
+  it('只报不改，标缺失要另外调，且永不删行', async () => {
     const gone = path.join(lib, '插件', '动作类', '跑掉了')
     const id = asset({ name: '跑掉了', category: 'plugin', subcategory: 'action', library_path: gone, source_path: gone, size_bytes: 1234, confidence: 0.9 })
-    const rep = scanLibrary(db, lib)
+    const rep = (await scanLibrary(db, lib))
     const hit = rep.missing.find((m) => m.id === id)
     expect(hit, '应该被报成缺失').toBeTruthy()
     expect(getAsset(db, id), '扫描不许动库记录').toBeTruthy()
@@ -81,37 +82,37 @@ describe('僵尸条目（DB 有、盘上没有）', () => {
     fs.rmSync(path.dirname(gone), { recursive: true, force: true })
   })
 
-  it('文件在的时候不报缺失', () => {
+  it('文件在的时候不报缺失', async () => {
     const dir = path.join(lib, '插件', '动作类', '还在')
     touch(path.join(dir, 'ok.zip'), 128)
     const id = asset({ name: '还在', category: 'plugin', subcategory: 'action', library_path: dir, source_path: path.join(dir, 'ok.zip'), size_bytes: 128 })
-    expect(scanLibrary(db, lib).missing.find((m) => m.id === id)).toBeUndefined()
+    expect((await scanLibrary(db, lib)).missing.find((m) => m.id === id)).toBeUndefined()
   })
 })
 
 describe('重复检测（xxh64 完全一致）', () => {
-  it('同哈希归一组，多出来的份算可回收空间', () => {
+  it('同哈希归一组，多出来的份算可回收空间', async () => {
     const a = path.join(lib, '模型', '素体', 'A')
     const b = path.join(lib, '模型', '素体', 'B')
     touch(path.join(a, 'x.fbx'), 4096)
     touch(path.join(b, 'x.fbx'), 4096)
     asset({ name: 'A', category: 'model', subcategory: 'base', library_path: a, source_path: path.join(a, 'x.fbx'), size_bytes: 4096, hash_xxh64: 'duphash001' })
     asset({ name: 'B', category: 'model', subcategory: 'base', library_path: b, source_path: path.join(b, 'x.fbx'), size_bytes: 4096, hash_xxh64: 'duphash001' })
-    const rep = scanLibrary(db, lib)
+    const rep = (await scanLibrary(db, lib))
     const g = rep.duplicates.find((d) => d.hash === 'duphash001')
     expect(g?.assets).toHaveLength(2)
     expect(g?.sizeBytes).toBe(4096)
     expect(rep.totals.duplicateBytes).toBeGreaterThanOrEqual(4096)
   })
 
-  it('没算出哈希的素材不参与重复', () => {
-    const rep = scanLibrary(db, lib)
+  it('没算出哈希的素材不参与重复', async () => {
+    const rep = (await scanLibrary(db, lib))
     for (const g of rep.duplicates) expect(g.hash).toBeTruthy()
   })
 })
 
 describe('游离文件（盘上有、DB 没有）', () => {
-  it('整棵没人要的子树报出来，装着素材的目录继续往里钻', () => {
+  it('整棵没人要的子树报出来，装着素材的目录继续往里钻', async () => {
     const known = path.join(lib, '服装', '套装', 'Grimoir')
     touch(path.join(known, 'Grimoir.zip'), 2048)
     // 同一个分类目录下另起的一堆没人要的东西
@@ -120,7 +121,7 @@ describe('游离文件（盘上有、DB 没有）', () => {
     // 顶层直接扔的文件
     touch(path.join(lib, '随手放的.zip'), 512)
 
-    const { items } = findStrays(lib, [known])
+    const { items } = (await findStrays(lib, [known]))
     const paths = items.map((i) => path.relative(lib, i.path).split(path.sep).join('/'))
     expect(paths).toContain(path.join('服装', '套装', '忘了登记').replace(/\\/g, '/'))
     expect(paths).toContain('随手放的.zip')
@@ -133,69 +134,89 @@ describe('游离文件（盘上有、DB 没有）', () => {
     expect(dir?.entries).toBeGreaterThanOrEqual(2)
   })
 
-  it('一二级目录（分类 / 二级）是库的结构，不算游离', () => {
+  it('一二级目录（分类 / 二级）是库的结构，不算游离', async () => {
     // 真库刚接上、一条素材都没登记时，整棵目录树都会被判成游离；
     // 那时点"重新登记"= 把 25GB 全丢进取物队列，而自动归档会搬文件。
     const d = path.join(lib, '结构测试')
     fs.mkdirSync(path.join(d, '头发', '双马尾', '没登记的东西'), { recursive: true })
     fs.writeFileSync(path.join(d, '头发', '双马尾', '没登记的东西', 'x.fbx'), Buffer.alloc(4096))
-    const paths = findStrays(d, []).items.map((i) => path.relative(d, i.path).split(path.sep).join('/'))
+    const paths = (await findStrays(d, [])).items.map((i) => path.relative(d, i.path).split(path.sep).join('/'))
     expect(paths).not.toContain('头发')
     expect(paths).not.toContain('头发/双马尾')
     expect(paths).toContain('头发/双马尾/没登记的东西')
   })
 
-  it('分批收编：under 只扫一棵子树，深度仍然相对库根算', () => {
+  it('分批收编：under 只扫一棵子树，深度仍然相对库根算', async () => {
     const d = path.join(lib, '分批')
     fs.mkdirSync(path.join(d, '贴图', 'lime', 'Custom skin'), { recursive: true })
     fs.mkdirSync(path.join(d, '衣服', '套装', '某件'), { recursive: true })
     fs.writeFileSync(path.join(d, '贴图', 'lime', 'Custom skin', 'a.png'), Buffer.alloc(4096))
     fs.writeFileSync(path.join(d, '衣服', '套装', '某件', 'b.zip'), Buffer.alloc(4096))
-    const only = findStrays(d, [], { under: path.join(d, '贴图') }).items.map((i) => path.relative(d, i.path).split(path.sep).join('/'))
+    const only = (await findStrays(d, [], { under: path.join(d, '贴图') })).items.map((i) => path.relative(d, i.path).split(path.sep).join('/'))
     expect(only).toEqual(['贴图/lime/Custom skin'])
     // 不传 under 时两棵都报
-    const both = findStrays(d, [], {}).items.map((i) => path.relative(d, i.path).split(path.sep).join('/'))
+    const both = (await findStrays(d, [], {})).items.map((i) => path.relative(d, i.path).split(path.sep).join('/'))
     expect(both).toContain('贴图/lime/Custom skin')
     expect(both).toContain('衣服/套装/某件')
     // 子树在库根外面 → 什么都不报（不能越界扫）
-    expect(findStrays(d, [], { under: 'C:\\Windows\\Fonts' }).items).toEqual([])
+    expect((await findStrays(d, [], { under: 'C:\\Windows\\Fonts' })).items).toEqual([])
   })
 
-  it('「包 + 同名已解压目录」并排时合成一条，登记只进包', () => {
+  it('包内容被散目录完整覆盖时以散目录为代表，原包作为覆盖证据保留', async () => {
     const d = path.join(lib, '并排')
     fs.mkdirSync(path.join(d, '贴图', 'lime', 'Custom skin'), { recursive: true })
     fs.writeFileSync(path.join(d, '贴图', 'lime', 'Custom skin', 'a.png'), Buffer.alloc(9000))
-    fs.writeFileSync(path.join(d, '贴图', 'lime', 'Custom skin.zip'), Buffer.alloc(4000))
+    const archivePath = path.join(d, '贴图', 'lime', 'Custom skin.zip')
+    const archive = new yazl.ZipFile()
+    archive.addBuffer(Buffer.alloc(9000), 'renamed.png'); archive.end()
+    await new Promise<void>((resolve, reject) => archive.outputStream.pipe(fs.createWriteStream(archivePath)).on('finish', resolve).on('error', reject))
     // 另有一件只有包、没有解压副本 —— 不该被并掉
     fs.mkdirSync(path.join(d, '贴图', 'lime', 'solo'), { recursive: true })
     fs.writeFileSync(path.join(d, '贴图', 'lime', 'solo', 'x.txt'), Buffer.alloc(3000))
 
-    const items = findStrays(d, [], {}).items
-    const merged = items.find((i) => i.path.endsWith('Custom skin.zip'))
-    expect(merged, '包应该被当成代表').toBeTruthy()
-    expect(merged?.alsoDirs?.some((x) => x.endsWith('Custom skin'))).toBe(true)
-    expect(items.some((i) => i.isDir && i.path.endsWith('Custom skin'))).toBe(false)
+    const items = (await findStrays(d, [], {})).items
+    const merged = items.find((i) => i.isDir && i.path.endsWith('Custom skin'))
+    expect(merged, '散目录应该被当成代表').toBeTruthy()
+    expect(merged?.coveredArchives?.map(a => a.path)).toEqual([archivePath])
+    expect(merged?.coveredArchives?.[0].evidence.coveredCount).toBe(1)
+    expect(items.some((i) => i.path === archivePath)).toBe(false)
     // 没配对的目录照旧单独报出来
     expect(items.some((i) => i.isDir && i.path.endsWith('solo'))).toBe(true)
     // 合并不会把副本的体积算进去（腾空间时那个数才可信）
-    expect(merged?.sizeBytes).toBe(4000)
+    expect(merged?.sizeBytes).toBe(9000)
   })
 
-  it('库根不存在时不炸', () => {
-    expect(findStrays(path.join(root, '没有这个库'), []).items).toEqual([])
+  it('摄取内部 .atrium blob 目录不报告为游离素材', async () => {
+    const managed = path.join(lib, '.atrium', 'blobs', 'aa')
+    touch(path.join(managed, 'internal-blob'), 2048)
+    const result = await findStrays(lib, [], { under: path.join(lib, '.atrium') })
+    expect(result.items).toEqual([])
   })
 
-  it('侧车文件本身不算游离', () => {
+  it('扫描根本身为 junction 时也不跟随，并明确给出诊断', async () => {
+    const target = path.join(root, 'junction-target'), link = path.join(root, 'junction-root')
+    touch(path.join(target, 'x.unitypackage'), 64)
+    fs.symlinkSync(target, link, 'junction')
+    const result = await findStrays(link, [])
+    expect(result.items).toEqual([])
+    expect(result.warnings.join()).toContain('reparse-point-not-followed')
+  })
+
+  it('库根不存在时不炸', async () => {
+    expect((await findStrays(path.join(root, '没有这个库'), [])).items).toEqual([])
+  })
+
+  it('侧车文件本身不算游离', async () => {
     const dir = path.join(lib, '道具', '手持', '带侧车')
     touch(path.join(dir, 'prop.fbx'), 64)
     fs.writeFileSync(path.join(dir, '.avca.json'), '{}')
-    const { items } = findStrays(lib, [dir])
+    const { items } = (await findStrays(lib, [dir]))
     expect(items.some((i) => i.path.endsWith('.avca.json'))).toBe(false)
   })
 })
 
 describe('§A1 垃圾过滤 + §A5 结构层收口（改动单 2）', () => {
-  it('验收 3：.DS_Store / Thumbs.db / __MACOSX / desktop.ini 在游离清单里完全不存在', () => {
+  it('验收 3：.DS_Store / Thumbs.db / __MACOSX / desktop.ini 在游离清单里完全不存在', async () => {
     const d = path.join(lib, '垃圾测试')
     fs.mkdirSync(path.join(d, '__MACOSX', 'sub'), { recursive: true })
     fs.writeFileSync(path.join(d, '.DS_Store'), Buffer.alloc(4096))
@@ -208,52 +229,52 @@ describe('§A1 垃圾过滤 + §A5 结构层收口（改动单 2）', () => {
     fs.mkdirSync(path.join(d, '贴图', 'lime', '真素材'), { recursive: true })
     fs.writeFileSync(path.join(d, '贴图', 'lime', '真素材', 'a.png'), Buffer.alloc(1024))
 
-    const items = findStrays(d, []).items
+    const items = (await findStrays(d, [])).items
     const all = items.map((i) => path.relative(d, i.path).split(path.sep).join('/')).join('|')
     expect(all).not.toMatch(/DS_Store|Thumbs|desktop\.ini|__MACOSX|~\$|crdownload/i)
     expect(all).toContain('贴图/lime/真素材')
   })
 
-  it('垃圾不计入目录体积与条目数', () => {
+  it('垃圾不计入目录体积与条目数', async () => {
     const d = path.join(lib, '体积测试')
     const dir = path.join(d, '贴图', 'lime', '带垃圾的素材')
     fs.mkdirSync(path.join(dir, '__MACOSX'), { recursive: true })
     fs.writeFileSync(path.join(dir, 'body.png'), Buffer.alloc(1024))
     fs.writeFileSync(path.join(dir, '.DS_Store'), Buffer.alloc(4096))
     fs.writeFileSync(path.join(dir, '__MACOSX', '._body.png'), Buffer.alloc(8192))
-    const it = findStrays(d, []).items.find((i) => i.path.endsWith('带垃圾的素材'))
+    const it = (await findStrays(d, [])).items.find((i) => i.path.endsWith('带垃圾的素材'))
     expect(it?.sizeBytes, '只算 body.png 那 1024 字节').toBe(1024)
   })
 
-  it('验收 4：`Editor/SkinnedMeshMover.cs` 不再单独成卡 —— 整个 Editor 收成一条', () => {
+  it('验收 4：`Editor/SkinnedMeshMover.cs` 不再单独成卡 —— 整个 Editor 收成一条', async () => {
     const d = path.join(lib, '脚本收口')
     fs.mkdirSync(path.join(d, '插件', 'Editor'), { recursive: true })
     fs.writeFileSync(path.join(d, '插件', 'Editor', 'SkinnedMeshMover.cs'), Buffer.alloc(2048))
     fs.writeFileSync(path.join(d, '插件', 'Editor', 'Other.cs'), Buffer.alloc(1024))
-    const items = findStrays(d, []).items
+    const items = (await findStrays(d, [])).items
     const rel = items.map((i) => path.relative(d, i.path).split(path.sep).join('/'))
     expect(rel).toContain('插件/Editor')
     expect(rel.some((p) => p.endsWith('.cs')), '脚本不许各自成条').toBe(false)
     expect(items.find((i) => i.path.endsWith('Editor'))?.contentKind).toBe('code')
   })
 
-  it('§A5：结构层里全是散图 → 整体一条「参考资料」，不是 N 条', () => {
+  it('§A5：结构层里全是散图 → 整体一条「参考资料」，不是 N 条', async () => {
     const d = path.join(lib, '参考收口')
     fs.mkdirSync(path.join(d, '参考资料', '参考图'), { recursive: true })
     for (const n of ['a.jpg', 'b.png', 'c.webp']) fs.writeFileSync(path.join(d, '参考资料', '参考图', n), Buffer.alloc(512))
     fs.writeFileSync(path.join(d, '参考资料', '参考图', 'notes.md'), Buffer.alloc(128))
-    const items = findStrays(d, []).items
+    const items = (await findStrays(d, [])).items
     const rel = items.map((i) => path.relative(d, i.path).split(path.sep).join('/'))
     expect(rel).toEqual(['参考资料/参考图'])
     expect(items[0].contentKind).toBe('attachments')
   })
 
-  it('混着主体的结构层照旧往里钻，不许被收口吞掉', () => {
+  it('混着主体的结构层照旧往里钻，不许被收口吞掉', async () => {
     const d = path.join(lib, '不收口')
     fs.mkdirSync(path.join(d, '服装', '套装'), { recursive: true })
     fs.writeFileSync(path.join(d, '服装', '套装', 'x.fbx'), Buffer.alloc(4096))
     fs.writeFileSync(path.join(d, '服装', '套装', 'preview.jpg'), Buffer.alloc(1024))
-    const items = findStrays(d, []).items
+    const items = (await findStrays(d, [])).items
     expect(items.some((i) => i.isDir && i.path.endsWith('套装')), '有 fbx 就不算 code/attachments').toBe(false)
     expect(items.every((i) => i.contentKind === undefined)).toBe(true)
   })
@@ -263,7 +284,7 @@ describe('结构层收口（沙盒活体打回来的两条：lilToon 5 条 / 名
   const rel = (root: string, items: Array<{ path: string }>): string[] =>
       items.map((i) => path.relative(root, i.path).split(path.sep).join('/'))
 
-  it('同一件东西的散包 ≥3 且 groupKey 全同 → 整个目录报一条（Libero 20 个）', () => {
+  it('同一件东西的散包 ≥3 且 groupKey 全同 → 整个目录报一条（Libero 20 个）', async () => {
     const d = path.join(lib, '归并收口')
     const dir = path.join(d, '衣服', '名流')
     const SER = 'ATTITUDE The Royal Bunny'
@@ -271,16 +292,16 @@ describe('结构层收口（沙盒活体打回来的两条：lilToon 5 条 / 名
     for (const m of models) touch(path.join(dir, `Libero[${m}_${SER}]_1.0.unitypackage`), 512)
     touch(path.join(dir, SER + '.jpg'), 200)
 
-    const noLex = rel(d, findStrays(d, []).items)
+    const noLex = rel(d, (await findStrays(d, [])).items)
     expect(noLex.some((p) => p.endsWith('.unitypackage')), '不给词典时还是老行为：散包各报一条').toBe(true)
 
-    const r = rel(d, findStrays(d, [], { lex }).items)
+    const r = rel(d, (await findStrays(d, [], { lex })).items)
     expect(r, '应当只剩 `衣服/名流` 一条：' + JSON.stringify(r)).toEqual(['衣服/名流'])
-    const item = findStrays(d, [], { lex }).items[0]
+    const item = (await findStrays(d, [], { lex })).items[0]
     expect(item.contentKind).toBe('group')
   })
 
-  it('§B2 闸门③在收口层也要生效：三个不同前缀塌成同一个 key → 不许并', () => {
+  it('§B2 闸门③在收口层也要生效：三个不同前缀塌成同一个 key → 不许并', async () => {
     /**
      * 活体打回来的：沙盒里我造了 `Shinano[X_Same Series]` / `Manuka[…]` / `Moe[…]`
      * 三个不同产品，括号一摘 groupKey 全塌成 `same`。只比 key 就会并成一张卡，
@@ -289,12 +310,12 @@ describe('结构层收口（沙盒活体打回来的两条：lilToon 5 条 / 名
     const d = path.join(lib, '歧义试验')
     const dir = path.join(d, '衣服', '歧义')
     for (const p of ['Shinano', 'Manuka', 'Moe']) touch(path.join(dir, p + '[X_Same Series]_1.0.zip'), 400)
-    const r = rel(d, findStrays(d, [], { lex }).items)
+    const r = rel(d, (await findStrays(d, [], { lex })).items)
     expect(r.length, '三个不同前缀必须还是三条：' + JSON.stringify(r)).toBe(3)
     expect(r.some((p) => p === '衣服/歧义'), '不许冒出一条目录级容器').toBe(false)
   })
 
-  it('主体在子目录里、根上只散着附属文件 → 整个目录报一条（lilToon）', () => {
+  it('主体在子目录里、根上只散着附属文件 → 整个目录报一条（lilToon）', async () => {
     const d = path.join(lib, 'lilToon收口')
     const dir = path.join(d, '着色器', 'lilToon_2.x.x')
     touch(path.join(dir, 'Assets', 'lilToon', 'lilToon.shader'), 300)
@@ -304,49 +325,49 @@ describe('结构层收口（沙盒活体打回来的两条：lilToon 5 条 / 名
     touch(path.join(dir, 'Distribution.png'), 100)
     touch(path.join(dir, 'package.json'), 40)
 
-    const r = rel(d, findStrays(d, [], { lex }).items)
+    const r = rel(d, (await findStrays(d, [], { lex })).items)
     expect(r, '应当只剩 `着色器/lilToon_2.x.x` 一条：' + JSON.stringify(r)).toEqual(['着色器/lilToon_2.x.x'])
-    expect(findStrays(d, [], { lex }).items[0].contentKind).toBe('primary')
+    expect((await findStrays(d, [], { lex })).items[0].contentKind).toBe('primary')
   })
 
-  it('二级目录里平铺 5 个不相干的包 → 一条都不许并（并了就是把 5 件揉成 1 件）', () => {
+  it('二级目录里平铺 5 个不相干的包 → 一条都不许并（并了就是把 5 件揉成 1 件）', async () => {
     const d = path.join(lib, '不收口2')
     const dir = path.join(d, '衣服', '西装')
     for (const n of ['Alpha', 'Bravo', 'Cinder', 'Delft', 'Echo']) touch(path.join(dir, n + '_outfit.zip'), 400)
-    const r = rel(d, findStrays(d, [], { lex }).items).sort()
+    const r = rel(d, (await findStrays(d, [], { lex })).items).sort()
     expect(r.length, '5 个不同产品必须还是 5 条：' + JSON.stringify(r)).toBe(5)
     expect(r.some((p) => p === '衣服/西装'), '不许冒出一条目录级记录').toBe(false)
   })
 
-  it('同前缀但 groupKey 不同（配色 vs 模型）→ 不自动并，留给 §B5 建议横幅', () => {
+  it('同前缀但 groupKey 不同（配色 vs 模型）→ 不自动并，留给 §B5 建议横幅', async () => {
     const d = path.join(lib, '建议不自动并')
     const dir = path.join(d, '衣服', '衣服TwinkleSpica')
     for (const n of ['Mint', 'Plum', 'Milk']) touch(path.join(dir, `TwinkleSpica_${n}_v1.1.zip`), 300)
     for (const n of ['Shinano', 'Eku', 'Ramune']) touch(path.join(dir, `TwinkleSpica_${n}_v1.1.zip`), 300)
-    const r = rel(d, findStrays(d, [], { lex }).items)
+    const r = rel(d, (await findStrays(d, [], { lex })).items)
     expect(r.length, '6 个各是一条，一条都不许并').toBe(6)
     expect(r.some((p) => p === '衣服/衣服TwinkleSpica')).toBe(false)
   })
 
-  it('贴图/lime/Custom skin/a.png 这种三层结构照旧报到第三层（旧闸门不许退化）', () => {
+  it('贴图/lime/Custom skin/a.png 这种三层结构照旧报到第三层（旧闸门不许退化）', async () => {
     const d = path.join(lib, '第三层')
     const dir = path.join(d, '贴图', 'lime', 'Custom skin')
     for (const n of ['a.png', 'b.png', 'c.png']) touch(path.join(dir, n), 300)
-    const r = rel(d, findStrays(d, [], { lex }).items)
+    const r = rel(d, (await findStrays(d, [], { lex })).items)
     expect(r, '必须还是报 Custom skin 那一条').toEqual(['贴图/lime/Custom skin'])
   })
 })
 
 describe('大文件排行与孤儿变体', () => {
-  it('largest 按体积倒序，最多 20 条', () => {
-    const rep = scanLibrary(db, lib)
+  it('largest 按体积倒序，最多 20 条', async () => {
+    const rep = (await scanLibrary(db, lib))
     expect(rep.largest.length).toBeLessThanOrEqual(20)
     for (let i = 1; i < rep.largest.length; i++) {
       expect((rep.largest[i - 1].sizeBytes ?? 0)).toBeGreaterThanOrEqual(rep.largest[i].sizeBytes ?? 0)
     }
   })
 
-  it('只剩一个成员、但留着多份变体痕迹的组才算孤儿；天生单件的不算', () => {
+  it('只剩一个成员、但留着多份变体痕迹的组才算孤儿；天生单件的不算', async () => {
     const g1 = ensureGroup(db, { groupKey: 'solo', name: 'Solo', category: 'plugin', subcategory: null })
     const g2 = ensureGroup(db, { groupKey: 'pair', name: 'Pair', category: 'plugin', subcategory: null })
     const g3 = ensureGroup(db, { groupKey: 'loner', name: 'Loner', category: 'plugin', subcategory: null })
@@ -359,7 +380,7 @@ describe('大文件排行与孤儿变体', () => {
     addVariant(db, { groupId: g1.id, assetId: solo, kind: 'locale', value: '汉化' })
     addVariant(db, { groupId: g3.id, assetId: loner, kind: 'avatar', value: 'SHINANO' })
 
-    const rep = scanLibrary(db, lib)
+    const rep = (await scanLibrary(db, lib))
     expect(rep.orphanGroups.some((o) => o.groupId === g1.id), 'g1 该被认成孤儿').toBe(true)
     expect(rep.orphanGroups.some((o) => o.groupId === g2.id), '两成员的组不动').toBe(false)
     expect(rep.orphanGroups.some((o) => o.groupId === g3.id), '天生单件 + 一个维度 ≠ 孤儿').toBe(false)
@@ -444,7 +465,7 @@ describe('dHash 相似图', () => {
     expect(dHashOf('k', () => ({ bitmap: Buffer.alloc(0), width: 0, height: 0 }))).toBeNull()
   })
 
-  it('两张几乎一样的封面会被报成相似，差太多的不会', () => {
+  it('两张几乎一样的封面会被报成相似，差太多的不会', async () => {
     const idA = asset({ name: '相似A', category: 'texture', cover_image: thumbUrlFor('hashA') })
     const idB = asset({ name: '相似B', category: 'texture', cover_image: thumbUrlFor('hashB') })
     const idC = asset({ name: '差很远', category: 'texture', cover_image: thumbUrlFor('hashC') })
@@ -463,32 +484,32 @@ describe('dHash 相似图', () => {
         return { bitmap: b, width: 9, height: 8 }
       })()
     }
-    const rep = scanLibrary(db, lib, (key) => bits[key] ?? null)
+    const rep = (await scanLibrary(db, lib, (key) => bits[key] ?? null))
     const pair = rep.similar.find((s) => [s.a.id, s.b.id].includes(idA) && [s.a.id, s.b.id].includes(idB))
     expect(pair, 'A/B 应该算相似').toBeTruthy()
     expect(rep.similar.some((s) => [s.a.id, s.b.id].includes(idC)), 'C 不该跟谁相似').toBe(false)
   })
 
-  it('不传 digest 就完全跳过相似检测（扫描要能便宜）', () => {
-    expect(scanLibrary(db, lib).similar).toEqual([])
+  it('不传 digest 就完全跳过相似检测（扫描要能便宜）', async () => {
+    expect((await scanLibrary(db, lib)).similar).toEqual([])
   })
 })
 
 describe('游离扫描：容器名目录的粒度（改动单 §6.3）', () => {
-  it('顶层名字写着合集、下面 ≥2 件 → 整包报成一个单元，不钻成碎片', () => {
+  it('顶层名字写着合集、下面 ≥2 件 → 整包报成一个单元，不钻成碎片', async () => {
     const dir = path.join(lib, '插件道具合集-扫描试验')
     for (const n of ['A', 'B', 'C']) touch(path.join(dir, n, 'x.prefab'), 40)
-    const r = findStrays(lib, [])
+    const r = (await findStrays(lib, []))
     const hit = r.items.find((i) => i.path === dir)
     expect(hit, '合集目录自己要被当成一个单元报出来').toBeTruthy()
     expect(hit!.isDir).toBe(true)
     expect(r.items.filter((i) => i.path.startsWith(dir)).length, '不许再把它孙辈的碎片也报一遍').toBe(1)
   })
 
-  it('容器只有一个孩子 → 继续往下钻，报真正那件商品', () => {
+  it('容器只有一个孩子 → 继续往下钻，报真正那件商品', async () => {
     const inner = path.join(lib, '插件', '道具22件', '6159895摇后会喷的酒')
     for (const n of ['a.zip', 'b.zip', 'c.zip']) touch(path.join(inner, n), 40)
-    const r = findStrays(lib, [])
+    const r = (await findStrays(lib, []))
     const paths = r.items.map((i) => i.path)
     expect(paths).toContain(inner)
     expect(paths.some((p) => p.endsWith('道具22件')), '只有一个孩子的容器不该被当成单元').toBe(false)
@@ -573,9 +594,9 @@ describe('从侧车重建索引', () => {
 })
 
 describe('扫描是只读的', () => {
-  it('scanLibrary 不改任何一行', () => {
+  it('scanLibrary 不改任何一行', async () => {
     const before = db.prepare(`SELECT id, status, group_id, updated_at FROM asset ORDER BY id`).all()
-    scanLibrary(db, lib)
+    await scanLibrary(db, lib)
     const after = db.prepare(`SELECT id, status, group_id, updated_at FROM asset ORDER BY id`).all()
     expect(after).toEqual(before)
   })
