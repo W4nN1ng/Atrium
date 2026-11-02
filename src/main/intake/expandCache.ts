@@ -87,16 +87,55 @@ export class ExpandCache {
     }
     try { return await work() } finally { this.remove('.lock') }
   }
-  private retainLocked(ownerId: string, key: string): void {
+  private retainLocked(ownerId: string, key: string, durable = false): void {
     if (!keyPattern.test(key) || !ownerId) throw new Error('Invalid cache reference')
     const relative = `refs/${digest(ownerId)}.json`, file = this.checked(relative)
-    const prior = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) as { keys: string[] } : { keys: [] }
-    this.atomic(relative, { ownerId, pid: process.pid, updatedAt: this.now(), keys: [...new Set([...prior.keys, key])].sort() })
+    const prior = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) as { keys: string[]; durable?: boolean } : { keys: [] }
+    this.atomic(relative, { ownerId, pid: process.pid, updatedAt: this.now(), keys: [...new Set([...prior.keys, key])].sort(), ...((durable || prior.durable) ? { durable: true } : {}) })
   }
-  async retain(ownerId: string, keys: string[]): Promise<void> {
-    await this.locked(async () => { for (const key of keys) this.retainLocked(ownerId, key) })
+  async retain(ownerId: string, keys: string[], durable = false): Promise<void> {
+    await this.locked(async () => { for (const key of keys) this.retainLocked(ownerId, key, durable) })
+  }
+  async replaceRetained(ownerId: string, keys: readonly string[]): Promise<void> {
+    if (!ownerId || keys.some(key => !keyPattern.test(key))) throw new Error('Invalid durable cache reference')
+    await this.locked(async () => {
+      const relative = `refs/${digest(ownerId)}.json`
+      if (keys.length) this.atomic(relative, { ownerId, pid: process.pid, updatedAt: this.now(), keys: [...new Set(keys)].sort(), durable: true })
+      else this.remove(relative)
+    })
   }
   async release(ownerId: string): Promise<void> { await this.locked(async () => this.remove(`refs/${digest(ownerId)}.json`)) }
+  get capacityBytes(): number { return this.maxBytes }
+  async releaseKeys(ownerId: string, keys: readonly string[]): Promise<void> {
+    if (keys.some(key => !keyPattern.test(key))) throw new Error('Invalid cache reference key')
+    await this.locked(async () => {
+      const relative = `refs/${digest(ownerId)}.json`, file = this.checked(relative)
+      if (!fs.existsSync(file)) return
+      const ref = JSON.parse(fs.readFileSync(file, 'utf8')) as { ownerId: string; pid: number; updatedAt: number; keys: string[] }
+      if (ref.ownerId !== ownerId || !Array.isArray(ref.keys)) throw new Error('Invalid cache owner')
+      const dropped = new Set(keys), kept = ref.keys.filter(key => !dropped.has(key))
+      if (kept.length) this.atomic(relative, { ...ref, keys: kept, updatedAt: this.now() }); else this.remove(relative)
+    })
+  }
+  async releaseAndCollect(ownerId: string, activeKeys: readonly string[] = []): Promise<void> {
+    await this.locked(async () => {
+      const relative = `refs/${digest(ownerId)}.json`, file = this.checked(relative)
+      if (!fs.existsSync(file)) return
+      const ref = JSON.parse(fs.readFileSync(file, 'utf8')) as { ownerId: string; keys: string[] }
+      if (ref.ownerId !== ownerId || !Array.isArray(ref.keys) || [...ref.keys, ...activeKeys].some(key => !keyPattern.test(key))) throw new Error('Invalid pending cache reference')
+      this.remove(relative)
+      const protectedKeys = this.protectedKeys(activeKeys)
+      for (const key of ref.keys) if (!protectedKeys.has(key) && fs.existsSync(this.checked(`objects/${key}`))) this.remove(`objects/${key}`)
+    })
+  }
+  /** Explicit completion reclamation; other task leases and persisted active plans win. */
+  async discardUnreferenced(keys: readonly string[], activeKeys: readonly string[] = []): Promise<void> {
+    if ([...keys, ...activeKeys].some(key => !keyPattern.test(key))) throw new Error('Invalid cache collection key')
+    await this.locked(async () => {
+      const protectedKeys = this.protectedKeys(activeKeys)
+      for (const key of new Set(keys)) if (!protectedKeys.has(key) && fs.existsSync(this.checked(`objects/${key}`))) this.remove(`objects/${key}`)
+    })
+  }
   private manifest(key: string): Manifest | null {
     if (!keyPattern.test(key)) throw new Error('Invalid container cache key')
     const file = this.checked(`objects/${key}/entry.json`)
@@ -132,9 +171,10 @@ export class ExpandCache {
     const keys = new Set(activeKeys)
     for (const name of fs.readdirSync(this.checked('refs'))) {
       if (!/^[a-f0-9]{64}\.json$/.test(name)) throw new Error('Unknown cache reference file')
-      const ref = JSON.parse(fs.readFileSync(this.checked(`refs/${name}`), 'utf8')) as { keys: string[]; updatedAt: number; pid: number }
+      const ref = JSON.parse(fs.readFileSync(this.checked(`refs/${name}`), 'utf8')) as { keys: string[]; updatedAt: number; pid: number; durable?: boolean }
       if (!Array.isArray(ref.keys) || ref.keys.some(k => !keyPattern.test(k)) || !Number.isFinite(ref.updatedAt) || !Number.isInteger(ref.pid) || ref.pid <= 0) throw new Error('Invalid cache references; cleanup stopped')
-      if (alive(ref.pid) || this.now() - ref.updatedAt < this.ttl || ref.keys.some(k => keys.has(k))) {
+      if (ref.durable !== undefined && typeof ref.durable !== 'boolean') throw new Error('Invalid durable cache reference')
+      if (ref.durable || alive(ref.pid) || this.now() - ref.updatedAt < this.ttl || ref.keys.some(k => keys.has(k))) {
         for (const key of ref.keys) keys.add(key)
       } else this.remove(`refs/${name}`)
     }

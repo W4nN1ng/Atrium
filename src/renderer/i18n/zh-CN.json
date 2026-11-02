@@ -647,6 +647,7 @@
     "planFailed": "整理计划生成失败",
     "planSummary": "整理计划 · {{units}} 单元 · {{leaves}} 个文件",
     "committing": "正在复制整理并确定分类",
+    "waitingForSpace": "临时空间不足，正在排队；空间释放后自动继续，也可以取消。",
     "planCopyHint": "确认后复制整理到素材库，源文件保留。复制完成后根据实际文件确定分类。",
     "planReviewHint": "执行前将逐字节复核覆盖证据；未通过的计划不会入库。",
     "planDuplicateHint": "全部内容已在库中，确认后只记录本次来源。",

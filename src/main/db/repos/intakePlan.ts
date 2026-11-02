@@ -1,11 +1,21 @@
 import type { Db } from '../../db'
 import { createHash } from 'node:crypto'
-import { INTAKE_PLAN_VERSION, serializeContentKey, type PreparedIntakePlan, type IntakeProgress, type IntakePlanStatus } from '../../../shared/intake'
+import { INTAKE_PLAN_VERSION, serializeContentKey, type PreparedIntakePlan, type IntakeProgress, type IntakePlanStatus, type MemberSource, type ContentKey } from '../../../shared/intake'
 import { safeJoin, isInside, isForbiddenLibraryRoot, isForbiddenTarget, normalizeForCompare } from '../../security/paths'
 import type { LibraryBlob } from '../../intake/planner'
 
 const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex')
 const sha = /^[a-f0-9]{64}$/
+function validateMemberSource(source: MemberSource | undefined, plan: PreparedIntakePlan, blobId: string | null, key: ContentKey): void {
+  if (!source) return
+  if (typeof source.archivePath !== 'string' || !isInside(plan.scanRoot, source.archivePath) || !sha.test(source.archiveSha256) || !Array.isArray(source.steps) || !source.steps.length || source.steps.length > 64) throw new Error('Invalid member source')
+  for (const step of source.steps) {
+    if (!['zip', 'rar', '7z'].includes(step.format) || !Number.isSafeInteger(step.index) || step.index < 0 || typeof step.originalPath !== 'string' || !step.originalPath || !sha.test(step.sha256)) throw new Error('Invalid member source step')
+    serializeContentKey(step.key)
+  }
+  const final = source.steps[source.steps.length - 1]
+  if (final.sha256 !== blobId || serializeContentKey(final.key) !== serializeContentKey(key)) throw new Error('Member source identity mismatch')
+}
 /** Structural validation plus the immutable plan digest; malformed plans never get rewritten. */
 export function validateIntakePlan(value: unknown): asserts value is PreparedIntakePlan {
   const plan = value as PreparedIntakePlan
@@ -21,6 +31,7 @@ export function validateIntakePlan(value: unknown): asserts value is PreparedInt
     ids.add(unit.id)
     for (const op of [...unit.copyOps, ...unit.sidecars]) {
       serializeContentKey(op.key)
+      validateMemberSource(op.memberSource, plan, op.blobId, op.key)
       const target = safeJoin(plan.libraryRoot, op.targetRelPath), key = op.targetRelPath.toLowerCase()
       if (!target || !isInside(unit.libraryPath, target) || targets.has(key) || ops.has(op.id) || !['copy', 'reuse'].includes(op.action ?? '') || (op.blobId !== null && !sha.test(op.blobId))) throw new Error('Invalid copy operation')
       if (op.action === 'reuse' && (!op.blobId || (!op.reuseFromOpId && (!op.libraryBlobPath || !isInside(plan.libraryRoot, op.libraryBlobPath))))) throw new Error('Unresolved blob reuse')
@@ -38,7 +49,10 @@ export function validateIntakePlan(value: unknown): asserts value is PreparedInt
       current = parent
     }
   }
-  for (const occurrence of plan.occurrences) if ((occurrence.unitId && !ids.has(occurrence.unitId)) || (occurrence.copyOpId && !ops.has(occurrence.copyOpId))) throw new Error('Invalid occurrence reference')
+  for (const occurrence of plan.occurrences) {
+    if ((occurrence.unitId && !ids.has(occurrence.unitId)) || (occurrence.copyOpId && !ops.has(occurrence.copyOpId))) throw new Error('Invalid occurrence reference')
+    validateMemberSource(occurrence.memberSource, plan, occurrence.blobId, occurrence.key)
+  }
 }
 
 /** No assets or files are changed. Existing progress/status survives an idempotent save. */

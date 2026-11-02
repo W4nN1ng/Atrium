@@ -341,6 +341,7 @@ async function handle(job: WorkerJob): Promise<void> {
     const cache = new ExpandCache({ namespace: job.normalized.namespace })
     const closure = await buildClosure(job.sourcePath, { ...intakeBudget(stat.isDirectory() ? 0 : stat.size), cache, ownerId: `pending:${job.jobId}`,
       signal: normalizedController.signal, extraBackendDirs: job.backendDirs,
+      onSpaceWait: () => progress(job.jobId, 'extracting', 0.1, 'ingest.waitingForSpace', '临时空间不足，排队等待释放后继续'),
       requestPassword: sourcePath => new Promise(resolve => {
         const requestId = ++passwordRequestId; passwordWaiters.set(requestId, resolve)
         post({ type: 'need-password', jobId: job.jobId, sourcePath, requestId })

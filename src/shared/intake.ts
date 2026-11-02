@@ -26,6 +26,13 @@ export interface ContainerRef {
   key: ContentKey
 }
 
+/** Recoverable per-member reads when a complete expansion cannot fit in the temporary cache. */
+export interface MemberSource {
+  archivePath: string
+  archiveSha256: BlobId
+  steps: Array<{ format: 'zip' | 'rar' | '7z'; index: number; originalPath: string; key: ContentKey; sha256: BlobId }>
+}
+
 export interface LeafRef {
   key: ContentKey
   relPath: string
@@ -34,6 +41,7 @@ export interface LeafRef {
   kind?: 'file' | 'unitypackage' | 'opaque'
   cacheKey?: string // Container cache holding localPath; never a source filename.
   blobId?: BlobId // Present only after full streaming SHA-256; absent for listing-only leaves.
+  memberSource?: MemberSource
 }
 
 export interface ClosurePayload {
@@ -73,6 +81,7 @@ export interface CopyOp {
   libraryBlobPath?: string | null
   reuseFromOpId?: string // Same-plan physical blob dependency; never means a second byte copy.
   chain?: ContainerRef[]
+  memberSource?: MemberSource
 }
 
 export interface PlannedUnit {
@@ -120,6 +129,7 @@ export interface PlannedOccurrence {
   chain: ContainerRef[]
   kind: SourceOccurrenceKind
   existingAssetIds: string[]
+  memberSource?: MemberSource
 }
 export interface PreparedUnit extends PlannedUnit {
   disposition: 'new' | 'merge' | 'duplicate' | 'blocked'

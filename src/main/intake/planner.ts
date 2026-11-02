@@ -137,6 +137,12 @@ export function buildIntakePlan(scanRoot: string, closureIndex: PlannerIndex, li
     if (added.length) extracts.push({ source: group.sourcePath, members: added.sort(cmp) })
   }
   tree.sort(fileCmp)
+  const logicalIdentities = new Map<string, string>()
+  for (const file of tree) {
+    const key = file.logical.toLowerCase(), identity = placementIdentity(file.leaf), prior = logicalIdentities.get(key)
+    if (prior && prior !== identity) warnings.push(`${file.logical}: same-path-content-conflict; both retained`)
+    logicalIdentities.set(key, identity)
+  }
   const sourceDirChain = slash(path.dirname(root)).split('/').filter(s => s && !/^[a-z]:$/i.test(s)).slice(-4)
   const partition = classify(ingest(rootName, libraryRoot, tree.map(f => fileEntry(f.logical, f.leaf.key.size)), `partition-${hash(root)}`, warnings, sourceDirChain), closureIndex.classifyDeps)
   const rawUnits = partition.units.length > 1 ? [...partition.units].sort((a, b) => cmp(a.sourceRelPath ?? '', b.sourceRelPath ?? '') || cmp(a.name, b.name)) : [partition.units[0]]
@@ -205,8 +211,9 @@ export function buildIntakePlan(scanRoot: string, closureIndex: PlannerIndex, li
       const op: CopyOp = { id: `copy-${hash([unitId, targetRelPath, file.sourcePath, file.member, file.ordinal, file.leaf.key])}`, sourcePath: file.leaf.localPath ?? file.sourcePath,
         targetRelPath, originalRelPath: file.member, key: { ...file.leaf.key }, blobId: known ?? null,
         idempotencyKey: known ? hash([canonical(target), known]) : null, cacheKey: file.leaf.cacheKey ?? null,
-        action: existing ? 'reuse' : 'copy', libraryBlobPath: existing?.storagePath ?? null, chain: file.leaf.chain }
-      if (!existing && !file.leaf.localPath && file.leaf.chain.length) { blocked.push({ sourcePath: file.sourcePath, path: file.member, reason: 'member-not-materialized' }); unit.disposition = 'blocked' }
+        action: existing ? 'reuse' : 'copy', libraryBlobPath: existing?.storagePath ?? null, chain: file.leaf.chain,
+        ...(file.leaf.memberSource ? { memberSource: file.leaf.memberSource } : {}) }
+      if (!existing && !file.leaf.localPath && !file.leaf.memberSource && file.leaf.chain.length) { blocked.push({ sourcePath: file.sourcePath, path: file.member, reason: 'member-not-materialized' }); unit.disposition = 'blocked' }
       ;(assignment.sidecars.has(file) ? unit.sidecars : unit.copyOps).push(op)
       unit.normalizedEntries.push(fileEntry(member, op.key.size)); if (image(member)) unit.coverCandidates.push(targetRelPath)
       unit.sources.push(file.sourcePath); unit.existingAssetIds.push(...refs); placements.push({ file, unit, op, refs })
@@ -245,6 +252,7 @@ export function buildIntakePlan(scanRoot: string, closureIndex: PlannerIndex, li
       occurrences.push({ id: `occ-${hash([original.sourcePath, original.member, original.ordinal, original.leaf.key, placed?.unit.id ?? null])}`, unitId: placed?.unit.id ?? null,
         copyOpId: placed?.op.id ?? null, sourcePath: original.sourcePath, relPath: original.member, localPath: original.leaf.localPath,
         key: { ...original.leaf.key }, blobId: original.leaf.blobId ?? null, chain: original.leaf.chain,
+        ...(original.leaf.memberSource ? { memberSource: original.leaf.memberSource } : {}),
         kind: original.archive && !(original.leaf.kind === 'opaque' && !original.leaf.chain.length) ? (skipped.has(idPath(original.sourcePath)) ? 'skipped-archive' : placed && placed.op.action === 'copy' && sameOrigin(placed.file, original) ? 'extracted' : 'archived-copy') : 'loose', existingAssetIds: placed?.refs ?? [] })
       if (placed) placed.unit.sources = uniq([...placed.unit.sources, original.sourcePath])
     }

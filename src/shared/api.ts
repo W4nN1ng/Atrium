@@ -113,6 +113,11 @@ export interface PathInfo {
   libraryProblem: string | null
 }
 
+export interface IngestQueueSnapshot {
+  revision: number
+  items: IngestItemState[]
+}
+
 export interface IngestItemState {
   jobId: string
   sourcePath: string
@@ -586,6 +591,7 @@ export interface AApi {
     cancel(jobId?: string): Promise<void>
     dismiss(jobId?: string): Promise<void>
     queue(): Promise<IngestItemState[]>
+    queueSnapshot(): Promise<IngestQueueSnapshot>
     /**
      * 收件箱持久化：把上次没确认完的卡片重新入队。
      * 启动时主进程会自动调一次；这里也给界面一个手动入口（设置 → 维护）。

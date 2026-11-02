@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID, createHash } from 'node:crypto'
+import os from 'node:os'
+import { setTimeout as delay } from 'node:timers/promises'
 import type { Db } from '../db'
 import { fileIdentity } from './identity'
 import { readIntakePlan, updateIntakeProgress } from '../db/repos/intakePlan'
@@ -9,6 +11,8 @@ import type { CopyOp, IntakeProgress, PlanReview, PreparedIntakePlan, PreparedUn
 import { isInside, safeJoin } from '../security/paths'
 import { appendJournal } from '../db/repos/journal'
 import type { AssetUnit, ClassificationResult } from '../../shared/types'
+import { ExpandCache } from './expandCache'
+import { readMemberSource } from './memberSource'
 
 export class IntakeExecutionError extends Error {
   constructor(message: string, readonly code: 'space' | 'review-required' | 'source-changed' | 'target-conflict' | 'blocked' | 'cancelled' | 'database' = 'database') {
@@ -26,6 +30,9 @@ export interface ExecuteOptions {
   batchId?: string
   /** Testing/maintenance hook; the default uses hard links for same-volume blob references. */
   link?: (from: string, to: string) => Promise<void>
+  requestPassword?: (file: string) => Promise<string | null>
+  extraBackendDirs?: string[]
+  onSpaceWait?: (requiredBytes: number) => void
 }
 export interface ExecutionResult {
   planId: string
@@ -133,13 +140,23 @@ export async function executePlan(db: Db, planId: string, opts: ExecuteOptions =
   const ops = opMap(plan), copiedOps: string[] = [], reusedOps: string[] = [], staged = new Set<string>(), published = new Set<string>(), createdDirs = new Set<string>(), copiedBytes = { value: 0 }, reusedBytes = { value: 0 }
   const uniqueCopyBytes = [...new Map(allOps(plan).filter(op => op.action === 'copy').map(op => [op.blobId ?? op.id, op.key.size])).values()].reduce((a, b) => a + b, 0)
   const free = opts.freeBytes ?? (() => { const info = fs.statfsSync(plan.libraryRoot); return info.bavail * info.bsize })
-  if (!opts.dryRun && free() < Math.ceil(uniqueCopyBytes * 1.1) + 16 * 1024 * 1024) throw new IntakeExecutionError('目标盘空间不足', 'space')
+  const batchWorkingBytes = path.parse(path.resolve(plan.libraryRoot)).root.toLowerCase() === path.parse(os.tmpdir()).root.toLowerCase()
+    ? Math.max(0, ...allOps(plan).filter(op => op.action === 'copy' && op.memberSource).map(op => Math.ceil(op.key.size * 1.2))) : 0
+  const requiredBytes = Math.ceil(uniqueCopyBytes * 1.1) + batchWorkingBytes + 16 * 1024 * 1024
+  while (!opts.dryRun && free() < requiredBytes) {
+    if (!opts.onSpaceWait) throw new IntakeExecutionError('目标盘空间不足', 'space')
+    opts.onSpaceWait(requiredBytes)
+    try { await delay(1000, undefined, { signal: opts.signal }) }
+    catch (error) { if (opts.signal?.aborted) { updateProgress(db, plan, progress, 'cancelled', now()); throw new IntakeExecutionError('摄取已取消', 'cancelled') } throw error }
+  }
   if (opts.dryRun) return { planId, status: saved.status === 'running' ? 'planned' : saved.status, dryRun: true, copiedBytes: 0, reusedBytes: 0, copiedOps: [], reusedOps: [], assetIds: plan.units.flatMap(u => u.assetId ? [u.assetId] : []), journalId: null }
   updateProgress(db, plan, progress, 'running', now())
   try {
     const ordered: CopyOp[] = [], visited = new Set<string>()
     const visit = (op: CopyOp): void => { if (visited.has(op.id)) return; if (op.reuseFromOpId) visit(ops.get(op.reuseFromOpId)!); visited.add(op.id); ordered.push(op) }
-    for (const unit of plan.units.filter(u => u.disposition !== 'duplicate')) for (const op of [...unit.copyOps, ...unit.sidecars]) visit(op)
+    const pending = plan.units.filter(u => u.disposition !== 'duplicate').flatMap(u => [...u.copyOps, ...u.sidecars])
+      .sort((a, b) => Number(!!a.chain?.length) - Number(!!b.chain?.length) || a.key.size - b.key.size || a.targetRelPath.localeCompare(b.targetRelPath))
+    for (const op of pending) visit(op)
     for (const op of ordered) {
       abort(opts.signal)
       if (progress.completedOps[op.id]) {
@@ -154,6 +171,9 @@ export async function executePlan(db: Db, planId: string, opts: ExecuteOptions =
       const blob = op.blobId ?? (() => { throw new IntakeExecutionError(`CopyOp 缺少 blobId：${op.id}`, 'database') })()
       const physical = blobPath(plan.libraryRoot, blob)
       let source = sourceFor(op, ops, progress.completedOps)
+      const member = op.action === 'copy' && op.memberSource ? await readMemberSource(op.memberSource, new ExpandCache({ namespace: db.name }), { ...opts, sourceRoot: plan.scanRoot }) : null
+      if (member) source = member.file
+      try {
       if (!fs.existsSync(source)) throw new IntakeExecutionError(`来源不存在：${source}`, 'source-changed')
       const sourceIdentity = await fileIdentity(source, opts.signal)
       if (sourceIdentity.sha256 !== blob || sourceIdentity.key.size !== op.key.size || sourceIdentity.key.crc32 !== op.key.crc32) throw new IntakeExecutionError(`来源内容已变化：${source}`, 'source-changed')
@@ -183,6 +203,7 @@ export async function executePlan(db: Db, planId: string, opts: ExecuteOptions =
       delete progress.failedOps[op.id]
       updateProgress(db, plan, progress, 'running', now())
       opts.onProgress?.(Object.keys(progress.completedOps).length, ordered.length)
+      } finally { await member?.release() }
     }
     abort(opts.signal)
     const finals = new Map<string, ClassificationResult>()

@@ -78,3 +78,37 @@ export async function extractFlat(file: string, format: string, entries: Archive
   if (new Set(files.map(e => e.path)).size !== files.length) throw new Error('ambiguous-native-member-path')
   for (let i = 0; i < files.length; i++) await nativeMember(file, format, files[i], path.join(dest, members[i].file), opts)
 }
+
+/** One bounded batch. ZIP ordinal selection also preserves duplicate and illegal member names. */
+export async function extractOne(file: string, format: string, entries: ArchiveEntry[], index: number, member: CacheMember, dest: string, opts: MemberOptions): Promise<void> {
+  const expected = entries[index]
+  if (!expected || expected.isDir) throw new Error('invalid-member-index')
+  if (format === 'rar') {
+    if (entries.filter(e => !e.isDir && e.path === expected.path).length !== 1) throw new Error('ambiguous-native-member-path')
+    await extractRar(file, [expected.path], dest, { ...opts, targetNames: new Map([[expected.path, member.file]]) }); return
+  }
+  if (format === 'zip' && !expected.encrypted) {
+    const zip = await new Promise<yauzl.ZipFile>((resolve, reject) => yauzl.open(file, { lazyEntries: true, decodeStrings: false, autoClose: false, validateEntrySizes: false }, (error, zip) => error || !zip ? reject(error ?? new Error('zip-open')) : resolve(zip)))
+    let ordinal = -1
+    const aborted = (): void => zip.close()
+    opts.signal?.addEventListener('abort', aborted, { once: true })
+    try {
+      await new Promise<void>((resolve, reject) => {
+        zip.on('error', reject); zip.on('end', () => reject(new Error('zip-member-missing')))
+        zip.on('close', () => { if (opts.signal?.aborted) reject(opts.signal.reason) })
+        zip.on('entry', (entry: yauzl.Entry) => {
+          if (++ordinal !== index) { zip.readEntry(); return }
+          if (entry.uncompressedSize !== expected.size || entry.crc32 !== expected.crc32) { reject(new Error('zip-entry-changed')); return }
+          zip.openReadStream(entry, (error, stream) => {
+            if (error || !stream) { reject(error ?? new Error('zip-stream')); return }
+            pipeline(stream, sizeGuard(expected.size), fs.createWriteStream(path.join(dest, member.file), { flags: 'wx' }), { signal: opts.signal }).then(resolve, reject)
+          })
+        })
+        opts.signal?.throwIfAborted(); zip.readEntry()
+      })
+    } finally { opts.signal?.removeEventListener('abort', aborted); zip.close() }
+    return
+  }
+  if (entries.filter(e => !e.isDir && e.path === expected.path).length !== 1) throw new Error('ambiguous-native-member-path')
+  await nativeMember(file, format === '7z' ? 'sevenz' : format, expected, path.join(dest, member.file), opts)
+}

@@ -647,6 +647,7 @@
     "planFailed": "Could not build the intake plan",
     "planSummary": "Intake plan · {{units}} units · {{leaves}} files",
     "committing": "Copying, organizing and classifying",
+    "waitingForSpace": "Waiting for temporary space. Processing resumes automatically when space is available; you can cancel.",
     "planCopyHint": "Confirmation copies organized files into the library and keeps the sources. Classification reads the published files.",
     "planReviewHint": "Coverage evidence is compared byte by byte before execution. Unverified plans cannot be committed.",
     "planDuplicateHint": "All content is already in the library. Confirmation records this source only.",

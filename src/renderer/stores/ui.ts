@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { UnityConnectionSnapshot } from '../../shared/unityConnection'
-import type { AppInfo, IngestItemState, PathInfo, Stats } from '../../shared/api'
+import type { AppInfo, IngestItemState, IngestQueueSnapshot, PathInfo, Stats } from '../../shared/api'
 import type {
   AppSettings,
   AssetFilter,
@@ -580,6 +580,13 @@ export const useUi = create<UiState>((set, get) => {
   let detailRevision = 0
   let listRevision = 0
   let listFilterKey = ''
+  let ingestSnapshotRevision = -1
+
+  function applyIngestSnapshot(snapshot: IngestQueueSnapshot): void {
+    if (!snapshot || !Number.isSafeInteger(snapshot.revision) || snapshot.revision < 0 || !Array.isArray(snapshot.items) || snapshot.revision < ingestSnapshotRevision) return
+    ingestSnapshotRevision = snapshot.revision
+    set({ ingestItems: snapshot.items })
+  }
 
   async function ensureImportTarget(): Promise<{ id: string; name: string } | null> {
     if (preparation || get().importFlow.busy || get().importFlow.pending ||
@@ -765,7 +772,7 @@ export const useUi = create<UiState>((set, get) => {
     if (listenersBound) return
     listenersBound = true
     window.a.on('ingest:progress', (payload) => {
-      set({ ingestItems: Array.isArray(payload) ? (payload as IngestItemState[]) : [] })
+      applyIngestSnapshot(payload as IngestQueueSnapshot)
     })
     window.a.on('data:changed', (payload) => {
       void refreshList()
@@ -1405,7 +1412,7 @@ export const useUi = create<UiState>((set, get) => {
 
     async refreshIngestQueue() {
       try {
-        set({ ingestItems: await window.a.ingest.queue() })
+        applyIngestSnapshot(await window.a.ingest.queueSnapshot())
       } catch {
         /* M1 允许队列接口还没实现 */
       }

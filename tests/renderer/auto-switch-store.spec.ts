@@ -52,7 +52,7 @@ beforeEach(async () => {
       reset: async () => ({})
     },
     system: { info: async () => ({}), paths: async () => ({}) },
-    ingest: { queue: async () => [], restoreQueue: async () => [] },
+    ingest: { queueSnapshot: async () => ({ revision: 0, items: [] }), queue: async () => [], restoreQueue: async () => [] },
     unity: {
       status: async () => ({}),
       instances: async () => [],

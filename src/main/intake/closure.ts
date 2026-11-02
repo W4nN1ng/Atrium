@@ -8,6 +8,9 @@ import { PasswordNeededError } from '../unpack/errors'
 import { ExpandCache, type CacheMember } from './expandCache'
 import { fileIdentity, sameFile } from './identity'
 import { extractFlat } from './memberIO'
+import { buildBatchedClosure } from './batchClosure'
+
+class CachePressureRestart extends Error {}
 
 export interface ClosureOptions extends Budget {
   cache?: ExpandCache
@@ -17,6 +20,7 @@ export interface ClosureOptions extends Budget {
   extraBackendDirs?: string[]
   /** Called for the actual (possibly inner cached) container; null explicitly declines. Never persisted. */
   requestPassword?: (container: string) => Promise<string | null>
+  onSpaceWait?: (requiredBytes: number) => void
 }
 async function probe(file: string, name: string): Promise<ProbeResult> {
   const handle = await fs.promises.open(file, 'r')
@@ -72,6 +76,7 @@ export async function buildClosure(root: string, opts: ClosureOptions): Promise<
           opts.signal?.throwIfAborted()
           const listing = await listMembers(file, { password, extraBackendDirs: opts.extraBackendDirs, signal: opts.signal })
           const files = listing.entries.filter(e => !e.isDir)
+          if (!files.length) throw new Error('empty-container-retained')
           const bytes = files.reduce((sum, e) => sum + e.size, 0)
           if (listing.entries.length > opts.maxEntriesPerContainer) throw new Error('budget-entries')
           if (files.some(e => e.size > opts.maxFileBytes)) throw new Error('budget-file')
@@ -103,6 +108,8 @@ export async function buildClosure(root: string, opts: ClosureOptions): Promise<
       return leaves
     } catch (error) {
       opts.signal?.throwIfAborted(); opaque = true
+      if (error instanceof CachePressureRestart) throw error
+      if (error instanceof Error && error.message === 'cache-insufficient-space') throw new CachePressureRestart()
       warnings.push(`${rel}: opaque (${error instanceof Error ? error.message : String(error)})`)
       return [{ ...leaf, kind: 'opaque' }]
     }
@@ -111,6 +118,14 @@ export async function buildClosure(root: string, opts: ClosureOptions): Promise<
   let rootIsDirectory = false
   let rootRel: string
   try { rootIsDirectory = (await fs.promises.lstat(absolute)).isDirectory(); rootRel = rootIsDirectory ? '' : path.basename(absolute) } catch { rootRel = path.basename(absolute) }
-  const leaves = await visit(absolute, rootRel, [], 0)
-  return { leaves, opaque, warnings, unreadable, cacheKeys: [...keys].sort(), cacheOwnerId: ownerId }
+  try {
+    const leaves = await visit(absolute, rootRel, [], 0)
+    return { leaves, opaque, warnings, unreadable, cacheKeys: [...keys].sort(), cacheOwnerId: ownerId }
+  } catch (error) {
+    if (!(error instanceof CachePressureRestart)) throw error
+    // No plan has been published. Drop only this attempt's leases before restarting with recipes.
+    await cache.release(ownerId)
+    await cache.discardUnreferenced([...keys])
+    return buildBatchedClosure(root, { ...opts, cache, ownerId })
+  }
 }

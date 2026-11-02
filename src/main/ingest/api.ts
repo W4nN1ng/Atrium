@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Worker } from 'node:worker_threads'
 import log from 'electron-log'
-import type { BundlePreview, ClassifiedUnitView, IngestItemState } from '../../shared/api'
+import type { BundlePreview, ClassifiedUnitView, IngestItemState, IngestQueueSnapshot } from '../../shared/api'
 import type { AssetUnit, ClassificationResult, ContentType, SourcePlatform } from '../../shared/types'
 import { ulid } from '../../shared/ulid'
 import { cleanDisplayName, tagsWithAltName } from '../../shared/naming'
@@ -36,7 +36,7 @@ import type { WorkerMessage, WorkerResult } from './worker'
 import { containerInfoOf, type ContainerInfo } from './container'
 import { queueActionFor, STAGE_TERMINAL } from './queuePolicy'
 import { pruneExtractRoot, resolveExtractRoot } from '../import/extractRoot'
-import { pruneIntakeCache } from '../intake/lifecycle'
+import { pruneIntakeCache, releaseCompletedIntakeCache, releasePendingIntakeCache } from '../intake/lifecycle'
 import { ExpandCache } from '../intake/expandCache'
 import type { PreparedIntakePlan } from '../../shared/intake'
 import type { ExecutionResult } from '../intake/executor'
@@ -215,6 +215,8 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
   }
 
   const snapshot = (): IngestItemState[] => Array.from(jobs.values()).map((j) => ({ ...j.item }))
+  let snapshotRevision = 0
+  const versionedSnapshot = (): IngestQueueSnapshot => ({ revision: ++snapshotRevision, items: snapshot() })
 
   /** 批量入库时置为 true：只发进度事件，不逐条重发整份队列快照 */
   let quiet = false
@@ -235,12 +237,12 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       if (!flushTimer) {
         flushTimer = setTimeout(() => {
           flushTimer = null
-          if (!disposed) registrar.broadcast('ingest:progress', snapshot())
+          if (!disposed) registrar.broadcast('ingest:progress', versionedSnapshot())
         }, 400)
       }
       return
     }
-    registrar.broadcast('ingest:progress', snapshot())
+    registrar.broadcast('ingest:progress', versionedSnapshot())
   }
 
   function update(id: string, patch: Partial<IngestItemState>): void {
@@ -343,7 +345,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     job.intakePlanId = plan.id
     job.normalizedIntake = true
     const cache = new ExpandCache({ namespace: getDb().name })
-    await cache.retain(plan.id, plan.cacheKeys)
+    await cache.retain(plan.id, plan.cacheKeys, true)
     await cache.release(`pending:${job.item.jobId}`).catch(() => undefined)
     if (job.cancelled) return
     update(job.item.jobId, {
@@ -383,7 +385,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       if (msg.type === 'plan') {
         try { await acceptNormalizedPlan(job, msg.plan) }
         catch (e) { update(item.jobId, { stage: 'failed', error: String(e), messageKey: 'ingest.planFailed' }) }
-        finally { await worker.terminate().catch(() => undefined); job.worker = null }
+        finally { await worker.terminate().catch(() => undefined); job.worker = null; if (!job.intakePlanId) await releasePendingIntakeCache(getDb(), item.jobId).catch(error => log.warn('Pending intake cache cleanup deferred', error)) }
         return
       }
       if (msg.type === 'progress') {
@@ -449,6 +451,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
         })
         await worker.terminate().catch(() => undefined)
         job.worker = null
+        if (!job.intakePlanId) await releasePendingIntakeCache(getDb(), item.jobId).catch(error => log.warn('Pending intake cache cleanup deferred', error))
         await dropStaging(job)
         return
       }
@@ -539,6 +542,23 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
         existingTargetPaths: s.libraryRoot && fs.existsSync(s.libraryRoot) ? fs.readdirSync(s.libraryRoot) : [] }
     })
     await new Promise<void>(resolve => worker.once('exit', () => resolve()))
+  }
+
+  async function stopPlanningWorker(job: Job): Promise<void> {
+    const worker = job.worker
+    if (worker) {
+      // Let cancellable IO release its cache lock before a bounded fallback termination.
+      await new Promise<void>(resolve => {
+        const done = (): void => { clearTimeout(timer); worker.off('message', message); worker.off('exit', done); worker.off('error', done); resolve() }
+        const message = (msg: WorkerMessage): void => { if (['plan', 'done', 'error'].includes(msg.type)) done() }
+        const timer = setTimeout(done, 1200)
+        worker.on('message', message); worker.once('exit', done); worker.once('error', done)
+        worker.postMessage({ type: 'cancel' })
+      })
+      await worker.terminate().catch(() => undefined)
+      if (job.worker === worker) job.worker = null
+    }
+    if (!job.intakePlanId) await releasePendingIntakeCache(getDb(), job.item.jobId).catch(error => log.warn('Pending intake cache cleanup deferred', error))
   }
 
   /**
@@ -718,7 +738,18 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       update(job.item.jobId, { stage: 'committing', progress: 0, error: undefined, messageKey: 'ingest.committing' })
       job.execution = new Promise<ExecutionResult>((resolve, reject) => {
         execution.on('message', msg => {
-          if (msg.type === 'progress') update(job.item.jobId, { progress: msg.total ? msg.completed / msg.total : 0 })
+          if (msg.type === 'progress') update(job.item.jobId, { progress: msg.total ? msg.completed / msg.total : 0, messageKey: 'ingest.committing' })
+          if (msg.type === 'waiting-space') update(job.item.jobId, { messageKey: 'ingest.waitingForSpace' })
+          if (msg.type === 'need-password') {
+            job.passwordAttempts ??= new Set()
+            if (!job.passwordAttempts.has(msg.sourcePath)) {
+              job.passwordAttempts.add(msg.sourcePath)
+              const saved = recallArchivePassword(getDb(), msg.sourcePath)
+              if (saved) { execution.postMessage({ type: 'password', requestId: msg.requestId, password: saved }); return }
+            }
+            job.passwordRequest = { requestId: msg.requestId, sourcePath: msg.sourcePath }
+            update(job.item.jobId, { stage: 'awaiting_confirm', needsPassword: true, passwordContainer: msg.sourcePath, messageKey: 'ingest.needPassword' })
+          }
           if (msg.type === 'completed') resolve(msg.result)
           if (msg.type === 'failed') reject(new Error(msg.message))
         })
@@ -726,8 +757,9 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
         execution.on('exit', code => reject(new Error(`执行 worker 退出：${code}`)))
         execution.postMessage({ type: 'execute', planId, dbFile: getDb().name, resourceRoot: resourceRoot(), userLexicon: P.userLexicon(),
           categories: loadCategories(), learning: Array.from(learningMap(getDb()).entries()), confidenceConfirm: s.confidenceConfirm, confidenceAuto: s.confidenceAuto,
-          batchId: opts.batchId } satisfies ExecuteJob)
+          batchId: opts.batchId, backendDirs: [bundledBinDir()] } satisfies ExecuteJob)
       }).then(async executed => {
+        await releaseCompletedIntakeCache(getDb(), planId).catch(error => log.warn('Completed intake cache cleanup deferred', error))
         const ids = executed.assetIds.length ? executed.assetIds : (readIntakePlan(getDb(), planId)?.plan.units.flatMap(u => u.existingAssetIds) ?? [])
         const primary = ids[0] ?? job.item.assetId ?? ulid()
         finishCommit(job, primary, ids, opts.batchId ?? planId, !!opts.batch)
@@ -1019,6 +1051,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
   }
 
   registrar.ipc.handle('ingest:queue', (): IngestItemState[] => snapshot())
+  registrar.ipc.handle('ingest:queue-snapshot', versionedSnapshot)
   registrar.ipc.handle('ingest:plan-status', (jobId: unknown) => typeof jobId === 'string' ? jobs.get(jobId)?.item ?? null : null)
   registrar.ipc.handle('ingest:plan-confirm', async (jobId: unknown) => {
     if (typeof jobId !== 'string') throw new Error('任务参数无效')
@@ -1078,7 +1111,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     if (job.passwordRequest && job.worker) {
       job.worker.postMessage({ type: 'password', requestId: job.passwordRequest.requestId, password: password || null })
       job.passwordRequest = undefined
-      update(jobId, { needsPassword: false, passwordContainer: undefined, stage: 'extracting', messageKey: 'ingest.requeued' })
+      update(jobId, { needsPassword: false, passwordContainer: undefined, stage: job.execution ? 'committing' : 'extracting', messageKey: 'ingest.requeued' })
       return { ok: true, vault }
     }
     update(jobId, { needsPassword: false, stage: 'queued', messageKey: 'ingest.requeued', message: '带密码重新处理' })
@@ -1143,7 +1176,7 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
           flushTimer = null
         }
         registrar.broadcast('ingest:commit-progress', { done: summary.committed + summary.failed.length, total })
-        registrar.broadcast('ingest:progress', snapshot())
+        registrar.broadcast('ingest:progress', versionedSnapshot())
       }
       batchIds.add(batchId)
       log.info(
@@ -1211,10 +1244,10 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
       if (j.item.stage === 'done') continue
       j.cancelled = true
       if (j.execution) j.worker?.postMessage({ type: 'cancel' })
-      else { void j.worker?.terminate().catch(() => undefined); j.worker = null }
+      else void stopPlanningWorker(j).finally(() => dropStaging(j)).catch(error => log.warn('Cancelled intake cleanup deferred', error))
       if (j.intakePlanId && !j.execution) { const saved = readIntakePlan(getDb(), j.intakePlanId); if (saved) updateIntakeProgress(getDb(), j.intakePlanId, 'cancelled', saved.progress) }
       update(id, { stage: 'cancelled', messageKey: 'inbox.stage.cancelled', message: '已取消' })
-      void dropStaging(j)
+      if (j.execution) void dropStaging(j)
     }
   })
 
@@ -1227,9 +1260,9 @@ export function startIngest(registrar: IpcRegistrar): IngestApi {
     for (const j of gone) {
       j.cancelled = true
       if (j.execution) j.worker?.postMessage({ type: 'cancel' })
-      else { void j.worker?.terminate().catch(() => undefined); j.worker = null }
+      else void stopPlanningWorker(j).finally(() => dropStaging(j)).catch(error => log.warn('Dismissed intake cleanup deferred', error))
       if (j.intakePlanId && !j.execution && j.item.stage !== 'done') { const saved = readIntakePlan(getDb(), j.intakePlanId); if (saved) updateIntakeProgress(getDb(), j.intakePlanId, 'cancelled', saved.progress) }
-      void dropStaging(j)
+      if (j.execution) void dropStaging(j)
       /**
        * 丢弃 = 用户明确说"这活儿不要了"，**必须**从持久化队列里划掉。
        * 否则下次启动 `restoreQueue()` 会把它原样捞回来 —— 用户丢掉的东西自己爬回队列，

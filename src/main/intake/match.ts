@@ -49,7 +49,8 @@ function copyLeaf(leaf: LeafRef): LeafRef {
   serializeContentKey(leaf.key)
   return { key: { size: leaf.key.size, crc32: leaf.key.crc32 }, relPath: leaf.relPath,
     chain: leaf.chain.map(c => ({ sourcePath: c.sourcePath, memberPath: c.memberPath, format: c.format, key: { size: c.key.size, crc32: c.key.crc32 } })),
-    localPath: leaf.localPath, ...(leaf.kind ? { kind: leaf.kind } : {}), ...(leaf.cacheKey ? { cacheKey: leaf.cacheKey } : {}), ...(leaf.blobId ? { blobId: leaf.blobId } : {}) }
+    localPath: leaf.localPath, ...(leaf.kind ? { kind: leaf.kind } : {}), ...(leaf.cacheKey ? { cacheKey: leaf.cacheKey } : {}), ...(leaf.blobId ? { blobId: leaf.blobId } : {}),
+    ...(leaf.memberSource ? { memberSource: { ...leaf.memberSource, steps: leaf.memberSource.steps.map(s => ({ ...s, key: { ...s.key } })) } } : {}) }
 }
 const leafCmp = (a: LeafRef, b: LeafRef): number => cmp(a.relPath, b.relPath) || cmp(serializeContentKey(a.key), serializeContentKey(b.key)) || cmp(JSON.stringify(a), JSON.stringify(b))
 function copySource(source: ClosureSource): ClosureSource {
@@ -209,21 +210,25 @@ export function planSelection(allClosures: readonly ClosureSource[], opts: { sca
   for (const item of loose) ownerCounts.set(item.source.sourcePath, (ownerCounts.get(item.source.sourcePath) ?? 0) + 1)
   const archiveList = [...archives.values()]
   const affinityCache = new Map<string, [number, number]>()
-  const bestAffinity = (source: ClosureSource): [number, number] => {
-    const known = affinityCache.get(source.sourcePath)
+  const bestAffinity = (source: ClosureSource, leaf: LeafRef): [number, number] => {
+    const owner = source.kind === 'directory' ? parent(loosePath(source, leaf)) : source.sourcePath
+    const cacheId = `${source.sourcePath}\0${owner}`
+    const known = affinityCache.get(cacheId)
     if (known) return known
     let best: [number, number] = [1, 1]
     for (const archive of archiveList) {
-      const candidate = affinity(source.sourcePath, archive.sourcePath)
-      if (candidate[0] < best[0] || (candidate[0] === best[0] && candidate[1] < best[1])) best = candidate
+      for (const candidatePath of [source.sourcePath, owner]) {
+        const candidate = affinity(candidatePath, archive.sourcePath)
+        if (candidate[0] < best[0] || (candidate[0] === best[0] && candidate[1] < best[1])) best = candidate
+      }
       if (!best[0] && !best[1]) break
     }
-    affinityCache.set(source.sourcePath, best); return best
+    affinityCache.set(cacheId, best); return best
   }
   const relativeDepth = (value: string): number => opts.scanRoot && pathId(value).startsWith(`${pathId(opts.scanRoot)}/`) ? depth(value.slice(cleanPath(opts.scanRoot).length + 1)) : depth(value)
   const namePenalty = (value: string): number => (base(value).match(/[\uFFFD\u2500-\u259f\x00-\x1f]/g) ?? []).length
   loose.sort((a, b) => {
-    const x = bestAffinity(a.source), y = bestAffinity(b.source), pa = loosePath(a.source, a.leaf), pb = loosePath(b.source, b.leaf)
+    const x = bestAffinity(a.source, a.leaf), y = bestAffinity(b.source, b.leaf), pa = loosePath(a.source, a.leaf), pb = loosePath(b.source, b.leaf)
     return relativeDepth(pa) - relativeDepth(pb) || namePenalty(pa) - namePenalty(pb) || x[0] - y[0] || x[1] - y[1] ||
       (ownerCounts.get(b.source.sourcePath) ?? 0) - (ownerCounts.get(a.source.sourcePath) ?? 0) || cmp(pa, pb) || cmp(a.source.sourcePath, b.source.sourcePath)
   })
